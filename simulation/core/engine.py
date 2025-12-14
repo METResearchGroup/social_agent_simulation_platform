@@ -7,6 +7,7 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata, TurnResult
@@ -55,7 +56,7 @@ class SimulationEngine:
             The run that was executed.
         """
         run: Run = self.run_repo.create_run(run_config)
-        agents: list[SocialMediaAgent] = self._create_agents_for_run(run_config)
+        agents: list[SocialMediaAgent] = self._create_agents_for_run(run_config, run.run_id)
 
         for turn_number in range(run.total_turns):
             turn_result: TurnResult = self._simulate_turn(run.run_id, turn_number, agents)
@@ -185,23 +186,33 @@ class SimulationEngine:
         """
         raise NotImplementedError  # Stub for PR 1
 
-    def _create_agents_for_run(self, config: RunConfig) -> list[SocialMediaAgent]:
+    def _create_agents_for_run(self, config: RunConfig, run_id: str | None = None) -> list[SocialMediaAgent]:
         """Create agents for a simulation run.
 
         Args:
             config: The run configuration.
+            run_id: Optional. The ID of the run for error context.
 
         Returns:
             A list of agents for the run.
+
+        Raises:
+            InsufficientAgentsError: If fewer agents are available than requested.
         """
         # TODO: Refactor to use injected agent_factory in PR 9
         from ai.create_initial_agents import create_initial_agents
 
-        agents: list[SocialMediaAgent] = create_initial_agents()
-        agents = agents[:config.num_agents]
-        if len(agents) < config.num_agents:
-            logger.warning(f"Only {len(agents)} agents created, but {config.num_agents} are required. Using {len(agents)} agents instead.")
-        logger.info(f"Created {len(agents)} agents for run {config.run_id}")
+        all_agents: list[SocialMediaAgent] = create_initial_agents()
+
+        if len(all_agents) < config.num_agents:
+            raise InsufficientAgentsError(
+                requested=config.num_agents,
+                available=len(all_agents),
+                run_id=run_id,
+            )
+
+        agents = all_agents[:config.num_agents]
+        logger.info(f"Created {len(agents)} agents for run {run_id or '(no run_id)'}")
         return agents
 
     def _update_run_status_safely(self, run_id: str, status: RunStatus) -> None:
