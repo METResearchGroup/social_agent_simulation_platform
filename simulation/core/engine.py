@@ -194,7 +194,15 @@ class SimulationEngine:
         Returns:
             A list of agents for the run.
         """
-        raise NotImplementedError  # Stub for PR 1
+        # TODO: Refactor to use injected agent_factory in PR 9
+        from ai.create_initial_agents import create_initial_agents
+
+        agents: list[SocialMediaAgent] = create_initial_agents()
+        agents = agents[:config.num_agents]
+        if len(agents) < config.num_agents:
+            logger.warning(f"Only {len(agents)} agents created, but {config.num_agents} are required. Using {len(agents)} agents instead.")
+        logger.info(f"Created {len(agents)} agents for run {config.run_id}")
+        return agents
 
     def _update_run_status_safely(self, run_id: str, status: RunStatus) -> None:
         """Update run status without masking original exceptions.
