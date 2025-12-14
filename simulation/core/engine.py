@@ -1,6 +1,7 @@
+import logging
 from typing import Optional
 
-from db.exceptions import RunNotFoundError
+from db.exceptions import RunNotFoundError, RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
@@ -9,6 +10,8 @@ from db.repositories.run_repository import RunRepository
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata, TurnResult
+
+logger = logging.getLogger(__name__)
 
 
 class SimulationEngine:
@@ -51,7 +54,7 @@ class SimulationEngine:
         Returns:
             The run that was executed.
         """
-        run: Run = create_run(run_config)
+        run: Run = self.run_repo.create_run(run_config)
         agents: list[SocialMediaAgent] = self._create_agents_for_run(run_config)
 
         for turn_number in range(run.total_turns):
@@ -196,8 +199,16 @@ class SimulationEngine:
     def _update_run_status_safely(self, run_id: str, status: RunStatus) -> None:
         """Update run status without masking original exceptions.
 
+        This is a best-effort status update method that never raises exceptions.
+        It's designed for use in error handling paths where you want to update
+        the run status (e.g., to FAILED) but don't want status update failures
+        to mask the original exception.
+
         Args:
             run_id: The ID of the run.
             status: The new status.
         """
-        raise NotImplementedError  # Stub for PR 1
+        try:
+            self.run_repo.update_run_status(run_id, status)
+        except Exception as e:
+            logger.warning(f"Failed to update run {run_id} status to {status}: {e}")

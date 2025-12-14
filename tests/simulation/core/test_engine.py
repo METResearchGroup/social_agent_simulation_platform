@@ -1,6 +1,7 @@
 """Tests for simulation.core.engine module."""
 
-from unittest.mock import Mock
+import logging
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -611,3 +612,105 @@ class TestSimulationEngineGetTurnData:
         mock_repos["generated_feed_repo"].read_feeds_for_turn.assert_called_once_with(
             run_id, turn_number
         )
+
+
+class TestSimulationEngineUpdateRunStatusSafely:
+    """Tests for SimulationEngine._update_run_status_safely method."""
+
+    def test_updates_status_successfully(self, engine, mock_repos):
+        """Test that _update_run_status_safely updates status when repository call succeeds."""
+        # Arrange
+        run_id = "run_123"
+        status = RunStatus.COMPLETED
+        mock_repos["run_repo"].update_run_status.return_value = None
+
+        # Act
+        engine._update_run_status_safely(run_id, status)
+
+        # Assert
+        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
+
+    def test_logs_warning_and_does_not_raise_on_failure(self, engine, mock_repos):
+        """Test that _update_run_status_safely logs warning and doesn't raise when repository fails."""
+        # Arrange
+        run_id = "run_123"
+        status = RunStatus.FAILED
+        original_error = RunStatusUpdateError(run_id, "Database connection failed")
+        mock_repos["run_repo"].update_run_status.side_effect = original_error
+
+        # Act & Assert - should not raise
+        with patch("simulation.core.engine.logger") as mock_logger:
+            engine._update_run_status_safely(run_id, status)
+
+            # Verify warning was logged
+            mock_logger.warning.assert_called_once()
+            log_call_args = mock_logger.warning.call_args[0][0]
+            assert f"Failed to update run {run_id} status to {status}" in log_call_args
+            assert str(original_error) in log_call_args
+
+        # Verify repository was called
+        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
+
+    def test_handles_generic_exception_gracefully(self, engine, mock_repos):
+        """Test that _update_run_status_safely handles any exception type without raising."""
+        # Arrange
+        run_id = "run_123"
+        status = RunStatus.COMPLETED
+        generic_error = RuntimeError("Unexpected error")
+        mock_repos["run_repo"].update_run_status.side_effect = generic_error
+
+        # Act & Assert - should not raise
+        with patch("simulation.core.engine.logger") as mock_logger:
+            engine._update_run_status_safely(run_id, status)
+
+            # Verify warning was logged
+            mock_logger.warning.assert_called_once()
+            log_call_args = mock_logger.warning.call_args[0][0]
+            assert f"Failed to update run {run_id} status to {status}" in log_call_args
+            assert str(generic_error) in log_call_args
+
+        # Verify repository was called
+        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
+
+    def test_handles_database_connection_error_gracefully(self, engine, mock_repos):
+        """Test that _update_run_status_safely handles database connection errors without raising."""
+        # Arrange
+        run_id = "run_123"
+        status = RunStatus.FAILED
+        db_error = ConnectionError("Database connection lost")
+        mock_repos["run_repo"].update_run_status.side_effect = db_error
+
+        # Act & Assert - should not raise
+        with patch("simulation.core.engine.logger") as mock_logger:
+            engine._update_run_status_safely(run_id, status)
+
+            # Verify warning was logged
+            mock_logger.warning.assert_called_once()
+            log_call_args = mock_logger.warning.call_args[0][0]
+            assert f"Failed to update run {run_id} status to {status}" in log_call_args
+
+        # Verify repository was called
+        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
+
+    def test_can_be_called_multiple_times_after_failure(self, engine, mock_repos):
+        """Test that _update_run_status_safely can be called again after a failure."""
+        # Arrange
+        run_id = "run_123"
+        status = RunStatus.FAILED
+        mock_repos["run_repo"].update_run_status.side_effect = [
+            RunStatusUpdateError(run_id, "First failure"),
+            None,  # Second call succeeds
+        ]
+
+        # Act
+        with patch("simulation.core.engine.logger") as mock_logger:
+            # First call fails
+            engine._update_run_status_safely(run_id, status)
+            # Second call succeeds
+            engine._update_run_status_safely(run_id, RunStatus.COMPLETED)
+
+            # Verify warning was logged once (for first failure)
+            assert mock_logger.warning.call_count == 1
+
+        # Verify repository was called twice
+        assert mock_repos["run_repo"].update_run_status.call_count == 2
