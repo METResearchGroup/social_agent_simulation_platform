@@ -14,7 +14,7 @@ from simulation.core.engine import SimulationEngine
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
-from simulation.core.models.turns import TurnData
+from simulation.core.models.turns import TurnData, TurnResult
 
 
 @pytest.fixture
@@ -720,3 +720,172 @@ class TestSimulationEngineUpdateRunStatusSafely:
 
         # Verify repository was called twice
         assert mock_repos["run_repo"].update_run_status.call_count == 2
+
+
+class TestSimulationEngineExecuteRun:
+    """Tests for SimulationEngine.execute_run method."""
+
+    def _make_run(self, run_id: str = "run_exec_1", total_turns: int = 2) -> Run:
+        return Run(
+            run_id=run_id,
+            created_at="2024_01_01-12:00:00",
+            total_turns=total_turns,
+            total_agents=5,
+            started_at="2024_01_01-12:00:00",
+            status=RunStatus.RUNNING,
+            completed_at=None,
+        )
+
+    def test_success_with_running_retry_and_completed(self, engine, mock_repos):
+        """execute_run should retry RUNNING update, run all turns, then set COMPLETED."""
+        run = self._make_run(total_turns=2)
+        mock_repos["run_repo"].create_run.return_value = run
+
+        # First two RUNNING updates fail, third succeeds; final COMPLETED succeeds
+        mock_repos["run_repo"].update_run_status.side_effect = [
+            RunStatusUpdateError(run.run_id, "first"),
+            RunStatusUpdateError(run.run_id, "second"),
+            None,  # RUNNING success on 3rd try
+            None,  # COMPLETED
+        ]
+
+        with (
+            patch(
+                "simulation.core.engine.SimulationEngine._create_agents_for_run"
+            ) as mock_make_agents,
+            patch(
+                "simulation.core.engine.SimulationEngine._simulate_turn"
+            ) as mock_sim_turn,
+            patch("simulation.core.engine.time.sleep") as mock_sleep,
+        ):
+            mock_make_agents.return_value = ["agent1", "agent2"]
+            mock_sim_turn.side_effect = [
+                TurnResult(turn_number=0, total_actions={}, execution_time_ms=10),
+                TurnResult(turn_number=1, total_actions={}, execution_time_ms=12),
+            ]
+            mock_sleep.return_value = None  # Avoid delays
+
+            result = engine.execute_run(
+                run_config=type(
+                    "Cfg",
+                    (),
+                    {
+                        "feed_algorithm": "chronological",
+                        "num_agents": 2,
+                        "num_turns": 2,
+                    },
+                )()
+            )
+
+            assert result is run
+            assert mock_sim_turn.call_count == 2
+
+            # Verify status updates: 3 attempts to RUNNING, then COMPLETED
+            calls = mock_repos["run_repo"].update_run_status.call_args_list
+            assert len(calls) == 4
+            assert calls[0][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[1][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[2][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[3][0] == (run.run_id, RunStatus.COMPLETED)
+
+    def test_running_retry_exhausted_marks_failed_and_raises(self, engine, mock_repos):
+        """If RUNNING update fails 3 times, mark FAILED best-effort and raise."""
+        run = self._make_run()
+        mock_repos["run_repo"].create_run.return_value = run
+        mock_repos["run_repo"].update_run_status.side_effect = [
+            RunStatusUpdateError(run.run_id, "first"),
+            RunStatusUpdateError(run.run_id, "second"),
+            RunStatusUpdateError(run.run_id, "third"),
+        ]
+
+        with (
+            patch(
+                "simulation.core.engine.SimulationEngine._update_run_status_safely"
+            ) as mock_safe,
+            patch("simulation.core.engine.time.sleep") as mock_sleep,
+        ):
+            mock_sleep.return_value = None
+            with pytest.raises(RunStatusUpdateError):
+                engine.execute_run(
+                    run_config=type(
+                        "Cfg",
+                        (),
+                        {
+                            "feed_algorithm": "chronological",
+                            "num_agents": 2,
+                            "num_turns": 1,
+                        },
+                    )()
+                )
+            mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
+
+    def test_agent_creation_failure_marks_failed_and_raises(self, engine, mock_repos):
+        """If agent creation fails, mark FAILED best-effort and raise."""
+        run = self._make_run()
+        mock_repos["run_repo"].create_run.return_value = run
+        mock_repos["run_repo"].update_run_status.return_value = None  # RUNNING ok
+
+        with (
+            patch(
+                "simulation.core.engine.SimulationEngine._create_agents_for_run"
+            ) as mock_make_agents,
+            patch(
+                "simulation.core.engine.SimulationEngine._update_run_status_safely"
+            ) as mock_safe,
+        ):
+            mock_make_agents.side_effect = RuntimeError("agent failure")
+            with pytest.raises(RuntimeError):
+                engine.execute_run(
+                    run_config=type(
+                        "Cfg",
+                        (),
+                        {
+                            "feed_algorithm": "chronological",
+                            "num_agents": 2,
+                            "num_turns": 1,
+                        },
+                    )()
+                )
+            mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
+
+    def test_turn_failure_marks_failed_and_wraps(self, engine, mock_repos):
+        """If a turn fails, mark FAILED best-effort and raise wrapped RuntimeError."""
+        run = self._make_run(total_turns=2)
+        mock_repos["run_repo"].create_run.return_value = run
+        mock_repos[
+            "run_repo"
+        ].update_run_status.return_value = (
+            None  # RUNNING ok (and later COMPLETED not reached)
+        )
+
+        with (
+            patch(
+                "simulation.core.engine.SimulationEngine._create_agents_for_run"
+            ) as mock_make_agents,
+            patch(
+                "simulation.core.engine.SimulationEngine._simulate_turn"
+            ) as mock_sim_turn,
+            patch(
+                "simulation.core.engine.SimulationEngine._update_run_status_safely"
+            ) as mock_safe,
+        ):
+            mock_make_agents.return_value = ["agent1", "agent2"]
+            mock_sim_turn.side_effect = RuntimeError("turn exploded")
+
+            with pytest.raises(RuntimeError) as exc:
+                engine.execute_run(
+                    run_config=type(
+                        "Cfg",
+                        (),
+                        {
+                            "feed_algorithm": "chronological",
+                            "num_agents": 2,
+                            "num_turns": 2,
+                        },
+                    )()
+                )
+            # Wrapped message contains run id and turn number context
+            assert str(exc.value).startswith(
+                f"Failed to complete turn 0 for run {run.run_id}: "
+            )
+            mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)

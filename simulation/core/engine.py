@@ -5,6 +5,7 @@ from typing import Optional
 from db.exceptions import (
     DuplicateTurnMetadataError,
     RunNotFoundError,
+    RunStatusUpdateError,
 )
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
@@ -63,18 +64,67 @@ class SimulationEngine:
         Returns:
             The run that was executed.
         """
+        # Create run (let RunCreationError propagate)
         run: Run = self.run_repo.create_run(run_config)
-        agents: list[SocialMediaAgent] = self._create_agents_for_run(
-            run_config, run.run_id
-        )
+
+        # Update status to RUNNING with retry logic (up to 3 attempts, exponential backoff)
+        try:
+            attempts = 3
+            for attempt in range(attempts):
+                try:
+                    self.run_repo.update_run_status(run.run_id, RunStatus.RUNNING)
+                    break
+                except RunStatusUpdateError as e:
+                    if attempt == attempts - 1:
+                        # Mark FAILED best-effort, then raise
+                        self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+                        raise RunStatusUpdateError(
+                            run.run_id,
+                            "Failed to update status to RUNNING after 3 attempts",
+                        ) from e
+                    # Exponential backoff: 0s, 1s, 2s (tunable)
+                    time.sleep(2**attempt)
+        except Exception:
+            # Ensure original exception propagates after best-effort status update
+            raise
+
+        # Create agents (handle failures by marking run FAILED best-effort)
+        try:
+            agents: list[SocialMediaAgent] = self._create_agents_for_run(
+                run_config, run.run_id
+            )
+        except Exception:
+            self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+            raise
 
         for turn_number in range(run.total_turns):
-            self._simulate_turn(
-                run.run_id,
-                turn_number,
-                agents,
-                run_config.feed_algorithm,
-            )
+            try:
+                logger.info("Starting turn %d for run %s", turn_number, run.run_id)
+                self._simulate_turn(
+                    run.run_id,
+                    turn_number,
+                    agents,
+                    run_config.feed_algorithm,
+                )
+            except Exception as e:
+                # Log with context, update to FAILED best-effort, and re-raise wrapped
+                logger.error(
+                    "Turn %d failed for run %s: %s",
+                    turn_number,
+                    run.run_id,
+                    e,
+                    exc_info=True,
+                    extra={
+                        "run_id": run.run_id,
+                        "turn_number": turn_number,
+                        "num_agents": len(agents),
+                        "total_turns": run.total_turns,
+                    },
+                )
+                self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+                raise RuntimeError(
+                    f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
+                ) from e
 
         self._update_run_status_safely(run.run_id, RunStatus.COMPLETED)
         return run
