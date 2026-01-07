@@ -368,8 +368,11 @@ class SimulationEngine:
             )
 
         logger.info(
-            f"Created {len(agents)} agents (requested: {config.num_agents}) "
-            f"for run {run_id or '(no run_id)'}"
+            "Created %d agents (requested: %d) for run %s",
+            len(agents),
+            config.num_agents,
+            run_id or "(no run_id)",
+        )
         )
 
         return agents
