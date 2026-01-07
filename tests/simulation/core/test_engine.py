@@ -641,11 +641,13 @@ class TestSimulationEngineUpdateRunStatusSafely:
         with patch("simulation.core.engine.logger") as mock_logger:
             engine._update_run_status_safely(run_id, status)
 
-            # Verify warning was logged
+            # Verify warning was logged with parameterized logging
             mock_logger.warning.assert_called_once()
-            log_call_args = mock_logger.warning.call_args[0][0]
-            assert f"Failed to update run {run_id} status to {status}" in log_call_args
-            assert str(original_error) in log_call_args
+            call_args = mock_logger.warning.call_args
+            assert call_args[0][0] == "Failed to update run %s status to %s"
+            assert call_args[0][1] == run_id
+            assert call_args[0][2] == status
+            assert call_args[1]["exc_info"] is True
 
         # Verify repository was called
         mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
@@ -662,11 +664,13 @@ class TestSimulationEngineUpdateRunStatusSafely:
         with patch("simulation.core.engine.logger") as mock_logger:
             engine._update_run_status_safely(run_id, status)
 
-            # Verify warning was logged
+            # Verify warning was logged with parameterized logging
             mock_logger.warning.assert_called_once()
-            log_call_args = mock_logger.warning.call_args[0][0]
-            assert f"Failed to update run {run_id} status to {status}" in log_call_args
-            assert str(generic_error) in log_call_args
+            call_args = mock_logger.warning.call_args
+            assert call_args[0][0] == "Failed to update run %s status to %s"
+            assert call_args[0][1] == run_id
+            assert call_args[0][2] == status
+            assert call_args[1]["exc_info"] is True
 
         # Verify repository was called
         mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
@@ -683,10 +687,13 @@ class TestSimulationEngineUpdateRunStatusSafely:
         with patch("simulation.core.engine.logger") as mock_logger:
             engine._update_run_status_safely(run_id, status)
 
-            # Verify warning was logged
+            # Verify warning was logged with parameterized logging
             mock_logger.warning.assert_called_once()
-            log_call_args = mock_logger.warning.call_args[0][0]
-            assert f"Failed to update run {run_id} status to {status}" in log_call_args
+            call_args = mock_logger.warning.call_args
+            assert call_args[0][0] == "Failed to update run %s status to %s"
+            assert call_args[0][1] == run_id
+            assert call_args[0][2] == status
+            assert call_args[1]["exc_info"] is True
 
         # Verify repository was called
         mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)

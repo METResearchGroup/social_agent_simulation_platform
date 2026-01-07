@@ -431,5 +431,7 @@ class SimulationEngine:
         """
         try:
             self.run_repo.update_run_status(run_id, status)
-        except Exception as e:
-            logger.warning("Failed to update run %s status to %s", run_id, status, exc_info=True)
+        except Exception:
+            logger.warning(
+                "Failed to update run %s status to %s", run_id, status, exc_info=True
+            )
