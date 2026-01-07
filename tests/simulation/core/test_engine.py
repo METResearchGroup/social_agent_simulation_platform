@@ -1,11 +1,10 @@
 """Tests for simulation.core.engine module."""
 
-import logging
 from unittest.mock import Mock, patch
 
 import pytest
 
-from db.exceptions import RunNotFoundError
+from db.exceptions import RunNotFoundError, RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository

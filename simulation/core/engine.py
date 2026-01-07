@@ -5,7 +5,6 @@ from typing import Optional
 from db.exceptions import (
     DuplicateTurnMetadataError,
     RunNotFoundError,
-    RunStatusUpdateError,
 )
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
