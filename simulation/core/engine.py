@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Callable
 from typing import Optional
 
 from db.exceptions import (
@@ -46,12 +47,14 @@ class SimulationEngine:
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
+        agent_factory: Callable[[int], list[SocialMediaAgent]],
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
+        self.agent_factory = agent_factory
 
     ## Public API ##
 
@@ -391,16 +394,10 @@ class SimulationEngine:
             InsufficientAgentsError: If fewer agents than requested are available.
             ValueError: If agent handles are not unique.
         """
-        # TODO: Refactor to use injected agent_factory in PR 9
-        from ai.create_initial_agents import create_initial_agents
+        # Create agents using the injected factory
+        agents = self.agent_factory(config.num_agents)
 
-        # Create all available agents
-        all_agents = create_initial_agents()
-
-        # Apply limit
-        agents = all_agents[: config.num_agents]
-
-        # Validate agent count
+        # Validate agent count (factory should already validate, but double-check)
         if len(agents) < config.num_agents:
             raise InsufficientAgentsError(
                 requested=config.num_agents,

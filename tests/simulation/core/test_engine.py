@@ -11,6 +11,7 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.engine import SimulationEngine
+from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
@@ -30,7 +31,17 @@ def mock_repos():
 
 
 @pytest.fixture
-def engine(mock_repos):
+def mock_agent_factory():
+    """Fixture that provides a mock agent factory."""
+    factory = Mock(return_value=[])
+    factory.side_effect = lambda num_agents: [
+        SocialMediaAgent(f"agent{i}.bsky.social") for i in range(num_agents)
+    ]
+    return factory
+
+
+@pytest.fixture
+def engine(mock_repos, mock_agent_factory):
     """Fixture that creates and returns a SimulationEngine with mock repositories."""
     return SimulationEngine(
         run_repo=mock_repos["run_repo"],
@@ -38,6 +49,7 @@ def engine(mock_repos):
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_bio_repo=mock_repos["generated_bio_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
+        agent_factory=mock_agent_factory,
     )
 
 
@@ -736,7 +748,9 @@ class TestSimulationEngineExecuteRun:
             completed_at=None,
         )
 
-    def test_success_with_running_retry_and_completed(self, engine, mock_repos):
+    def test_success_with_running_retry_and_completed(
+        self, engine, mock_repos, mock_agent_factory
+    ):
         """execute_run should retry RUNNING update, run all turns, then set COMPLETED."""
         run = self._make_run(total_turns=2)
         mock_repos["run_repo"].create_run.return_value = run
@@ -749,16 +763,18 @@ class TestSimulationEngineExecuteRun:
             None,  # COMPLETED
         ]
 
+        # Configure agent factory to return agents
+        mock_agent_factory.return_value = [
+            SocialMediaAgent("agent1.bsky.social"),
+            SocialMediaAgent("agent2.bsky.social"),
+        ]
+
         with (
-            patch(
-                "simulation.core.engine.SimulationEngine._create_agents_for_run"
-            ) as mock_make_agents,
             patch(
                 "simulation.core.engine.SimulationEngine._simulate_turn"
             ) as mock_sim_turn,
             patch("simulation.core.engine.time.sleep") as mock_sleep,
         ):
-            mock_make_agents.return_value = ["agent1", "agent2"]
             mock_sim_turn.side_effect = [
                 TurnResult(turn_number=0, total_actions={}, execution_time_ms=10),
                 TurnResult(turn_number=1, total_actions={}, execution_time_ms=12),
@@ -779,6 +795,8 @@ class TestSimulationEngineExecuteRun:
 
             assert result is run
             assert mock_sim_turn.call_count == 2
+            # Verify agent_factory was called with correct number of agents
+            mock_agent_factory.assert_called_once_with(2)
 
             # Verify status updates: 3 attempts to RUNNING, then COMPLETED
             calls = mock_repos["run_repo"].update_run_status.call_args_list
@@ -819,21 +837,20 @@ class TestSimulationEngineExecuteRun:
                 )
             mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
 
-    def test_agent_creation_failure_marks_failed_and_raises(self, engine, mock_repos):
+    def test_agent_creation_failure_marks_failed_and_raises(
+        self, engine, mock_repos, mock_agent_factory
+    ):
         """If agent creation fails, mark FAILED best-effort and raise."""
         run = self._make_run()
         mock_repos["run_repo"].create_run.return_value = run
         mock_repos["run_repo"].update_run_status.return_value = None  # RUNNING ok
 
-        with (
-            patch(
-                "simulation.core.engine.SimulationEngine._create_agents_for_run"
-            ) as mock_make_agents,
-            patch(
-                "simulation.core.engine.SimulationEngine._update_run_status_safely"
-            ) as mock_safe,
-        ):
-            mock_make_agents.side_effect = RuntimeError("agent failure")
+        # Configure agent factory to raise error
+        mock_agent_factory.side_effect = RuntimeError("agent failure")
+
+        with patch(
+            "simulation.core.engine.SimulationEngine._update_run_status_safely"
+        ) as mock_safe:
             with pytest.raises(RuntimeError):
                 engine.execute_run(
                     run_config=type(
@@ -847,8 +864,12 @@ class TestSimulationEngineExecuteRun:
                     )()
                 )
             mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
+            # Verify agent_factory was called
+            mock_agent_factory.assert_called_once_with(2)
 
-    def test_turn_failure_marks_failed_and_wraps(self, engine, mock_repos):
+    def test_turn_failure_marks_failed_and_wraps(
+        self, engine, mock_repos, mock_agent_factory
+    ):
         """If a turn fails, mark FAILED best-effort and raise wrapped RuntimeError."""
         run = self._make_run(total_turns=2)
         mock_repos["run_repo"].create_run.return_value = run
@@ -858,10 +879,13 @@ class TestSimulationEngineExecuteRun:
             None  # RUNNING ok (and later COMPLETED not reached)
         )
 
+        # Configure agent factory to return agents
+        mock_agent_factory.return_value = [
+            SocialMediaAgent("agent1.bsky.social"),
+            SocialMediaAgent("agent2.bsky.social"),
+        ]
+
         with (
-            patch(
-                "simulation.core.engine.SimulationEngine._create_agents_for_run"
-            ) as mock_make_agents,
             patch(
                 "simulation.core.engine.SimulationEngine._simulate_turn"
             ) as mock_sim_turn,
@@ -869,7 +893,6 @@ class TestSimulationEngineExecuteRun:
                 "simulation.core.engine.SimulationEngine._update_run_status_safely"
             ) as mock_safe,
         ):
-            mock_make_agents.return_value = ["agent1", "agent2"]
             mock_sim_turn.side_effect = RuntimeError("turn exploded")
 
             with pytest.raises(RuntimeError) as exc:
@@ -889,3 +912,5 @@ class TestSimulationEngineExecuteRun:
                 f"Failed to complete turn 0 for run {run.run_id}: "
             )
             mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
+            # Verify agent_factory was called
+            mock_agent_factory.assert_called_once_with(2)
