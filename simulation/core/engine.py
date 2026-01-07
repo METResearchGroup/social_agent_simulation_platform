@@ -373,7 +373,6 @@ class SimulationEngine:
             config.num_agents,
             run_id or "(no run_id)",
         )
-        )
 
         return agents
 
@@ -433,4 +432,4 @@ class SimulationEngine:
         try:
             self.run_repo.update_run_status(run_id, status)
         except Exception as e:
-            logger.warning(f"Failed to update run {run_id} status to {status}: {e}")
+            logger.warning("Failed to update run %s status to %s", run_id, status, exc_info=True)
