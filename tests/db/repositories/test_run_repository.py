@@ -55,7 +55,7 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         expected_timestamp = "2024_01_01-12:00:00"
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
 
@@ -82,7 +82,7 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_02_15-15:30:45")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=20, num_turns=50)
+        config = RunConfig(num_agents=20, num_turns=50, feed_algorithm="chronological")
         expected_timestamp = "2024_02_15-15:30:45"
         mock_uuid_val = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
@@ -103,7 +103,7 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Act
         result = repo.create_run(config)
@@ -125,7 +125,7 @@ class TestSQLiteRunRepositoryCreateRun:
         timestamp2 = "2024_01_01-12:00:01"
         mock_get_timestamp = Mock(side_effect=[timestamp1, timestamp2])
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         uuid1 = uuid.UUID("11111111-1111-1111-1111-111111111111")
         uuid2 = uuid.UUID("22222222-2222-2222-2222-222222222222")
 
@@ -147,7 +147,7 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Act
         result = repo.create_run(config)
@@ -161,7 +161,7 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Act
         result = repo.create_run(config)
@@ -176,7 +176,7 @@ class TestSQLiteRunRepositoryCreateRun:
         expected_timestamp = "2024_01_01-12:00:00"
         mock_get_timestamp = Mock(return_value=expected_timestamp)
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
         expected_run_id = f"run_{expected_timestamp}_{mock_uuid_val}"
         db_error = Exception("Database connection failed")
@@ -200,7 +200,7 @@ class TestSQLiteRunRepositoryCreateRun:
         expected_timestamp = "2024_01_01-12:00:00"
         mock_get_timestamp = Mock(return_value=expected_timestamp)
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
         expected_run_id = f"run_{expected_timestamp}_{mock_uuid_val}"
         mock_adapter.write_run.side_effect = Exception("DB error")
@@ -221,7 +221,7 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         original_error = ValueError("Invalid data")
         mock_adapter.write_run.side_effect = original_error
 

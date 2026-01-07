@@ -127,6 +127,7 @@ def main():
     config = RunConfig(
         num_agents=10,
         num_turns=10,
+        feed_algorithm="chronological",
     )
 
     generated_feed_repo = create_sqlite_generated_feed_repository()

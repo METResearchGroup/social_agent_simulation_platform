@@ -10,6 +10,7 @@ class RunConfig(BaseModel):
 
     num_agents: int
     num_turns: int
+    feed_algorithm: str
 
     @field_validator("num_agents")
     @classmethod
@@ -23,6 +24,16 @@ class RunConfig(BaseModel):
     def validate_num_turns(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("num_turns must be greater than 0")
+        return v
+
+    @field_validator("feed_algorithm")
+    @classmethod
+    def validate_feed_algorithm(cls, v: str) -> str:
+        """Validate that feed_algorithm is a valid feed algorithm."""
+        from feeds.feed_generator import _FEED_ALGORITHMS
+
+        if v not in _FEED_ALGORITHMS:
+            raise ValueError(f"Invalid feed algorithm: {v}")
         return v
 
 

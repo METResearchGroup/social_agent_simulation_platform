@@ -51,7 +51,7 @@ class TestSQLiteRunRepositoryIntegration:
     def test_create_and_read_run(self, temp_db):
         """Test creating a run and reading it back from the database."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=5, num_turns=10)
+        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Create run
         created_run = repo.create_run(config)
@@ -70,7 +70,7 @@ class TestSQLiteRunRepositoryIntegration:
     def test_update_run_status_to_completed(self, temp_db):
         """Test updating run status to completed."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
 
@@ -86,7 +86,7 @@ class TestSQLiteRunRepositoryIntegration:
     def test_update_run_status_to_failed(self, temp_db):
         """Test updating run status to failed."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
 
@@ -113,11 +113,17 @@ class TestSQLiteRunRepositoryIntegration:
         repo = create_sqlite_repository()
 
         # Create multiple runs with delays to ensure distinct timestamps
-        run1 = repo.create_run(RunConfig(num_agents=1, num_turns=1))
+        run1 = repo.create_run(
+            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+        )
         time.sleep(1.1)  # Ensure different timestamp (format is down to seconds)
-        run2 = repo.create_run(RunConfig(num_agents=2, num_turns=2))
+        run2 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
+        )
         time.sleep(1.1)
-        run3 = repo.create_run(RunConfig(num_agents=3, num_turns=3))
+        run3 = repo.create_run(
+            RunConfig(num_agents=3, num_turns=3, feed_algorithm="chronological")
+        )
 
         # List runs (should be ordered by created_at DESC, so newest first)
         runs = repo.list_runs()
@@ -199,7 +205,7 @@ class TestRunStatusEnumSerialization:
     def test_all_status_values_roundtrip(self, temp_db):
         """Test that all RunStatus enum values roundtrip correctly."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=2, num_turns=2)
+        config = RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
 
         # Test RUNNING status (default from create_run)
         run_running = repo.create_run(config)
@@ -241,7 +247,7 @@ class TestConcurrentRunCreation:
         import threading
 
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=1, num_turns=1)
+        config = RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
 
         run_ids = []
         errors = []
@@ -274,7 +280,7 @@ class TestStateMachineValidationIntegration:
     def test_valid_transition_running_to_completed(self, temp_db):
         """Test that RUNNING -> COMPLETED transition works with real database."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         assert run.status == RunStatus.RUNNING
@@ -289,7 +295,7 @@ class TestStateMachineValidationIntegration:
     def test_valid_transition_running_to_failed(self, temp_db):
         """Test that RUNNING -> FAILED transition works with real database."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         assert run.status == RunStatus.RUNNING
@@ -304,7 +310,7 @@ class TestStateMachineValidationIntegration:
     def test_invalid_transition_completed_to_failed(self, temp_db):
         """Test that COMPLETED -> FAILED transition is rejected."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.COMPLETED)
@@ -325,7 +331,7 @@ class TestStateMachineValidationIntegration:
     def test_invalid_transition_failed_to_completed(self, temp_db):
         """Test that FAILED -> COMPLETED transition is rejected."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.FAILED)
@@ -346,7 +352,7 @@ class TestStateMachineValidationIntegration:
     def test_invalid_transition_completed_to_running(self, temp_db):
         """Test that COMPLETED -> RUNNING transition is rejected."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.COMPLETED)
@@ -367,7 +373,7 @@ class TestStateMachineValidationIntegration:
     def test_idempotent_status_update_completed(self, temp_db):
         """Test that setting COMPLETED status again is allowed (idempotent)."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.COMPLETED)
@@ -382,7 +388,7 @@ class TestStateMachineValidationIntegration:
     def test_idempotent_status_update_failed(self, temp_db):
         """Test that setting FAILED status again is allowed (idempotent)."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.FAILED)
@@ -461,7 +467,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run first
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write turn metadata using repository
@@ -493,7 +499,7 @@ class TestTurnMetadataIntegration:
     def test_read_turn_metadata_returns_none_when_not_found(self, temp_db):
         """Test that get_turn_metadata returns None when metadata doesn't exist."""
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Try to read non-existent turn metadata
@@ -508,7 +514,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write metadata for multiple turns
@@ -555,7 +561,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write metadata with zero actions
@@ -596,8 +602,12 @@ class TestTurnMetadataIntegration:
 
         # Create two runs
         repo = create_sqlite_repository()
-        run1 = repo.create_run(RunConfig(num_agents=2, num_turns=3))
-        run2 = repo.create_run(RunConfig(num_agents=2, num_turns=3))
+        run1 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+        )
+        run2 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+        )
 
         # Write metadata for turn 0 in both runs with different values
         import json
@@ -657,7 +667,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write turn metadata using repository method
@@ -693,7 +703,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write metadata for multiple turns
@@ -727,7 +737,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write metadata with zero actions
@@ -760,8 +770,12 @@ class TestTurnMetadataIntegration:
 
         # Create two runs
         repo = create_sqlite_repository()
-        run1 = repo.create_run(RunConfig(num_agents=2, num_turns=3))
-        run2 = repo.create_run(RunConfig(num_agents=2, num_turns=3))
+        run1 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+        )
+        run2 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+        )
 
         # Write metadata for turn 0 in both runs with different values
         turn_metadata_1 = TurnMetadata(
@@ -805,7 +819,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Write turn metadata once
@@ -855,7 +869,7 @@ class TestTurnMetadataIntegration:
 
         # Create a run with 5 turns (0-4)
         repo = create_sqlite_repository()
-        config = RunConfig(num_agents=3, num_turns=5)
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
         # Try to write metadata for turn 5 (out of bounds)
