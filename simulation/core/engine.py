@@ -65,7 +65,9 @@ class SimulationEngine:
             The run that was executed.
         """
         run: Run = self.run_repo.create_run(run_config)
-        agents: list[SocialMediaAgent] = self._create_agents_for_run(run_config, run.run_id)
+        agents: list[SocialMediaAgent] = self._create_agents_for_run(
+            run_config, run.run_id
+        )
 
         for turn_number in range(run.total_turns):
             self._simulate_turn(
