@@ -26,6 +26,32 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+def validate_required_fields(
+    row: sqlite3.Row, fields: dict[str, str], context: str | None = None
+) -> None:
+    """Validate that all required fields in a database row are not NULL.
+
+    Args:
+        row: SQLite Row object to validate
+        fields: Dictionary mapping field names to their descriptions for error messages.
+                For example: {"handle": "handle", "did": "did"} or
+                {"uri": "feed post URI", "text": "post text"}
+        context: Optional context string to include in error messages
+                 (e.g., "feed post uri=at://did:plc:...")
+
+    Raises:
+        ValueError: If any required field is NULL. Error message includes
+                   the field description and optional context.
+        KeyError: If a field name in fields dict is missing from the row
+    """
+    for field_name, description in fields.items():
+        if row[field_name] is None:
+            error_msg = f"{description} cannot be NULL"
+            if context:
+                error_msg = f"{error_msg} (context: {context})"
+            raise ValueError(error_msg)
+
+
 def initialize_database() -> None:
     """Initialize the database by creating tables if they don't exist."""
     with get_connection() as conn:

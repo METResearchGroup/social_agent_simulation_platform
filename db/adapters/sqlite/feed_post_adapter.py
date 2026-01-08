@@ -4,7 +4,7 @@ import sqlite3
 from typing import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.posts import BlueskyFeedPost
 
 
@@ -29,25 +29,22 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             ValueError: If any required field is NULL. Error message includes
                         the field name and optional context.
         """
-        required_fields = [
-            "uri",
-            "author_display_name",
-            "author_handle",
-            "text",
-            "bookmark_count",
-            "like_count",
-            "quote_count",
-            "reply_count",
-            "repost_count",
-            "created_at",
-        ]
-
-        for field in required_fields:
-            if row[field] is None:
-                error_msg = f"{field} cannot be NULL"
-                if context:
-                    error_msg = f"{error_msg} (context: {context})"
-                raise ValueError(error_msg)
+        validate_required_fields(
+            row,
+            {
+                "uri": "uri",
+                "author_display_name": "author_display_name",
+                "author_handle": "author_handle",
+                "text": "text",
+                "bookmark_count": "bookmark_count",
+                "like_count": "like_count",
+                "quote_count": "quote_count",
+                "reply_count": "reply_count",
+                "repost_count": "repost_count",
+                "created_at": "created_at",
+            },
+            context=context,
+        )
 
     def _row_to_feed_post(self, row: sqlite3.Row) -> BlueskyFeedPost:
         """Convert a database row to a BlueskyFeedPost model.

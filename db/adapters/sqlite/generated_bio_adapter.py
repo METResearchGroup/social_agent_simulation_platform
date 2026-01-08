@@ -4,7 +4,7 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from lib.utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
@@ -31,18 +31,15 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             ValueError: If any required field is NULL. Error message includes
                         the field name and optional context.
         """
-        required_fields = [
-            "handle",
-            "generated_bio",
-            "created_at",
-        ]
-
-        for field in required_fields:
-            if row[field] is None:
-                error_msg = f"{field} cannot be NULL"
-                if context:
-                    error_msg = f"{error_msg} (context: {context})"
-                raise ValueError(error_msg)
+        validate_required_fields(
+            row,
+            {
+                "handle": "handle",
+                "generated_bio": "generated_bio",
+                "created_at": "created_at",
+            },
+            context=context,
+        )
 
     def write_generated_bio(self, bio: GeneratedBio) -> None:
         """Write a generated bio to SQLite.

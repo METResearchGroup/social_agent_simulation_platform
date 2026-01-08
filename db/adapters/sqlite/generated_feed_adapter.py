@@ -4,7 +4,7 @@ import json
 import sqlite3
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.feeds import GeneratedFeed
 
 
@@ -29,21 +29,18 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ValueError: If any required field is NULL. Error message includes
                         the field name and optional context.
         """
-        required_fields = [
-            "feed_id",
-            "run_id",
-            "turn_number",
-            "agent_handle",
-            "post_uris",
-            "created_at",
-        ]
-
-        for field in required_fields:
-            if row[field] is None:
-                error_msg = f"{field} cannot be NULL"
-                if context:
-                    error_msg = f"{error_msg} (context: {context})"
-                raise ValueError(error_msg)
+        validate_required_fields(
+            row,
+            {
+                "feed_id": "feed_id",
+                "run_id": "run_id",
+                "turn_number": "turn_number",
+                "agent_handle": "agent_handle",
+                "post_uris": "post_uris",
+                "created_at": "created_at",
+            },
+            context=context,
+        )
 
     def write_generated_feed(self, feed: GeneratedFeed) -> None:
         """Write a generated feed to SQLite.

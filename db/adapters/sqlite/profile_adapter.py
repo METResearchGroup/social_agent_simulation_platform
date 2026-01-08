@@ -4,7 +4,7 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.profiles import BlueskyProfile
 
 
@@ -53,20 +53,18 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
         Raises:
             ValueError: If any required field is NULL
         """
-        if row["handle"] is None:
-            raise ValueError("handle cannot be NULL")
-        if row["did"] is None:
-            raise ValueError("did cannot be NULL")
-        if row["display_name"] is None:
-            raise ValueError("display_name cannot be NULL")
-        if row["bio"] is None:
-            raise ValueError("bio cannot be NULL")
-        if row["followers_count"] is None:
-            raise ValueError("followers_count cannot be NULL")
-        if row["follows_count"] is None:
-            raise ValueError("follows_count cannot be NULL")
-        if row["posts_count"] is None:
-            raise ValueError("posts_count cannot be NULL")
+        validate_required_fields(
+            row,
+            {
+                "handle": "handle",
+                "did": "did",
+                "display_name": "display_name",
+                "bio": "bio",
+                "followers_count": "followers_count",
+                "follows_count": "follows_count",
+                "posts_count": "posts_count",
+            },
+        )
 
     def read_profile(self, handle: str) -> Optional[BlueskyProfile]:
         """Read a profile from SQLite.
