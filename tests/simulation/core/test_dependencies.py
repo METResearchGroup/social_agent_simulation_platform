@@ -177,10 +177,10 @@ class TestCreateDefaultAgentFactory:
         assert exc_info.value.available == 3
 
     @patch("ai.create_initial_agents.create_initial_agents")
-    def test_returns_all_agents_when_requested_more_than_available(
+    def test_returns_all_agents_when_requested_exactly_available(
         self, mock_create_agents
     ):
-        """Test that the factory returns all available agents when requested count exceeds available."""
+        """Test that the factory returns all agents when requested count equals available."""
         # Arrange
         # Only 3 agents available
         mock_agents = [SocialMediaAgent(f"agent{i}.bsky.social") for i in range(3)]

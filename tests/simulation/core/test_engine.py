@@ -33,7 +33,7 @@ def mock_repos():
 @pytest.fixture
 def mock_agent_factory():
     """Fixture that provides a mock agent factory."""
-    factory = Mock(return_value=[])
+    factory = Mock()
     factory.side_effect = lambda num_agents: [
         SocialMediaAgent(f"agent{i}.bsky.social") for i in range(num_agents)
     ]
