@@ -5,20 +5,64 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
-from db.exceptions import DuplicateTurnMetadataError
+from db.adapters.sqlite.sqlite import get_connection
+from db.exceptions import DuplicateTurnMetadataError, RunNotFoundError
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.runs import Run
+from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
 class SQLiteRunAdapter(RunDatabaseAdapter):
     """SQLite implementation of RunDatabaseAdapter.
 
-    Uses functions from db.db module to interact with SQLite database.
-
     This implementation raises SQLite-specific exceptions. See method docstrings
     for details on specific exception types.
     """
+
+    def _row_to_run(self, row: sqlite3.Row) -> Run:
+        """Convert a database row to a Run model.
+
+        Args:
+            row: SQLite Row object containing run data
+
+        Returns:
+            Run model instance
+
+        Raises:
+            ValueError: If required fields are NULL or status is invalid
+            KeyError: If required columns are missing from row
+        """
+        # Validate required fields are not NULL
+        if row["run_id"] is None:
+            raise ValueError("run_id cannot be NULL")
+        if row["created_at"] is None:
+            raise ValueError("created_at cannot be NULL")
+        if row["total_turns"] is None:
+            raise ValueError("total_turns cannot be NULL")
+        if row["total_agents"] is None:
+            raise ValueError("total_agents cannot be NULL")
+        if row["started_at"] is None:
+            raise ValueError("started_at cannot be NULL")
+        if row["status"] is None:
+            raise ValueError("status cannot be NULL")
+
+        # Convert status string to RunStatus enum, handling invalid values
+        try:
+            status = RunStatus(row["status"])
+        except ValueError as err:
+            raise ValueError(
+                f"Invalid status value: {row['status']}. Must be one of: {[s.value for s in RunStatus]}"
+            ) from err
+
+        return Run(
+            run_id=row["run_id"],
+            created_at=row["created_at"],
+            total_turns=row["total_turns"],
+            total_agents=row["total_agents"],
+            started_at=row["started_at"],
+            status=status,
+            completed_at=row["completed_at"],
+        )
 
     def write_run(self, run: Run) -> None:
         """Write a run to SQLite.
@@ -27,9 +71,24 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.IntegrityError: If run_id violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import write_run
-
-        write_run(run)
+        with get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO runs 
+                (run_id, created_at, total_turns, total_agents, started_at, status, completed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    run.run_id,
+                    run.created_at,
+                    run.total_turns,
+                    run.total_agents,
+                    run.started_at,
+                    run.status.value,  # Convert enum to string explicitly
+                    run.completed_at,
+                ),
+            )
+            conn.commit()
 
     def read_run(self, run_id: str) -> Optional[Run]:
         """Read a run from SQLite.
@@ -39,9 +98,15 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        from db.db import read_run
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
 
-        return read_run(run_id)
+            if row is None:
+                return None
+
+            return self._row_to_run(row)
 
     def read_all_runs(self) -> list[Run]:
         """Read all runs from SQLite.
@@ -51,9 +116,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        from db.db import read_all_runs
+        with get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM runs ORDER BY created_at DESC"
+            ).fetchall()
 
-        return read_all_runs()
+            return [self._row_to_run(row) for row in rows]
 
     def update_run_status(
         self, run_id: str, status: str, completed_at: Optional[str] = None
@@ -65,9 +133,18 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             sqlite3.IntegrityError: If status value violates CHECK constraints
         """
-        from db.db import update_run_status
-
-        update_run_status(run_id, status, completed_at)
+        with get_connection() as conn:
+            cursor = conn.execute(
+                """
+                UPDATE runs 
+                SET status = ?, completed_at = ?
+                WHERE run_id = ?
+            """,
+                (status, completed_at, run_id),
+            )
+            if cursor.rowcount == 0:
+                raise RunNotFoundError(run_id)
+            conn.commit()
 
     def read_turn_metadata(
         self, run_id: str, turn_number: int
@@ -89,8 +166,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        from db.db import get_connection
-
         with get_connection() as conn:
             try:
                 row = conn.execute(
@@ -160,8 +235,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             DuplicateTurnMetadataError: If turn metadata already exists
         """
-        from db.db import get_connection
-
         existing_turn_metadata = self.read_turn_metadata(
             turn_metadata.run_id, turn_metadata.turn_number
         )

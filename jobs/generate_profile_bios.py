@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-from db.db import initialize_database
+from db.adapters.sqlite.sqlite import initialize_database
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,

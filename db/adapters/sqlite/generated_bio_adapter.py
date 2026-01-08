@@ -1,19 +1,48 @@
 """SQLite implementation of generated bio database adapter."""
 
+import sqlite3
 from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
+from db.adapters.sqlite.sqlite import get_connection
+from lib.utils import get_current_timestamp
+from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
 
 
 class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
     """SQLite implementation of GeneratedBioDatabaseAdapter.
 
-    Uses functions from db.db module to interact with SQLite database.
-
     This implementation raises SQLite-specific exceptions. See method docstrings
     for details on specific exception types.
     """
+
+    def _validate_generated_bio_row(
+        self, row: sqlite3.Row, context: str | None = None
+    ) -> None:
+        """Validate that all required generated bio fields are not NULL.
+
+        Args:
+            row: SQLite Row object containing generated bio data
+            context: Optional context string to include in error messages
+                     (e.g., "generated bio handle=user.bsky.social")
+
+        Raises:
+            ValueError: If any required field is NULL. Error message includes
+                        the field name and optional context.
+        """
+        required_fields = [
+            "handle",
+            "generated_bio",
+            "created_at",
+        ]
+
+        for field in required_fields:
+            if row[field] is None:
+                error_msg = f"{field} cannot be NULL"
+                if context:
+                    error_msg = f"{error_msg} (context: {context})"
+                raise ValueError(error_msg)
 
     def write_generated_bio(self, bio: GeneratedBio) -> None:
         """Write a generated bio to SQLite.
@@ -25,11 +54,20 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.IntegrityError: If handle violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import write_generated_bio_to_database
+        created_at = bio.metadata.created_at
+        if created_at is None:
+            created_at = get_current_timestamp()
 
-        write_generated_bio_to_database(
-            bio.handle, bio.generated_bio, bio.metadata.created_at
-        )
+        with get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO agent_bios
+                (handle, generated_bio, created_at)
+                VALUES (?, ?, ?)
+            """,
+                (bio.handle, bio.generated_bio, created_at),
+            )
+            conn.commit()
 
     def read_generated_bio(self, handle: str) -> Optional[GeneratedBio]:
         """Read a generated bio from SQLite.
@@ -45,9 +83,27 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        from db.db import read_generated_bio
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM agent_bios WHERE handle = ?", (handle,)
+            ).fetchone()
 
-        return read_generated_bio(handle)
+            if row is None:
+                return None
+
+            # Validate required fields are not NULL
+            context = f"generated bio handle={handle}"
+            self._validate_generated_bio_row(row, context=context)
+
+            return GeneratedBio(
+                handle=row["handle"],
+                generated_bio=row["generated_bio"],
+                metadata=GenerationMetadata(
+                    model_used=None,
+                    generation_metadata=None,
+                    created_at=row["created_at"],
+                ),
+            )
 
     def read_all_generated_bios(self) -> list[GeneratedBio]:
         """Read all generated bios from SQLite.
@@ -60,6 +116,26 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        from db.db import read_all_generated_bios
+        with get_connection() as conn:
+            rows = conn.execute("SELECT * FROM agent_bios").fetchall()
 
-        return read_all_generated_bios()
+            bios = []
+            for row in rows:
+                # Validate required fields are not NULL
+                handle_value = row["handle"] if row["handle"] is not None else "unknown"
+                context = f"generated bio handle={handle_value}"
+                self._validate_generated_bio_row(row, context=context)
+
+                bios.append(
+                    GeneratedBio(
+                        handle=row["handle"],
+                        generated_bio=row["generated_bio"],
+                        metadata=GenerationMetadata(
+                            model_used=None,
+                            generation_metadata=None,
+                            created_at=row["created_at"],
+                        ),
+                    )
+                )
+
+            return bios
