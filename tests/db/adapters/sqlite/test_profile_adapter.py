@@ -145,11 +145,17 @@ class TestSQLiteProfileAdapterReadProfile:
 
             assert result is None
 
-    def test_raises_value_error_on_null_handle(self, adapter, mock_db_connection):
-        """Test that read_profile raises ValueError when handle is NULL."""
+    @pytest.mark.parametrize(
+        "null_field,expected_message",
+        [("handle", "handle cannot be NULL"), ("did", "did cannot be NULL")],
+    )
+    def test_raises_value_error_on_null_required_field(
+        self, adapter, mock_db_connection, null_field, expected_message
+    ):
+        """Test that read_profile raises ValueError when a required field is NULL."""
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
             row_data = {
-                "handle": None,
+                "handle": "test.bsky.social",
                 "did": "did:plc:test123",
                 "display_name": "Test User",
                 "bio": "Test bio",
@@ -157,26 +163,10 @@ class TestSQLiteProfileAdapterReadProfile:
                 "follows_count": 50,
                 "posts_count": 25,
             }
+            row_data[null_field] = None
             mock_cursor.fetchone.return_value = create_mock_row(row_data)
 
-            with pytest.raises(ValueError, match="handle cannot be NULL"):
-                adapter.read_profile("test.bsky.social")
-
-    def test_raises_value_error_on_null_did(self, adapter, mock_db_connection):
-        """Test that read_profile raises ValueError when did is NULL."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            row_data = {
-                "handle": "test.bsky.social",
-                "did": None,
-                "display_name": "Test User",
-                "bio": "Test bio",
-                "followers_count": 100,
-                "follows_count": 50,
-                "posts_count": 25,
-            }
-            mock_cursor.fetchone.return_value = create_mock_row(row_data)
-
-            with pytest.raises(ValueError, match="did cannot be NULL"):
+            with pytest.raises(ValueError, match=expected_message):
                 adapter.read_profile("test.bsky.social")
 
 
