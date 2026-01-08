@@ -49,6 +49,33 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
                     error_msg = f"{error_msg} (context: {context})"
                 raise ValueError(error_msg)
 
+    def _row_to_feed_post(self, row: sqlite3.Row) -> BlueskyFeedPost:
+        """Convert a database row to a BlueskyFeedPost model.
+
+        Args:
+            row: SQLite Row object containing feed post data.
+                 Should be validated with _validate_feed_post_row before calling.
+
+        Returns:
+            BlueskyFeedPost model instance
+
+        Raises:
+            KeyError: If required columns are missing from row
+        """
+        return BlueskyFeedPost(
+            id=row["uri"],
+            uri=row["uri"],
+            author_display_name=row["author_display_name"],
+            author_handle=row["author_handle"],
+            text=row["text"],
+            bookmark_count=row["bookmark_count"],
+            like_count=row["like_count"],
+            quote_count=row["quote_count"],
+            reply_count=row["reply_count"],
+            repost_count=row["repost_count"],
+            created_at=row["created_at"],
+        )
+
     def write_feed_post(self, post: BlueskyFeedPost) -> None:
         """Write a feed post to SQLite.
 
@@ -155,19 +182,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             context = f"feed post uri={uri}"
             self._validate_feed_post_row(row, context=context)
 
-            return BlueskyFeedPost(
-                id=row["uri"],
-                uri=row["uri"],
-                author_display_name=row["author_display_name"],
-                author_handle=row["author_handle"],
-                text=row["text"],
-                bookmark_count=row["bookmark_count"],
-                like_count=row["like_count"],
-                quote_count=row["quote_count"],
-                reply_count=row["reply_count"],
-                repost_count=row["repost_count"],
-                created_at=row["created_at"],
-            )
+            return self._row_to_feed_post(row)
 
     def read_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
         """Read all feed posts by a specific author from SQLite.
@@ -205,21 +220,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
                 self._validate_feed_post_row(row, context=context)
 
-                posts.append(
-                    BlueskyFeedPost(
-                        id=row["uri"],
-                        uri=row["uri"],
-                        author_display_name=row["author_display_name"],
-                        author_handle=row["author_handle"],
-                        text=row["text"],
-                        bookmark_count=row["bookmark_count"],
-                        like_count=row["like_count"],
-                        quote_count=row["quote_count"],
-                        reply_count=row["reply_count"],
-                        repost_count=row["repost_count"],
-                        created_at=row["created_at"],
-                    )
-                )
+                posts.append(self._row_to_feed_post(row))
 
             return posts
 
@@ -249,21 +250,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
                 self._validate_feed_post_row(row, context=context)
 
-                posts.append(
-                    BlueskyFeedPost(
-                        id=row["uri"],
-                        uri=row["uri"],
-                        author_display_name=row["author_display_name"],
-                        author_handle=row["author_handle"],
-                        text=row["text"],
-                        bookmark_count=row["bookmark_count"],
-                        like_count=row["like_count"],
-                        quote_count=row["quote_count"],
-                        reply_count=row["reply_count"],
-                        repost_count=row["repost_count"],
-                        created_at=row["created_at"],
-                    )
-                )
+                posts.append(self._row_to_feed_post(row))
 
             return posts
 
@@ -304,20 +291,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
             posts = []
             for row in rows:
-                posts.append(
-                    BlueskyFeedPost(
-                        id=row["uri"],
-                        uri=row["uri"],
-                        author_display_name=row["author_display_name"],
-                        author_handle=row["author_handle"],
-                        text=row["text"],
-                        bookmark_count=row["bookmark_count"],
-                        like_count=row["like_count"],
-                        quote_count=row["quote_count"],
-                        reply_count=row["reply_count"],
-                        repost_count=row["repost_count"],
-                        created_at=row["created_at"],
-                    )
-                )
+                posts.append(self._row_to_feed_post(row))
 
             return posts
