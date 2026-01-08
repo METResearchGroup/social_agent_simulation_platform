@@ -67,69 +67,21 @@ class SimulationEngine:
         Returns:
             The run that was executed.
         """
-        # Create run (let RunCreationError propagate)
         run: Run = self.run_repo.create_run(run_config)
 
-        # Update status to RUNNING with retry logic (up to 3 attempts, exponential backoff)
-        try:
-            attempts = 3
-            for attempt in range(attempts):
-                try:
-                    self.run_repo.update_run_status(run.run_id, RunStatus.RUNNING)
-                    break
-                except RunStatusUpdateError as e:
-                    if attempt == attempts - 1:
-                        # Mark FAILED best-effort, then raise
-                        self._update_run_status_safely(run.run_id, RunStatus.FAILED)
-                        raise RunStatusUpdateError(
-                            run.run_id,
-                            "Failed to update status to RUNNING after 3 attempts",
-                        ) from e
-                    # Exponential backoff: 0s, 1s, 2s (tunable)
-                    time.sleep(2**attempt)
-        except Exception:
-            # Ensure original exception propagates after best-effort status update
-            raise
+        self.update_run_status(run)
 
-        # Create agents (handle failures by marking run FAILED best-effort)
-        try:
-            agents: list[SocialMediaAgent] = self._create_agents_for_run(
-                run_config, run.run_id
-            )
-        except Exception:
-            self._update_run_status_safely(run.run_id, RunStatus.FAILED)
-            raise
+        agents = self.create_agents_for_run(run=run, run_config=run_config)
 
-        for turn_number in range(run.total_turns):
-            try:
-                logger.info("Starting turn %d for run %s", turn_number, run.run_id)
-                self._simulate_turn(
-                    run.run_id,
-                    turn_number,
-                    agents,
-                    run_config.feed_algorithm,
-                )
-            except Exception as e:
-                # Log with context, update to FAILED best-effort, and re-raise wrapped
-                logger.error(
-                    "Turn %d failed for run %s: %s",
-                    turn_number,
-                    run.run_id,
-                    e,
-                    exc_info=True,
-                    extra={
-                        "run_id": run.run_id,
-                        "turn_number": turn_number,
-                        "num_agents": len(agents),
-                        "total_turns": run.total_turns,
-                    },
-                )
-                self._update_run_status_safely(run.run_id, RunStatus.FAILED)
-                raise RuntimeError(
-                    f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
-                ) from e
+        self.simulate_turns(
+            total_turns=run.total_turns,
+            run=run,
+            run_config=run_config,
+            agents=agents,
+        )
 
         self._update_run_status_safely(run.run_id, RunStatus.COMPLETED)
+
         return run
 
     def get_run(self, run_id: str) -> Optional[Run]:
@@ -236,6 +188,88 @@ class SimulationEngine:
             feeds=feeds_dict,  # May be empty if all posts missing, but turn exists
             actions={},  # TODO: Actions not stored yet
         )
+
+    def update_run_status(self, run: Run) -> None:
+        try:
+            # TODO: should be defined in configuration.
+            attempts = 3
+            for attempt in range(attempts):
+                try:
+                    self.run_repo.update_run_status(run.run_id, RunStatus.RUNNING)
+                    break
+                except RunStatusUpdateError as e:
+                    if attempt == attempts - 1:
+                        # Mark FAILED best-effort, then raise
+                        self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+                        raise RunStatusUpdateError(
+                            run.run_id,
+                            "Failed to update status to RUNNING after 3 attempts",
+                        ) from e
+                    # Exponential backoff: 0s, 1s, 2s (tunable)
+                    time.sleep(2**attempt)
+        except Exception:
+            # Ensure original exception propagates after best-effort status update
+            raise
+
+    def simulate_turn(
+        self,
+        run: Run,
+        run_config: RunConfig,
+        turn_number: int,
+        agents: list[SocialMediaAgent]
+    ) -> None:
+        try:
+            logger.info("Starting turn %d for run %s", turn_number, run.run_id)
+            self._simulate_turn(
+                run.run_id,
+                turn_number,
+                agents,
+                run_config.feed_algorithm,
+            )
+        # TODO: should catch custom exceptions.
+        except Exception as e:
+            # Log with context, update to FAILED best-effort, and re-raise wrapped
+            logger.error(
+                "Turn %d failed for run %s: %s",
+                turn_number,
+                run.run_id,
+                e,
+                exc_info=True,
+                extra={
+                    "run_id": run.run_id,
+                    "turn_number": turn_number,
+                    "num_agents": len(agents),
+                    "total_turns": run.total_turns,
+                },
+            )
+            self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+            raise RuntimeError(
+                f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
+            ) from e
+
+    def simulate_turns(
+        self,
+        total_turns: int,
+        run: Run,
+        run_config: RunConfig,
+        agents: list[SocialMediaAgent]
+    ) -> None:
+        for turn_number in range(total_turns):
+            self.simulate_turn(run, run_config, turn_number, agents, run_config.feed_algorithm)
+
+    def create_agents_for_run(
+        self,
+        run: Run,
+        run_config: RunConfig,
+    ) -> list[SocialMediaAgent]:
+        try:
+            agents: list[SocialMediaAgent] = self._create_agents_for_run(
+                run_config, run.run_id
+            )
+            return agents
+        except Exception:
+            self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+            raise
 
     ## Private Methods ##
 
