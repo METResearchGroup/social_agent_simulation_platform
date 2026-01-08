@@ -9,17 +9,20 @@ This module provides SQLite-specific infrastructure functions:
 import os
 import sqlite3
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "db.sqlite")
+DB_PATH = os.path.abspath(
+    os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "db.sqlite"))
+)
 
 
 def get_connection() -> sqlite3.Connection:
     """Get a database connection.
 
     Returns:
-        SQLite connection to db.sqlite
+        SQLite connection to db.sqlite with foreign key enforcement enabled
     """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 

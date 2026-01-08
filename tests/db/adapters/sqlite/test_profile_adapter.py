@@ -169,6 +169,18 @@ class TestSQLiteProfileAdapterReadProfile:
             with pytest.raises(ValueError, match=expected_message):
                 adapter.read_profile("test.bsky.social")
 
+    def test_raises_operational_error_on_database_locked(
+        self, adapter, mock_db_connection
+    ):
+        """Test that read_profile raises OperationalError when database is locked."""
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchone.side_effect = sqlite3.OperationalError(
+                "Database locked"
+            )
+
+            with pytest.raises(sqlite3.OperationalError, match="Database locked"):
+                adapter.read_profile("test.bsky.social")
+
 
 class TestSQLiteProfileAdapterReadAllProfiles:
     """Tests for SQLiteProfileAdapter.read_all_profiles method."""
@@ -230,4 +242,16 @@ class TestSQLiteProfileAdapterReadAllProfiles:
             mock_cursor.fetchall.return_value = [create_mock_row(row_data)]
 
             with pytest.raises(ValueError, match="did cannot be NULL"):
+                adapter.read_all_profiles()
+
+    def test_raises_operational_error_on_database_locked(
+        self, adapter, mock_db_connection
+    ):
+        """Test that read_all_profiles raises OperationalError when database is locked."""
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchall.side_effect = sqlite3.OperationalError(
+                "Database locked"
+            )
+
+            with pytest.raises(sqlite3.OperationalError, match="Database locked"):
                 adapter.read_all_profiles()

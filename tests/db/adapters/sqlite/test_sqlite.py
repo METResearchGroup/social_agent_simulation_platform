@@ -3,6 +3,7 @@
 import os
 import sqlite3
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
@@ -11,21 +12,15 @@ from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_databa
 
 @pytest.fixture
 def temp_db():
-    """Fixture that creates a temporary database file and monkey-patches DB_PATH.
+    """Fixture that creates a temporary database file.
 
-    Yields the temporary database path. On teardown, restores the original
-    DB_PATH and deletes the temporary file.
+    Yields the temporary database path. On teardown, deletes the temporary file.
     """
     with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp:
         temp_db_path = tmp.name
 
     try:
-        import db.adapters.sqlite.sqlite as sqlite_module
-
-        original_path = sqlite_module.DB_PATH
-        sqlite_module.DB_PATH = temp_db_path
         yield temp_db_path
-        sqlite_module.DB_PATH = original_path
     finally:
         if os.path.exists(temp_db_path):
             os.unlink(temp_db_path)
@@ -72,92 +67,96 @@ class TestInitializeDatabase:
 
     def test_creates_all_tables(self, temp_db):
         """Test that initialize_database creates all required tables."""
-        # Initialize database
-        initialize_database()
+        with patch("db.adapters.sqlite.sqlite.DB_PATH", temp_db):
+            # Initialize database
+            initialize_database()
 
-        # Verify tables exist by querying them
-        conn = get_connection()
-        tables = [
-            "bluesky_profiles",
-            "bluesky_feed_posts",
-            "agent_bios",
-            "generated_feeds",
-            "runs",
-            "turn_metadata",
-        ]
+            # Verify tables exist by querying them
+            conn = get_connection()
+            tables = [
+                "bluesky_profiles",
+                "bluesky_feed_posts",
+                "agent_bios",
+                "generated_feeds",
+                "runs",
+                "turn_metadata",
+            ]
 
-        for table in tables:
-            cursor = conn.execute(
-                f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"
-            )
-            result = cursor.fetchone()
-            assert result is not None, f"Table {table} was not created"
+            for table in tables:
+                cursor = conn.execute(
+                    f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"
+                )
+                result = cursor.fetchone()
+                assert result is not None, f"Table {table} was not created"
 
-        conn.close()
+            conn.close()
 
     def test_creates_indexes(self, temp_db):
         """Test that initialize_database creates required indexes."""
-        # Initialize database
-        initialize_database()
+        with patch("db.adapters.sqlite.sqlite.DB_PATH", temp_db):
+            # Initialize database
+            initialize_database()
 
-        # Verify indexes exist
-        conn = get_connection()
-        indexes = [
-            "idx_runs_status",
-            "idx_runs_created_at",
-            "idx_bluesky_feed_posts_author_handle",
-            "idx_turn_metadata_run_id",
-        ]
+            # Verify indexes exist
+            conn = get_connection()
+            indexes = [
+                "idx_runs_status",
+                "idx_runs_created_at",
+                "idx_bluesky_feed_posts_author_handle",
+                "idx_turn_metadata_run_id",
+            ]
 
-        for index in indexes:
-            cursor = conn.execute(
-                f"SELECT name FROM sqlite_master WHERE type='index' AND name='{index}'"
-            )
-            result = cursor.fetchone()
-            assert result is not None, f"Index {index} was not created"
+            for index in indexes:
+                cursor = conn.execute(
+                    f"SELECT name FROM sqlite_master WHERE type='index' AND name='{index}'"
+                )
+                result = cursor.fetchone()
+                assert result is not None, f"Index {index} was not created"
 
-        conn.close()
+            conn.close()
 
     def test_idempotent(self, temp_db):
         """Test that initialize_database can be called multiple times safely."""
-        # Initialize database multiple times
-        initialize_database()
-        initialize_database()
-        initialize_database()
+        with patch("db.adapters.sqlite.sqlite.DB_PATH", temp_db):
+            # Initialize database multiple times
+            initialize_database()
+            initialize_database()
+            initialize_database()
 
-        # Verify tables still exist
-        conn = get_connection()
-        cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='runs'"
-        )
-        result = cursor.fetchone()
-        assert result is not None
-        conn.close()
+            # Verify tables still exist
+            conn = get_connection()
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='runs'"
+            )
+            result = cursor.fetchone()
+            assert result is not None
+            conn.close()
 
     def test_creates_tables_with_correct_schema(self, temp_db):
         """Test that initialize_database creates tables with correct schema."""
-        # Initialize database
-        initialize_database()
+        with patch("db.adapters.sqlite.sqlite.DB_PATH", temp_db):
+            # Initialize database
+            initialize_database()
 
-        # Verify runs table has correct columns
-        conn = get_connection()
-        cursor = conn.execute("PRAGMA table_info(runs)")
-        columns = {row[1]: row[2] for row in cursor.fetchall()}
+            # Verify runs table has correct columns
+            conn = get_connection()
+            cursor = conn.execute("PRAGMA table_info(runs)")
+            columns = {row[1]: row[2] for row in cursor.fetchall()}
 
-        expected_columns = {
-            "run_id": "TEXT",
-            "created_at": "TEXT",
-            "total_turns": "INTEGER",
-            "total_agents": "INTEGER",
-            "started_at": "TEXT",
-            "status": "TEXT",
-            "completed_at": "TEXT",
-        }
+            expected_columns = {
+                "run_id": "TEXT",
+                "created_at": "TEXT",
+                "total_turns": "INTEGER",
+                "total_agents": "INTEGER",
+                "started_at": "TEXT",
+                "status": "TEXT",
+                "completed_at": "TEXT",
+            }
 
-        for col_name, col_type in expected_columns.items():
-            assert col_name in columns, f"Column {col_name} not found"
-            assert columns[col_name] == col_type, (
-                f"Column {col_name} has wrong type: {columns[col_name]}"
-            )
+            for col_name, col_type in expected_columns.items():
+                assert col_name in columns, f"Column {col_name} not found"
+                assert columns[col_name] == col_type, (
+                    f"Column {col_name} has wrong type: {columns[col_name]}"
+                )
 
-        conn.close()
+            conn.close()
