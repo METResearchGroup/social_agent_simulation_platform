@@ -9,7 +9,6 @@ This module provides SQLite-specific infrastructure functions:
 import os
 import sqlite3
 
-
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "db.sqlite")
 
 

@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from db.adapters.sqlite.generated_bio_adapter import SQLiteGeneratedBioAdapter
-from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.generated.base import GenerationMetadata
+from simulation.core.models.generated.bio import GeneratedBio
 
 
 @pytest.fixture
