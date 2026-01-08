@@ -117,4 +117,3 @@ def initialize_database() -> None:
         """)
 
         conn.commit()
-

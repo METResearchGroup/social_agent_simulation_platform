@@ -93,7 +93,9 @@ class TestSQLiteProfileAdapterWriteProfile:
     def test_handles_sqlite_integrity_error(self, adapter, mock_db_connection):
         """Test that IntegrityError is raised when constraints are violated."""
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_conn.execute.side_effect = sqlite3.IntegrityError("Constraint violation")
+            mock_conn.execute.side_effect = sqlite3.IntegrityError(
+                "Constraint violation"
+            )
 
             profile = BlueskyProfile(
                 handle="test.bsky.social",
@@ -239,4 +241,3 @@ class TestSQLiteProfileAdapterReadAllProfiles:
 
             with pytest.raises(ValueError, match="did cannot be NULL"):
                 adapter.read_all_profiles()
-

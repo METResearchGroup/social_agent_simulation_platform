@@ -193,9 +193,9 @@ class TestInitializeDatabase:
 
             for col_name, col_type in expected_columns.items():
                 assert col_name in columns, f"Column {col_name} not found"
-                assert (
-                    columns[col_name] == col_type
-                ), f"Column {col_name} has wrong type: {columns[col_name]}"
+                assert columns[col_name] == col_type, (
+                    f"Column {col_name} has wrong type: {columns[col_name]}"
+                )
 
             conn.close()
 
@@ -204,4 +204,3 @@ class TestInitializeDatabase:
         finally:
             if os.path.exists(temp_db_path):
                 os.unlink(temp_db_path)
-

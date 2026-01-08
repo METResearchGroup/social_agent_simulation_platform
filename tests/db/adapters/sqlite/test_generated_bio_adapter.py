@@ -87,11 +87,12 @@ class TestSQLiteGeneratedBioAdapterWriteGeneratedBio:
             )
             mock_conn.commit.assert_called_once()
 
-
     def test_handles_sqlite_integrity_error(self, adapter, mock_db_connection):
         """Test that IntegrityError is raised when constraints are violated."""
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_conn.execute.side_effect = sqlite3.IntegrityError("Constraint violation")
+            mock_conn.execute.side_effect = sqlite3.IntegrityError(
+                "Constraint violation"
+            )
 
             bio = GeneratedBio(
                 handle="test.bsky.social",
@@ -150,7 +151,9 @@ class TestSQLiteGeneratedBioAdapterReadGeneratedBio:
             with pytest.raises(ValueError, match="handle cannot be NULL"):
                 adapter.read_generated_bio("test.bsky.social")
 
-    def test_raises_value_error_on_null_generated_bio(self, adapter, mock_db_connection):
+    def test_raises_value_error_on_null_generated_bio(
+        self, adapter, mock_db_connection
+    ):
         """Test that read_generated_bio raises ValueError when generated_bio is NULL."""
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
             row_data = {
@@ -213,4 +216,3 @@ class TestSQLiteGeneratedBioAdapterReadAllGeneratedBios:
 
             with pytest.raises(ValueError, match="generated_bio cannot be NULL"):
                 adapter.read_all_generated_bios()
-

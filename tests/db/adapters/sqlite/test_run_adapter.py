@@ -52,9 +52,7 @@ def mock_db_connection():
     @contextmanager
     def _mock_db_connection():
         # Patch where it's used, not where it's defined
-        with patch(
-            "db.adapters.sqlite.run_adapter.get_connection"
-        ) as mock_get_conn:
+        with patch("db.adapters.sqlite.run_adapter.get_connection") as mock_get_conn:
             mock_conn = MagicMock()
             mock_cursor = MagicMock()
             mock_conn.__enter__ = Mock(return_value=mock_conn)

@@ -199,7 +199,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
                         f"feed post uri={uri_value}, author_handle={author_handle}"
                     )
                 except (KeyError, TypeError):
-                    context = f"feed post (uri unavailable), author_handle={author_handle}"
+                    context = (
+                        f"feed post (uri unavailable), author_handle={author_handle}"
+                    )
 
                 self._validate_feed_post_row(row, context=context)
 
