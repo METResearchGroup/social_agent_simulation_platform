@@ -216,7 +216,7 @@ class SimulationEngine:
         run: Run,
         run_config: RunConfig,
         turn_number: int,
-        agents: list[SocialMediaAgent]
+        agents: list[SocialMediaAgent],
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
@@ -252,10 +252,12 @@ class SimulationEngine:
         total_turns: int,
         run: Run,
         run_config: RunConfig,
-        agents: list[SocialMediaAgent]
+        agents: list[SocialMediaAgent],
     ) -> None:
         for turn_number in range(total_turns):
-            self.simulate_turn(run, run_config, turn_number, agents, run_config.feed_algorithm)
+            self.simulate_turn(
+                run, run_config, turn_number, agents, run_config.feed_algorithm
+            )
 
     def create_agents_for_run(
         self,
