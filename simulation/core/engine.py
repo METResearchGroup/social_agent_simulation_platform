@@ -256,7 +256,10 @@ class SimulationEngine:
     ) -> None:
         for turn_number in range(total_turns):
             self.simulate_turn(
-                run, run_config, turn_number, agents, run_config.feed_algorithm
+                run=run,
+                run_config=run_config,
+                turn_number=turn_number,
+                agents=agents,
             )
 
     def create_agents_for_run(
