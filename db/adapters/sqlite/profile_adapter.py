@@ -1,5 +1,6 @@
 """SQLite implementation of profile database adapter."""
 
+import sqlite3
 from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
@@ -43,6 +44,30 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             )
             conn.commit()
 
+    def _validate_profile_row(self, row: sqlite3.Row) -> None:
+        """Validate that all required profile fields are not NULL.
+
+        Args:
+            row: SQLite Row object containing profile data
+
+        Raises:
+            ValueError: If any required field is NULL
+        """
+        if row["handle"] is None:
+            raise ValueError("handle cannot be NULL")
+        if row["did"] is None:
+            raise ValueError("did cannot be NULL")
+        if row["display_name"] is None:
+            raise ValueError("display_name cannot be NULL")
+        if row["bio"] is None:
+            raise ValueError("bio cannot be NULL")
+        if row["followers_count"] is None:
+            raise ValueError("followers_count cannot be NULL")
+        if row["follows_count"] is None:
+            raise ValueError("follows_count cannot be NULL")
+        if row["posts_count"] is None:
+            raise ValueError("posts_count cannot be NULL")
+
     def read_profile(self, handle: str) -> Optional[BlueskyProfile]:
         """Read a profile from SQLite.
 
@@ -65,21 +90,7 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             if row is None:
                 return None
 
-            # Validate required fields are not NULL
-            if row["handle"] is None:
-                raise ValueError("handle cannot be NULL")
-            if row["did"] is None:
-                raise ValueError("did cannot be NULL")
-            if row["display_name"] is None:
-                raise ValueError("display_name cannot be NULL")
-            if row["bio"] is None:
-                raise ValueError("bio cannot be NULL")
-            if row["followers_count"] is None:
-                raise ValueError("followers_count cannot be NULL")
-            if row["follows_count"] is None:
-                raise ValueError("follows_count cannot be NULL")
-            if row["posts_count"] is None:
-                raise ValueError("posts_count cannot be NULL")
+            self._validate_profile_row(row)
 
             return BlueskyProfile(
                 handle=row["handle"],
@@ -107,21 +118,7 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
 
             profiles = []
             for row in rows:
-                # Validate required fields are not NULL
-                if row["handle"] is None:
-                    raise ValueError("handle cannot be NULL")
-                if row["did"] is None:
-                    raise ValueError("did cannot be NULL")
-                if row["display_name"] is None:
-                    raise ValueError("display_name cannot be NULL")
-                if row["bio"] is None:
-                    raise ValueError("bio cannot be NULL")
-                if row["followers_count"] is None:
-                    raise ValueError("followers_count cannot be NULL")
-                if row["follows_count"] is None:
-                    raise ValueError("follows_count cannot be NULL")
-                if row["posts_count"] is None:
-                    raise ValueError("posts_count cannot be NULL")
+                self._validate_profile_row(row)
 
                 profiles.append(
                     BlueskyProfile(
