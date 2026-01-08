@@ -7,37 +7,10 @@ from db.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
-from db.repositories.generated_bio_repository import (
-    create_sqlite_generated_bio_repository,
-)
-from db.repositories.generated_feed_repository import (
-    create_sqlite_generated_feed_repository,
-)
-from db.repositories.profile_repository import create_sqlite_profile_repository
-from db.repositories.run_repository import create_sqlite_repository
-from simulation.core.engine import SimulationEngine
+from simulation.core.dependencies import create_engine
 from simulation.core.models.runs import RunConfig
 
 # TODO: This file will be deprecated in favor of `simulation/cli/main.py` in future PR
-
-
-def create_engine_inline() -> SimulationEngine:
-    """Create a SimulationEngine with SQLite repositories.
-
-    This is a temporary inline factory function. It will be replaced with
-    a proper factory from `simulation.core.dependencies` in PR 8.
-
-    Returns:
-        SimulationEngine configured with SQLite repositories.
-    """
-    return SimulationEngine(
-        run_repo=create_sqlite_repository(),
-        profile_repo=create_sqlite_profile_repository(),
-        feed_post_repo=create_sqlite_feed_post_repository(),
-        generated_bio_repo=create_sqlite_generated_bio_repository(),
-        generated_feed_repo=create_sqlite_generated_feed_repository(),
-    )
 
 
 def do_simulation_run(config: RunConfig) -> None:
@@ -46,7 +19,7 @@ def do_simulation_run(config: RunConfig) -> None:
     Args:
         config: Configuration for the run
     """
-    engine = create_engine_inline()
+    engine = create_engine()
 
     print(f"Starting simulation: {config.num_agents} agents, {config.num_turns} turns")
 

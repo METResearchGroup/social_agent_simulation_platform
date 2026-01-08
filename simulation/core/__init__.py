@@ -8,6 +8,10 @@ def __getattr__(name: str):
         from .engine import SimulationEngine
 
         return SimulationEngine
+    if name == "create_engine":
+        from .dependencies import create_engine
+
+        return create_engine
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -16,4 +20,5 @@ __all__ = [
     "TurnResult",
     "SimulationError",
     "InsufficientAgentsError",
+    "create_engine",  # type: ignore[attr-defined]  # Lazy-loaded via __getattr__
 ]
