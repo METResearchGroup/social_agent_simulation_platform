@@ -1,15 +1,15 @@
 """SQLite implementation of profile database adapter."""
 
+import sqlite3
 from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.profiles import BlueskyProfile
 
 
 class SQLiteProfileAdapter(ProfileDatabaseAdapter):
     """SQLite implementation of ProfileDatabaseAdapter.
-
-    Uses functions from db.db module to interact with SQLite database.
 
     This implementation raises SQLite-specific exceptions. See method docstrings
     for details on specific exception types.
@@ -25,9 +25,46 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             sqlite3.IntegrityError: If handle violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import write_profile
+        with get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO bluesky_profiles 
+                (handle, did, display_name, bio, followers_count, follows_count, posts_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    profile.handle,
+                    profile.did,
+                    profile.display_name,
+                    profile.bio,
+                    profile.followers_count,
+                    profile.follows_count,
+                    profile.posts_count,
+                ),
+            )
+            conn.commit()
 
-        write_profile(profile)
+    def _validate_profile_row(self, row: sqlite3.Row) -> None:
+        """Validate that all required profile fields are not NULL.
+
+        Args:
+            row: SQLite Row object containing profile data
+
+        Raises:
+            ValueError: If any required field is NULL
+        """
+        validate_required_fields(
+            row,
+            {
+                "handle": "handle",
+                "did": "did",
+                "display_name": "display_name",
+                "bio": "bio",
+                "followers_count": "followers_count",
+                "follows_count": "follows_count",
+                "posts_count": "posts_count",
+            },
+        )
 
     def read_profile(self, handle: str) -> Optional[BlueskyProfile]:
         """Read a profile from SQLite.
@@ -43,9 +80,25 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        from db.db import read_profile
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM bluesky_profiles WHERE handle = ?", (handle,)
+            ).fetchone()
 
-        return read_profile(handle)
+            if row is None:
+                return None
+
+            self._validate_profile_row(row)
+
+            return BlueskyProfile(
+                handle=row["handle"],
+                did=row["did"],
+                display_name=row["display_name"],
+                bio=row["bio"],
+                followers_count=row["followers_count"],
+                follows_count=row["follows_count"],
+                posts_count=row["posts_count"],
+            )
 
     def read_all_profiles(self) -> list[BlueskyProfile]:
         """Read all profiles from SQLite.
@@ -58,6 +111,23 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        from db.db import read_all_profiles
+        with get_connection() as conn:
+            rows = conn.execute("SELECT * FROM bluesky_profiles").fetchall()
 
-        return read_all_profiles()
+            profiles = []
+            for row in rows:
+                self._validate_profile_row(row)
+
+                profiles.append(
+                    BlueskyProfile(
+                        handle=row["handle"],
+                        did=row["did"],
+                        display_name=row["display_name"],
+                        bio=row["bio"],
+                        followers_count=row["followers_count"],
+                        follows_count=row["follows_count"],
+                        posts_count=row["posts_count"],
+                    )
+                )
+
+            return profiles

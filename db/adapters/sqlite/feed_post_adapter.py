@@ -1,20 +1,77 @@
 """SQLite implementation of feed post database adapter."""
 
+import sqlite3
 from typing import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
-from db.db import _validate_feed_post_row, get_connection
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.posts import BlueskyFeedPost
 
 
 class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
     """SQLite implementation of FeedPostDatabaseAdapter.
 
-    Uses functions from db.db module to interact with SQLite database.
-
     This implementation raises SQLite-specific exceptions. See method docstrings
     for details on specific exception types.
     """
+
+    def _validate_feed_post_row(
+        self, row: sqlite3.Row, context: str | None = None
+    ) -> None:
+        """Validate that all required feed post fields are not NULL.
+
+        Args:
+            row: SQLite Row object containing feed post data
+            context: Optional context string to include in error messages
+                     (e.g., "feed post uri=at://did:plc:.../app.bsky.feed.post/...")
+
+        Raises:
+            ValueError: If any required field is NULL. Error message includes
+                        the field name and optional context.
+        """
+        validate_required_fields(
+            row,
+            {
+                "uri": "uri",
+                "author_display_name": "author_display_name",
+                "author_handle": "author_handle",
+                "text": "text",
+                "bookmark_count": "bookmark_count",
+                "like_count": "like_count",
+                "quote_count": "quote_count",
+                "reply_count": "reply_count",
+                "repost_count": "repost_count",
+                "created_at": "created_at",
+            },
+            context=context,
+        )
+
+    def _row_to_feed_post(self, row: sqlite3.Row) -> BlueskyFeedPost:
+        """Convert a database row to a BlueskyFeedPost model.
+
+        Args:
+            row: SQLite Row object containing feed post data.
+                 Should be validated with _validate_feed_post_row before calling.
+
+        Returns:
+            BlueskyFeedPost model instance
+
+        Raises:
+            KeyError: If required columns are missing from row
+        """
+        return BlueskyFeedPost(
+            id=row["uri"],
+            uri=row["uri"],
+            author_display_name=row["author_display_name"],
+            author_handle=row["author_handle"],
+            text=row["text"],
+            bookmark_count=row["bookmark_count"],
+            like_count=row["like_count"],
+            quote_count=row["quote_count"],
+            reply_count=row["reply_count"],
+            repost_count=row["repost_count"],
+            created_at=row["created_at"],
+        )
 
     def write_feed_post(self, post: BlueskyFeedPost) -> None:
         """Write a feed post to SQLite.
@@ -26,9 +83,28 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.IntegrityError: If uri violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import write_feed_post
-
-        write_feed_post(post)
+        with get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO bluesky_feed_posts
+                (uri, author_display_name, author_handle, text, bookmark_count,
+                 like_count, quote_count, reply_count, repost_count, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    post.uri,
+                    post.author_display_name,
+                    post.author_handle,
+                    post.text,
+                    post.bookmark_count,
+                    post.like_count,
+                    post.quote_count,
+                    post.reply_count,
+                    post.repost_count,
+                    post.created_at,
+                ),
+            )
+            conn.commit()
 
     def write_feed_posts(self, posts: list[BlueskyFeedPost]) -> None:
         """Write multiple feed posts to SQLite (batch operation).
@@ -40,9 +116,38 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.IntegrityError: If any uri violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import write_feed_posts
+        if not posts:
+            return
 
-        write_feed_posts(posts)
+        with get_connection() as conn:
+            try:
+                conn.executemany(
+                    """
+                    INSERT OR REPLACE INTO bluesky_feed_posts
+                    (uri, author_display_name, author_handle, text, bookmark_count,
+                     like_count, quote_count, reply_count, repost_count, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                    [
+                        (
+                            post.uri,
+                            post.author_display_name,
+                            post.author_handle,
+                            post.text,
+                            post.bookmark_count,
+                            post.like_count,
+                            post.quote_count,
+                            post.reply_count,
+                            post.repost_count,
+                            post.created_at,
+                        )
+                        for post in posts
+                    ],
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
 
     def read_feed_post(self, uri: str) -> BlueskyFeedPost:
         """Read a feed post from SQLite.
@@ -59,9 +164,22 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        from db.db import read_feed_post
+        if not uri or not uri.strip():
+            raise ValueError("uri cannot be empty")
 
-        return read_feed_post(uri)
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM bluesky_feed_posts WHERE uri = ?", (uri,)
+            ).fetchone()
+
+            if row is None:
+                raise ValueError(f"No feed post found for uri: {uri}")
+
+            # Validate required fields are not NULL
+            context = f"feed post uri={uri}"
+            self._validate_feed_post_row(row, context=context)
+
+            return self._row_to_feed_post(row)
 
     def read_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
         """Read all feed posts by a specific author from SQLite.
@@ -77,9 +195,31 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        from db.db import read_feed_posts_by_author
+        with get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM bluesky_feed_posts WHERE author_handle = ?",
+                (author_handle,),
+            ).fetchall()
 
-        return read_feed_posts_by_author(author_handle)
+            posts = []
+            for row in rows:
+                # Validate required fields are not NULL
+                # Try to get uri for context, fallback if uri itself is NULL
+                try:
+                    uri_value = row["uri"] if row["uri"] is not None else "unknown"
+                    context = (
+                        f"feed post uri={uri_value}, author_handle={author_handle}"
+                    )
+                except (KeyError, TypeError):
+                    context = (
+                        f"feed post (uri unavailable), author_handle={author_handle}"
+                    )
+
+                self._validate_feed_post_row(row, context=context)
+
+                posts.append(self._row_to_feed_post(row))
+
+            return posts
 
     def read_all_feed_posts(self) -> list[BlueskyFeedPost]:
         """Read all feed posts from SQLite.
@@ -92,9 +232,24 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        from db.db import read_all_feed_posts
+        with get_connection() as conn:
+            rows = conn.execute("SELECT * FROM bluesky_feed_posts").fetchall()
 
-        return read_all_feed_posts()
+            posts = []
+            for row in rows:
+                # Validate required fields are not NULL
+                # Try to get uri for context, fallback if uri itself is NULL
+                try:
+                    uri_value = row["uri"] if row["uri"] is not None else "unknown"
+                    context = f"feed post uri={uri_value}"
+                except (KeyError, TypeError):
+                    context = "feed post (uri unavailable)"
+
+                self._validate_feed_post_row(row, context=context)
+
+                posts.append(self._row_to_feed_post(row))
+
+            return posts
 
     def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
         """Read feed posts by URIs.
@@ -123,7 +278,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
                 for row in result_rows:
                     uri_value = row["uri"] if row["uri"] is not None else "unknown"
                     context = f"feed posts for uri={uri_value}"
-                    _validate_feed_post_row(row, context=context)
+                    self._validate_feed_post_row(row, context=context)
                 # Re-map rows by uri and restore input order
                 row_by_uri = {row["uri"]: row for row in result_rows}
                 rows = [row_by_uri[uri] for uri in uris if uri in row_by_uri]
@@ -133,20 +288,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
             posts = []
             for row in rows:
-                posts.append(
-                    BlueskyFeedPost(
-                        id=row["uri"],
-                        uri=row["uri"],
-                        author_display_name=row["author_display_name"],
-                        author_handle=row["author_handle"],
-                        text=row["text"],
-                        bookmark_count=row["bookmark_count"],
-                        like_count=row["like_count"],
-                        quote_count=row["quote_count"],
-                        reply_count=row["reply_count"],
-                        repost_count=row["repost_count"],
-                        created_at=row["created_at"],
-                    )
-                )
+                posts.append(self._row_to_feed_post(row))
 
             return posts

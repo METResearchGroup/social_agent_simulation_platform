@@ -1,20 +1,46 @@
 """SQLite implementation of generated feed database adapter."""
 
 import json
+import sqlite3
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
-from db.db import _validate_generated_feed_row, get_connection
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.feeds import GeneratedFeed
 
 
 class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     """SQLite implementation of GeneratedFeedDatabaseAdapter.
 
-    Uses functions from db.db module to interact with SQLite database.
-
     This implementation raises SQLite-specific exceptions. See method docstrings
     for details on specific exception types.
     """
+
+    def _validate_generated_feed_row(
+        self, row: sqlite3.Row, context: str | None = None
+    ) -> None:
+        """Validate that all required generated feed fields are not NULL.
+
+        Args:
+            row: SQLite Row object containing generated feed data
+            context: Optional context string to include in error messages
+                     (e.g., "generated feed agent_handle=user.bsky.social, run_id=...")
+
+        Raises:
+            ValueError: If any required field is NULL. Error message includes
+                        the field name and optional context.
+        """
+        validate_required_fields(
+            row,
+            {
+                "feed_id": "feed_id",
+                "run_id": "run_id",
+                "turn_number": "turn_number",
+                "agent_handle": "agent_handle",
+                "post_uris": "post_uris",
+                "created_at": "created_at",
+            },
+            context=context,
+        )
 
     def write_generated_feed(self, feed: GeneratedFeed) -> None:
         """Write a generated feed to SQLite.
@@ -26,9 +52,23 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.IntegrityError: If composite key violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import write_generated_feed
-
-        write_generated_feed(feed)
+        with get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO generated_feeds
+                (feed_id, run_id, turn_number, agent_handle, post_uris, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    feed.feed_id,
+                    feed.run_id,
+                    feed.turn_number,
+                    feed.agent_handle,
+                    json.dumps(feed.post_uris),
+                    feed.created_at,
+                ),
+            )
+            conn.commit()
 
     def read_generated_feed(
         self, agent_handle: str, run_id: str, turn_number: int
@@ -49,9 +89,30 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        from db.db import read_generated_feed
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM generated_feeds WHERE agent_handle = ? AND run_id = ? AND turn_number = ?",
+                (agent_handle, run_id, turn_number),
+            ).fetchone()
 
-        return read_generated_feed(agent_handle, run_id, turn_number)
+            if row is None:
+                # this isn't supposed to happen, so we want to raise an error if it does.
+                raise ValueError(
+                    f"Generated feed not found for agent {agent_handle}, run {run_id}, turn {turn_number}"
+                )
+
+            # Validate required fields are not NULL
+            context = f"generated feed agent_handle={agent_handle}, run_id={run_id}, turn_number={turn_number}"
+            self._validate_generated_feed_row(row, context=context)
+
+            return GeneratedFeed(
+                feed_id=row["feed_id"],
+                run_id=row["run_id"],
+                turn_number=row["turn_number"],
+                agent_handle=row["agent_handle"],
+                post_uris=json.loads(row["post_uris"]),
+                created_at=row["created_at"],
+            )
 
     def read_all_generated_feeds(self) -> list[GeneratedFeed]:
         """Read all generated feeds from SQLite.
@@ -64,9 +125,45 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        from db.db import read_all_generated_feeds
+        with get_connection() as conn:
+            rows = conn.execute("SELECT * FROM generated_feeds").fetchall()
 
-        return read_all_generated_feeds()
+            feeds = []
+            for row in rows:
+                # Validate required fields are not NULL
+                # Try to get identifying info for context, fallback if unavailable
+                try:
+                    agent_handle_value = (
+                        row["agent_handle"]
+                        if row["agent_handle"] is not None
+                        else "unknown"
+                    )
+                    run_id_value = (
+                        row["run_id"] if row["run_id"] is not None else "unknown"
+                    )
+                    turn_number_value = (
+                        row["turn_number"]
+                        if row["turn_number"] is not None
+                        else "unknown"
+                    )
+                    context = f"generated feed agent_handle={agent_handle_value}, run_id={run_id_value}, turn_number={turn_number_value}"
+                except (KeyError, TypeError):
+                    context = "generated feed (identifying info unavailable)"
+
+                self._validate_generated_feed_row(row, context=context)
+
+                feeds.append(
+                    GeneratedFeed(
+                        feed_id=row["feed_id"],
+                        run_id=row["run_id"],
+                        turn_number=row["turn_number"],
+                        agent_handle=row["agent_handle"],
+                        post_uris=json.loads(row["post_uris"]),
+                        created_at=row["created_at"],
+                    )
+                )
+
+            return feeds
 
     def read_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
         """Read all post URIs from generated feeds for a specific agent and run.
@@ -83,9 +180,21 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ValueError: If agent_handle or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
-        from db.db import read_post_uris_for_run
+        if not agent_handle or not agent_handle.strip():
+            raise ValueError("agent_handle cannot be empty")
+        if not run_id or not run_id.strip():
+            raise ValueError("run_id cannot be empty")
 
-        return read_post_uris_for_run(agent_handle, run_id)
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT post_uris
+                FROM generated_feeds
+                WHERE agent_handle = ? AND run_id = ?
+            """,
+                (agent_handle, run_id),
+            ).fetchall()
+            return {uri for row in rows for uri in json.loads(row["post_uris"])}
 
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
         """Read all generated feeds for a specific run and turn.
@@ -117,7 +226,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             feeds = []
             for row in rows:
                 # Validate required fields are not NULL
-                _validate_generated_feed_row(row, context=context)
+                self._validate_generated_feed_row(row, context=context)
 
                 # add validated rows to feeds list
                 feeds.append(

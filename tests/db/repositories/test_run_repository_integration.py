@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-from db.db import DB_PATH, get_connection, initialize_database
+from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
 from db.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
@@ -30,9 +30,9 @@ def temp_db():
     os.close(fd)
 
     # Monkey-patch DB_PATH
-    import db.db
+    import db.adapters.sqlite.sqlite as sqlite_module
 
-    db.db.DB_PATH = temp_path
+    sqlite_module.DB_PATH = temp_path
 
     # Initialize the database
     initialize_database()
@@ -40,7 +40,7 @@ def temp_db():
     yield temp_path
 
     # Cleanup
-    db.db.DB_PATH = original_path
+    sqlite_module.DB_PATH = original_path
     if os.path.exists(temp_path):
         os.unlink(temp_path)
 
@@ -140,7 +140,9 @@ class TestRunStatusEnumSerialization:
 
     def test_enum_serializes_to_correct_string(self, temp_db):
         """Test that RunStatus enum values serialize correctly."""
-        from db.db import write_run
+        from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
+
+        adapter = SQLiteRunAdapter()
 
         run = Run(
             run_id="test_run_1",
@@ -152,7 +154,7 @@ class TestRunStatusEnumSerialization:
             completed_at=None,
         )
 
-        write_run(run)
+        adapter.write_run(run)
 
         # Read directly from DB to verify string storage
         conn = get_connection()
@@ -166,7 +168,9 @@ class TestRunStatusEnumSerialization:
         """Test that reading invalid status string raises ValueError."""
         from unittest.mock import MagicMock
 
-        from db.db import _row_to_run
+        from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
+
+        adapter = SQLiteRunAdapter()
 
         # We can't insert invalid status due to CHECK constraint, so we test _row_to_run directly
         # This simulates what would happen if the database had invalid data (e.g., from manual edits)
@@ -200,7 +204,7 @@ class TestRunStatusEnumSerialization:
 
         # Test that _row_to_run raises ValueError for invalid status
         with pytest.raises(ValueError, match="Invalid status value"):
-            _row_to_run(mock_row)
+            adapter._row_to_run(mock_row)
 
     def test_all_status_values_roundtrip(self, temp_db):
         """Test that all RunStatus enum values roundtrip correctly."""
@@ -439,21 +443,23 @@ class TestNullabilityValidation:
 
     def test_null_run_id_raises_error(self, temp_db):
         """Test that NULL run_id raises ValueError."""
-        from db.db import _row_to_run
+        from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 
+        adapter = SQLiteRunAdapter()
         mock_row = _create_mock_row(run_id=None)
 
         with pytest.raises(ValueError, match="run_id cannot be NULL"):
-            _row_to_run(mock_row)  # type: ignore
+            adapter._row_to_run(mock_row)  # type: ignore
 
     def test_null_status_raises_error(self, temp_db):
         """Test that NULL status raises ValueError."""
-        from db.db import _row_to_run
+        from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 
+        adapter = SQLiteRunAdapter()
         mock_row = _create_mock_row(status=None)
 
         with pytest.raises(ValueError, match="status cannot be NULL"):
-            _row_to_run(mock_row)  # type: ignore
+            adapter._row_to_run(mock_row)  # type: ignore
 
 
 class TestTurnMetadataIntegration:
@@ -520,7 +526,7 @@ class TestTurnMetadataIntegration:
         # Write metadata for multiple turns
         import json
 
-        from db.db import get_connection
+        from db.adapters.sqlite.sqlite import get_connection
 
         with get_connection() as conn:
             for turn_number in range(3):
@@ -567,7 +573,7 @@ class TestTurnMetadataIntegration:
         # Write metadata with zero actions
         import json
 
-        from db.db import get_connection
+        from db.adapters.sqlite.sqlite import get_connection
 
         turn_number = 0
         total_actions = {
@@ -612,7 +618,7 @@ class TestTurnMetadataIntegration:
         # Write metadata for turn 0 in both runs with different values
         import json
 
-        from db.db import get_connection
+        from db.adapters.sqlite.sqlite import get_connection
 
         with get_connection() as conn:
             # Run 1: turn 0 has 10 likes

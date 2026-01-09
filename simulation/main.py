@@ -1,6 +1,6 @@
 import sys
 
-from db.db import initialize_database
+from db.adapters.sqlite.sqlite import initialize_database
 from db.exceptions import (
     InvalidTransitionError,
     RunCreationError,

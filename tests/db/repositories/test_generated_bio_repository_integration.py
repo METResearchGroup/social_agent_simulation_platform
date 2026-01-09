@@ -8,7 +8,7 @@ import tempfile
 
 import pytest
 
-from db.db import DB_PATH, initialize_database
+from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
 )
@@ -27,10 +27,9 @@ def temp_db():
     fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
     os.close(fd)
 
-    # Monkey-patch DB_PATH
-    import db.db
+    import db.adapters.sqlite.sqlite as sqlite_module
 
-    db.db.DB_PATH = temp_path
+    sqlite_module.DB_PATH = temp_path
 
     # Initialize the database
     initialize_database()
@@ -38,7 +37,7 @@ def temp_db():
     yield temp_path
 
     # Cleanup
-    db.db.DB_PATH = original_path
+    sqlite_module.DB_PATH = original_path
     if os.path.exists(temp_path):
         os.unlink(temp_path)
 
