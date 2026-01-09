@@ -113,6 +113,9 @@ prepend_sys_path = [
     "."
 ]
 
+# This placeholder will be overridden by env.py for multi-database support
+sqlalchemy.url = "driver://user:pass@localhost/dbname"
+
 # timezone to use when rendering the date within the migration file
 # as well as the filename.
 # If specified, requires the python>=3.9 or backports.zoneinfo library and tzdata library.
