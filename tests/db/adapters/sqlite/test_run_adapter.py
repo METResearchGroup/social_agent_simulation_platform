@@ -2,14 +2,14 @@
 
 import json
 import sqlite3
-from contextlib import contextmanager
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
 from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.turns import TurnMetadata
+from tests.db.adapters.sqlite.conftest import create_mock_db_connection, create_mock_row
 
 
 @pytest.fixture
@@ -24,21 +24,6 @@ def default_test_data():
     return {"run_id": "run_123", "turn_number": 0}
 
 
-def create_mock_row(row_data: dict) -> MagicMock:
-    """Helper function to create a mock sqlite3.Row.
-
-    Args:
-        row_data: Dictionary mapping column names to values
-
-    Returns:
-        MagicMock configured to behave like a sqlite3.Row
-    """
-    mock_row = MagicMock()
-    mock_row.__getitem__ = Mock(side_effect=lambda key: row_data[key])
-    mock_row.keys = Mock(return_value=list(row_data.keys()))
-    return mock_row
-
-
 @pytest.fixture
 def mock_db_connection():
     """Fixture that provides a context manager for mocking database connections.
@@ -48,20 +33,7 @@ def mock_db_connection():
             mock_cursor.fetchone.return_value = some_row
             # test code here
     """
-
-    @contextmanager
-    def _mock_db_connection():
-        # Patch where it's used, not where it's defined
-        with patch("db.adapters.sqlite.run_adapter.get_connection") as mock_get_conn:
-            mock_conn = MagicMock()
-            mock_cursor = MagicMock()
-            mock_conn.__enter__ = Mock(return_value=mock_conn)
-            mock_conn.__exit__ = Mock(return_value=None)
-            mock_conn.execute.return_value = mock_cursor
-            mock_get_conn.return_value = mock_conn
-            yield mock_get_conn, mock_conn, mock_cursor
-
-    return _mock_db_connection
+    return create_mock_db_connection("db.adapters.sqlite.run_adapter.get_connection")
 
 
 class TestSQLiteRunAdapterReadTurnMetadata:
