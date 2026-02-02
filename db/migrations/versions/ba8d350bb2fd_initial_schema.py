@@ -76,7 +76,11 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('run_id')
     )
     with op.batch_alter_table('runs', schema=None) as batch_op:
-        batch_op.create_index('idx_runs_created_at', [sa.literal_column('created_at DESC')], unique=False)
+        batch_op.create_index(
+            'idx_runs_created_at',
+            [sa.column('created_at').desc()],
+            unique=False,
+        )
         batch_op.create_index('idx_runs_status', ['status'], unique=False)
 
     op.create_table('turn_metadata',
