@@ -65,7 +65,12 @@ generated_feeds = sa.Table(
     sa.Column("agent_handle", sa.Text(), nullable=False),
     sa.Column("post_uris", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
-    # NOTE: FK on run_id is added in a later migration; do not add it here yet.
+    # NOTE: This FK is applied by the second Alembic migration.
+    sa.ForeignKeyConstraint(
+        ["run_id"],
+        ["runs.run_id"],
+        name="fk_generated_feeds_run_id",
+    ),
     sa.PrimaryKeyConstraint(
         "agent_handle", "run_id", "turn_number", name="pk_generated_feeds"
     ),
