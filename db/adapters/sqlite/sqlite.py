@@ -70,10 +70,9 @@ def initialize_database() -> None:
         os.makedirs(db_dir, exist_ok=True)
 
     repo_root = Path(__file__).resolve().parents[3]
-    alembic_ini = repo_root / "alembic.ini"
     pyproject_toml = repo_root / "pyproject.toml"
 
-    cfg = Config(file_=str(alembic_ini), toml_file=str(pyproject_toml))
+    cfg = Config(toml_file=str(pyproject_toml))
 
     def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
         row = conn.execute(

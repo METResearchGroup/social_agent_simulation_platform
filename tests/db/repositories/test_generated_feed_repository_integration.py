@@ -47,7 +47,7 @@ def _ensure_run_exists(run_id: str) -> None:
     with get_connection() as conn:
         conn.execute(
             """
-            INSERT OR REPLACE INTO runs
+            INSERT OR IGNORE INTO runs
             (run_id, created_at, total_turns, total_agents, started_at, status, completed_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,

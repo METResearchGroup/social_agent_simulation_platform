@@ -11,9 +11,9 @@ from alembic import context
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
+# Interpret the config file for Python logging (only when an .ini file exists).
+# When using pyproject.toml exclusively there is no .ini; skip fileConfig.
+if config.config_file_name is not None and os.path.isfile(config.config_file_name):
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here

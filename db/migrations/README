@@ -4,9 +4,7 @@ This repo uses **Alembic** to manage schema changes for the SQLite database.
 
 - **Migration environment**: `db/migrations/`
 - **Revisions**: `db/migrations/versions/`
-- **Alembic config**:
-  - Code layout config lives in `pyproject.toml` under `[tool.alembic]` (notably `script_location`).
-  - Logging defaults live in `alembic.ini`.
+- **Configuration**: All Alembic settings live in `pyproject.toml` under `[tool.alembic]`. You **must** pass `-c pyproject.toml` to every Alembic command (e.g. `uv run python -m alembic -c pyproject.toml upgrade head`). There is no `alembic.ini`; the database URL is set at runtime by `db/migrations/env.py` from `DB_PATH` or `SIM_DB_PATH` / `SIM_DATABASE_URL`.
 
 ### Where schema is defined
 

@@ -113,8 +113,8 @@ prepend_sys_path = [
     "."
 ]
 
-# This placeholder will be overridden by env.py for multi-database support
-sqlalchemy.url = "driver://user:pass@localhost/dbname"
+# Placeholder only; env.py overrides with the real URL (see db/migrations/README).
+sqlalchemy.url = "sqlite:///:memory:"
 
 # timezone to use when rendering the date within the migration file
 # as well as the filename.
