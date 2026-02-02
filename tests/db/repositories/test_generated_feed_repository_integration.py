@@ -9,7 +9,7 @@ import tempfile
 import pytest
 from pydantic import ValidationError
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
+from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
@@ -42,12 +42,35 @@ def temp_db():
         os.unlink(temp_path)
 
 
+def _ensure_run_exists(run_id: str) -> None:
+    """Ensure a matching `runs` row exists for FK enforcement."""
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO runs
+            (run_id, created_at, total_turns, total_agents, started_at, status, completed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run_id,
+                "2024-01-01T00:00:00Z",
+                1,
+                1,
+                "2024-01-01T00:00:00Z",
+                "running",
+                None,
+            ),
+        )
+        conn.commit()
+
+
 class TestSQLiteGeneratedFeedRepositoryIntegration:
     """Integration tests using a real database."""
 
     def test_create_and_read_generated_feed(self, temp_db):
         """Test creating a generated feed and reading it back from the database."""
         repo = create_sqlite_generated_feed_repository()
+        _ensure_run_exists("run_123")
         feed = GeneratedFeed(
             feed_id="feed_test123",
             run_id="run_123",
@@ -76,6 +99,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
     def test_create_or_update_generated_feed_updates_existing_feed(self, temp_db):
         """Test that create_or_update_generated_feed updates an existing feed (composite key)."""
         repo = create_sqlite_generated_feed_repository()
+        _ensure_run_exists("run_123")
 
         # Create initial feed
         initial_feed = GeneratedFeed(
@@ -128,6 +152,8 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         repo = create_sqlite_generated_feed_repository()
 
         # Create multiple feeds
+        for i in range(1, 4):
+            _ensure_run_exists(f"run_{i}")
         feeds = [
             GeneratedFeed(
                 feed_id=f"feed_test{i}",
@@ -176,6 +202,8 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
     ):
         """Test that multiple feeds with same agent_handle but different run_id/turn_number can coexist."""
         repo = create_sqlite_generated_feed_repository()
+        _ensure_run_exists("run_1")
+        _ensure_run_exists("run_2")
 
         feed1 = GeneratedFeed(
             feed_id="feed_1",
@@ -248,6 +276,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
     def test_generated_feed_with_multiple_post_uris(self, temp_db):
         """Test that generated feeds with multiple post URIs are handled correctly."""
         repo = create_sqlite_generated_feed_repository()
+        _ensure_run_exists("run_123")
 
         post_uris = [
             f"at://did:plc:test{i}/app.bsky.feed.post/post{i}" for i in range(1, 11)
@@ -271,6 +300,8 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
     def test_read_feeds_for_turn_returns_feeds_for_specific_turn(self, temp_db):
         """Test that read_feeds_for_turn returns all feeds for a specific run and turn."""
         repo = create_sqlite_generated_feed_repository()
+        _ensure_run_exists("run_123")
+        _ensure_run_exists("run_456")
 
         # Create feeds for different turns
         feed1 = GeneratedFeed(
