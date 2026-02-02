@@ -1,11 +1,11 @@
+import os
 from logging.config import fileConfig
 
-import os
-
-from sqlalchemy import create_engine
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import create_engine, pool
+
+from db.adapters.sqlite.sqlite import DB_PATH
+from db.schema import metadata as target_metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -15,13 +15,6 @@ config = context.config
 # When using pyproject.toml exclusively there is no .ini; skip fileConfig.
 if config.config_file_name is not None and os.path.isfile(config.config_file_name):
     fileConfig(config.config_file_name)
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-from db.adapters.sqlite.sqlite import DB_PATH
-from db.schema import metadata as target_metadata
 
 
 def _get_sqlalchemy_url() -> str:

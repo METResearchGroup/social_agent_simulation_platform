@@ -15,6 +15,7 @@ dependencies = [
     "openai>=2.8.1",
     "pydantic>=2.12.4",
     "sqlalchemy>=2.0.45",
+    "ruff>=0.14.14",
 ]
 
 [project.optional-dependencies]
