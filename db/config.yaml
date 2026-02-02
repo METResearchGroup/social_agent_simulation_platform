@@ -1,0 +1,6 @@
+# Database configuration.
+# Keys are read via db.config.Config.get_config("name").
+# Environment variables override these values when set (e.g. SIM_DB_PATH, SIM_DATABASE_URL).
+
+SIM_DB_PATH: null
+SIM_DATABASE_URL: null

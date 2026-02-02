@@ -9,9 +9,9 @@ This module provides SQLite-specific infrastructure functions:
 import os
 import sqlite3
 
-DB_PATH = os.path.abspath(
-    os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "db.sqlite"))
-)
+from lib.constants import REPO_ROOT
+
+DB_PATH = os.path.join(REPO_ROOT, "db", "db.sqlite")
 
 
 def get_connection() -> sqlite3.Connection:
@@ -53,95 +53,79 @@ def validate_required_fields(
 
 
 def initialize_database() -> None:
-    """Initialize the database by creating tables if they don't exist."""
-    with get_connection() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS bluesky_profiles (
-                handle TEXT PRIMARY KEY,
-                did TEXT NOT NULL,
-                display_name TEXT NOT NULL,
-                bio TEXT NOT NULL,
-                followers_count INTEGER NOT NULL,
-                follows_count INTEGER NOT NULL,
-                posts_count INTEGER NOT NULL
-            )
-        """)
+    """Initialize the database by applying Alembic migrations to HEAD.
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS bluesky_feed_posts (
-                uri TEXT PRIMARY KEY,
-                author_display_name TEXT NOT NULL,
-                author_handle TEXT NOT NULL,
-                text TEXT NOT NULL,
-                bookmark_count INTEGER NOT NULL,
-                like_count INTEGER NOT NULL,
-                quote_count INTEGER NOT NULL,
-                reply_count INTEGER NOT NULL,
-                repost_count INTEGER NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
+    This is safe to call repeatedly; if the database is already at HEAD, Alembic
+    will make no changes.
+    """
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS agent_bios (
-                handle TEXT PRIMARY KEY,
-                generated_bio TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
+    from alembic import command
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS generated_feeds (
-                feed_id TEXT NOT NULL,
-                run_id TEXT NOT NULL,
-                turn_number INTEGER NOT NULL,
-                agent_handle TEXT NOT NULL,
-                post_uris TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                PRIMARY KEY (agent_handle, run_id, turn_number)
-            )
-        """)
+    # Ensure parent directory exists (especially for test temp DB paths).
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS runs (
-                run_id TEXT PRIMARY KEY,
-                created_at TEXT NOT NULL,
-                total_turns INTEGER NOT NULL CHECK (total_turns > 0),
-                total_agents INTEGER NOT NULL CHECK (total_agents > 0),
-                started_at TEXT NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('running', 'completed', 'failed')),
-                completed_at TEXT NULL,
-                CHECK (
-                    (status = 'completed' AND completed_at IS NOT NULL AND completed_at >= started_at) OR
-                    (status != 'completed' AND completed_at IS NULL)
-                )
-            )
-        """)
+    repo_root = REPO_ROOT
+    pyproject_toml = os.path.join(repo_root, "pyproject.toml")
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS turn_metadata (
-                run_id TEXT NOT NULL REFERENCES runs(run_id),
-                turn_number INTEGER NOT NULL CHECK (turn_number >= 0),
-                total_actions TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                PRIMARY KEY (run_id, turn_number)
-            )
-        """)
+    cfg = Config(toml_file=str(pyproject_toml))
 
-        # Create indexes for frequently queried columns
-        conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status)
-        """)
-        conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at DESC)
-        """)
-        conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_bluesky_feed_posts_author_handle 
-            ON bluesky_feed_posts(author_handle)
-        """)
+    def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+        row = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,),
+        ).fetchone()
+        return row is not None
 
-        conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_turn_metadata_run_id ON turn_metadata(run_id)
-        """)
+    def _has_alembic_version(conn: sqlite3.Connection) -> bool:
+        if not _table_exists(conn, "alembic_version"):
+            return False
+        row = conn.execute(
+            "SELECT version_num FROM alembic_version LIMIT 1"
+        ).fetchone()
+        return row is not None and bool(row[0])
 
-        conn.commit()
+    def _has_any_app_tables(conn: sqlite3.Connection) -> bool:
+        # A minimal heuristic: if any core table exists, treat DB as pre-existing.
+        for name in ("runs", "generated_feeds", "turn_metadata"):
+            if _table_exists(conn, name):
+                return True
+        return False
+
+    with sqlite3.connect(DB_PATH) as conn:
+        has_version = _has_alembic_version(conn)
+        has_tables = _has_any_app_tables(conn)
+
+    # Ensure Alembic targets the same DB_PATH used by runtime code.
+    # Respect explicit configuration if the caller already set it.
+    old_sim_db_path = os.environ.get("SIM_DB_PATH")
+    old_sim_db_url = os.environ.get("SIM_DATABASE_URL")
+    try:
+        if old_sim_db_url is None and old_sim_db_path is None:
+            os.environ["SIM_DB_PATH"] = DB_PATH
+
+        if has_version or not has_tables:
+            # Normal case: versioned DB or an empty DB.
+            command.upgrade(cfg, "head")
+        else:
+            # Legacy case: tables exist but Alembic version table is missing.
+            # Assume the schema matches the initial baseline revision, then
+            # upgrade through subsequent migrations (e.g., adding FKs).
+            script = ScriptDirectory.from_config(cfg)
+            revisions = list(script.walk_revisions())
+            baseline_revision = revisions[-1].revision  # down_revision is None
+            command.stamp(cfg, baseline_revision)
+            command.upgrade(cfg, "head")
+    finally:
+        if old_sim_db_path is None:
+            os.environ.pop("SIM_DB_PATH", None)
+        else:
+            os.environ["SIM_DB_PATH"] = old_sim_db_path
+
+        if old_sim_db_url is None:
+            os.environ.pop("SIM_DATABASE_URL", None)
+        else:
+            os.environ["SIM_DATABASE_URL"] = old_sim_db_url
