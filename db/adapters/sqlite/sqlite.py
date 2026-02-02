@@ -8,11 +8,10 @@ This module provides SQLite-specific infrastructure functions:
 
 import os
 import sqlite3
-from pathlib import Path
 
-DB_PATH = os.path.abspath(
-    os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "db.sqlite"))
-)
+from lib.constants import REPO_ROOT
+
+DB_PATH = os.path.join(REPO_ROOT, "db", "db.sqlite")
 
 
 def get_connection() -> sqlite3.Connection:
@@ -69,8 +68,8 @@ def initialize_database() -> None:
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
 
-    repo_root = Path(__file__).resolve().parents[3]
-    pyproject_toml = repo_root / "pyproject.toml"
+    repo_root = REPO_ROOT
+    pyproject_toml = os.path.join(repo_root, "pyproject.toml")
 
     cfg = Config(toml_file=str(pyproject_toml))
 

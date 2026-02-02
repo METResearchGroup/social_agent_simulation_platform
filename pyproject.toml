@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.17.2",
+    "pyyaml>=6.0",
     "atproto>=0.0.63",
     "dotenv>=0.9.9",
     "langchain>=1.1.0",
