@@ -1,1 +1,59 @@
-pyproject configuration, based on the generic configuration.
+## Database migrations (Alembic)
+
+This repo uses **Alembic** to manage schema changes for the SQLite database.
+
+- **Migration environment**: `db/migrations/`
+- **Revisions**: `db/migrations/versions/`
+- **Alembic config**:
+  - Code layout config lives in `pyproject.toml` under `[tool.alembic]` (notably `script_location`).
+  - Logging defaults live in `alembic.ini`.
+
+### Where schema is defined
+
+- **Runtime DB access** uses `sqlite3` adapters in `db/adapters/sqlite/`.
+- **Migration schema metadata** (for Alembic autogenerate) lives in `db/schema.py`.
+- **Bootstrap**: `db/adapters/sqlite/sqlite.py::initialize_database()` applies Alembic migrations to `head`.
+
+### Common commands (use uv)
+
+Run these from the repo root:
+
+- Upgrade to latest:
+
+```bash
+uv run python -m alembic -c pyproject.toml upgrade head
+```
+
+- Downgrade one revision:
+
+```bash
+uv run python -m alembic -c pyproject.toml downgrade -1
+```
+
+- Show current revision for the target DB:
+
+```bash
+uv run python -m alembic -c pyproject.toml current
+```
+
+- Create a new migration (autogenerate):
+
+```bash
+uv run python -m alembic -c pyproject.toml revision --autogenerate -m "your message"
+```
+
+### Pointing Alembic at a specific database
+
+By default, migrations target the same SQLite file as the app (`DB_PATH` in
+`db/adapters/sqlite/sqlite.py`). You can override this for testing or tooling:
+
+- **`SIM_DB_PATH`**: filesystem path to a sqlite file
+  - example: `SIM_DB_PATH=/tmp/test.sqlite`
+- **`SIM_DATABASE_URL`**: full SQLAlchemy URL (takes precedence)
+  - example: `SIM_DATABASE_URL=sqlite:////tmp/test.sqlite`
+
+Example:
+
+```bash
+SIM_DB_PATH=/tmp/test.sqlite uv run python -m alembic -c pyproject.toml upgrade head
+```
