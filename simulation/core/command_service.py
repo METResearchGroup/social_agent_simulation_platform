@@ -10,6 +10,8 @@ from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
+from simulation.core.action_history import ActionHistoryStore, InMemoryActionHistoryStore
+from simulation.core.action_invariant_policy import ActionInvariantPolicy
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
@@ -31,6 +33,7 @@ class SimulationCommandService:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
+        action_invariant_policy: ActionInvariantPolicy | None = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -38,6 +41,7 @@ class SimulationCommandService:
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
+        self.action_invariant_policy = action_invariant_policy or ActionInvariantPolicy()
 
     def execute_run(self, run_config: RunConfig) -> Run:
         """Execute a simulation run."""
@@ -50,6 +54,7 @@ class SimulationCommandService:
                 run=run,
                 run_config=run_config,
                 agents=agents,
+                action_history_store=InMemoryActionHistoryStore(),
             )
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
@@ -92,6 +97,7 @@ class SimulationCommandService:
         run_config: RunConfig,
         turn_number: int,
         agents: list[SocialMediaAgent],
+        action_history_store: ActionHistoryStore | None = None,
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
@@ -100,6 +106,8 @@ class SimulationCommandService:
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
+                action_history_store=action_history_store
+                or InMemoryActionHistoryStore(),
             )
         except Exception as e:
             logger.error(
@@ -126,13 +134,16 @@ class SimulationCommandService:
         run: Run,
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
+        action_history_store: ActionHistoryStore | None = None,
     ) -> None:
+        history_store = action_history_store or InMemoryActionHistoryStore()
         for turn_number in range(total_turns):
             self.simulate_turn(
                 run=run,
                 run_config=run_config,
                 turn_number=turn_number,
                 agents=agents,
+                action_history_store=history_store,
             )
 
     def create_agents_for_run(
@@ -156,6 +167,7 @@ class SimulationCommandService:
         turn_number: int,
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
+        action_history_store: ActionHistoryStore | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
@@ -185,6 +197,8 @@ class SimulationCommandService:
             "follows": 0,
         }
 
+        history_store = action_history_store or InMemoryActionHistoryStore()
+
         for agent in agents:
             feed = agent_to_hydrated_feeds.get(agent.handle, [])
 
@@ -194,20 +208,15 @@ class SimulationCommandService:
             likes = agent.like_posts(feed)
             comments = agent.comment_posts(feed)
             follows = agent.follow_users(feed)
-
-            liked_uris = {like.like.post_id for like in likes}
-            if len(liked_uris) != len(likes):
-                seen_uris = set()
-                duplicates = []
-                for like in likes:
-                    post_id = like.like.post_id
-                    if post_id in seen_uris:
-                        duplicates.append(post_id)
-                    seen_uris.add(post_id)
-                raise ValueError(
-                    f"Agent {agent.handle} liked the same post multiple times "
-                    f"in run {run_id}, turn {turn_number}. Duplicate post URIs: {duplicates}"
-                )
+            likes, comments, follows = self.action_invariant_policy.enforce(
+                run_id=run_id,
+                turn_number=turn_number,
+                agent_handle=agent.handle,
+                likes=likes,
+                comments=comments,
+                follows=follows,
+                action_history_store=history_store,
+            )
 
             total_actions["likes"] += len(likes)
             total_actions["comments"] += len(comments)
@@ -222,6 +231,8 @@ class SimulationCommandService:
             created_at=get_current_timestamp(),
         )
 
+        # TODO: DuplicateMetadataError should be caught within the write_turn_metadata,
+        # no need for try/except here.
         try:
             self.run_repo.write_turn_metadata(turn_metadata)
         except DuplicateTurnMetadataError as e:
@@ -243,6 +254,7 @@ class SimulationCommandService:
         agents = self.agent_factory(config.num_agents)
         validate_agents(agents=agents, config=config, run_id=run_id)
 
+        # TODO: this log should live within agent_factory.
         logger.info(
             "Created %d agents (requested: %d) for run %s",
             len(agents),
