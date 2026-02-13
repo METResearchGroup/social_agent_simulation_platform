@@ -2,11 +2,7 @@ import logging
 import time
 from collections.abc import Callable
 
-from db.exceptions import (
-    DuplicateTurnMetadataError,
-    RunNotFoundError,
-    RunStatusUpdateError,
-)
+from db.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
@@ -14,12 +10,12 @@ from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
-from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
+from simulation.core.validators import validate_agents, validate_run
 
 logger = logging.getLogger(__name__)
 
@@ -164,8 +160,7 @@ class SimulationCommandService:
         """Simulate a single turn of the simulation."""
 
         run = self.run_repo.get_run(run_id)
-        if run is None:
-            raise RunNotFoundError(run_id)
+        validate_run(run=run, run_id=run_id)
 
         # Lazy import keeps query/engine test modules isolated from feed stack imports.
         from feeds.feed_generator import generate_feeds
@@ -188,6 +183,8 @@ class SimulationCommandService:
                     f"Empty feed for agent {agent.handle} in run {run_id}, turn {turn_number}"
                 )
 
+        # TODO: move this to a validator.
+        # validate_feeds? Unsure.
         if agents and (empty_feed_count / len(agents)) > 0.25:
             logger.warning(
                 f"Systemic issue: {empty_feed_count}/{len(agents)} feeds are empty "
@@ -252,31 +249,17 @@ class SimulationCommandService:
         )
 
     def _create_agents_for_run(
-        self, config: RunConfig, run_id: str | None = None
+        self, config: RunConfig, run_id: str
     ) -> list[SocialMediaAgent]:
         """Create agents for a simulation run."""
         agents = self.agent_factory(config.num_agents)
-
-        if len(agents) < config.num_agents:
-            raise InsufficientAgentsError(
-                requested=config.num_agents,
-                available=len(agents),
-                run_id=run_id,
-            )
-
-        handles = [agent.handle for agent in agents]
-        if len(handles) != len(set(handles)):
-            duplicates = [h for h in handles if handles.count(h) > 1]
-            raise ValueError(
-                f"Duplicate agent handles found: {set(duplicates)}. "
-                "All agent handles must be unique."
-            )
+        validate_agents(agents=agents, config=config, run_id=run_id)
 
         logger.info(
             "Created %d agents (requested: %d) for run %s",
             len(agents),
             config.num_agents,
-            run_id or "(no run_id)",
+            run_id,
         )
 
         return agents
