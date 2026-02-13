@@ -12,6 +12,7 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.actions import TurnAction
@@ -152,6 +153,7 @@ class SimulationCommandService:
             self.update_run_status(run, RunStatus.FAILED)
             raise
 
+    @record_runtime
     def _simulate_turn(
         self,
         run_id: str,
@@ -160,7 +162,6 @@ class SimulationCommandService:
         feed_algorithm: str,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
-        start_time = time.time()
 
         run = self.run_repo.get_run(run_id)
         if run is None:
@@ -228,7 +229,6 @@ class SimulationCommandService:
             total_actions["follows"] += len(follows)
 
         converted_actions = self._convert_action_counts_to_enum(total_actions)
-        execution_time_ms = int((time.time() - start_time) * 1000)
 
         turn_metadata = TurnMetadata(
             run_id=run_id,
@@ -248,7 +248,7 @@ class SimulationCommandService:
         return TurnResult(
             turn_number=turn_number,
             total_actions=converted_actions,
-            execution_time_ms=execution_time_ms,
+            execution_time_ms=None,
         )
 
     def _create_agents_for_run(
