@@ -44,22 +44,21 @@ class SimulationCommandService:
 
     def execute_run(self, run_config: RunConfig) -> Run:
         """Execute a simulation run."""
-        run: Run = self.run_repo.create_run(run_config)
-
-        self.update_run_status(run, RunStatus.RUNNING)
-
-        agents = self.create_agents_for_run(run=run, run_config=run_config)
-
-        self.simulate_turns(
-            total_turns=run.total_turns,
-            run=run,
-            run_config=run_config,
-            agents=agents,
-        )
-
-        self.update_run_status(run, RunStatus.COMPLETED)
-
-        return run
+        try:
+            run: Run = self.run_repo.create_run(run_config)
+            self.update_run_status(run, RunStatus.RUNNING)
+            agents = self.create_agents_for_run(run=run, run_config=run_config)
+            self.simulate_turns(
+                total_turns=run.total_turns,
+                run=run,
+                run_config=run_config,
+                agents=agents,
+            )
+            self.update_run_status(run, RunStatus.COMPLETED)
+            return run
+        except Exception:
+            self.update_run_status(run, RunStatus.FAILED)
+            raise
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         try:
@@ -119,15 +118,7 @@ class SimulationCommandService:
                     "total_turns": run.total_turns,
                 },
             )
-            try:
-                self.update_run_status(run, RunStatus.FAILED)
-            except Exception:
-                logger.warning(
-                    "Failed to update run %s status to %s",
-                    run.run_id,
-                    RunStatus.FAILED,
-                    exc_info=True,
-                )
+            self.update_run_status(run, RunStatus.FAILED)
             raise RuntimeError(
                 f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
             ) from e
@@ -158,15 +149,7 @@ class SimulationCommandService:
             )
             return agents
         except Exception:
-            try:
-                self.update_run_status(run, RunStatus.FAILED)
-            except Exception:
-                logger.warning(
-                    "Failed to update run %s status to %s",
-                    run.run_id,
-                    RunStatus.FAILED,
-                    exc_info=True,
-                )
+            self.update_run_status(run, RunStatus.FAILED)
             raise
 
     def _simulate_turn(
