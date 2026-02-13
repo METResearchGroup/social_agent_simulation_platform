@@ -15,7 +15,7 @@ from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
-from simulation.core.validators import validate_agents, validate_run
+from simulation.core.validators import validate_agents, validate_agents_without_feeds, validate_run
 
 logger = logging.getLogger(__name__)
 
@@ -162,9 +162,9 @@ class SimulationCommandService:
         run = self.run_repo.get_run(run_id)
         validate_run(run=run, run_id=run_id)
 
-        # Lazy import keeps query/engine test modules isolated from feed stack imports.
         from feeds.feed_generator import generate_feeds
 
+        # TODO: revisit how feeds are generated, to make sure it's cleaned up.
         agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = generate_feeds(
             agents=agents,
             run_id=run_id,
@@ -174,22 +174,10 @@ class SimulationCommandService:
             feed_algorithm=feed_algorithm,
         )
 
-        empty_feed_count = 0
-        for agent in agents:
-            feed = agent_to_hydrated_feeds.get(agent.handle, [])
-            if not feed:
-                empty_feed_count += 1
-                logger.warning(
-                    f"Empty feed for agent {agent.handle} in run {run_id}, turn {turn_number}"
-                )
-
-        # TODO: move this to a validator.
-        # validate_feeds? Unsure.
-        if agents and (empty_feed_count / len(agents)) > 0.25:
-            logger.warning(
-                f"Systemic issue: {empty_feed_count}/{len(agents)} feeds are empty "
-                f"for run {run_id}, turn {turn_number}"
-            )
+        validate_agents_without_feeds(
+            agent_handles=set(agent.handle for agent in agents),
+            agents_with_feeds=set(agent_to_hydrated_feeds.keys()),
+        )
 
         total_actions: dict[str, int] = {
             "likes": 0,
