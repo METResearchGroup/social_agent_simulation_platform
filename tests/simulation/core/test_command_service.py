@@ -156,6 +156,8 @@ class TestSimulationCommandServiceExecuteRun:
     def test_simulate_turn_aggregates_actions_when_policy_passes(
         self, command_service, mock_repos, sample_run
     ):
+        command_service.agent_action_rules_validator = Mock()
+        command_service.agent_action_history_recorder = Mock()
         agent = SocialMediaAgent("agent1.bsky.social")
         feed_post = BlueskyFeedPost(
             id="post_1",
@@ -216,6 +218,11 @@ class TestSimulationCommandServiceExecuteRun:
         )
 
         mock_repos["run_repo"].get_run.return_value = sample_run
+        command_service.agent_action_rules_validator.validate.return_value = (
+            ["post_1"],
+            ["post_1"],
+            ["user_1"],
+        )
 
         with patch(
             "feeds.feed_generator.generate_feeds",
@@ -231,3 +238,5 @@ class TestSimulationCommandServiceExecuteRun:
         assert result.total_actions[TurnAction.LIKE] == 1
         assert result.total_actions[TurnAction.COMMENT] == 1
         assert result.total_actions[TurnAction.FOLLOW] == 1
+        command_service.agent_action_rules_validator.validate.assert_called_once()
+        command_service.agent_action_history_recorder.record.assert_called_once()

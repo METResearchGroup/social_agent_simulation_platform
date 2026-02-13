@@ -1,9 +1,9 @@
-"""Tests for simulation.core.action_invariant_policy module."""
+"""Tests for simulation.core.agent_action_rules_validator module."""
 
 import pytest
 
 from simulation.core.action_history import InMemoryActionHistoryStore
-from simulation.core.action_invariant_policy import ActionInvariantPolicy
+from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.models.actions import Comment, Follow, Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
@@ -56,7 +56,7 @@ def _follow(agent_id: str, user_id: str) -> GeneratedFollow:
 
 @pytest.fixture
 def policy():
-    return ActionInvariantPolicy()
+    return AgentActionRulesValidator()
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def history():
 
 def test_raises_for_duplicate_like_within_same_turn(policy, history):
     with pytest.raises(ValueError, match="liked duplicate targets"):
-        policy.enforce(
+        policy.validate(
             run_id="run_123",
             turn_number=0,
             agent_handle="agent1.bsky.social",
@@ -79,7 +79,7 @@ def test_raises_for_duplicate_like_within_same_turn(policy, history):
 
 def test_raises_for_duplicate_comment_within_same_turn(policy, history):
     with pytest.raises(ValueError, match="commented duplicate targets"):
-        policy.enforce(
+        policy.validate(
             run_id="run_123",
             turn_number=0,
             agent_handle="agent1.bsky.social",
@@ -92,7 +92,7 @@ def test_raises_for_duplicate_comment_within_same_turn(policy, history):
 
 def test_raises_for_duplicate_follow_within_same_turn(policy, history):
     with pytest.raises(ValueError, match="followed duplicate targets"):
-        policy.enforce(
+        policy.validate(
             run_id="run_123",
             turn_number=0,
             agent_handle="agent1.bsky.social",
@@ -104,7 +104,7 @@ def test_raises_for_duplicate_follow_within_same_turn(policy, history):
 
 
 def test_raises_for_previously_seen_targets_across_turns(policy, history):
-    policy.enforce(
+    like_post_ids, comment_post_ids, follow_user_ids = policy.validate(
         run_id="run_123",
         turn_number=0,
         agent_handle="agent1.bsky.social",
@@ -113,9 +113,12 @@ def test_raises_for_previously_seen_targets_across_turns(policy, history):
         follows=[_follow("agent1", "user_3")],
         action_history_store=history,
     )
+    history.record_like("run_123", "agent1.bsky.social", like_post_ids[0])
+    history.record_comment("run_123", "agent1.bsky.social", comment_post_ids[0])
+    history.record_follow("run_123", "agent1.bsky.social", follow_user_ids[0])
 
     with pytest.raises(ValueError, match="cannot like post post_1 again"):
-        policy.enforce(
+        policy.validate(
             run_id="run_123",
             turn_number=1,
             agent_handle="agent1.bsky.social",
@@ -126,12 +129,12 @@ def test_raises_for_previously_seen_targets_across_turns(policy, history):
         )
 
 
-def test_distinct_targets_pass_and_record(policy, history):
+def test_distinct_targets_pass_and_returns_identifiers(policy, history):
     likes = [_like("agent1", "post_1")]
     comments = [_comment("agent1", "post_2")]
     follows = [_follow("agent1", "user_3")]
 
-    accepted_likes, accepted_comments, accepted_follows = policy.enforce(
+    like_post_ids, comment_post_ids, follow_user_ids = policy.validate(
         run_id="run_123",
         turn_number=0,
         agent_handle="agent1.bsky.social",
@@ -141,9 +144,7 @@ def test_distinct_targets_pass_and_record(policy, history):
         action_history_store=history,
     )
 
-    assert accepted_likes == likes
-    assert accepted_comments == comments
-    assert accepted_follows == follows
-    assert history.has_liked("run_123", "agent1.bsky.social", "post_1")
-    assert history.has_commented("run_123", "agent1.bsky.social", "post_2")
-    assert history.has_followed("run_123", "agent1.bsky.social", "user_3")
+    assert like_post_ids == ["post_1"]
+    assert comment_post_ids == ["post_2"]
+    assert follow_user_ids == ["user_3"]
+    assert not history.has_liked("run_123", "agent1.bsky.social", "post_1")

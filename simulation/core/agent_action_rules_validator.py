@@ -6,10 +6,10 @@ from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 
 
-class ActionInvariantPolicy:
-    """Strict invariant policy for generated agent actions."""
+class AgentActionRulesValidator:
+    """Strict validator for generated agent action rules."""
 
-    def enforce(
+    def validate(
         self,
         *,
         run_id: str,
@@ -19,8 +19,8 @@ class ActionInvariantPolicy:
         comments: list[GeneratedComment],
         follows: list[GeneratedFollow],
         action_history_store: ActionHistoryStore,
-    ) -> tuple[list[GeneratedLike], list[GeneratedComment], list[GeneratedFollow]]:
-        """Validate and record action targets, raising on first violation."""
+    ) -> tuple[list[str], list[str], list[str]]:
+        """Validate action invariants and return extracted target identifiers."""
         like_post_ids = [like.like.post_id for like in likes]
         duplicate_like_targets = self._find_duplicates(like_post_ids)
         if duplicate_like_targets:
@@ -66,14 +66,7 @@ class ActionInvariantPolicy:
                     f"turn {turn_number}"
                 )
 
-        for post_id in like_post_ids:
-            action_history_store.record_like(run_id, agent_handle, post_id)
-        for post_id in comment_post_ids:
-            action_history_store.record_comment(run_id, agent_handle, post_id)
-        for user_id in follow_user_ids:
-            action_history_store.record_follow(run_id, agent_handle, user_id)
-
-        return likes, comments, follows
+        return like_post_ids, comment_post_ids, follow_user_ids
 
     def _find_duplicates(self, identifiers: list[str]) -> list[str]:
         counter = Counter(identifiers)

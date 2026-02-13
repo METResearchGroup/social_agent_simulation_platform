@@ -20,7 +20,8 @@ from db.repositories.profile_repository import (
     create_sqlite_profile_repository,
 )
 from db.repositories.run_repository import RunRepository, create_sqlite_repository
-from simulation.core.action_invariant_policy import ActionInvariantPolicy
+from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
+from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import InsufficientAgentsError
@@ -176,7 +177,8 @@ def create_command_service(
     generated_bio_repo: GeneratedBioRepository,
     generated_feed_repo: GeneratedFeedRepository,
     agent_factory: Callable[[int], list[SocialMediaAgent]],
-    action_invariant_policy: Optional[ActionInvariantPolicy] = None,
+    agent_action_rules_validator: Optional[AgentActionRulesValidator] = None,
+    agent_action_history_recorder: Optional[AgentActionHistoryRecorder] = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
     return SimulationCommandService(
@@ -186,5 +188,8 @@ def create_command_service(
         generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
         agent_factory=agent_factory,
-        action_invariant_policy=action_invariant_policy or ActionInvariantPolicy(),
+        agent_action_rules_validator=agent_action_rules_validator
+        or AgentActionRulesValidator(),
+        agent_action_history_recorder=agent_action_history_recorder
+        or AgentActionHistoryRecorder(),
     )

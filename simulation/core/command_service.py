@@ -10,8 +10,9 @@ from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
+from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
+from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.action_history import ActionHistoryStore, InMemoryActionHistoryStore
-from simulation.core.action_invariant_policy import ActionInvariantPolicy
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
@@ -33,7 +34,8 @@ class SimulationCommandService:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
-        action_invariant_policy: ActionInvariantPolicy | None = None,
+        agent_action_rules_validator: AgentActionRulesValidator | None = None,
+        agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -41,7 +43,12 @@ class SimulationCommandService:
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
-        self.action_invariant_policy = action_invariant_policy or ActionInvariantPolicy()
+        self.agent_action_rules_validator = (
+            agent_action_rules_validator or AgentActionRulesValidator()
+        )
+        self.agent_action_history_recorder = (
+            agent_action_history_recorder or AgentActionHistoryRecorder()
+        )
 
     def execute_run(self, run_config: RunConfig) -> Run:
         """Execute a simulation run."""
@@ -208,13 +215,23 @@ class SimulationCommandService:
             likes = agent.like_posts(feed)
             comments = agent.comment_posts(feed)
             follows = agent.follow_users(feed)
-            likes, comments, follows = self.action_invariant_policy.enforce(
+            like_post_ids, comment_post_ids, follow_user_ids = (
+                self.agent_action_rules_validator.validate(
+                    run_id=run_id,
+                    turn_number=turn_number,
+                    agent_handle=agent.handle,
+                    likes=likes,
+                    comments=comments,
+                    follows=follows,
+                    action_history_store=history_store,
+                )
+            )
+            self.agent_action_history_recorder.record(
                 run_id=run_id,
-                turn_number=turn_number,
                 agent_handle=agent.handle,
-                likes=likes,
-                comments=comments,
-                follows=follows,
+                like_post_ids=like_post_ids,
+                comment_post_ids=comment_post_ids,
+                follow_user_ids=follow_user_ids,
                 action_history_store=history_store,
             )
 
