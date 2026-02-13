@@ -9,19 +9,12 @@ from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus
-<<<<<<< HEAD
-from simulation.core.models.turns import TurnData, TurnMetadata, TurnResult
-from simulation.core.validators import validate_run_id, validate_turn_number
-
-logger = logging.getLogger(__name__)
-=======
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
->>>>>>> 33f5781dcd1a2d62ca2f6fb8b32b3b0a2c9c6f4c
 
 
 class SimulationEngine:
-    """Backward-compatible facade over command and query services."""
+    """Central orchestration layer for simulation execution."""
 
     def __init__(
         self,

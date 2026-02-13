@@ -10,7 +10,7 @@ from simulation.core.validators import validate_run_id, validate_turn_number
 
 
 class SimulationQueryService:
-    """Read-only query service for simulation run and turn data."""
+    """Query service for retrieving simulation run and turn data."""
 
     def __init__(
         self,
@@ -24,8 +24,7 @@ class SimulationQueryService:
 
     def get_run(self, run_id: str) -> Optional[Run]:
         """Get a run by its ID."""
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
+        validate_run_id(run_id)
         return self.run_repo.get_run(run_id)
 
     def list_runs(self) -> list[Run]:
