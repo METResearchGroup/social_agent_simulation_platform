@@ -9,10 +9,17 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
-from simulation.core.dependencies import create_default_agent_factory, create_engine
+from simulation.core.dependencies import (
+    create_command_service,
+    create_default_agent_factory,
+    create_engine,
+    create_query_service,
+)
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.query_service import SimulationQueryService
+from simulation.core.command_service import SimulationCommandService
 
 
 class TestCreateEngine:
@@ -31,6 +38,8 @@ class TestCreateEngine:
         assert engine.generated_bio_repo is not None
         assert engine.generated_feed_repo is not None
         assert engine.agent_factory is not None
+        assert engine.query_service is not None
+        assert engine.command_service is not None
 
     def test_creates_engine_with_provided_repositories(self):
         """Test that create_engine() uses provided repositories when specified."""
@@ -60,6 +69,8 @@ class TestCreateEngine:
         assert engine.generated_bio_repo is mock_generated_bio_repo
         assert engine.generated_feed_repo is mock_generated_feed_repo
         assert engine.agent_factory is mock_agent_factory
+        assert isinstance(engine.query_service, SimulationQueryService)
+        assert isinstance(engine.command_service, SimulationCommandService)
 
     def test_creates_engine_with_mix_of_defaults_and_provided(self):
         """Test that create_engine() creates defaults for None values and uses provided ones."""
@@ -82,6 +93,8 @@ class TestCreateEngine:
         assert engine.feed_post_repo is not None
         assert engine.generated_bio_repo is not None
         assert engine.generated_feed_repo is not None
+        assert engine.query_service is not None
+        assert engine.command_service is not None
 
     def test_creates_engine_with_all_repository_types(self):
         """Test that create_engine() creates repositories of correct types."""
@@ -95,6 +108,31 @@ class TestCreateEngine:
         assert isinstance(engine.generated_bio_repo, GeneratedBioRepository)
         assert isinstance(engine.generated_feed_repo, GeneratedFeedRepository)
         assert callable(engine.agent_factory)
+        assert isinstance(engine.query_service, SimulationQueryService)
+        assert isinstance(engine.command_service, SimulationCommandService)
+
+
+class TestServiceBuilders:
+    """Tests for create_query_service and create_command_service functions."""
+
+    def test_create_query_service(self):
+        service = create_query_service(
+            run_repo=Mock(spec=RunRepository),
+            feed_post_repo=Mock(spec=FeedPostRepository),
+            generated_feed_repo=Mock(spec=GeneratedFeedRepository),
+        )
+        assert isinstance(service, SimulationQueryService)
+
+    def test_create_command_service(self):
+        service = create_command_service(
+            run_repo=Mock(spec=RunRepository),
+            profile_repo=Mock(spec=ProfileRepository),
+            feed_post_repo=Mock(spec=FeedPostRepository),
+            generated_bio_repo=Mock(spec=GeneratedBioRepository),
+            generated_feed_repo=Mock(spec=GeneratedFeedRepository),
+            agent_factory=Mock(return_value=[]),
+        )
+        assert isinstance(service, SimulationCommandService)
 
 
 class TestCreateDefaultAgentFactory:

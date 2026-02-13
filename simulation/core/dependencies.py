@@ -20,9 +20,11 @@ from db.repositories.profile_repository import (
     create_sqlite_profile_repository,
 )
 from db.repositories.run_repository import RunRepository, create_sqlite_repository
+from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.query_service import SimulationQueryService
 
 
 def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
@@ -125,7 +127,57 @@ def create_engine(
     if agent_factory is None:
         agent_factory = create_default_agent_factory()
 
+    query_service = create_query_service(
+        run_repo=run_repo,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
+    )
+    command_service = create_command_service(
+        run_repo=run_repo,
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+        generated_feed_repo=generated_feed_repo,
+        agent_factory=agent_factory,
+    )
+
     return SimulationEngine(
+        run_repo=run_repo,
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+        generated_feed_repo=generated_feed_repo,
+        agent_factory=agent_factory,
+        query_service=query_service,
+        command_service=command_service,
+    )
+
+
+def create_query_service(
+    *,
+    run_repo: RunRepository,
+    feed_post_repo: FeedPostRepository,
+    generated_feed_repo: GeneratedFeedRepository,
+) -> SimulationQueryService:
+    """Create query-side service with read dependencies."""
+    return SimulationQueryService(
+        run_repo=run_repo,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
+    )
+
+
+def create_command_service(
+    *,
+    run_repo: RunRepository,
+    profile_repo: ProfileRepository,
+    feed_post_repo: FeedPostRepository,
+    generated_bio_repo: GeneratedBioRepository,
+    generated_feed_repo: GeneratedFeedRepository,
+    agent_factory: Callable[[int], list[SocialMediaAgent]],
+) -> SimulationCommandService:
+    """Create command-side service with execution dependencies."""
+    return SimulationCommandService(
         run_repo=run_repo,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
