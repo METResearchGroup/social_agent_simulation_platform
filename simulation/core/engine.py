@@ -1,45 +1,27 @@
-import logging
-import time
 from collections.abc import Callable
 from typing import Optional
 
-from db.exceptions import (
-    DuplicateTurnMetadataError,
-    RunNotFoundError,
-    RunStatusUpdateError,
-)
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
-from feeds.feed_generator import generate_feeds
-from lib.utils import get_current_timestamp
-from simulation.core.exceptions import InsufficientAgentsError
-from simulation.core.models.actions import TurnAction
+from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
+<<<<<<< HEAD
 from simulation.core.models.turns import TurnData, TurnMetadata, TurnResult
 from simulation.core.validators import validate_run_id, validate_turn_number
 
 logger = logging.getLogger(__name__)
+=======
+from simulation.core.models.turns import TurnData, TurnMetadata
+from simulation.core.query_service import SimulationQueryService
+>>>>>>> 33f5781dcd1a2d62ca2f6fb8b32b3b0a2c9c6f4c
 
 
 class SimulationEngine:
-    """Orchestrates simulation execution and provides query methods for UI/API.
-
-    This class serves two purposes:
-    1. **Execution**: Runs simulations via `execute_run()` and related methods
-    2. **Query**: Provides read-only methods (`get_*`, `list_*`) for UI/API consumption
-
-    Query methods (e.g., `get_turn_data()`, `get_turn_metadata()`) are not used
-    during simulation execution but are consumed by the FastAPI backend layer.
-
-    Currently, we decide to couple query and execution methods in the same class
-    because the implementation is simple and premature abstraction right now
-    leads to a lot of duplication of code.
-    """
+    """Backward-compatible facade over command and query services."""
 
     def __init__(
         self,
@@ -49,6 +31,8 @@ class SimulationEngine:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
+        query_service: Optional[SimulationQueryService] = None,
+        command_service: Optional[SimulationCommandService] = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -57,166 +41,39 @@ class SimulationEngine:
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
 
-    ## Public API ##
-
-    def execute_run(self, run_config: RunConfig) -> Run:
-        """Execute a simulation run.
-
-        Args:
-            run_config: The configuration for the run.
-
-        Returns:
-            The run that was executed.
-        """
-        run: Run = self.run_repo.create_run(run_config)
-
-        self.update_run_status(run, RunStatus.RUNNING)
-
-        agents = self.create_agents_for_run(run=run, run_config=run_config)
-
-        self.simulate_turns(
-            total_turns=run.total_turns,
-            run=run,
-            run_config=run_config,
-            agents=agents,
+        self.query_service = query_service or SimulationQueryService(
+            run_repo=run_repo,
+            feed_post_repo=feed_post_repo,
+            generated_feed_repo=generated_feed_repo,
+        )
+        self.command_service = command_service or SimulationCommandService(
+            run_repo=run_repo,
+            profile_repo=profile_repo,
+            feed_post_repo=feed_post_repo,
+            generated_bio_repo=generated_bio_repo,
+            generated_feed_repo=generated_feed_repo,
+            agent_factory=agent_factory,
         )
 
-        self.update_run_status(run, RunStatus.COMPLETED)
-
-        return run
+    def execute_run(self, run_config: RunConfig) -> Run:
+        return self.command_service.execute_run(run_config)
 
     def get_run(self, run_id: str) -> Optional[Run]:
-        """Get a run by its ID.
-
-        Args:
-            run_id: The ID of the run to get.
-
-        Returns:
-            The run if found, None otherwise.
-        """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        return self.run_repo.get_run(run_id)
+        return self.query_service.get_run(run_id)
 
     def list_runs(self) -> list[Run]:
-        """List all runs.
-
-        Returns:
-            A list of all runs.
-        """
-        return self.run_repo.list_runs()
+        return self.query_service.list_runs()
 
     def get_turn_metadata(
         self, run_id: str, turn_number: int
     ) -> Optional[TurnMetadata]:
-        """Get turn metadata for a specific run and turn number.
-
-        Args:
-            run_id: The ID of the run.
-            turn_number: The turn number (0-indexed).
-
-        Returns:
-            The turn metadata if found, None otherwise.
-        """
-        validate_run_id(run_id)
-        validate_turn_number(turn_number)
-        return self.run_repo.get_turn_metadata(run_id, turn_number)
+        return self.query_service.get_turn_metadata(run_id, turn_number)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> Optional[TurnData]:
-        """Returns full turn data with feeds and posts.
-
-        This is a read-only query method for UI/API consumption. It reads
-        pre-computed feeds from the database that were written by `generate_feeds()`
-        during simulation execution. This method is NOT used during simulation execution.
-
-        Args:
-            run_id: The ID of the run.
-            turn_number: The turn number (0-indexed).
-
-        Returns:
-            Complete turn data including all feeds and hydrated posts.
-            Returns None if the turn doesn't exist (no feeds found).
-            Used in the UI for detailed views or full turn history.
-
-        Raises:
-            ValueError: If run_id is empty or turn_number is negative.
-            RunNotFoundError: If the run with the given run_id does not exist.
-        """
-        validate_run_id(run_id)
-        validate_turn_number(turn_number)
-
-        # Check run exists
-        run = self.run_repo.get_run(run_id)
-        if run is None:
-            raise RunNotFoundError(run_id)
-
-        # Query feeds for this turn
-        feeds = self.generated_feed_repo.read_feeds_for_turn(run_id, turn_number)
-        if not feeds:
-            # No feeds means turn doesn't exist
-            return None
-
-        # Collect all post URIs from all feeds
-        post_uris_set: set[str] = set()
-        for feed in feeds:
-            post_uris_set.update(feed.post_uris)
-
-        # Batch load posts
-        post_uris_list = list(post_uris_set)
-        posts = self.feed_post_repo.read_feed_posts_by_uris(post_uris_list)
-
-        # Build URI to post mapping for efficient lookup
-        uri_to_post = {post.uri: post for post in posts}
-
-        # Build feeds dict: {agent_handle: [BlueskyFeedPost, ...]}
-        feeds_dict: dict[str, list] = {}
-        for feed in feeds:
-            hydrated_posts = []
-            for post_uri in feed.post_uris:
-                if post_uri in uri_to_post:
-                    hydrated_posts.append(uri_to_post[post_uri])
-                # Skip missing posts silently (may have been deleted after feed generation)
-            feeds_dict[feed.agent_handle] = hydrated_posts
-
-        # Construct TurnData
-        return TurnData(
-            turn_number=turn_number,
-            agents=[],  # TODO: Agents not stored yet, will be populated when agent storage is added
-            feeds=feeds_dict,  # May be empty if all posts missing, but turn exists
-            actions={},  # TODO: Actions not stored yet
-        )
+        return self.query_service.get_turn_data(run_id, turn_number)
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
-        try:
-            # TODO: should be defined in configuration.
-            attempts = 3
-            for attempt in range(attempts):
-                try:
-                    self.run_repo.update_run_status(run.run_id, status)
-                    break
-                except RunStatusUpdateError as e:
-                    if attempt == attempts - 1:
-                        # Mark FAILED best-effort, then raise
-                        if status != RunStatus.FAILED:
-                            try:
-                                self.run_repo.update_run_status(
-                                    run.run_id, RunStatus.FAILED
-                                )
-                            except Exception:
-                                logger.warning(
-                                    "Failed to update run %s status to %s",
-                                    run.run_id,
-                                    RunStatus.FAILED,
-                                    exc_info=True,
-                                )
-                        raise RunStatusUpdateError(
-                            run.run_id,
-                            f"Failed to update status to {status.value} after 3 attempts",
-                        ) from e
-                    time.sleep(2**attempt)
-        except Exception:
-            # Ensure original exception propagates after best-effort status update
-            raise
+        self.command_service.update_run_status(run, status)
 
     def simulate_turn(
         self,
@@ -225,42 +82,7 @@ class SimulationEngine:
         turn_number: int,
         agents: list[SocialMediaAgent],
     ) -> None:
-        try:
-            logger.info("Starting turn %d for run %s", turn_number, run.run_id)
-            self._simulate_turn(
-                run.run_id,
-                turn_number,
-                agents,
-                run_config.feed_algorithm,
-            )
-        # TODO: should catch custom exceptions.
-        except Exception as e:
-            # Log with context, update to FAILED best-effort, and re-raise wrapped
-            logger.error(
-                "Turn %d failed for run %s: %s",
-                turn_number,
-                run.run_id,
-                e,
-                exc_info=True,
-                extra={
-                    "run_id": run.run_id,
-                    "turn_number": turn_number,
-                    "num_agents": len(agents),
-                    "total_turns": run.total_turns,
-                },
-            )
-            try:
-                self.update_run_status(run, RunStatus.FAILED)
-            except Exception:
-                logger.warning(
-                    "Failed to update run %s status to %s",
-                    run.run_id,
-                    RunStatus.FAILED,
-                    exc_info=True,
-                )
-            raise RuntimeError(
-                f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
-            ) from e
+        self.command_service.simulate_turn(run, run_config, turn_number, agents)
 
     def simulate_turns(
         self,
@@ -269,260 +91,11 @@ class SimulationEngine:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
     ) -> None:
-        for turn_number in range(total_turns):
-            self.simulate_turn(
-                run=run,
-                run_config=run_config,
-                turn_number=turn_number,
-                agents=agents,
-            )
+        self.command_service.simulate_turns(total_turns, run, run_config, agents)
 
     def create_agents_for_run(
         self,
         run: Run,
         run_config: RunConfig,
     ) -> list[SocialMediaAgent]:
-        try:
-            agents: list[SocialMediaAgent] = self._create_agents_for_run(
-                run_config, run.run_id
-            )
-            return agents
-        except Exception:
-            try:
-                self.update_run_status(run, RunStatus.FAILED)
-            except Exception:
-                logger.warning(
-                    "Failed to update run %s status to %s",
-                    run.run_id,
-                    RunStatus.FAILED,
-                    exc_info=True,
-                )
-            raise
-
-    ## Private Methods ##
-
-    def _simulate_turn(
-        self,
-        run_id: str,
-        turn_number: int,
-        agents: list[SocialMediaAgent],
-        feed_algorithm: str,
-    ) -> TurnResult:
-        """Simulate a single turn of the simulation.
-
-        Args:
-            run_id: The ID of the run.
-            turn_number: The turn number (0-indexed).
-            agents: The list of agents participating in the turn.
-            feed_algorithm: The algorithm to use for generating feeds.
-
-        Returns:
-            The result of the turn execution.
-
-        Raises:
-            RunNotFoundError: If the run doesn't exist.
-            ValueError: If duplicate likes are detected or unknown action type.
-        """
-        # Start execution timer
-        start_time = time.time()
-
-        # Validate run exists
-        run = self.run_repo.get_run(run_id)
-        if run is None:
-            raise RunNotFoundError(run_id)
-
-        # Generate feeds
-        agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = generate_feeds(
-            agents=agents,
-            run_id=run_id,
-            turn_number=turn_number,
-            generated_feed_repo=self.generated_feed_repo,
-            feed_post_repo=self.feed_post_repo,
-            feed_algorithm=feed_algorithm,
-        )
-
-        # Handle empty/missing feeds gracefully
-        empty_feed_count = 0
-        for agent in agents:
-            feed = agent_to_hydrated_feeds.get(agent.handle, [])
-            if not feed:
-                empty_feed_count += 1
-                logger.warning(
-                    f"Empty feed for agent {agent.handle} in run {run_id}, turn {turn_number}"
-                )
-
-        # Log systemic issue if >25% of feeds are empty
-        if agents and (empty_feed_count / len(agents)) > 0.25:
-            logger.warning(
-                f"Systemic issue: {empty_feed_count}/{len(agents)} feeds are empty "
-                f"for run {run_id}, turn {turn_number}"
-            )
-
-        # Initialize action tracking
-        total_actions: dict[str, int] = {
-            "likes": 0,
-            "comments": 0,
-            "follows": 0,
-        }
-        all_actions: dict[str, list] = {
-            "likes": [],
-            "comments": [],
-            "follows": [],
-        }
-
-        # Loop through agents and execute actions
-        for agent in agents:
-            feed = agent_to_hydrated_feeds.get(agent.handle, [])
-
-            # Skip agent if feed is empty
-            if not feed:
-                continue
-
-            # Execute actions
-            likes = agent.like_posts(feed)
-            comments = agent.comment_posts(feed)
-            follows = agent.follow_users(feed)
-
-            # Validate actions: check for duplicate likes
-            liked_uris = {like.like.post_id for like in likes}
-            if len(liked_uris) != len(likes):
-                # Find duplicates
-                seen_uris = set()
-                duplicates = []
-                for like in likes:
-                    post_id = like.like.post_id
-                    if post_id in seen_uris:
-                        duplicates.append(post_id)
-                    seen_uris.add(post_id)
-                raise ValueError(
-                    f"Agent {agent.handle} liked the same post multiple times "
-                    f"in run {run_id}, turn {turn_number}. Duplicate post URIs: {duplicates}"
-                )
-
-            # Store individual actions (for future storage)
-            all_actions["likes"].extend(likes)
-            all_actions["comments"].extend(comments)
-            all_actions["follows"].extend(follows)
-
-            # Accumulate totals
-            total_actions["likes"] += len(likes)
-            total_actions["comments"] += len(comments)
-            total_actions["follows"] += len(follows)
-
-        # Convert total_actions to dict[TurnAction, int] format
-        converted_actions = self._convert_action_counts_to_enum(total_actions)
-
-        # Calculate execution time
-        execution_time_ms = int((time.time() - start_time) * 1000)
-
-        # Create and write turn metadata
-        turn_metadata = TurnMetadata(
-            run_id=run_id,
-            turn_number=turn_number,
-            total_actions=converted_actions,
-            created_at=get_current_timestamp(),
-        )
-
-        # Write turn metadata (handle duplicates gracefully)
-        try:
-            self.run_repo.write_turn_metadata(turn_metadata)
-        except DuplicateTurnMetadataError as e:
-            logger.warning(
-                f"Turn metadata already exists for run {run_id}, turn {turn_number}. "
-                f"This may indicate a retry or duplicate execution. Error: {e}"
-            )
-            # Don't re-raise - this is acceptable for idempotency
-
-        # Return turn result
-        return TurnResult(
-            turn_number=turn_number,
-            total_actions=converted_actions,
-            execution_time_ms=execution_time_ms,
-        )
-
-    def _create_agents_for_run(
-        self, config: RunConfig, run_id: str | None = None
-    ) -> list[SocialMediaAgent]:
-        """Create agents for a simulation run.
-
-        Args:
-            config: The run configuration.
-            run_id: Optional. The ID of the run for error context.
-
-        Returns:
-            A list of agents for the run.
-
-        Raises:
-            InsufficientAgentsError: If fewer agents than requested are available.
-            ValueError: If agent handles are not unique.
-        """
-        # Create agents using the injected factory
-        agents = self.agent_factory(config.num_agents)
-
-        # Validate agent count (factory should already validate, but double-check)
-        if len(agents) < config.num_agents:
-            raise InsufficientAgentsError(
-                requested=config.num_agents,
-                available=len(agents),
-                run_id=run_id,
-            )
-
-        # Validate agent uniqueness
-        handles = [agent.handle for agent in agents]
-        if len(handles) != len(set(handles)):
-            duplicates = [h for h in handles if handles.count(h) > 1]
-            raise ValueError(
-                f"Duplicate agent handles found: {set(duplicates)}. "
-                "All agent handles must be unique."
-            )
-
-        logger.info(
-            "Created %d agents (requested: %d) for run %s",
-            len(agents),
-            config.num_agents,
-            run_id or "(no run_id)",
-        )
-
-        return agents
-
-    def _convert_action_counts_to_enum(
-        self, action_counts: dict[str, int]
-    ) -> dict[TurnAction, int]:
-        """Convert action counts from string keys to TurnAction enum keys.
-
-        Args:
-            action_counts: Dictionary with string keys ("likes", "comments", "follows").
-
-        Returns:
-            Dictionary with TurnAction enum keys.
-
-        Raises:
-            ValueError: If unknown action type encountered.
-        """
-        converted: dict[TurnAction, int] = {}
-
-        # Map string keys to enum
-        mapping = {
-            "likes": TurnAction.LIKE,
-            "comments": TurnAction.COMMENT,
-            "follows": TurnAction.FOLLOW,
-        }
-
-        # Validate all TurnAction enum values are represented
-        all_enum_values = set(TurnAction)
-        mapped_values = set(mapping.values())
-        if all_enum_values != mapped_values:
-            missing = all_enum_values - mapped_values
-            raise ValueError(
-                f"Missing mapping for TurnAction enum values: {missing}. "
-                "All enum values must be mapped."
-            )
-
-        # Convert
-        for key, count in action_counts.items():
-            if key not in mapping:
-                raise ValueError(f"Unknown action type: {key}")
-            converted[mapping[key]] = count
-
-        return converted
-
+        return self.command_service.create_agents_for_run(run, run_config)
