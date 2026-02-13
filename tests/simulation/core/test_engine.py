@@ -625,113 +625,81 @@ class TestSimulationEngineGetTurnData:
         )
 
 
-class TestSimulationEngineUpdateRunStatusSafely:
-    """Tests for SimulationEngine._update_run_status_safely method."""
+class TestSimulationEngineUpdateRunStatus:
+    """Tests for SimulationEngine.update_run_status method."""
 
-    def test_updates_status_successfully(self, engine, mock_repos):
-        """Test that _update_run_status_safely updates status when repository call succeeds."""
+    def test_updates_status_successfully(self, engine, mock_repos, sample_run):
+        """Test that update_run_status writes the requested status."""
         # Arrange
-        run_id = "run_123"
         status = RunStatus.COMPLETED
         mock_repos["run_repo"].update_run_status.return_value = None
 
         # Act
-        engine._update_run_status_safely(run_id, status)
+        engine.update_run_status(sample_run, status)
 
         # Assert
-        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
+        mock_repos["run_repo"].update_run_status.assert_called_once_with(
+            sample_run.run_id, status
+        )
 
-    def test_logs_warning_and_does_not_raise_on_failure(self, engine, mock_repos):
-        """Test that _update_run_status_safely logs warning and doesn't raise when repository fails."""
-        # Arrange
-        run_id = "run_123"
-        status = RunStatus.FAILED
-        original_error = RunStatusUpdateError(run_id, "Database connection failed")
-        mock_repos["run_repo"].update_run_status.side_effect = original_error
-
-        # Act & Assert - should not raise
-        with patch("simulation.core.engine.logger") as mock_logger:
-            engine._update_run_status_safely(run_id, status)
-
-            # Verify warning was logged with parameterized logging
-            mock_logger.warning.assert_called_once()
-            call_args = mock_logger.warning.call_args
-            assert call_args[0][0] == "Failed to update run %s status to %s"
-            assert call_args[0][1] == run_id
-            assert call_args[0][2] == status
-            assert call_args[1]["exc_info"] is True
-
-        # Verify repository was called
-        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
-
-    def test_handles_generic_exception_gracefully(self, engine, mock_repos):
-        """Test that _update_run_status_safely handles any exception type without raising."""
-        # Arrange
-        run_id = "run_123"
-        status = RunStatus.COMPLETED
-        generic_error = RuntimeError("Unexpected error")
-        mock_repos["run_repo"].update_run_status.side_effect = generic_error
-
-        # Act & Assert - should not raise
-        with patch("simulation.core.engine.logger") as mock_logger:
-            engine._update_run_status_safely(run_id, status)
-
-            # Verify warning was logged with parameterized logging
-            mock_logger.warning.assert_called_once()
-            call_args = mock_logger.warning.call_args
-            assert call_args[0][0] == "Failed to update run %s status to %s"
-            assert call_args[0][1] == run_id
-            assert call_args[0][2] == status
-            assert call_args[1]["exc_info"] is True
-
-        # Verify repository was called
-        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
-
-    def test_handles_database_connection_error_gracefully(self, engine, mock_repos):
-        """Test that _update_run_status_safely handles database connection errors without raising."""
-        # Arrange
-        run_id = "run_123"
-        status = RunStatus.FAILED
-        db_error = ConnectionError("Database connection lost")
-        mock_repos["run_repo"].update_run_status.side_effect = db_error
-
-        # Act & Assert - should not raise
-        with patch("simulation.core.engine.logger") as mock_logger:
-            engine._update_run_status_safely(run_id, status)
-
-            # Verify warning was logged with parameterized logging
-            mock_logger.warning.assert_called_once()
-            call_args = mock_logger.warning.call_args
-            assert call_args[0][0] == "Failed to update run %s status to %s"
-            assert call_args[0][1] == run_id
-            assert call_args[0][2] == status
-            assert call_args[1]["exc_info"] is True
-
-        # Verify repository was called
-        mock_repos["run_repo"].update_run_status.assert_called_once_with(run_id, status)
-
-    def test_can_be_called_multiple_times_after_failure(self, engine, mock_repos):
-        """Test that _update_run_status_safely can be called again after a failure."""
-        # Arrange
-        run_id = "run_123"
-        status = RunStatus.FAILED
+    def test_retries_then_succeeds(self, engine, mock_repos, sample_run):
+        """Test that update_run_status retries transient failures."""
         mock_repos["run_repo"].update_run_status.side_effect = [
-            RunStatusUpdateError(run_id, "First failure"),
-            None,  # Second call succeeds
+            RunStatusUpdateError(sample_run.run_id, "first"),
+            RunStatusUpdateError(sample_run.run_id, "second"),
+            None,
         ]
 
-        # Act
-        with patch("simulation.core.engine.logger") as mock_logger:
-            # First call fails
-            engine._update_run_status_safely(run_id, status)
-            # Second call succeeds
-            engine._update_run_status_safely(run_id, RunStatus.COMPLETED)
+        with patch("simulation.core.engine.time.sleep") as mock_sleep:
+            engine.update_run_status(sample_run, RunStatus.RUNNING)
 
-            # Verify warning was logged once (for first failure)
-            assert mock_logger.warning.call_count == 1
+        calls = mock_repos["run_repo"].update_run_status.call_args_list
+        assert len(calls) == 3
+        assert calls[0][0] == (sample_run.run_id, RunStatus.RUNNING)
+        assert calls[1][0] == (sample_run.run_id, RunStatus.RUNNING)
+        assert calls[2][0] == (sample_run.run_id, RunStatus.RUNNING)
+        assert mock_sleep.call_count == 2
 
-        # Verify repository was called twice
-        assert mock_repos["run_repo"].update_run_status.call_count == 2
+    def test_retry_exhausted_marks_failed_and_raises(
+        self, engine, mock_repos, sample_run
+    ):
+        """If status update fails 3 times, mark FAILED best-effort then raise."""
+        mock_repos["run_repo"].update_run_status.side_effect = [
+            RunStatusUpdateError(sample_run.run_id, "first"),
+            RunStatusUpdateError(sample_run.run_id, "second"),
+            RunStatusUpdateError(sample_run.run_id, "third"),
+            None,  # FAILED best-effort
+        ]
+
+        with patch("simulation.core.engine.time.sleep") as mock_sleep:
+            with pytest.raises(RunStatusUpdateError):
+                engine.update_run_status(sample_run, RunStatus.COMPLETED)
+
+        calls = mock_repos["run_repo"].update_run_status.call_args_list
+        assert len(calls) == 4
+        assert calls[0][0] == (sample_run.run_id, RunStatus.COMPLETED)
+        assert calls[1][0] == (sample_run.run_id, RunStatus.COMPLETED)
+        assert calls[2][0] == (sample_run.run_id, RunStatus.COMPLETED)
+        assert calls[3][0] == (sample_run.run_id, RunStatus.FAILED)
+        assert mock_sleep.call_count == 2
+
+    def test_retry_exhausted_for_failed_does_not_retry_failed_fallback(
+        self, engine, mock_repos, sample_run
+    ):
+        """If FAILED update itself exhausts retries, don't do extra fallback call."""
+        mock_repos["run_repo"].update_run_status.side_effect = [
+            RunStatusUpdateError(sample_run.run_id, "first"),
+            RunStatusUpdateError(sample_run.run_id, "second"),
+            RunStatusUpdateError(sample_run.run_id, "third"),
+        ]
+
+        with patch("simulation.core.engine.time.sleep"):
+            with pytest.raises(RunStatusUpdateError):
+                engine.update_run_status(sample_run, RunStatus.FAILED)
+
+        calls = mock_repos["run_repo"].update_run_status.call_args_list
+        assert len(calls) == 3
+        assert all(call[0] == (sample_run.run_id, RunStatus.FAILED) for call in calls)
 
 
 class TestSimulationEngineExecuteRun:
@@ -814,14 +782,10 @@ class TestSimulationEngineExecuteRun:
             RunStatusUpdateError(run.run_id, "first"),
             RunStatusUpdateError(run.run_id, "second"),
             RunStatusUpdateError(run.run_id, "third"),
+            None,  # FAILED best-effort
         ]
 
-        with (
-            patch(
-                "simulation.core.engine.SimulationEngine._update_run_status_safely"
-            ) as mock_safe,
-            patch("simulation.core.engine.time.sleep") as mock_sleep,
-        ):
+        with patch("simulation.core.engine.time.sleep") as mock_sleep:
             mock_sleep.return_value = None
             with pytest.raises(RunStatusUpdateError):
                 engine.execute_run(
@@ -835,7 +799,12 @@ class TestSimulationEngineExecuteRun:
                         },
                     )()
                 )
-            mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
+            calls = mock_repos["run_repo"].update_run_status.call_args_list
+            assert len(calls) == 4
+            assert calls[0][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[1][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[2][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[3][0] == (run.run_id, RunStatus.FAILED)
 
     def test_agent_creation_failure_marks_failed_and_raises(
         self, engine, mock_repos, mock_agent_factory
@@ -848,24 +817,24 @@ class TestSimulationEngineExecuteRun:
         # Configure agent factory to raise error
         mock_agent_factory.side_effect = RuntimeError("agent failure")
 
-        with patch(
-            "simulation.core.engine.SimulationEngine._update_run_status_safely"
-        ) as mock_safe:
-            with pytest.raises(RuntimeError):
-                engine.execute_run(
-                    run_config=type(
-                        "Cfg",
-                        (),
-                        {
-                            "feed_algorithm": "chronological",
-                            "num_agents": 2,
-                            "num_turns": 1,
-                        },
-                    )()
-                )
-            mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
-            # Verify agent_factory was called
-            mock_agent_factory.assert_called_once_with(2)
+        with pytest.raises(RuntimeError):
+            engine.execute_run(
+                run_config=type(
+                    "Cfg",
+                    (),
+                    {
+                        "feed_algorithm": "chronological",
+                        "num_agents": 2,
+                        "num_turns": 1,
+                    },
+                )()
+            )
+        calls = mock_repos["run_repo"].update_run_status.call_args_list
+        assert len(calls) == 2
+        assert calls[0][0] == (run.run_id, RunStatus.RUNNING)
+        assert calls[1][0] == (run.run_id, RunStatus.FAILED)
+        # Verify agent_factory was called
+        mock_agent_factory.assert_called_once_with(2)
 
     def test_turn_failure_marks_failed_and_wraps(
         self, engine, mock_repos, mock_agent_factory
@@ -885,14 +854,7 @@ class TestSimulationEngineExecuteRun:
             SocialMediaAgent("agent2.bsky.social"),
         ]
 
-        with (
-            patch(
-                "simulation.core.engine.SimulationEngine._simulate_turn"
-            ) as mock_sim_turn,
-            patch(
-                "simulation.core.engine.SimulationEngine._update_run_status_safely"
-            ) as mock_safe,
-        ):
+        with patch("simulation.core.engine.SimulationEngine._simulate_turn") as mock_sim_turn:
             mock_sim_turn.side_effect = RuntimeError("turn exploded")
 
             with pytest.raises(RuntimeError) as exc:
@@ -911,6 +873,9 @@ class TestSimulationEngineExecuteRun:
             assert str(exc.value).startswith(
                 f"Failed to complete turn 0 for run {run.run_id}: "
             )
-            mock_safe.assert_called_once_with(run.run_id, RunStatus.FAILED)
+            calls = mock_repos["run_repo"].update_run_status.call_args_list
+            assert len(calls) == 2
+            assert calls[0][0] == (run.run_id, RunStatus.RUNNING)
+            assert calls[1][0] == (run.run_id, RunStatus.FAILED)
             # Verify agent_factory was called
             mock_agent_factory.assert_called_once_with(2)

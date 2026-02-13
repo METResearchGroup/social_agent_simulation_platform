@@ -21,6 +21,7 @@ from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata, TurnResult
+from simulation.core.validators import validate_run_id, validate_turn_number
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ class SimulationEngine:
         """
         run: Run = self.run_repo.create_run(run_config)
 
-        self.update_run_status(run)
+        self.update_run_status(run, RunStatus.RUNNING)
 
         agents = self.create_agents_for_run(run=run, run_config=run_config)
 
@@ -80,7 +81,7 @@ class SimulationEngine:
             agents=agents,
         )
 
-        self._update_run_status_safely(run.run_id, RunStatus.COMPLETED)
+        self.update_run_status(run, RunStatus.COMPLETED)
 
         return run
 
@@ -117,10 +118,8 @@ class SimulationEngine:
         Returns:
             The turn metadata if found, None otherwise.
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        if turn_number is None or turn_number < 0:
-            raise ValueError("turn_number cannot be negative")
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
         return self.run_repo.get_turn_metadata(run_id, turn_number)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> Optional[TurnData]:
@@ -143,10 +142,8 @@ class SimulationEngine:
             ValueError: If run_id is empty or turn_number is negative.
             RunNotFoundError: If the run with the given run_id does not exist.
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        if turn_number is None or turn_number < 0:
-            raise ValueError("turn_number cannot be negative")
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
 
         # Check run exists
         run = self.run_repo.get_run(run_id)
@@ -189,23 +186,33 @@ class SimulationEngine:
             actions={},  # TODO: Actions not stored yet
         )
 
-    def update_run_status(self, run: Run) -> None:
+    def update_run_status(self, run: Run, status: RunStatus) -> None:
         try:
             # TODO: should be defined in configuration.
             attempts = 3
             for attempt in range(attempts):
                 try:
-                    self.run_repo.update_run_status(run.run_id, RunStatus.RUNNING)
+                    self.run_repo.update_run_status(run.run_id, status)
                     break
                 except RunStatusUpdateError as e:
                     if attempt == attempts - 1:
                         # Mark FAILED best-effort, then raise
-                        self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+                        if status != RunStatus.FAILED:
+                            try:
+                                self.run_repo.update_run_status(
+                                    run.run_id, RunStatus.FAILED
+                                )
+                            except Exception:
+                                logger.warning(
+                                    "Failed to update run %s status to %s",
+                                    run.run_id,
+                                    RunStatus.FAILED,
+                                    exc_info=True,
+                                )
                         raise RunStatusUpdateError(
                             run.run_id,
-                            "Failed to update status to RUNNING after 3 attempts",
+                            f"Failed to update status to {status.value} after 3 attempts",
                         ) from e
-                    # Exponential backoff: 0s, 1s, 2s (tunable)
                     time.sleep(2**attempt)
         except Exception:
             # Ensure original exception propagates after best-effort status update
@@ -242,7 +249,15 @@ class SimulationEngine:
                     "total_turns": run.total_turns,
                 },
             )
-            self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+            try:
+                self.update_run_status(run, RunStatus.FAILED)
+            except Exception:
+                logger.warning(
+                    "Failed to update run %s status to %s",
+                    run.run_id,
+                    RunStatus.FAILED,
+                    exc_info=True,
+                )
             raise RuntimeError(
                 f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
             ) from e
@@ -273,7 +288,15 @@ class SimulationEngine:
             )
             return agents
         except Exception:
-            self._update_run_status_safely(run.run_id, RunStatus.FAILED)
+            try:
+                self.update_run_status(run, RunStatus.FAILED)
+            except Exception:
+                logger.warning(
+                    "Failed to update run %s status to %s",
+                    run.run_id,
+                    RunStatus.FAILED,
+                    exc_info=True,
+                )
             raise
 
     ## Private Methods ##
@@ -503,21 +526,3 @@ class SimulationEngine:
 
         return converted
 
-    def _update_run_status_safely(self, run_id: str, status: RunStatus) -> None:
-        """Update run status without masking original exceptions.
-
-        This is a best-effort status update method that never raises exceptions.
-        It's designed for use in error handling paths where you want to update
-        the run status (e.g., to FAILED) but don't want status update failures
-        to mask the original exception.
-
-        Args:
-            run_id: The ID of the run.
-            status: The new status.
-        """
-        try:
-            self.run_repo.update_run_status(run_id, status)
-        except Exception:
-            logger.warning(
-                "Failed to update run %s status to %s", run_id, status, exc_info=True
-            )
