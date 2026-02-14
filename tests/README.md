@@ -101,7 +101,7 @@ uv sync --extra test
 
 ### Path Conflicts
 
-If you encounter path conflicts (e.g., importing from wrong `lib.utils`), ensure you're using `uv run pytest` from the root directory, which handles path configuration automatically.
+If you encounter path conflicts (e.g., importing from wrong `lib.timestamp_utils`), ensure you're using `uv run pytest` from the root directory, which handles path configuration automatically.
 
 ## Continuous Integration
 

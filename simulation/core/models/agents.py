@@ -28,7 +28,7 @@ class SocialMediaAgent:
         Returns:
             A GeneratedFeed instance for this agent
         """
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
 
         return GeneratedFeed(
             feed_id=GeneratedFeed.generate_feed_id(),
