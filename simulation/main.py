@@ -12,7 +12,6 @@ from simulation.core.models.runs import RunConfig
 
 # TODO: This file will be deprecated in favor of `simulation/cli/main.py` in future PR
 
-
 def do_simulation_run(config: RunConfig) -> None:
     """Execute a simulation run.
 
