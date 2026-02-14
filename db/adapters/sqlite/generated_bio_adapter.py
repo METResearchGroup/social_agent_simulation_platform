@@ -5,7 +5,7 @@ from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
-from lib.utils import get_current_timestamp
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
 

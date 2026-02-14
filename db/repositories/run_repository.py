@@ -2,7 +2,7 @@
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
 from db.exceptions import (
@@ -11,6 +11,7 @@ from db.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import (
@@ -89,8 +90,7 @@ class RunRepository(ABC):
 class SQLiteRunRepository(RunRepository):
     """SQLite implementation of RunRepository.
 
-    Uses dependency injection to accept a database adapter and timestamp function,
-    decoupling it from concrete implementations.
+    Uses dependency injection to accept a database adapter.
     """
 
     # Valid state transitions for run status
@@ -100,17 +100,13 @@ class SQLiteRunRepository(RunRepository):
         RunStatus.FAILED: set(),  # Terminal state
     }
 
-    def __init__(
-        self, db_adapter: RunDatabaseAdapter, get_timestamp: Callable[[], str]
-    ):
+    def __init__(self, db_adapter: RunDatabaseAdapter):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for run operations
-            get_timestamp: Function that returns current timestamp as string
         """
         self._db_adapter = db_adapter
-        self._get_timestamp = get_timestamp
 
     def create_run(self, config: RunConfig) -> Run:
         """Create a new run in SQLite.
@@ -124,8 +120,9 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             RunCreationError: If the run cannot be created due to a database error
         """
+        run_id = "unknown_run"
         try:
-            ts = self._get_timestamp()
+            ts = get_current_timestamp()
             run_id = f"run_{ts}_{uuid.uuid4()}"
 
             run = Run(
@@ -191,7 +188,7 @@ class SQLiteRunRepository(RunRepository):
             )
 
             # Update the run status, once validated.
-            ts = self._get_timestamp()
+            ts = get_current_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
             self._db_adapter.update_run_status(run_id, status.value, completed_at)
 
@@ -265,11 +262,8 @@ def create_sqlite_repository() -> SQLiteRunRepository:
     """Factory function to create a SQLiteRunRepository with default dependencies.
 
     Returns:
-        SQLiteRunRepository configured with SQLite adapter and default timestamp function
+        SQLiteRunRepository configured with SQLite adapter
     """
     from db.adapters.sqlite import SQLiteRunAdapter
-    from lib.utils import get_current_timestamp
 
-    return SQLiteRunRepository(
-        db_adapter=SQLiteRunAdapter(), get_timestamp=get_current_timestamp
-    )
+    return SQLiteRunRepository(db_adapter=SQLiteRunAdapter())
