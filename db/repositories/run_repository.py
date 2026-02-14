@@ -2,7 +2,7 @@
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
 from db.exceptions import (
@@ -11,8 +11,16 @@ from db.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.validators import (
+    validate_run_exists,
+    validate_run_id,
+    validate_run_status_transition,
+    validate_turn_number,
+    validate_turn_number_less_than_max_turns,
+)
 
 
 class RunRepository(ABC):
@@ -82,8 +90,7 @@ class RunRepository(ABC):
 class SQLiteRunRepository(RunRepository):
     """SQLite implementation of RunRepository.
 
-    Uses dependency injection to accept a database adapter and timestamp function,
-    decoupling it from concrete implementations.
+    Uses dependency injection to accept a database adapter.
     """
 
     # Valid state transitions for run status
@@ -93,17 +100,13 @@ class SQLiteRunRepository(RunRepository):
         RunStatus.FAILED: set(),  # Terminal state
     }
 
-    def __init__(
-        self, db_adapter: RunDatabaseAdapter, get_timestamp: Callable[[], str]
-    ):
+    def __init__(self, db_adapter: RunDatabaseAdapter):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for run operations
-            get_timestamp: Function that returns current timestamp as string
         """
         self._db_adapter = db_adapter
-        self._get_timestamp = get_timestamp
 
     def create_run(self, config: RunConfig) -> Run:
         """Create a new run in SQLite.
@@ -117,22 +120,23 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             RunCreationError: If the run cannot be created due to a database error
         """
-        ts = self._get_timestamp()
-        run_id = f"run_{ts}_{uuid.uuid4()}"
-
-        run = Run(
-            run_id=run_id,
-            created_at=ts,
-            total_turns=config.num_turns,
-            total_agents=config.num_agents,
-            started_at=ts,
-            status=RunStatus.RUNNING,
-        )
+        run_id = "unknown_run"
         try:
+            ts = get_current_timestamp()
+            run_id = f"run_{ts}_{uuid.uuid4()}"
+
+            run = Run(
+                run_id=run_id,
+                created_at=ts,
+                total_turns=config.num_turns,
+                total_agents=config.num_agents,
+                started_at=ts,
+                status=RunStatus.RUNNING,
+            )
             self._db_adapter.write_run(run)
+            return run
         except Exception as e:
             raise RunCreationError(run_id, str(e)) from e
-        return run
 
     def get_run(self, run_id: str) -> Optional[Run]:
         """Get a run from SQLite.
@@ -146,8 +150,7 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             ValueError: If run_id is empty or None
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
+        validate_run_id(run_id)
         return self._db_adapter.read_run(run_id)
 
     def list_runs(self) -> list[Run]:
@@ -167,37 +170,28 @@ class SQLiteRunRepository(RunRepository):
             InvalidTransitionError: If the status transition is invalid
             RunStatusUpdateError: If the status update fails due to a database error
         """
-        # Validate input parameters
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        if status is None:
-            raise ValueError("status cannot be None")
-
-        # Get current run to validate state transition
-        current_run = self.get_run(run_id)
-        if current_run is None:
-            raise RunNotFoundError(run_id)
-
-        current_status = current_run.status
-
-        # Validate state transition
-        if status != current_status:
-            valid_next_states = self.VALID_TRANSITIONS.get(current_status, set())
-            if status not in valid_next_states:
-                valid_transitions_list = (
-                    [s.value for s in valid_next_states] if valid_next_states else None
-                )
-                raise InvalidTransitionError(
-                    run_id=run_id,
-                    current_status=current_status.value,
-                    target_status=status.value,
-                    valid_transitions=valid_transitions_list,
-                )
-
         try:
-            ts = self._get_timestamp()
+            # Validate input parameters
+            validate_run_id(run_id)
+
+            # Get current run to validate state transition
+            current_run = self.get_run(run_id)
+            validate_run_exists(run=current_run, run_id=run_id)
+
+            # Validate the status transition
+            current_status = current_run.status  # type: ignore
+            validate_run_status_transition(
+                run_id=run_id,
+                current_status=current_status,
+                target_status=status,
+                valid_transitions=self.VALID_TRANSITIONS,
+            )
+
+            # Update the run status, once validated.
+            ts = get_current_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
             self._db_adapter.update_run_status(run_id, status.value, completed_at)
+
         except (RunNotFoundError, InvalidTransitionError):
             # Re-raise domain exceptions as-is
             raise
@@ -222,10 +216,8 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        if turn_number < 0:
-            raise ValueError("turn_number cannot be negative")
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
 
         return self._db_adapter.read_turn_metadata(run_id, turn_number)
 
@@ -255,15 +247,13 @@ class SQLiteRunRepository(RunRepository):
         """
         # Validate run exists
         run = self.get_run(turn_metadata.run_id)
-        if run is None:
-            raise RunNotFoundError(turn_metadata.run_id)
 
-        # Validate turn_number is within bounds
-        if turn_metadata.turn_number >= run.total_turns:
-            raise ValueError(
-                f"turn_number {turn_metadata.turn_number} is out of bounds. "
-                f"Run '{turn_metadata.run_id}' has {run.total_turns} turns (0-{run.total_turns - 1})"
-            )
+        validate_run_exists(run=run, run_id=turn_metadata.run_id)
+
+        validate_turn_number_less_than_max_turns(
+            turn_number=turn_metadata.turn_number,
+            max_turns=run.total_turns,  # type: ignore
+        )
 
         self._db_adapter.write_turn_metadata(turn_metadata)
 
@@ -272,11 +262,8 @@ def create_sqlite_repository() -> SQLiteRunRepository:
     """Factory function to create a SQLiteRunRepository with default dependencies.
 
     Returns:
-        SQLiteRunRepository configured with SQLite adapter and default timestamp function
+        SQLiteRunRepository configured with SQLite adapter
     """
     from db.adapters.sqlite import SQLiteRunAdapter
-    from lib.utils import get_current_timestamp
 
-    return SQLiteRunRepository(
-        db_adapter=SQLiteRunAdapter(), get_timestamp=get_current_timestamp
-    )
+    return SQLiteRunRepository(db_adapter=SQLiteRunAdapter())

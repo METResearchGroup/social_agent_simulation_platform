@@ -14,7 +14,7 @@ from db.repositories.generated_bio_repository import (
 )
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from lib.langfuse_telemetry import get_langfuse_client, log_llm_request
-from lib.utils import get_current_timestamp
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile

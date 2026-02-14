@@ -13,10 +13,38 @@ from db.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from db.repositories.run_repository import SQLiteRunRepository
+from db.repositories.run_repository import SQLiteRunRepository as _SQLiteRunRepository
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+
+
+class SQLiteRunRepository(_SQLiteRunRepository):
+    """Test-only shim that patches timestamp function from injected mock."""
+
+    def __init__(
+        self, db_adapter: RunDatabaseAdapter, get_timestamp: Mock | None = None
+    ):
+        super().__init__(db_adapter)
+        self._mock_get_timestamp = get_timestamp
+
+    def create_run(self, config: RunConfig) -> Run:
+        if self._mock_get_timestamp is None:
+            return super().create_run(config)
+        with patch(
+            "db.repositories.run_repository.get_current_timestamp",
+            self._mock_get_timestamp,
+        ):
+            return super().create_run(config)
+
+    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+        if self._mock_get_timestamp is None:
+            return super().update_run_status(run_id, status)
+        with patch(
+            "db.repositories.run_repository.get_current_timestamp",
+            self._mock_get_timestamp,
+        ):
+            return super().update_run_status(run_id, status)
 
 
 def make_turn_metadata(
@@ -1129,7 +1157,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         turn_number = 0
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id cannot be empty"):
+        with pytest.raises(ValueError, match="run_id is invalid"):
             repo.get_turn_metadata(run_id, turn_number)
 
         # Verify adapter was not called
@@ -1145,7 +1173,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         turn_number = 0
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id cannot be empty"):
+        with pytest.raises(ValueError, match="run_id is invalid"):
             repo.get_turn_metadata(run_id, turn_number)
 
         # Verify adapter was not called
@@ -1161,7 +1189,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         turn_number = -1
 
         # Act & Assert
-        with pytest.raises(ValueError, match="turn_number cannot be negative"):
+        with pytest.raises(ValueError, match="turn_number is invalid"):
             repo.get_turn_metadata(run_id, turn_number)
 
         # Verify adapter was not called
@@ -1376,7 +1404,10 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         )
 
         # Act & Assert
-        with pytest.raises(ValueError, match="turn_number 5 is out of bounds"):
+        with pytest.raises(
+            ValueError,
+            match="Turn number 5 is greater than the maximum number of turns: 5",
+        ):
             repo.write_turn_metadata(turn_metadata)
 
         # Verify adapter was not called

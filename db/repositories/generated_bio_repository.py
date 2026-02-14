@@ -5,6 +5,7 @@ from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.validators import validate_handle_exists
 
 
 class GeneratedBioRepository(ABC):
@@ -93,8 +94,7 @@ class SQLiteGeneratedBioRepository(GeneratedBioRepository):
             Pydantic validators only run when creating models. Since this method accepts a raw string
             parameter (not a GeneratedBio model), we validate handle here.
         """
-        if not handle or not handle.strip():
-            raise ValueError("handle cannot be empty")
+        validate_handle_exists(handle=handle)
         return self._db_adapter.read_generated_bio(handle)
 
     def list_all_generated_bios(self) -> list[GeneratedBio]:

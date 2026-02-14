@@ -5,13 +5,14 @@ Revises: ba8d350bb2fd
 Create Date: 2026-02-02 13:31:56.509719
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '4ea9cc982076'
-down_revision: Union[str, Sequence[str], None] = 'ba8d350bb2fd'
+revision: str = "4ea9cc982076"
+down_revision: Union[str, Sequence[str], None] = "ba8d350bb2fd"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -22,8 +23,10 @@ def upgrade() -> None:
     conn = op.get_bind()
     conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
     try:
-        with op.batch_alter_table('generated_feeds', schema=None) as batch_op:
-            batch_op.create_foreign_key('fk_generated_feeds_run_id', 'runs', ['run_id'], ['run_id'])
+        with op.batch_alter_table("generated_feeds", schema=None) as batch_op:
+            batch_op.create_foreign_key(
+                "fk_generated_feeds_run_id", "runs", ["run_id"], ["run_id"]
+            )
     finally:
         conn.exec_driver_sql("PRAGMA foreign_keys=ON")
 
@@ -36,8 +39,8 @@ def downgrade() -> None:
     conn = op.get_bind()
     conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
     try:
-        with op.batch_alter_table('generated_feeds', schema=None) as batch_op:
-            batch_op.drop_constraint('fk_generated_feeds_run_id', type_='foreignkey')
+        with op.batch_alter_table("generated_feeds", schema=None) as batch_op:
+            batch_op.drop_constraint("fk_generated_feeds_run_id", type_="foreignkey")
     finally:
         conn.exec_driver_sql("PRAGMA foreign_keys=ON")
 

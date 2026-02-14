@@ -3,6 +3,16 @@
 from typing import Any
 
 
+def validate_turn_number(turn_number: int) -> None:
+    """Validate that turn_number is a non-negative integer.
+
+    Raises:
+        ValueError: If turn_number is None or negative.
+    """
+    if turn_number is None or turn_number < 0:
+        raise ValueError("turn_number is invalid")
+
+
 def validate_non_empty_string(v: Any, field_name: str) -> str:
     """Validate that a string field is non-empty after stripping.
 

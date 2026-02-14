@@ -5,11 +5,14 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.schema_utils import required_column_names
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.exceptions import DuplicateTurnMetadataError, RunNotFoundError
+from db.schema import runs
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.validators import validate_run_id, validate_turn_number
 
 
 class SQLiteRunAdapter(RunDatabaseAdapter):
@@ -32,19 +35,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             ValueError: If required fields are NULL or status is invalid
             KeyError: If required columns are missing from row
         """
-        # Validate required fields are not NULL
-        if row["run_id"] is None:
-            raise ValueError("run_id cannot be NULL")
-        if row["created_at"] is None:
-            raise ValueError("created_at cannot be NULL")
-        if row["total_turns"] is None:
-            raise ValueError("total_turns cannot be NULL")
-        if row["total_agents"] is None:
-            raise ValueError("total_agents cannot be NULL")
-        if row["started_at"] is None:
-            raise ValueError("started_at cannot be NULL")
-        if row["status"] is None:
-            raise ValueError("status cannot be NULL")
+        validate_required_fields(row, required_column_names(runs))
 
         # Convert status string to RunStatus enum, handling invalid values
         try:
@@ -162,10 +153,13 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             TurnMetadata if found, None otherwise
 
         Raises:
+            ValueError: If run_id is invalid or turn_number is invalid
             ValueError: If the turn metadata data is invalid (NULL fields, invalid action types)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
         with get_connection() as conn:
             try:
                 row = conn.execute(

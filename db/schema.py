@@ -51,7 +51,9 @@ turn_metadata = sa.Table(
     sa.Column("turn_number", sa.Integer(), nullable=False),
     sa.Column("total_actions", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
-    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_turn_metadata_run_id"),
+    sa.ForeignKeyConstraint(
+        ["run_id"], ["runs.run_id"], name="fk_turn_metadata_run_id"
+    ),
     sa.CheckConstraint("turn_number >= 0", name="ck_turn_metadata_turn_number_gte_0"),
     sa.PrimaryKeyConstraint("run_id", "turn_number", name="pk_turn_metadata"),
 )
@@ -121,4 +123,3 @@ sa.Index("idx_runs_status", runs.c.status)
 sa.Index("idx_runs_created_at", runs.c.created_at.desc())
 sa.Index("idx_bluesky_feed_posts_author_handle", bluesky_feed_posts.c.author_handle)
 sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
-

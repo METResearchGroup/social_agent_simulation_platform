@@ -5,7 +5,7 @@ from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from feeds.algorithms import generate_chronological_feed
 from feeds.candidate_generation import load_candidate_posts
-from lib.utils import get_current_timestamp
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
@@ -25,14 +25,161 @@ _FEED_ALGORITHMS: dict[str, Callable] = {
 }
 
 
-def generate_feed(
+def generate_feeds(
+    agents: list[SocialMediaAgent],
+    run_id: str,
+    turn_number: int,
+    generated_feed_repo: GeneratedFeedRepository,
+    feed_post_repo: FeedPostRepository,
+    feed_algorithm: str,
+) -> dict[str, list[BlueskyFeedPost]]:
+    """Generate feeds for all the agents.
+
+    Args:
+        agents: List of agents to generate feeds for.
+        run_id: The run ID for this simulation.
+        turn_number: The turn number for this simulation.
+        generated_feed_repo: Repository for writing generated feeds.
+        feed_post_repo: Repository for reading feed posts.
+        feed_algorithm: Algorithm name to use (must be registered in _FEED_ALGORITHMS).
+
+    Returns:
+        Dictionary mapping agent handles to lists of hydrated BlueskyFeedPost objects.
+
+    Raises:
+        ValueError: If feed_algorithm is not registered in _FEED_ALGORITHMS.
+    """
+    feeds = _generate_feeds(
+        agents=agents,
+        run_id=run_id,
+        turn_number=turn_number,
+        feed_algorithm=feed_algorithm,
+    )
+    _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
+    return _hydrate_generated_feeds(
+        feeds=feeds,
+        feed_post_repo=feed_post_repo,
+        run_id=run_id,
+        turn_number=turn_number,
+    )
+
+
+def _generate_feeds(
+    agents: list[SocialMediaAgent],
+    run_id: str,
+    turn_number: int,
+    feed_algorithm: str,
+) -> dict[str, GeneratedFeed]:
+    """Generate a feed per agent via the feed algorithm; no persistence."""
+    feeds: dict[str, GeneratedFeed] = {}
+    for agent in agents:
+        # TODO: right now we load all posts per agent, but obviously
+        # can optimize and personalize later to save on queries.
+        feed = _generate_single_agent_feed(
+            agent=agent,
+            run_id=run_id,
+            turn_number=turn_number,
+            feed_algorithm=feed_algorithm,
+        )
+        feeds[agent.handle] = feed
+    return feeds
+
+
+def _write_generated_feeds(
+    feeds: dict[str, GeneratedFeed],
+    generated_feed_repo: GeneratedFeedRepository,
+) -> None:
+    """Persist each generated feed via the repository."""
+    for feed in feeds.values():
+        generated_feed_repo.write_generated_feed(feed)
+
+
+def _load_hydrated_posts(
+    feeds: dict[str, GeneratedFeed],
+    feed_post_repo: FeedPostRepository,
+) -> dict[str, BlueskyFeedPost]:
+    """Collect all post URIs from feeds, fetch posts in one batch, return uri -> post map."""
+    all_post_uris: set[str] = set()
+    for feed in feeds.values():
+        all_post_uris.update(feed.post_uris)
+    hydrated_posts: list[BlueskyFeedPost] = feed_post_repo.read_feed_posts_by_uris(
+        all_post_uris
+    )
+    return {p.uri: p for p in hydrated_posts}
+
+
+def _hydrate_generated_feeds(
+    feeds: dict[str, GeneratedFeed],
+    feed_post_repo: FeedPostRepository,
+    run_id: str,
+    turn_number: int,
+) -> dict[str, list[BlueskyFeedPost]]:
+    """Hydrate feeds using a single batch query, then map each feed's URIs to posts."""
+    uri_to_post: dict[str, BlueskyFeedPost] = _load_hydrated_posts(
+        feeds=feeds, feed_post_repo=feed_post_repo
+    )
+    agent_to_hydrated_feeds, missing_uris_by_agent = _hydrate_feed_items(
+        feeds=feeds, uri_to_post=uri_to_post
+    )
+    _log_warning_missing_posts(
+        missing_uris_by_agent=missing_uris_by_agent,
+        feeds=feeds,
+        run_id=run_id,
+        turn_number=turn_number,
+    )
+    return agent_to_hydrated_feeds
+
+
+def _hydrate_feed_items(
+    feeds: dict[str, GeneratedFeed],
+    uri_to_post: dict[str, BlueskyFeedPost],
+) -> tuple[dict[str, list[BlueskyFeedPost]], dict[str, list[str]]]:
+    """Map each feed's post URIs to hydrated posts; record missing URIs per agent.
+
+    Missing URIs are skipped in the result and collected for logging. Preserves feed order.
+    Returns (agent_to_hydrated_feeds, missing_uris_by_agent).
+    """
+    missing_uris_by_agent: dict[str, list[str]] = {}
+    agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = {}
+    for agent_handle, feed in feeds.items():
+        feed_posts: list[BlueskyFeedPost] = []
+        for post_uri in feed.post_uris:
+            if post_uri not in uri_to_post:
+                missing_uris_by_agent.setdefault(agent_handle, []).append(post_uri)
+                continue
+            feed_posts.append(uri_to_post[post_uri])
+        agent_to_hydrated_feeds[agent_handle] = feed_posts
+    return (agent_to_hydrated_feeds, missing_uris_by_agent)
+
+
+def _log_warning_missing_posts(
+    missing_uris_by_agent: dict[str, list[str]],
+    feeds: dict[str, GeneratedFeed],
+    run_id: str,
+    turn_number: int,
+) -> None:
+    """Log one aggregated warning per agent for missing post URIs (first 5 URIs shown, then count)."""
+    for agent_handle, missing_uris in missing_uris_by_agent.items():
+        feed_id = feeds[agent_handle].feed_id
+        missing_count = len(missing_uris)
+        uris_preview = missing_uris[:5]
+        uris_str = ", ".join(uris_preview)
+        if len(missing_uris) > 5:
+            uris_str += f", ... ({missing_count - 5} more)"
+        logger.warning(
+            f"Missing {missing_count} post(s) for agent {agent_handle} in run {run_id}, "
+            f"turn {turn_number} (feed_id={feed_id}). Missing URIs: {uris_str}"
+        )
+
+
+def _generate_feed(
     agent: SocialMediaAgent,
     candidate_posts: list[BlueskyFeedPost],
     run_id: str,
     turn_number: int,
     feed_algorithm: str,
 ) -> GeneratedFeed:
-    """Generate a feed for an agent."""
+    """Run the registered feed algorithm on candidate posts and return a generated feed."""
     if feed_algorithm not in _FEED_ALGORITHMS:
         raise ValueError(f"Unknown feed algorithm: {feed_algorithm}")
     algorithm = _FEED_ALGORITHMS[feed_algorithm]
@@ -47,105 +194,20 @@ def generate_feed(
     )
 
 
-def generate_feeds(
-    agents: list[SocialMediaAgent],
+def _generate_single_agent_feed(
+    agent: SocialMediaAgent,
     run_id: str,
     turn_number: int,
-    generated_feed_repo: GeneratedFeedRepository,
-    feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
-) -> dict[str, list[BlueskyFeedPost]]:
-    """Generate feeds for all the agents.
-
-    Uses dependency injection for repositories to enable testability and consistency
-    with the engine's dependency injection pattern. Uses batch queries for efficient
-    post hydration instead of loading all posts.
-
-    Returns a dictionary of agent handles to lists of hydrated BlueskyFeedPost models.
-
-    Does the following:
-    1. Generates a feed for each agent using the specified algorithm.
-    2. Writes the unhydrated feeds to the database.
-    3. Hydrates the posts for each feed using batch queries.
-    4. Handles missing posts gracefully (logs warning, skips silently).
-    5. Returns a dictionary of agent handles to lists of hydrated BlueskyFeedPost models.
-
-    Args:
-        agents: List of agents to generate feeds for.
-        run_id: The run ID for this simulation.
-        turn_number: The turn number for this simulation.
-        generated_feed_repo: Repository for writing generated feeds.
-        feed_post_repo: Repository for reading feed posts (used for batch hydration).
-        feed_algorithm: Algorithm name to use (must be registered in _FEED_ALGORITHMS).
-
-    Returns:
-        Dictionary mapping agent handles to lists of hydrated BlueskyFeedPost objects.
-
-    Raises:
-        ValueError: If feed_algorithm is not registered in _FEED_ALGORITHMS.
-    """
-    feeds: dict[str, GeneratedFeed] = {}
-    for agent in agents:
-        # TODO (PR 5B): Candidate post loading still creates repositories internally.
-        # This is technical debt that should be refactored in a follow-up PR.
-        # The load_candidate_posts() function should accept repositories as parameters
-        # to maintain consistent dependency injection patterns.
-        # Impact: Makes it harder to test generate_feeds() with mocked candidate posts.
-        # See: feeds/candidate_generation.py for internal repository creation.
-        # TODO: right now we load all posts per agent, but obviously
-        # can optimize and personalize later to save on queries.
-        candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
-            agent=agent, run_id=run_id
-        )
-        feed: GeneratedFeed = generate_feed(
-            agent=agent,
-            candidate_posts=candidate_posts,
-            run_id=run_id,
-            turn_number=turn_number,
-            feed_algorithm=feed_algorithm,
-        )
-        generated_feed_repo.create_or_update_generated_feed(feed)
-        feeds[agent.handle] = feed
-
-    # iterate through feeds, grab only the unique URIs, and hydrate
-    all_post_uris: set[str] = set()
-    for feed in feeds.values():
-        all_post_uris.update(feed.post_uris)
-
-    hydrated_posts: list[BlueskyFeedPost] = feed_post_repo.read_feed_posts_by_uris(
-        all_post_uris
+) -> GeneratedFeed:
+    """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
+    candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
+        agent=agent, run_id=run_id
     )
-    uri_to_post: dict[str, BlueskyFeedPost] = {p.uri: p for p in hydrated_posts}
-
-    # now iterate through feeds and hydrate the posts.
-    # Collect missing URIs per agent for aggregated logging
-    missing_uris_by_agent: dict[str, list[str]] = {}
-    agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = {}
-    for agent_handle, feed in feeds.items():
-        feed_posts: list[BlueskyFeedPost] = []
-        for post_uri in feed.post_uris:
-            # Skip silently if missing. Currently OK and matches other specs
-            # related to graceful handling of missing posts. Can be
-            # revisited as a fast follow later. Currently, missing posts are an
-            # edge case.
-            if post_uri not in uri_to_post:
-                missing_uris_by_agent.setdefault(agent_handle, []).append(post_uri)
-                continue
-            feed_posts.append(uri_to_post[post_uri])
-        agent_to_hydrated_feeds[agent_handle] = feed_posts
-
-    # Log aggregated warnings for missing posts (one per agent, not per URI)
-    for agent_handle, missing_uris in missing_uris_by_agent.items():
-        feed_id = feeds[agent_handle].feed_id
-        missing_count = len(missing_uris)
-        # Show first 5 URIs, then truncate if more
-        uris_preview = missing_uris[:5]
-        uris_str = ", ".join(uris_preview)
-        if len(missing_uris) > 5:
-            uris_str += f", ... ({missing_count - 5} more)"
-        logger.warning(
-            f"Missing {missing_count} post(s) for agent {agent_handle} in run {run_id}, "
-            f"turn {turn_number} (feed_id={feed_id}). Missing URIs: {uris_str}"
-        )
-
-    return agent_to_hydrated_feeds
+    return _generate_feed(
+        agent=agent,
+        candidate_posts=candidate_posts,
+        run_id=run_id,
+        turn_number=turn_number,
+        feed_algorithm=feed_algorithm,
+    )

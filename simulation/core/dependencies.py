@@ -20,9 +20,24 @@ from db.repositories.profile_repository import (
     create_sqlite_profile_repository,
 )
 from db.repositories.run_repository import RunRepository, create_sqlite_repository
+from simulation.core.action_history import (
+    ActionHistoryStore,
+    InMemoryActionHistoryStore,
+)
+from simulation.core.agent_action_feed_filter import (
+    AgentActionFeedFilter,
+    HistoryAwareActionFeedFilter,
+)
+from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
+from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
+from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.query_service import SimulationQueryService
+from simulation.core.validators import (
+    validate_duplicate_agent_handles,
+    validate_insufficient_agents,
+)
 
 
 def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
@@ -61,16 +76,18 @@ def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
         # Apply limit
         agents = all_agents[:num_agents]
 
-        # Validate agent count
-        if len(agents) < num_agents or len(agents) == 0:
-            raise InsufficientAgentsError(
-                requested=num_agents,
-                available=len(all_agents),
-            )
+        # Validate agents
+        validate_insufficient_agents(agents=agents, requested_agents=num_agents)
+        validate_duplicate_agent_handles(agents=agents)
 
         return agents
 
     return agent_factory
+
+
+def create_default_action_history_store_factory() -> Callable[[], ActionHistoryStore]:
+    """Create the default run-scoped action history store factory."""
+    return InMemoryActionHistoryStore
 
 
 def create_engine(
@@ -81,6 +98,7 @@ def create_engine(
     generated_bio_repo: Optional[GeneratedBioRepository] = None,
     generated_feed_repo: Optional[GeneratedFeedRepository] = None,
     agent_factory: Optional[Callable[[int], list[SocialMediaAgent]]] = None,
+    action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
 ) -> SimulationEngine:
     """Create a SimulationEngine with injected dependencies.
 
@@ -124,6 +142,23 @@ def create_engine(
     # Create default agent factory if not provided
     if agent_factory is None:
         agent_factory = create_default_agent_factory()
+    if action_history_store_factory is None:
+        action_history_store_factory = create_default_action_history_store_factory()
+
+    query_service = create_query_service(
+        run_repo=run_repo,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
+    )
+    command_service = create_command_service(
+        run_repo=run_repo,
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+        generated_feed_repo=generated_feed_repo,
+        agent_factory=agent_factory,
+        action_history_store_factory=action_history_store_factory,
+    )
 
     return SimulationEngine(
         run_repo=run_repo,
@@ -132,4 +167,54 @@ def create_engine(
         generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
         agent_factory=agent_factory,
+        query_service=query_service,
+        command_service=command_service,
+    )
+
+
+def create_query_service(
+    *,
+    run_repo: RunRepository,
+    feed_post_repo: FeedPostRepository,
+    generated_feed_repo: GeneratedFeedRepository,
+) -> SimulationQueryService:
+    """Create query-side service with read dependencies."""
+    return SimulationQueryService(
+        run_repo=run_repo,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
+    )
+
+
+def create_command_service(
+    *,
+    run_repo: RunRepository,
+    profile_repo: ProfileRepository,
+    feed_post_repo: FeedPostRepository,
+    generated_bio_repo: GeneratedBioRepository,
+    generated_feed_repo: GeneratedFeedRepository,
+    agent_factory: Callable[[int], list[SocialMediaAgent]],
+    action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
+    agent_action_rules_validator: Optional[AgentActionRulesValidator] = None,
+    agent_action_history_recorder: Optional[AgentActionHistoryRecorder] = None,
+    agent_action_feed_filter: Optional[AgentActionFeedFilter] = None,
+) -> SimulationCommandService:
+    """Create command-side service with execution dependencies."""
+    if action_history_store_factory is None:
+        action_history_store_factory = create_default_action_history_store_factory()
+
+    return SimulationCommandService(
+        run_repo=run_repo,
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+        generated_feed_repo=generated_feed_repo,
+        agent_factory=agent_factory,
+        action_history_store_factory=action_history_store_factory,
+        agent_action_rules_validator=agent_action_rules_validator
+        or AgentActionRulesValidator(),
+        agent_action_history_recorder=agent_action_history_recorder
+        or AgentActionHistoryRecorder(),
+        agent_action_feed_filter=agent_action_feed_filter
+        or HistoryAwareActionFeedFilter(),
     )

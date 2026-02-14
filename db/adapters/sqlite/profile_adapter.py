@@ -4,8 +4,18 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
+from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.schema import bluesky_profiles
 from simulation.core.models.profiles import BlueskyProfile
+from simulation.core.validators import validate_handle_exists
+
+PROFILE_COLUMNS = ordered_column_names(bluesky_profiles)
+PROFILE_REQUIRED_FIELDS = required_column_names(bluesky_profiles)
+_INSERT_PROFILE_SQL = (
+    f"INSERT OR REPLACE INTO bluesky_profiles ({', '.join(PROFILE_COLUMNS)}) "
+    f"VALUES ({', '.join('?' for _ in PROFILE_COLUMNS)})"
+)
 
 
 class SQLiteProfileAdapter(ProfileDatabaseAdapter):
@@ -27,20 +37,8 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
         """
         with get_connection() as conn:
             conn.execute(
-                """
-                INSERT OR REPLACE INTO bluesky_profiles 
-                (handle, did, display_name, bio, followers_count, follows_count, posts_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    profile.handle,
-                    profile.did,
-                    profile.display_name,
-                    profile.bio,
-                    profile.followers_count,
-                    profile.follows_count,
-                    profile.posts_count,
-                ),
+                _INSERT_PROFILE_SQL,
+                tuple(getattr(profile, col) for col in PROFILE_COLUMNS),
             )
             conn.commit()
 
@@ -53,18 +51,7 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
         Raises:
             ValueError: If any required field is NULL
         """
-        validate_required_fields(
-            row,
-            {
-                "handle": "handle",
-                "did": "did",
-                "display_name": "display_name",
-                "bio": "bio",
-                "followers_count": "followers_count",
-                "follows_count": "follows_count",
-                "posts_count": "posts_count",
-            },
-        )
+        validate_required_fields(row, PROFILE_REQUIRED_FIELDS)
 
     def read_profile(self, handle: str) -> Optional[BlueskyProfile]:
         """Read a profile from SQLite.
@@ -76,10 +63,12 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             BlueskyProfile if found, None otherwise.
 
         Raises:
+            ValueError: If handle is empty
             ValueError: If the profile data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
+        validate_handle_exists(handle)
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM bluesky_profiles WHERE handle = ?", (handle,)

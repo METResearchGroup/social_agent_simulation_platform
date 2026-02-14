@@ -28,7 +28,7 @@ class SocialMediaAgent:
         Returns:
             A GeneratedFeed instance for this agent
         """
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
 
         return GeneratedFeed(
             feed_id=GeneratedFeed.generate_feed_id(),
@@ -40,10 +40,18 @@ class SocialMediaAgent:
         )
 
     def like_posts(self, feed: list[BlueskyFeedPost]) -> list[GeneratedLike]:
+        if len(feed) == 0:
+            print("[No-op for now] No posts to like.")
+            return []
         return []
 
     def comment_posts(self, feed: list[BlueskyFeedPost]) -> list[GeneratedComment]:
+        if len(feed) == 0:
+            print("[No-op for now] No posts to comment on.")
+            return []
         return []
 
     def follow_users(self, feed: list[BlueskyFeedPost]) -> list[GeneratedFollow]:
+        if len(feed) == 0:
+            print("[No-op for now] No users to follow.")
         return []

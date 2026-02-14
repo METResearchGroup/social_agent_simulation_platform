@@ -4,8 +4,19 @@ import sqlite3
 from typing import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
+from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.schema import bluesky_feed_posts
 from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.validators import validate_handle_exists, validate_uri_exists
+
+FEED_POST_COLUMNS = ordered_column_names(bluesky_feed_posts)
+FEED_POST_REQUIRED_FIELDS = required_column_names(bluesky_feed_posts)
+
+_INSERT_FEED_POST_SQL = (
+    f"INSERT OR REPLACE INTO bluesky_feed_posts ({', '.join(FEED_POST_COLUMNS)}) "
+    f"VALUES ({', '.join('?' for _ in FEED_POST_COLUMNS)})"
+)
 
 
 class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
@@ -31,18 +42,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            {
-                "uri": "uri",
-                "author_display_name": "author_display_name",
-                "author_handle": "author_handle",
-                "text": "text",
-                "bookmark_count": "bookmark_count",
-                "like_count": "like_count",
-                "quote_count": "quote_count",
-                "reply_count": "reply_count",
-                "repost_count": "repost_count",
-                "created_at": "created_at",
-            },
+            FEED_POST_REQUIRED_FIELDS,
             context=context,
         )
 
@@ -85,24 +85,8 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         """
         with get_connection() as conn:
             conn.execute(
-                """
-                INSERT OR REPLACE INTO bluesky_feed_posts
-                (uri, author_display_name, author_handle, text, bookmark_count,
-                 like_count, quote_count, reply_count, repost_count, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    post.uri,
-                    post.author_display_name,
-                    post.author_handle,
-                    post.text,
-                    post.bookmark_count,
-                    post.like_count,
-                    post.quote_count,
-                    post.reply_count,
-                    post.repost_count,
-                    post.created_at,
-                ),
+                _INSERT_FEED_POST_SQL,
+                tuple(getattr(post, col) for col in FEED_POST_COLUMNS),
             )
             conn.commit()
 
@@ -122,25 +106,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         with get_connection() as conn:
             try:
                 conn.executemany(
-                    """
-                    INSERT OR REPLACE INTO bluesky_feed_posts
-                    (uri, author_display_name, author_handle, text, bookmark_count,
-                     like_count, quote_count, reply_count, repost_count, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
+                    _INSERT_FEED_POST_SQL,
                     [
-                        (
-                            post.uri,
-                            post.author_display_name,
-                            post.author_handle,
-                            post.text,
-                            post.bookmark_count,
-                            post.like_count,
-                            post.quote_count,
-                            post.reply_count,
-                            post.repost_count,
-                            post.created_at,
-                        )
+                        tuple(getattr(post, col) for col in FEED_POST_COLUMNS)
                         for post in posts
                     ],
                 )
@@ -164,8 +132,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if not uri or not uri.strip():
-            raise ValueError("uri cannot be empty")
+        validate_uri_exists(uri=uri)
 
         with get_connection() as conn:
             row = conn.execute(
@@ -191,10 +158,12 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             List of BlueskyFeedPost models for the author.
 
         Raises:
+            ValueError: If author_handle is empty
             ValueError: If any feed post data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
+        validate_handle_exists(author_handle)
         with get_connection() as conn:
             rows = conn.execute(
                 "SELECT * FROM bluesky_feed_posts WHERE author_handle = ?",

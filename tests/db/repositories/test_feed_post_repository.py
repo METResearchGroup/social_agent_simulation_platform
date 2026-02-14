@@ -428,7 +428,7 @@ class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
         repo = SQLiteFeedPostRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="author_handle cannot be empty"):
+        with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.list_feed_posts_by_author("")
 
         mock_adapter.read_feed_posts_by_author.assert_not_called()
@@ -440,7 +440,7 @@ class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
         repo = SQLiteFeedPostRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="author_handle cannot be empty"):
+        with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.list_feed_posts_by_author("   ")
 
         mock_adapter.read_feed_posts_by_author.assert_not_called()

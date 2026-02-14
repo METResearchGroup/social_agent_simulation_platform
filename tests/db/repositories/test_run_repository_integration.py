@@ -467,7 +467,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_and_read_turn_metadata(self, temp_db):
         """Test writing turn metadata using repository and reading it back."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -667,7 +667,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_turn_metadata_using_repository_method(self, temp_db):
         """Test writing turn metadata using repository.write_turn_metadata method."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -703,7 +703,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_multiple_turns_using_repository_method(self, temp_db):
         """Test writing multiple turns using repository.write_turn_metadata method."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -737,7 +737,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_turn_metadata_with_zero_actions_using_repository(self, temp_db):
         """Test writing turn metadata with zero actions using repository method."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -770,7 +770,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_turn_metadata_different_runs_using_repository(self, temp_db):
         """Test that turn metadata is correctly isolated per run using repository method."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -819,7 +819,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_turn_metadata_raises_duplicate_error(self, temp_db):
         """Test that writing duplicate turn metadata raises DuplicateTurnMetadataError."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -846,7 +846,7 @@ class TestTurnMetadataIntegration:
 
     def test_write_turn_metadata_raises_error_when_run_not_found(self, temp_db):
         """Test that writing turn metadata for non-existent run raises RunNotFoundError."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -869,7 +869,7 @@ class TestTurnMetadataIntegration:
         self, temp_db
     ):
         """Test that writing turn metadata with out-of-bounds turn_number raises ValueError."""
-        from lib.utils import get_current_timestamp
+        from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
@@ -886,5 +886,8 @@ class TestTurnMetadataIntegration:
             created_at=get_current_timestamp(),
         )
 
-        with pytest.raises(ValueError, match="turn_number 5 is out of bounds"):
+        with pytest.raises(
+            ValueError,
+            match="Turn number 5 is greater than the maximum number of turns: 5",
+        ):
             repo.write_turn_metadata(turn_metadata)

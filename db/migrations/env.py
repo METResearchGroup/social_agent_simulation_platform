@@ -82,10 +82,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = create_engine(
-        config.get_main_option("sqlalchemy.url"),
-        poolclass=pool.NullPool,
-    )
+    url = config.get_main_option("sqlalchemy.url")
+    assert url is not None, "sqlalchemy.url must be set by set_main_option"
+    connectable = create_engine(url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(

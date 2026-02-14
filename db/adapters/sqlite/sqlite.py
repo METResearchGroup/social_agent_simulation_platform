@@ -27,26 +27,25 @@ def get_connection() -> sqlite3.Connection:
 
 
 def validate_required_fields(
-    row: sqlite3.Row, fields: dict[str, str], context: str | None = None
+    row: sqlite3.Row, fields: list[str], context: str | None = None
 ) -> None:
     """Validate that all required fields in a database row are not NULL.
 
     Args:
         row: SQLite Row object to validate
-        fields: Dictionary mapping field names to their descriptions for error messages.
-                For example: {"handle": "handle", "did": "did"} or
-                {"uri": "feed post URI", "text": "post text"}
+        fields: List of required field names to validate.
+                For example: ["handle", "did"] or ["uri", "text"]
         context: Optional context string to include in error messages
                  (e.g., "feed post uri=at://did:plc:...")
 
     Raises:
         ValueError: If any required field is NULL. Error message includes
-                   the field description and optional context.
-        KeyError: If a field name in fields dict is missing from the row
+                   the field name and optional context.
+        KeyError: If a field name in fields list is missing from the row
     """
-    for field_name, description in fields.items():
+    for field_name in fields:
         if row[field_name] is None:
-            error_msg = f"{description} cannot be NULL"
+            error_msg = f"{field_name} cannot be NULL"
             if context:
                 error_msg = f"{error_msg} (context: {context})"
             raise ValueError(error_msg)
@@ -83,9 +82,7 @@ def initialize_database() -> None:
     def _has_alembic_version(conn: sqlite3.Connection) -> bool:
         if not _table_exists(conn, "alembic_version"):
             return False
-        row = conn.execute(
-            "SELECT version_num FROM alembic_version LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT version_num FROM alembic_version LIMIT 1").fetchone()
         return row is not None and bool(row[0])
 
     def _has_any_app_tables(conn: sqlite3.Connection) -> bool:

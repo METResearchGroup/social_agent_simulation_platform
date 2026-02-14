@@ -11,10 +11,10 @@ from simulation.core.models.feeds import GeneratedFeed
 
 
 class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
-    """Tests for SQLiteGeneratedFeedRepository.create_or_update_generated_feed method."""
+    """Tests for SQLiteGeneratedFeedRepository.write_generated_feed method."""
 
     def test_creates_generated_feed_with_correct_values(self):
-        """Test that create_or_update_generated_feed creates a feed with correct values."""
+        """Test that write_generated_feed creates a feed with correct values."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
@@ -28,14 +28,14 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         )
 
         # Act
-        result = repo.create_or_update_generated_feed(feed)
+        result = repo.write_generated_feed(feed)
 
         # Assert
         assert result == feed
         mock_adapter.write_generated_feed.assert_called_once_with(feed)
 
     def test_creates_generated_feed_with_different_values(self):
-        """Test that create_or_update_generated_feed handles different feed values correctly."""
+        """Test that write_generated_feed handles different feed values correctly."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
@@ -52,7 +52,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         )
 
         # Act
-        result = repo.create_or_update_generated_feed(feed)
+        result = repo.write_generated_feed(feed)
 
         # Assert
         assert result.feed_id == "feed_another456"
@@ -62,7 +62,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         mock_adapter.write_generated_feed.assert_called_once_with(feed)
 
     def test_persists_generated_feed_to_database(self):
-        """Test that create_or_update_generated_feed persists the feed to the database via write_generated_feed."""
+        """Test that write_generated_feed persists the feed to the database via write_generated_feed."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
@@ -76,7 +76,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         )
 
         # Act
-        result = repo.create_or_update_generated_feed(feed)
+        result = repo.write_generated_feed(feed)
 
         # Assert
         mock_adapter.write_generated_feed.assert_called_once()
@@ -119,7 +119,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         assert "run_id cannot be empty" in str(exc_info.value)
 
     def test_propagates_adapter_exception_when_write_fails(self):
-        """Test that create_or_update_generated_feed propagates adapter exceptions when database write fails."""
+        """Test that write_generated_feed propagates adapter exceptions when database write fails."""
         # Arrange
         import sqlite3
 
@@ -140,7 +140,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
 
         # Act & Assert
         with pytest.raises(sqlite3.IntegrityError) as exc_info:
-            repo.create_or_update_generated_feed(feed)
+            repo.write_generated_feed(feed)
 
         assert exc_info.value is db_error
         mock_adapter.write_generated_feed.assert_called_once_with(feed)
@@ -197,7 +197,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="agent_handle cannot be empty"):
+        with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
         mock_adapter.read_generated_feed.assert_not_called()
@@ -209,7 +209,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id cannot be empty"):
+        with pytest.raises(ValueError, match="run_id is invalid"):
             repo.get_generated_feed("test.bsky.social", "", 1)
 
         mock_adapter.read_generated_feed.assert_not_called()
@@ -333,7 +333,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id cannot be empty"):
+        with pytest.raises(ValueError, match="run_id is invalid"):
             repo.read_feeds_for_turn("", 0)
 
         mock_adapter.read_feeds_for_turn.assert_not_called()
@@ -345,7 +345,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id cannot be empty"):
+        with pytest.raises(ValueError, match="run_id is invalid"):
             repo.read_feeds_for_turn("   ", 0)
 
         mock_adapter.read_feeds_for_turn.assert_not_called()
@@ -357,7 +357,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="turn_number cannot be negative"):
+        with pytest.raises(ValueError, match="turn_number is invalid"):
             repo.read_feeds_for_turn("run_123", -1)
 
         mock_adapter.read_feeds_for_turn.assert_not_called()

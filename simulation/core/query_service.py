@@ -1,0 +1,77 @@
+from typing import Optional
+
+from db.exceptions import RunNotFoundError
+from db.repositories.feed_post_repository import FeedPostRepository
+from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.run_repository import RunRepository
+from simulation.core.models.runs import Run
+from simulation.core.models.turns import TurnData, TurnMetadata
+from simulation.core.validators import validate_run_id, validate_turn_number
+
+
+class SimulationQueryService:
+    """Query service for retrieving simulation run and turn data."""
+
+    def __init__(
+        self,
+        run_repo: RunRepository,
+        feed_post_repo: FeedPostRepository,
+        generated_feed_repo: GeneratedFeedRepository,
+    ):
+        self.run_repo = run_repo
+        self.feed_post_repo = feed_post_repo
+        self.generated_feed_repo = generated_feed_repo
+
+    def get_run(self, run_id: str) -> Optional[Run]:
+        """Get a run by its ID."""
+        validate_run_id(run_id)
+        return self.run_repo.get_run(run_id)
+
+    def list_runs(self) -> list[Run]:
+        """List all runs."""
+        return self.run_repo.list_runs()
+
+    def get_turn_metadata(
+        self, run_id: str, turn_number: int
+    ) -> Optional[TurnMetadata]:
+        """Get turn metadata for a specific run and turn number."""
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
+        return self.run_repo.get_turn_metadata(run_id, turn_number)
+
+    def get_turn_data(self, run_id: str, turn_number: int) -> Optional[TurnData]:
+        """Returns full turn data with feeds and posts."""
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
+
+        run = self.run_repo.get_run(run_id)
+        if run is None:
+            raise RunNotFoundError(run_id)
+
+        feeds = self.generated_feed_repo.read_feeds_for_turn(run_id, turn_number)
+        if not feeds:
+            return None
+
+        post_uris_set: set[str] = set()
+        for feed in feeds:
+            post_uris_set.update(feed.post_uris)
+
+        post_uris_list = list(post_uris_set)
+        posts = self.feed_post_repo.read_feed_posts_by_uris(post_uris_list)
+
+        uri_to_post = {post.uri: post for post in posts}
+
+        feeds_dict: dict[str, list] = {}
+        for feed in feeds:
+            hydrated_posts = []
+            for post_uri in feed.post_uris:
+                if post_uri in uri_to_post:
+                    hydrated_posts.append(uri_to_post[post_uri])
+            feeds_dict[feed.agent_handle] = hydrated_posts
+
+        return TurnData(
+            turn_number=turn_number,
+            agents=[],
+            feeds=feeds_dict,
+            actions={},
+        )
