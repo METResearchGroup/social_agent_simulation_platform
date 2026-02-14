@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from db.exceptions import InvalidTransitionError, RunNotFoundError
+from simulation.core.exceptions import InvalidTransitionError, RunNotFoundError
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost

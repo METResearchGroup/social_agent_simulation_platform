@@ -10,7 +10,7 @@ import time
 import pytest
 
 from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
-from db.exceptions import (
+from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
     RunNotFoundError,
