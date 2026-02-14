@@ -14,6 +14,36 @@ from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import validate_run_id, validate_turn_number
 
+TURN_METADATA_REQUIRED_COLS = ["run_id", "turn_number", "total_actions", "created_at"]
+
+
+def _validate_turn_metadata_row(row: sqlite3.Row) -> None:
+    """Validate that row has required columns and no NULLs. Raises KeyError or ValueError."""
+    for col in TURN_METADATA_REQUIRED_COLS:
+        if col not in row.keys():
+            raise KeyError(f"Missing required column '{col}' in turn_metadata row")
+    for col in TURN_METADATA_REQUIRED_COLS:
+        if row[col] is None:
+            raise ValueError(f"Turn metadata has NULL fields: {col}={row[col]}")
+
+
+def _parse_total_actions_from_row(row: sqlite3.Row) -> dict[TurnAction, int]:
+    """Parse total_actions JSON and convert string keys to TurnAction. Raises ValueError."""
+    try:
+        total_actions_dict = json.loads(row["total_actions"])
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Could not parse total_actions as JSON for turn_metadata: {e}"
+        ) from e
+    try:
+        return {TurnAction(k): v for k, v in total_actions_dict.items()}
+    except (ValueError, KeyError) as e:
+        valid_keys = [action.value for action in TurnAction]
+        raise ValueError(
+            f"Invalid action type in total_actions for turn_metadata: {e}. "
+            f"Expected keys: {valid_keys}, got: {list(total_actions_dict.keys())}"
+        ) from e
+
 
 class SQLiteRunAdapter(RunDatabaseAdapter):
     """SQLite implementation of RunDatabaseAdapter.
@@ -161,61 +191,29 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         validate_run_id(run_id)
         validate_turn_number(turn_number)
         with get_connection() as conn:
-            try:
-                row = conn.execute(
-                    "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
-                    (run_id, turn_number),
-                ).fetchone()
-            except sqlite3.OperationalError:
-                raise
+            row = conn.execute(
+                "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
+                (run_id, turn_number),
+            ).fetchone()
 
-            if row is None:
-                return None
+        if row is None:
+            return None
 
-            # Check required columns
-            required_cols = ["run_id", "turn_number", "total_actions", "created_at"]
-            for col in required_cols:
-                if col not in row.keys():
-                    raise KeyError(
-                        f"Missing required column '{col}' in turn_metadata row"
-                    )
-
-            # Check for NULL fields
-            for col in required_cols:
-                if row[col] is None:
-                    raise ValueError(f"Turn metadata has NULL fields: {col}={row[col]}")
-
-            try:
-                total_actions_dict = json.loads(row["total_actions"])
-            except json.JSONDecodeError as e:
-                raise ValueError(
-                    f"Could not parse total_actions as JSON for turn_metadata: {e}"
-                )
-
-            # Convert string keys to TurnAction enum keys
-            try:
-                total_actions = {
-                    TurnAction(k): v for k, v in total_actions_dict.items()
-                }
-            except (ValueError, KeyError) as e:
-                valid_keys = [action.value for action in TurnAction]
-                raise ValueError(
-                    f"Invalid action type in total_actions for turn_metadata: {e}. "
-                    f"Expected keys: {valid_keys}, got: {list(total_actions_dict.keys())}"
-                )
-
-            try:
-                return TurnMetadata(
-                    run_id=row["run_id"],
-                    turn_number=row["turn_number"],
-                    total_actions=total_actions,
-                    created_at=row["created_at"],
-                )
-            except Exception as e:
-                raise ValueError(
-                    f"Invalid turn metadata data: {e}. "
-                    f"run_id={row['run_id']}, turn_number={row['turn_number']}, total_actions={total_actions}, created_at={row['created_at']}"
-                )
+        _validate_turn_metadata_row(row)
+        total_actions = _parse_total_actions_from_row(row)
+        try:
+            return TurnMetadata(
+                run_id=row["run_id"],
+                turn_number=row["turn_number"],
+                total_actions=total_actions,
+                created_at=row["created_at"],
+            )
+        except Exception as e:
+            raise ValueError(
+                f"Invalid turn metadata data: {e}. "
+                f"run_id={row['run_id']}, turn_number={row['turn_number']}, "
+                f"total_actions={total_actions}, created_at={row['created_at']}"
+            ) from e
 
     def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
         """Write turn metadata to SQLite.

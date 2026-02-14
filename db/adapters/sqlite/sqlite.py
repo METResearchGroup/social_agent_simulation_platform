@@ -8,6 +8,7 @@ This module provides SQLite-specific infrastructure functions:
 
 import os
 import sqlite3
+from typing import Any
 
 from lib.constants import REPO_ROOT
 
@@ -51,78 +52,84 @@ def validate_required_fields(
             raise ValueError(error_msg)
 
 
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    """Return True if the given table exists in the database."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _has_alembic_version(conn: sqlite3.Connection) -> bool:
+    """Return True if alembic_version table exists and has a version."""
+    if not _table_exists(conn, "alembic_version"):
+        return False
+    row = conn.execute("SELECT version_num FROM alembic_version LIMIT 1").fetchone()
+    return row is not None and bool(row[0])
+
+
+def _has_any_app_tables(conn: sqlite3.Connection) -> bool:
+    """Return True if any core app table exists (runs, generated_feeds, turn_metadata)."""
+    for name in ("runs", "generated_feeds", "turn_metadata"):
+        if _table_exists(conn, name):
+            return True
+    return False
+
+
+def _apply_migrations(cfg: Any, has_version: bool, has_tables: bool) -> None:
+    """Run Alembic upgrade or stamp+upgrade depending on DB state."""
+    from alembic import command
+    from alembic.script import ScriptDirectory
+
+    if has_version or not has_tables:
+        command.upgrade(cfg, "head")
+        return
+    script = ScriptDirectory.from_config(cfg)
+    revisions = list(script.walk_revisions())
+    baseline_revision = revisions[-1].revision
+    command.stamp(cfg, baseline_revision)
+    command.upgrade(cfg, "head")
+
+
+def _restore_sim_db_env(
+    old_sim_db_path: str | None, old_sim_db_url: str | None
+) -> None:
+    """Restore SIM_DB_PATH and SIM_DATABASE_URL to their previous values."""
+    if old_sim_db_path is None:
+        os.environ.pop("SIM_DB_PATH", None)
+    else:
+        os.environ["SIM_DB_PATH"] = old_sim_db_path
+    if old_sim_db_url is None:
+        os.environ.pop("SIM_DATABASE_URL", None)
+    else:
+        os.environ["SIM_DATABASE_URL"] = old_sim_db_url
+
+
 def initialize_database() -> None:
     """Initialize the database by applying Alembic migrations to HEAD.
 
     This is safe to call repeatedly; if the database is already at HEAD, Alembic
     will make no changes.
     """
-
-    from alembic import command
     from alembic.config import Config
-    from alembic.script import ScriptDirectory
 
-    # Ensure parent directory exists (especially for test temp DB paths).
     db_dir = os.path.dirname(DB_PATH)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
 
-    repo_root = REPO_ROOT
-    pyproject_toml = os.path.join(repo_root, "pyproject.toml")
-
+    pyproject_toml = os.path.join(REPO_ROOT, "pyproject.toml")
     cfg = Config(toml_file=str(pyproject_toml))
-
-    def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
-        row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            (table_name,),
-        ).fetchone()
-        return row is not None
-
-    def _has_alembic_version(conn: sqlite3.Connection) -> bool:
-        if not _table_exists(conn, "alembic_version"):
-            return False
-        row = conn.execute("SELECT version_num FROM alembic_version LIMIT 1").fetchone()
-        return row is not None and bool(row[0])
-
-    def _has_any_app_tables(conn: sqlite3.Connection) -> bool:
-        # A minimal heuristic: if any core table exists, treat DB as pre-existing.
-        for name in ("runs", "generated_feeds", "turn_metadata"):
-            if _table_exists(conn, name):
-                return True
-        return False
 
     with sqlite3.connect(DB_PATH) as conn:
         has_version = _has_alembic_version(conn)
         has_tables = _has_any_app_tables(conn)
 
-    # Ensure Alembic targets the same DB_PATH used by runtime code.
-    # Respect explicit configuration if the caller already set it.
     old_sim_db_path = os.environ.get("SIM_DB_PATH")
     old_sim_db_url = os.environ.get("SIM_DATABASE_URL")
+    if old_sim_db_url is None and old_sim_db_path is None:
+        os.environ["SIM_DB_PATH"] = DB_PATH
     try:
-        if old_sim_db_url is None and old_sim_db_path is None:
-            os.environ["SIM_DB_PATH"] = DB_PATH
-
-        if has_version or not has_tables:
-            # Normal case: versioned DB or an empty DB.
-            command.upgrade(cfg, "head")
-        else:
-            # Legacy case: tables exist but Alembic version table is missing.
-            # Assume the schema matches the initial baseline revision, then
-            # upgrade through subsequent migrations (e.g., adding FKs).
-            script = ScriptDirectory.from_config(cfg)
-            revisions = list(script.walk_revisions())
-            baseline_revision = revisions[-1].revision  # down_revision is None
-            command.stamp(cfg, baseline_revision)
-            command.upgrade(cfg, "head")
+        _apply_migrations(cfg, has_version, has_tables)
     finally:
-        if old_sim_db_path is None:
-            os.environ.pop("SIM_DB_PATH", None)
-        else:
-            os.environ["SIM_DB_PATH"] = old_sim_db_path
-
-        if old_sim_db_url is None:
-            os.environ.pop("SIM_DATABASE_URL", None)
-        else:
-            os.environ["SIM_DATABASE_URL"] = old_sim_db_url
+        _restore_sim_db_env(old_sim_db_path, old_sim_db_url)

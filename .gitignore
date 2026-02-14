@@ -56,3 +56,6 @@ htmlcov/
 # Database
 *.sqlite
 !ui/lib/**
+
+*complexipy_cache/
+*ai_tools*
