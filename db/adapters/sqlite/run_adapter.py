@@ -21,9 +21,7 @@ def _validate_turn_metadata_row(row: sqlite3.Row) -> None:
     """Validate that row has required columns and no NULLs. Raises KeyError or ValueError."""
     for col in TURN_METADATA_REQUIRED_COLS:
         if col not in row.keys():
-            raise KeyError(
-                f"Missing required column '{col}' in turn_metadata row"
-            )
+            raise KeyError(f"Missing required column '{col}' in turn_metadata row")
     for col in TURN_METADATA_REQUIRED_COLS:
         if row[col] is None:
             raise ValueError(f"Turn metadata has NULL fields: {col}={row[col]}")
