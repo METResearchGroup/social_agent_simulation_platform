@@ -1,88 +1,13 @@
-"""Abstraction for generated feed repositories."""
-
-from abc import ABC, abstractmethod
+"""SQLite implementation of generated feed repositories."""
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from simulation.core.models.feeds import GeneratedFeed
+from simulation.core.ports import GeneratedFeedRepository
 from simulation.core.validators import (
     validate_handle_exists,
     validate_run_id,
     validate_turn_number,
 )
-
-
-class GeneratedFeedRepository(ABC):
-    """Abstract base class defining the interface for generated feed repositories."""
-
-    @abstractmethod
-    def write_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
-        """Write a generated feed (insert or replace by composite key).
-
-        Args:
-            feed: GeneratedFeed model to create or update
-
-        Returns:
-            The created or updated GeneratedFeed object
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_generated_feed(
-        self, agent_handle: str, run_id: str, turn_number: int
-    ) -> GeneratedFeed:
-        """Get a generated feed by composite key.
-
-        Args:
-            agent_handle: Agent handle to look up
-            run_id: Run ID to look up
-            turn_number: Turn number to look up
-
-        Returns:
-            GeneratedFeed model for the specified agent, run, and turn.
-
-        Raises:
-            ValueError: If no feed is found for the given composite key
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_all_generated_feeds(self) -> list[GeneratedFeed]:
-        """List all generated feeds.
-
-        Returns:
-            List of all GeneratedFeed models.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
-        """Get all post URIs from generated feeds for a specific agent and run.
-
-        Args:
-            agent_handle: Agent handle to filter by
-            run_id: Run ID to filter by
-
-        Returns:
-            Set of post URIs from all generated feeds matching the agent and run.
-            Returns empty set if no feeds found.
-
-        Raises:
-            ValueError: If agent_handle or run_id is empty
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
-        """Read all generated feeds for a specific run and turn.
-
-        Args:
-            run_id: The ID of the run
-            turn_number: The turn number (0-indexed)
-
-        Returns:
-            List of GeneratedFeed models for the specified run and turn.
-        """
-        raise NotImplementedError
 
 
 class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):

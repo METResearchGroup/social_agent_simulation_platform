@@ -3,12 +3,14 @@ import time
 from collections.abc import Callable
 
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
 from lib.decorators import record_runtime
+from simulation.core.ports import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    GeneratedFeedRepository,
+    ProfileRepository,
+    RunRepository,
+)
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.agent_action_feed_filter import (
