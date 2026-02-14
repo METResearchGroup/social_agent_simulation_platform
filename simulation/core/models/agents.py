@@ -18,25 +18,24 @@ class SocialMediaAgent:
         self.comments: list[GeneratedComment] = []
         self.follows: list[GeneratedFollow] = []
 
-    def get_feed(self, run_id: str, turn_number: int = 0) -> GeneratedFeed:
+    def get_feed(self, run_id: str, turn_number: int = 0, *, created_at: str) -> GeneratedFeed:
         """Get a feed for this agent.
 
         Args:
             run_id: The ID of the simulation run (required for validation)
             turn_number: The turn number for this feed (default: 0)
+            created_at: Timestamp for the feed (caller supplies; use lib.timestamp_utils in app layer).
 
         Returns:
             A GeneratedFeed instance for this agent
         """
-        from lib.timestamp_utils import get_current_timestamp
-
         return GeneratedFeed(
             feed_id=GeneratedFeed.generate_feed_id(),
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=self.handle,
             post_uris=[],
-            created_at=get_current_timestamp(),
+            created_at=created_at,
         )
 
     def like_posts(self, feed: list[BlueskyFeedPost]) -> list[GeneratedLike]:
