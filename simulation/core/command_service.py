@@ -58,12 +58,14 @@ class SimulationCommandService:
             run: Run = self.run_repo.create_run(run_config)
             self.update_run_status(run, RunStatus.RUNNING)
             agents = self.create_agents_for_run(run=run, run_config=run_config)
+            action_history_store = self.action_history_store_factory()
+
             self.simulate_turns(
                 total_turns=run.total_turns,
                 run=run,
                 run_config=run_config,
                 agents=agents,
-                action_history_store=self.action_history_store_factory(),
+                action_history_store=action_history_store,
             )
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
@@ -106,7 +108,7 @@ class SimulationCommandService:
         run_config: RunConfig,
         turn_number: int,
         agents: list[SocialMediaAgent],
-        action_history_store: ActionHistoryStore | None = None,
+        action_history_store: ActionHistoryStore,
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
@@ -116,7 +118,6 @@ class SimulationCommandService:
                 agents,
                 run_config.feed_algorithm,
                 action_history_store=action_history_store
-                or self.action_history_store_factory(),
             )
         except Exception as e:
             logger.error(
@@ -143,16 +144,15 @@ class SimulationCommandService:
         run: Run,
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
-        action_history_store: ActionHistoryStore | None = None,
+        action_history_store: ActionHistoryStore,
     ) -> None:
-        history_store = action_history_store or self.action_history_store_factory()
         for turn_number in range(total_turns):
             self.simulate_turn(
                 run=run,
                 run_config=run_config,
                 turn_number=turn_number,
                 agents=agents,
-                action_history_store=history_store,
+                action_history_store=action_history_store,
             )
 
     def create_agents_for_run(
