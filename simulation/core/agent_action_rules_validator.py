@@ -1,7 +1,7 @@
 from collections import Counter
-from typing import Literal
 
 from simulation.core.action_history import ActionHistoryStore
+from simulation.core.models.actions import TurnAction
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
@@ -27,21 +27,21 @@ class AgentActionRulesValidator:
         follow_user_ids = [follow.follow.user_id for follow in follows]
 
         self.validate_duplicates(
-            action_type="likes",
+            action_type=TurnAction.LIKE,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
             identifiers=like_post_ids,
         )
         self.validate_duplicates(
-            action_type="comments",
+            action_type=TurnAction.COMMENT,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
             identifiers=comment_post_ids,
         )
         self.validate_duplicates(
-            action_type="follows",
+            action_type=TurnAction.FOLLOW,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
@@ -49,7 +49,7 @@ class AgentActionRulesValidator:
         )
 
         self.validate_previously_acted_on(
-            action_type="likes",
+            action_type=TurnAction.LIKE,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
@@ -57,7 +57,7 @@ class AgentActionRulesValidator:
             action_history_store=action_history_store,
         )
         self.validate_previously_acted_on(
-            action_type="comments",
+            action_type=TurnAction.COMMENT,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
@@ -65,7 +65,7 @@ class AgentActionRulesValidator:
             action_history_store=action_history_store,
         )
         self.validate_previously_acted_on(
-            action_type="follows",
+            action_type=TurnAction.FOLLOW,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
@@ -78,27 +78,27 @@ class AgentActionRulesValidator:
     def validate_duplicates(
         self,
         *,
-        action_type: Literal["likes", "comments", "follows"],
+        action_type: TurnAction,
         run_id: str,
         turn_number: int,
         agent_handle: str,
         identifiers: list[str],
     ) -> None:
-        if action_type == "likes":
+        if action_type == TurnAction.LIKE:
             self._validate_duplicate_likes(
                 run_id=run_id,
                 turn_number=turn_number,
                 agent_handle=agent_handle,
                 like_post_ids=identifiers,
             )
-        elif action_type == "comments":
+        elif action_type == TurnAction.COMMENT:
             self._validate_duplicate_comments(
                 run_id=run_id,
                 turn_number=turn_number,
                 agent_handle=agent_handle,
                 comment_post_ids=identifiers,
             )
-        elif action_type == "follows":
+        elif action_type == TurnAction.FOLLOW:
             self._validate_duplicate_follows(
                 run_id=run_id,
                 turn_number=turn_number,
@@ -111,14 +111,14 @@ class AgentActionRulesValidator:
     def validate_previously_acted_on(
         self,
         *,
-        action_type: Literal["likes", "comments", "follows"],
+        action_type: TurnAction,
         run_id: str,
         turn_number: int,
         agent_handle: str,
         identifiers: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
-        if action_type == "likes":
+        if action_type == TurnAction.LIKE:
             self._validate_previously_liked(
                 run_id=run_id,
                 turn_number=turn_number,
@@ -126,7 +126,7 @@ class AgentActionRulesValidator:
                 like_post_ids=identifiers,
                 action_history_store=action_history_store,
             )
-        elif action_type == "comments":
+        elif action_type == TurnAction.COMMENT:
             self._validate_previously_commented(
                 run_id=run_id,
                 turn_number=turn_number,
@@ -134,7 +134,7 @@ class AgentActionRulesValidator:
                 comment_post_ids=identifiers,
                 action_history_store=action_history_store,
             )
-        elif action_type == "follows":
+        elif action_type == TurnAction.FOLLOW:
             self._validate_previously_followed(
                 run_id=run_id,
                 turn_number=turn_number,
