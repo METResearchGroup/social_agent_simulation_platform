@@ -55,15 +55,15 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            {
-                "handle": "handle",
-                "did": "did",
-                "display_name": "display_name",
-                "bio": "bio",
-                "followers_count": "followers_count",
-                "follows_count": "follows_count",
-                "posts_count": "posts_count",
-            },
+            [
+                "handle",
+                "did",
+                "display_name",
+                "bio",
+                "followers_count",
+                "follows_count",
+                "posts_count",
+            ],
         )
 
     def read_profile(self, handle: str) -> Optional[BlueskyProfile]:

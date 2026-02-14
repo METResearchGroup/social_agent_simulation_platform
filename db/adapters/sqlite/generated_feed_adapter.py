@@ -31,14 +31,14 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            {
-                "feed_id": "feed_id",
-                "run_id": "run_id",
-                "turn_number": "turn_number",
-                "agent_handle": "agent_handle",
-                "post_uris": "post_uris",
-                "created_at": "created_at",
-            },
+            [
+                "feed_id",
+                "run_id",
+                "turn_number",
+                "agent_handle",
+                "post_uris",
+                "created_at",
+            ],
             context=context,
         )
 

@@ -31,18 +31,18 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            {
-                "uri": "uri",
-                "author_display_name": "author_display_name",
-                "author_handle": "author_handle",
-                "text": "text",
-                "bookmark_count": "bookmark_count",
-                "like_count": "like_count",
-                "quote_count": "quote_count",
-                "reply_count": "reply_count",
-                "repost_count": "repost_count",
-                "created_at": "created_at",
-            },
+            [
+                "uri",
+                "author_display_name",
+                "author_handle",
+                "text",
+                "bookmark_count",
+                "like_count",
+                "quote_count",
+                "reply_count",
+                "repost_count",
+                "created_at",
+            ],
             context=context,
         )
 

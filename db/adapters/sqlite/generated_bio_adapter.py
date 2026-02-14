@@ -33,11 +33,11 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            {
-                "handle": "handle",
-                "generated_bio": "generated_bio",
-                "created_at": "created_at",
-            },
+            [
+                "handle",
+                "generated_bio",
+                "created_at",
+            ],
             context=context,
         )
 
