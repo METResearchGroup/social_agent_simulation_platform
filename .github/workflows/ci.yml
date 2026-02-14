@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ main, master, develop ]
@@ -9,33 +12,63 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+      fail-fast: false
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-    
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-    
-    - name: Install dependencies
-      run: uv sync --extra test
-    
-    - name: Run Ruff linting
-      run: uv run ruff check .
-    
-    - name: Check code formatting
-      run: uv run ruff format --check .
-    
-    - name: Run type checking
-      run: uv run pyright .
-    
-    - name: Run tests
-      run: uv run pytest
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Cache uv packages and lockfile
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            uv.lock
+          key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-${{ matrix.python-version }}-
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Resolve deps (create/refresh uv.lock)
+        run: uv lock
+
+      - name: Install dependencies
+        run: uv sync --extra test
+
+      - name: Add project directory to PYTHONPATH
+        run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+
+      - name: Get changed Python files
+        id: changed
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            **/*.py
+
+      - name: Run complexipy on changed files
+        if: steps.changed.outputs.any_changed == 'true'
+        run: uv run complexipy ${{ steps.changed.outputs.all_changed_files }} --max-complexity-allowed 999
+
+      - name: Run Ruff linting
+        run: uv run ruff check .
+
+      - name: Check code formatting
+        run: uv run ruff format --check .
+
+      - name: Run type checking
+        run: uv run pyright .
+
+      - name: Run tests
+        run: uv run pytest
