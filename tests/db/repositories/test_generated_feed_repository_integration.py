@@ -270,7 +270,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         """Test that get_generated_feed raises ValueError when agent_handle is empty."""
         repo = create_sqlite_generated_feed_repository()
 
-        with pytest.raises(ValueError, match="agent_handle cannot be empty"):
+        with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
     def test_generated_feed_with_multiple_post_uris(self, temp_db):
