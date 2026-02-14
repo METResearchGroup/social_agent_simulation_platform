@@ -2,23 +2,23 @@ import logging
 import time
 from collections.abc import Callable
 
-from db.exceptions import (
-    DuplicateTurnMetadataError,
-    RunNotFoundError,
-    RunStatusUpdateError,
-)
+from db.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
-from simulation.core.exceptions import InsufficientAgentsError
+from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
+from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
+from simulation.core.action_history import ActionHistoryStore
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
+from simulation.core.validators import validate_agents, validate_agents_without_feeds, validate_run
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,9 @@ class SimulationCommandService:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
+        action_history_store_factory: Callable[[], ActionHistoryStore],
+        agent_action_rules_validator: AgentActionRulesValidator | None = None,
+        agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -41,25 +44,34 @@ class SimulationCommandService:
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
+        self.action_history_store_factory = action_history_store_factory
+        self.agent_action_rules_validator = (
+            agent_action_rules_validator or AgentActionRulesValidator()
+        )
+        self.agent_action_history_recorder = (
+            agent_action_history_recorder or AgentActionHistoryRecorder()
+        )
 
     def execute_run(self, run_config: RunConfig) -> Run:
         """Execute a simulation run."""
-        run: Run = self.run_repo.create_run(run_config)
+        try:
+            run: Run = self.run_repo.create_run(run_config)
+            self.update_run_status(run, RunStatus.RUNNING)
+            agents = self.create_agents_for_run(run=run, run_config=run_config)
+            action_history_store = self.action_history_store_factory()
 
-        self.update_run_status(run, RunStatus.RUNNING)
-
-        agents = self.create_agents_for_run(run=run, run_config=run_config)
-
-        self.simulate_turns(
-            total_turns=run.total_turns,
-            run=run,
-            run_config=run_config,
-            agents=agents,
-        )
-
-        self.update_run_status(run, RunStatus.COMPLETED)
-
-        return run
+            self.simulate_turns(
+                total_turns=run.total_turns,
+                run=run,
+                run_config=run_config,
+                agents=agents,
+                action_history_store=action_history_store,
+            )
+            self.update_run_status(run, RunStatus.COMPLETED)
+            return run
+        except Exception:
+            self.update_run_status(run, RunStatus.FAILED)
+            raise
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         try:
@@ -96,6 +108,7 @@ class SimulationCommandService:
         run_config: RunConfig,
         turn_number: int,
         agents: list[SocialMediaAgent],
+        action_history_store: ActionHistoryStore,
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
@@ -104,6 +117,7 @@ class SimulationCommandService:
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
+                action_history_store=action_history_store
             )
         except Exception as e:
             logger.error(
@@ -119,15 +133,7 @@ class SimulationCommandService:
                     "total_turns": run.total_turns,
                 },
             )
-            try:
-                self.update_run_status(run, RunStatus.FAILED)
-            except Exception:
-                logger.warning(
-                    "Failed to update run %s status to %s",
-                    run.run_id,
-                    RunStatus.FAILED,
-                    exc_info=True,
-                )
+            self.update_run_status(run, RunStatus.FAILED)
             raise RuntimeError(
                 f"Failed to complete turn {turn_number} for run {run.run_id}: {e}"
             ) from e
@@ -138,6 +144,7 @@ class SimulationCommandService:
         run: Run,
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
+        action_history_store: ActionHistoryStore,
     ) -> None:
         for turn_number in range(total_turns):
             self.simulate_turn(
@@ -145,6 +152,7 @@ class SimulationCommandService:
                 run_config=run_config,
                 turn_number=turn_number,
                 agents=agents,
+                action_history_store=action_history_store,
             )
 
     def create_agents_for_run(
@@ -158,34 +166,26 @@ class SimulationCommandService:
             )
             return agents
         except Exception:
-            try:
-                self.update_run_status(run, RunStatus.FAILED)
-            except Exception:
-                logger.warning(
-                    "Failed to update run %s status to %s",
-                    run.run_id,
-                    RunStatus.FAILED,
-                    exc_info=True,
-                )
+            self.update_run_status(run, RunStatus.FAILED)
             raise
 
+    @record_runtime
     def _simulate_turn(
         self,
         run_id: str,
         turn_number: int,
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
+        action_history_store: ActionHistoryStore,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
-        start_time = time.time()
 
         run = self.run_repo.get_run(run_id)
-        if run is None:
-            raise RunNotFoundError(run_id)
+        validate_run(run=run, run_id=run_id)
 
-        # Lazy import keeps query/engine test modules isolated from feed stack imports.
         from feeds.feed_generator import generate_feeds
 
+        # TODO: revisit how feeds are generated, to make sure it's cleaned up.
         agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = generate_feeds(
             agents=agents,
             run_id=run_id,
@@ -195,20 +195,10 @@ class SimulationCommandService:
             feed_algorithm=feed_algorithm,
         )
 
-        empty_feed_count = 0
-        for agent in agents:
-            feed = agent_to_hydrated_feeds.get(agent.handle, [])
-            if not feed:
-                empty_feed_count += 1
-                logger.warning(
-                    f"Empty feed for agent {agent.handle} in run {run_id}, turn {turn_number}"
-                )
-
-        if agents and (empty_feed_count / len(agents)) > 0.25:
-            logger.warning(
-                f"Systemic issue: {empty_feed_count}/{len(agents)} feeds are empty "
-                f"for run {run_id}, turn {turn_number}"
-            )
+        validate_agents_without_feeds(
+            agent_handles=set(agent.handle for agent in agents),
+            agents_with_feeds=set(agent_to_hydrated_feeds.keys()),
+        )
 
         total_actions: dict[str, int] = {
             "likes": 0,
@@ -225,27 +215,31 @@ class SimulationCommandService:
             likes = agent.like_posts(feed)
             comments = agent.comment_posts(feed)
             follows = agent.follow_users(feed)
-
-            liked_uris = {like.like.post_id for like in likes}
-            if len(liked_uris) != len(likes):
-                seen_uris = set()
-                duplicates = []
-                for like in likes:
-                    post_id = like.like.post_id
-                    if post_id in seen_uris:
-                        duplicates.append(post_id)
-                    seen_uris.add(post_id)
-                raise ValueError(
-                    f"Agent {agent.handle} liked the same post multiple times "
-                    f"in run {run_id}, turn {turn_number}. Duplicate post URIs: {duplicates}"
+            like_post_ids, comment_post_ids, follow_user_ids = (
+                self.agent_action_rules_validator.validate(
+                    run_id=run_id,
+                    turn_number=turn_number,
+                    agent_handle=agent.handle,
+                    likes=likes,
+                    comments=comments,
+                    follows=follows,
+                    action_history_store=action_history_store,
                 )
+            )
+            self.agent_action_history_recorder.record(
+                run_id=run_id,
+                agent_handle=agent.handle,
+                like_post_ids=like_post_ids,
+                comment_post_ids=comment_post_ids,
+                follow_user_ids=follow_user_ids,
+                action_history_store=action_history_store,
+            )
 
             total_actions["likes"] += len(likes)
             total_actions["comments"] += len(comments)
             total_actions["follows"] += len(follows)
 
         converted_actions = self._convert_action_counts_to_enum(total_actions)
-        execution_time_ms = int((time.time() - start_time) * 1000)
 
         turn_metadata = TurnMetadata(
             run_id=run_id,
@@ -254,6 +248,8 @@ class SimulationCommandService:
             created_at=get_current_timestamp(),
         )
 
+        # TODO: DuplicateMetadataError should be caught within the write_turn_metadata,
+        # no need for try/except here.
         try:
             self.run_repo.write_turn_metadata(turn_metadata)
         except DuplicateTurnMetadataError as e:
@@ -265,35 +261,22 @@ class SimulationCommandService:
         return TurnResult(
             turn_number=turn_number,
             total_actions=converted_actions,
-            execution_time_ms=execution_time_ms,
+            execution_time_ms=None,
         )
 
     def _create_agents_for_run(
-        self, config: RunConfig, run_id: str | None = None
+        self, config: RunConfig, run_id: str
     ) -> list[SocialMediaAgent]:
         """Create agents for a simulation run."""
         agents = self.agent_factory(config.num_agents)
+        validate_agents(agents=agents, config=config, run_id=run_id)
 
-        if len(agents) < config.num_agents:
-            raise InsufficientAgentsError(
-                requested=config.num_agents,
-                available=len(agents),
-                run_id=run_id,
-            )
-
-        handles = [agent.handle for agent in agents]
-        if len(handles) != len(set(handles)):
-            duplicates = [h for h in handles if handles.count(h) > 1]
-            raise ValueError(
-                f"Duplicate agent handles found: {set(duplicates)}. "
-                "All agent handles must be unique."
-            )
-
+        # TODO: this log should live within agent_factory.
         logger.info(
             "Created %d agents (requested: %d) for run %s",
             len(agents),
             config.num_agents,
-            run_id or "(no run_id)",
+            run_id,
         )
 
         return agents

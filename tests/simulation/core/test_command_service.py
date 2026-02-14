@@ -11,7 +11,13 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
+from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.generated.base import GenerationMetadata
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnResult
 
@@ -38,6 +44,7 @@ def mock_agent_factory():
 
 @pytest.fixture
 def command_service(mock_repos, mock_agent_factory):
+    action_history_store_factory = Mock(return_value=Mock())
     return SimulationCommandService(
         run_repo=mock_repos["run_repo"],
         profile_repo=mock_repos["profile_repo"],
@@ -45,6 +52,7 @@ def command_service(mock_repos, mock_agent_factory):
         generated_bio_repo=mock_repos["generated_bio_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
         agent_factory=mock_agent_factory,
+        action_history_store_factory=action_history_store_factory,
     )
 
 
@@ -128,3 +136,109 @@ class TestSimulationCommandServiceExecuteRun:
         calls = mock_repos["run_repo"].update_run_status.call_args_list
         assert calls[0][0] == (sample_run.run_id, RunStatus.RUNNING)
         assert calls[1][0] == (sample_run.run_id, RunStatus.FAILED)
+
+    def test_policy_violation_during_turn_marks_failed(
+        self, command_service, mock_repos, sample_run, mock_agent_factory
+    ):
+        mock_repos["run_repo"].create_run.return_value = sample_run
+        mock_repos["run_repo"].update_run_status.return_value = None
+        mock_agent_factory.return_value = [SocialMediaAgent("agent1.bsky.social")]
+
+        with patch(
+            "simulation.core.command_service.SimulationCommandService._simulate_turn",
+            side_effect=ValueError("invariant violation"),
+        ):
+            with pytest.raises(RuntimeError, match="Failed to complete turn"):
+                command_service.execute_run(self._make_config(turns=1))
+
+        calls = mock_repos["run_repo"].update_run_status.call_args_list
+        assert calls[0][0] == (sample_run.run_id, RunStatus.RUNNING)
+        assert calls[1][0] == (sample_run.run_id, RunStatus.FAILED)
+
+    def test_simulate_turn_aggregates_actions_when_policy_passes(
+        self, command_service, mock_repos, sample_run
+    ):
+        command_service.agent_action_rules_validator = Mock()
+        command_service.agent_action_history_recorder = Mock()
+        agent = SocialMediaAgent("agent1.bsky.social")
+        feed_post = BlueskyFeedPost(
+            id="post_1",
+            uri="post_1",
+            author_display_name="Author",
+            author_handle="author.bsky.social",
+            text="hello",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2024_01_01-12:00:00",
+        )
+
+        metadata = GenerationMetadata(created_at="2024_01_01-12:00:00")
+        agent.like_posts = Mock(
+            return_value=[
+                GeneratedLike(
+                    like=Like(
+                        like_id="like_1",
+                        agent_id=agent.handle,
+                        post_id="post_1",
+                        created_at="2024_01_01-12:00:00",
+                    ),
+                    ai_reason="reason",
+                    metadata=metadata,
+                )
+            ]
+        )
+        agent.comment_posts = Mock(
+            return_value=[
+                GeneratedComment(
+                    comment=Comment(
+                        comment_id="comment_1",
+                        agent_id=agent.handle,
+                        post_id="post_1",
+                        created_at="2024_01_01-12:00:00",
+                    ),
+                    ai_reason="reason",
+                    metadata=metadata,
+                )
+            ]
+        )
+        agent.follow_users = Mock(
+            return_value=[
+                GeneratedFollow(
+                    follow=Follow(
+                        follow_id="follow_1",
+                        agent_id=agent.handle,
+                        user_id="user_1",
+                        created_at="2024_01_01-12:00:00",
+                    ),
+                    ai_reason="reason",
+                    metadata=metadata,
+                )
+            ]
+        )
+
+        mock_repos["run_repo"].get_run.return_value = sample_run
+        command_service.agent_action_rules_validator.validate.return_value = (
+            ["post_1"],
+            ["post_1"],
+            ["user_1"],
+        )
+
+        with patch(
+            "feeds.feed_generator.generate_feeds",
+            return_value={agent.handle: [feed_post]},
+        ):
+            result = command_service._simulate_turn(
+                run_id=sample_run.run_id,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+            )
+
+        assert result.total_actions[TurnAction.LIKE] == 1
+        assert result.total_actions[TurnAction.COMMENT] == 1
+        assert result.total_actions[TurnAction.FOLLOW] == 1
+        command_service.agent_action_rules_validator.validate.assert_called_once()
+        command_service.agent_action_history_recorder.record.assert_called_once()
