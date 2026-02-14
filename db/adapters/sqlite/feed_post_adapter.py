@@ -6,6 +6,7 @@ from typing import Iterable
 from db.adapters.base import FeedPostDatabaseAdapter
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.validators import validate_uri_exists
 
 
 class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
@@ -164,8 +165,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if not uri or not uri.strip():
-            raise ValueError("uri cannot be empty")
+        validate_uri_exists(uri=uri)
 
         with get_connection() as conn:
             row = conn.execute(
