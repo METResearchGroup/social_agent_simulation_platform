@@ -24,29 +24,6 @@ _FEED_ALGORITHMS: dict[str, Callable] = {
     # "rag": generate_rag_feed,  # TODO: Add in future PR
 }
 
-
-def generate_feed(
-    agent: SocialMediaAgent,
-    candidate_posts: list[BlueskyFeedPost],
-    run_id: str,
-    turn_number: int,
-    feed_algorithm: str,
-) -> GeneratedFeed:
-    """Generate a feed for an agent."""
-    if feed_algorithm not in _FEED_ALGORITHMS:
-        raise ValueError(f"Unknown feed algorithm: {feed_algorithm}")
-    algorithm = _FEED_ALGORITHMS[feed_algorithm]
-    feed_dict = algorithm(candidate_posts=candidate_posts, agent=agent)
-    return GeneratedFeed(
-        feed_id=feed_dict["feed_id"],
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=feed_dict["agent_handle"],
-        post_uris=feed_dict["post_uris"],
-        created_at=get_current_timestamp(),
-    )
-
-
 def generate_feeds(
     agents: list[SocialMediaAgent],
     run_id: str,
@@ -84,29 +61,51 @@ def generate_feeds(
     Raises:
         ValueError: If feed_algorithm is not registered in _FEED_ALGORITHMS.
     """
+    feeds = _generate_feeds(
+        agents=agents,
+        run_id=run_id,
+        turn_number=turn_number,
+        generated_feed_repo=generated_feed_repo,
+        feed_algorithm=feed_algorithm,
+    )
+    return _hydrate_generated_feeds(
+        feeds=feeds,
+        feed_post_repo=feed_post_repo,
+        run_id=run_id,
+        turn_number=turn_number,
+    )
+
+
+def _generate_feeds(
+    agents: list[SocialMediaAgent],
+    run_id: str,
+    turn_number: int,
+    generated_feed_repo: GeneratedFeedRepository,
+    feed_algorithm: str,
+) -> dict[str, GeneratedFeed]:
+    """Generate feeds for each agent, persist them, and return the feed dict."""
     feeds: dict[str, GeneratedFeed] = {}
     for agent in agents:
-        # TODO (PR 5B): Candidate post loading still creates repositories internally.
-        # This is technical debt that should be refactored in a follow-up PR.
-        # The load_candidate_posts() function should accept repositories as parameters
-        # to maintain consistent dependency injection patterns.
-        # Impact: Makes it harder to test generate_feeds() with mocked candidate posts.
-        # See: feeds/candidate_generation.py for internal repository creation.
         # TODO: right now we load all posts per agent, but obviously
         # can optimize and personalize later to save on queries.
-        candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
-            agent=agent, run_id=run_id
-        )
-        feed: GeneratedFeed = generate_feed(
+        feed = _generate_single_agent_feed(
             agent=agent,
-            candidate_posts=candidate_posts,
             run_id=run_id,
             turn_number=turn_number,
+            generated_feed_repo=generated_feed_repo,
             feed_algorithm=feed_algorithm,
         )
-        generated_feed_repo.write_generated_feed(feed)
         feeds[agent.handle] = feed
+    return feeds
 
+
+def _hydrate_generated_feeds(
+    feeds: dict[str, GeneratedFeed],
+    feed_post_repo: FeedPostRepository,
+    run_id: str,
+    turn_number: int,
+) -> dict[str, list[BlueskyFeedPost]]:
+    """Hydrate post URIs in feeds via batch lookup; log missing posts; return agent -> hydrated posts."""
     # iterate through feeds, grab only the unique URIs, and hydrate
     all_post_uris: set[str] = set()
     for feed in feeds.values():
@@ -149,3 +148,47 @@ def generate_feeds(
         )
 
     return agent_to_hydrated_feeds
+
+
+def _generate_feed(
+    agent: SocialMediaAgent,
+    candidate_posts: list[BlueskyFeedPost],
+    run_id: str,
+    turn_number: int,
+    feed_algorithm: str,
+) -> GeneratedFeed:
+    """Generate a feed for an agent from candidate posts (algorithm + model only; no I/O)."""
+    if feed_algorithm not in _FEED_ALGORITHMS:
+        raise ValueError(f"Unknown feed algorithm: {feed_algorithm}")
+    algorithm = _FEED_ALGORITHMS[feed_algorithm]
+    feed_dict = algorithm(candidate_posts=candidate_posts, agent=agent)
+    return GeneratedFeed(
+        feed_id=feed_dict["feed_id"],
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=feed_dict["agent_handle"],
+        post_uris=feed_dict["post_uris"],
+        created_at=get_current_timestamp(),
+    )
+
+
+def _generate_single_agent_feed(
+    agent: SocialMediaAgent,
+    run_id: str,
+    turn_number: int,
+    generated_feed_repo: GeneratedFeedRepository,
+    feed_algorithm: str,
+) -> GeneratedFeed:
+    """Load candidates for one agent, generate feed, persist it, and return the feed."""
+    candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
+        agent=agent, run_id=run_id
+    )
+    feed: GeneratedFeed = _generate_feed(
+        agent=agent,
+        candidate_posts=candidate_posts,
+        run_id=run_id,
+        turn_number=turn_number,
+        feed_algorithm=feed_algorithm,
+    )
+    generated_feed_repo.write_generated_feed(feed)
+    return feed
