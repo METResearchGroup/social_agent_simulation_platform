@@ -1,10 +1,3 @@
-"""Helpers for deriving runtime adapter column lists from `db.schema` tables.
-
-This project uses sqlite3 directly at runtime, but maintains a canonical SQLAlchemy
-schema in `db/schema.py` for Alembic migrations. These helpers let adapters reuse
-that schema definition to avoid drifting hardcoded column lists.
-"""
-
 from __future__ import annotations
 
 import sqlalchemy as sa
