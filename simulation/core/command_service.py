@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Callable
 
-from db.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
+from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository

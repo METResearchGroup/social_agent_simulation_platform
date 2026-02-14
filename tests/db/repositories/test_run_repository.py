@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from db.adapters.base import RunDatabaseAdapter
-from db.exceptions import (
+from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
     RunCreationError,

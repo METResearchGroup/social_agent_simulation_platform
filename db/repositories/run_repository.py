@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
-from db.exceptions import (
+from simulation.core.exceptions import (
     InvalidTransitionError,
     RunCreationError,
     RunNotFoundError,

@@ -1,7 +1,7 @@
 import sys
 
 from db.adapters.sqlite.sqlite import initialize_database
-from db.exceptions import (
+from simulation.core.exceptions import (
     InvalidTransitionError,
     RunCreationError,
     RunNotFoundError,
