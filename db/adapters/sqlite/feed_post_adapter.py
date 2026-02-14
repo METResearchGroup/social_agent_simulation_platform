@@ -220,6 +220,22 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
             return posts
 
+    def _fetch_and_validate_rows_by_uris(
+        self, conn: sqlite3.Connection, uris: Iterable[str]
+    ) -> list[sqlite3.Row]:
+        """Fetch rows for given URIs, validate them, return in input order. Empty if no uris."""
+        uris_list = list(uris)
+        if not uris_list:
+            return []
+        q_marks = ",".join("?" for _ in uris_list)
+        sql = f"SELECT * FROM bluesky_feed_posts WHERE uri IN ({q_marks})"
+        result_rows = conn.execute(sql, tuple(uris_list)).fetchall()
+        for row in result_rows:
+            uri_value = row["uri"] if row["uri"] is not None else "unknown"
+            self._validate_feed_post_row(row, context=f"feed posts for uri={uri_value}")
+        row_by_uri = {row["uri"]: row for row in result_rows}
+        return [row_by_uri[uri] for uri in uris_list if uri in row_by_uri]
+
     def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
         """Read feed posts by URIs.
 
@@ -237,26 +253,5 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
         """
         with get_connection() as conn:
-            if not uris:
-                rows = []
-            else:
-                q_marks = ",".join("?" for _ in uris)
-                sql = f"SELECT * FROM bluesky_feed_posts WHERE uri IN ({q_marks})"
-                result_rows = conn.execute(sql, tuple(uris)).fetchall()
-                # Validate all returned rows before filtering (catches data integrity issues)
-                for row in result_rows:
-                    uri_value = row["uri"] if row["uri"] is not None else "unknown"
-                    context = f"feed posts for uri={uri_value}"
-                    self._validate_feed_post_row(row, context=context)
-                # Re-map rows by uri and restore input order
-                row_by_uri = {row["uri"]: row for row in result_rows}
-                rows = [row_by_uri[uri] for uri in uris if uri in row_by_uri]
-
-            if len(rows) == 0:
-                return []
-
-            posts = []
-            for row in rows:
-                posts.append(self._row_to_feed_post(row))
-
-            return posts
+            rows = self._fetch_and_validate_rows_by_uris(conn, uris)
+        return [self._row_to_feed_post(row) for row in rows]
