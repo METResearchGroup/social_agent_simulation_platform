@@ -20,9 +20,16 @@ from db.repositories.profile_repository import (
     create_sqlite_profile_repository,
 )
 from db.repositories.run_repository import RunRepository, create_sqlite_repository
+from simulation.core.action_history import (
+    ActionHistoryStore,
+    InMemoryActionHistoryStore,
+)
+from simulation.core.agent_action_feed_filter import (
+    AgentActionFeedFilter,
+    HistoryAwareActionFeedFilter,
+)
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.action_history import ActionHistoryStore, InMemoryActionHistoryStore
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import InsufficientAgentsError
@@ -190,6 +197,7 @@ def create_command_service(
     action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
     agent_action_rules_validator: Optional[AgentActionRulesValidator] = None,
     agent_action_history_recorder: Optional[AgentActionHistoryRecorder] = None,
+    agent_action_feed_filter: Optional[AgentActionFeedFilter] = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
     if action_history_store_factory is None:
@@ -207,4 +215,6 @@ def create_command_service(
         or AgentActionRulesValidator(),
         agent_action_history_recorder=agent_action_history_recorder
         or AgentActionHistoryRecorder(),
+        agent_action_feed_filter=agent_action_feed_filter
+        or HistoryAwareActionFeedFilter(),
     )
