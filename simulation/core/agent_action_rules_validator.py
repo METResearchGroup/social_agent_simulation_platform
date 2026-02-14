@@ -146,7 +146,9 @@ class AgentActionRulesValidator:
                 follow_user_ids=identifiers,
             )
         else:
-            raise ValueError(f"Unknown action_type for duplicate validation: {action_type}")
+            raise ValueError(
+                f"Unknown action_type for duplicate validation: {action_type}"
+            )
 
     def _validate_previously_acted_on(
         self,
@@ -183,7 +185,9 @@ class AgentActionRulesValidator:
                 action_history_store=action_history_store,
             )
         else:
-            raise ValueError(f"Unknown action_type for history validation: {action_type}")
+            raise ValueError(
+                f"Unknown action_type for history validation: {action_type}"
+            )
 
     def _validate_duplicate_likes(
         self,

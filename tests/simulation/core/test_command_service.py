@@ -51,8 +51,8 @@ def command_service(mock_repos, mock_agent_factory):
     action_history_store.has_followed.return_value = False
     action_history_store_factory = Mock(return_value=action_history_store)
     agent_action_feed_filter = Mock()
-    agent_action_feed_filter.filter_candidates.side_effect = (
-        lambda **kwargs: ActionCandidateFeeds(
+    agent_action_feed_filter.filter_candidates.side_effect = lambda **kwargs: (
+        ActionCandidateFeeds(
             like_candidates=kwargs["feed"],
             comment_candidates=kwargs["feed"],
             follow_candidates=kwargs["feed"],
@@ -114,7 +114,9 @@ class TestSimulationCommandServiceExecuteRun:
             },
         )()
 
-    def test_success_path(self, command_service, mock_repos, sample_run, mock_agent_factory):
+    def test_success_path(
+        self, command_service, mock_repos, sample_run, mock_agent_factory
+    ):
         mock_repos["run_repo"].create_run.return_value = sample_run
         mock_repos["run_repo"].update_run_status.side_effect = [None, None]
         mock_agent_factory.return_value = [
@@ -317,7 +319,11 @@ class TestSimulationCommandServiceExecuteRun:
         agent.follow_users = Mock(return_value=[])
 
         command_service.agent_action_rules_validator = Mock()
-        command_service.agent_action_rules_validator.validate.return_value = ([], [], [])
+        command_service.agent_action_rules_validator.validate.return_value = (
+            [],
+            [],
+            [],
+        )
         command_service.agent_action_history_recorder = Mock()
         mock_repos["run_repo"].get_run.return_value = sample_run
 

@@ -325,7 +325,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         """Test that list_feed_posts_by_author raises ValueError when author_handle is empty."""
         repo = create_sqlite_feed_post_repository()
 
-        with pytest.raises(ValueError, match="author_handle cannot be empty"):
+        with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.list_feed_posts_by_author("")
 
     def test_feed_post_with_long_text(self, temp_db):

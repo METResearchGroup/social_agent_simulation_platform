@@ -53,7 +53,9 @@ class HistoryAwareActionFeedFilter(AgentActionFeedFilter):
         follow_candidates = [
             post
             for post in feed
-            if not action_history_store.has_followed(run_id, agent_handle, post.author_handle)
+            if not action_history_store.has_followed(
+                run_id, agent_handle, post.author_handle
+            )
         ]
         return ActionCandidateFeeds(
             like_candidates=like_candidates,

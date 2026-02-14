@@ -179,7 +179,7 @@ class SQLiteRunRepository(RunRepository):
             validate_run_exists(run=current_run, run_id=run_id)
 
             # Validate the status transition
-            current_status = current_run.status # type: ignore
+            current_status = current_run.status  # type: ignore
             validate_run_status_transition(
                 run_id=run_id,
                 current_status=current_status,
@@ -252,7 +252,7 @@ class SQLiteRunRepository(RunRepository):
 
         validate_turn_number_less_than_max_turns(
             turn_number=turn_metadata.turn_number,
-            max_turns=run.total_turns, # type: ignore
+            max_turns=run.total_turns,  # type: ignore
         )
 
         self._db_adapter.write_turn_metadata(turn_metadata)

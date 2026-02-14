@@ -1,6 +1,6 @@
 """Facade tests for simulation.core.engine module."""
 
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 
@@ -109,6 +109,10 @@ class TestSimulationEngineDelegation:
 
         command_service.execute_run.assert_called_once_with(config)
         command_service.update_run_status.assert_called_once_with(run, RunStatus.FAILED)
-        command_service.simulate_turn.assert_called_once_with(run, config, 0, agents)
-        command_service.simulate_turns.assert_called_once_with(1, run, config, agents)
+        command_service.simulate_turn.assert_called_once_with(
+            run, config, 0, agents, action_history_store=ANY
+        )
+        command_service.simulate_turns.assert_called_once_with(
+            1, run, config, agents, action_history_store=ANY
+        )
         command_service.create_agents_for_run.assert_called_once_with(run, config)

@@ -5,10 +5,11 @@ from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
+from simulation.core.models.validators import (  # noqa: F401
+    validate_turn_number,
+)
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
-
-
 
 
 def validate_run_id(run_id: str):
@@ -19,6 +20,7 @@ def validate_run_id(run_id: str):
 def validate_run_exists(run: Run | None, run_id: str):
     if run is None:
         raise RunNotFoundError(run_id)
+
 
 def validate_agents_without_feeds(
     agent_handles: set[str],
@@ -34,18 +36,19 @@ def validate_agents_without_feeds(
         )
 
 
-def validate_insufficient_agents(
-    agents: list[SocialMediaAgent], requested_agents: int
-):
+def validate_insufficient_agents(agents: list[SocialMediaAgent], requested_agents: int):
     """Validate that the number of agents is sufficient."""
     if len(agents) < requested_agents:
         raise InsufficientAgentsError(
-            requested=requested_agents, available=len(agents),
+            requested=requested_agents,
+            available=len(agents),
         )
+
 
 def validate_handle_exists(handle: str):
     if not handle or not handle.strip():
         raise ValueError("handle cannot be empty")
+
 
 def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
     """Validate that the agent handles are unique."""
@@ -56,6 +59,7 @@ def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
             f"Duplicate agent handles found: {set(duplicates)}. "
             "All agent handles must be unique."
         )
+
 
 def validate_turn_number_less_than_max_turns(turn_number: int, max_turns: int):
     if turn_number >= max_turns:
@@ -73,7 +77,7 @@ def validate_run_status_transition(
     valid_transitions: dict[RunStatus, set[RunStatus]],
 ):
     """Check to see if a run status transition is valid.
-    
+
     For example, a run can only transition from RUNNING to COMPLETED or FAILED.
     A run cannot transition from COMPLETED or FAILED to RUNNING.
 
@@ -105,9 +109,11 @@ def validate_uri_exists(uri: str):
     if not uri or not uri.strip():
         raise ValueError("uri cannot be empty")
 
+
 def validate_uris_exist(uris: Iterable[str]):
     if not uris:
         raise ValueError("uris cannot be empty")
+
 
 def validate_posts_exist(posts: list[BlueskyFeedPost] | None):
     if posts is None:

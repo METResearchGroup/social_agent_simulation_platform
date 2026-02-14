@@ -22,7 +22,9 @@ from simulation.core.models.turns import TurnMetadata
 class SQLiteRunRepository(_SQLiteRunRepository):
     """Test-only shim that patches timestamp function from injected mock."""
 
-    def __init__(self, db_adapter: RunDatabaseAdapter, get_timestamp: Mock | None = None):
+    def __init__(
+        self, db_adapter: RunDatabaseAdapter, get_timestamp: Mock | None = None
+    ):
         super().__init__(db_adapter)
         self._mock_get_timestamp = get_timestamp
 
@@ -1403,7 +1405,8 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
 
         # Act & Assert
         with pytest.raises(
-            ValueError, match="Turn number 5 is greater than the maximum number of turns: 5"
+            ValueError,
+            match="Turn number 5 is greater than the maximum number of turns: 5",
         ):
             repo.write_turn_metadata(turn_metadata)
 

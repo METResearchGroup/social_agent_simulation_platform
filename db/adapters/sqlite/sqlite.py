@@ -82,9 +82,7 @@ def initialize_database() -> None:
     def _has_alembic_version(conn: sqlite3.Connection) -> bool:
         if not _table_exists(conn, "alembic_version"):
             return False
-        row = conn.execute(
-            "SELECT version_num FROM alembic_version LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT version_num FROM alembic_version LIMIT 1").fetchone()
         return row is not None and bool(row[0])
 
     def _has_any_app_tables(conn: sqlite3.Connection) -> bool:

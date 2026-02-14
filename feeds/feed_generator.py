@@ -24,6 +24,7 @@ _FEED_ALGORITHMS: dict[str, Callable] = {
     # "rag": generate_rag_feed,  # TODO: Add in future PR
 }
 
+
 def generate_feeds(
     agents: list[SocialMediaAgent],
     run_id: str,

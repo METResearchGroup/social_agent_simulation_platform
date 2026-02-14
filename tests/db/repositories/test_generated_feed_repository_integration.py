@@ -249,9 +249,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert retrieved2.turn_number == 2
         assert retrieved3.turn_number == 1
 
-    def test_write_generated_feed_with_empty_agent_handle_raises_error(
-        self, temp_db
-    ):
+    def test_write_generated_feed_with_empty_agent_handle_raises_error(self, temp_db):
         """Test that creating GeneratedFeed with empty agent_handle raises ValidationError from Pydantic."""
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:

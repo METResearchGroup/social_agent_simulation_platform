@@ -887,6 +887,7 @@ class TestTurnMetadataIntegration:
         )
 
         with pytest.raises(
-            ValueError, match="Turn number 5 is greater than the maximum number of turns: 5"
+            ValueError,
+            match="Turn number 5 is greater than the maximum number of turns: 5",
         ):
             repo.write_turn_metadata(turn_metadata)

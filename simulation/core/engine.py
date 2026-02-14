@@ -85,7 +85,10 @@ class SimulationEngine:
         agents: list[SocialMediaAgent],
     ) -> None:
         self.command_service.simulate_turn(
-            run, run_config, turn_number, agents,
+            run,
+            run_config,
+            turn_number,
+            agents,
             action_history_store=self.action_history_store_factory(),
         )
 
@@ -97,7 +100,10 @@ class SimulationEngine:
         agents: list[SocialMediaAgent],
     ) -> None:
         self.command_service.simulate_turns(
-            total_turns, run, run_config, agents,
+            total_turns,
+            run,
+            run_config,
+            agents,
             action_history_store=self.action_history_store_factory(),
         )
 

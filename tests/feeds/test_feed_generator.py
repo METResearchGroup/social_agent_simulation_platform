@@ -337,9 +337,7 @@ class TestGenerateFeeds:
         # Verify write_generated_feed was called
         mock_generated_feed_repo.write_generated_feed.assert_called_once()
         # Verify the feed passed to the repository has correct values
-        call_args = mock_generated_feed_repo.write_generated_feed.call_args[
-            0
-        ][0]
+        call_args = mock_generated_feed_repo.write_generated_feed.call_args[0][0]
         assert isinstance(call_args, GeneratedFeed)
         assert call_args.run_id == run_id
         assert call_args.turn_number == turn_number

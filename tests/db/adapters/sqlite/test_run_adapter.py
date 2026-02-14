@@ -235,14 +235,14 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         self, adapter, mock_db_connection
     ):
         """Test that read_turn_metadata raises ValueError when TurnMetadata validation fails."""
-        # Arrange
+        # Arrange: use valid turn_number=0 for the call (passes validate_turn_number)
+        # but mock row returns invalid turn_number=-1 to trigger TurnMetadata validation
         run_id = "run_123"
-        turn_number = -1  # Invalid turn_number (negative)
+        turn_number = 0
 
-        # Create a mock row with invalid turn_number
         row_data = {
             "run_id": run_id,
-            "turn_number": turn_number,  # Invalid: negative
+            "turn_number": -1,  # Invalid: negative (triggers TurnMetadata validation)
             "total_actions": '{"like": 5}',
             "created_at": "2024_01_01-12:00:00",
         }

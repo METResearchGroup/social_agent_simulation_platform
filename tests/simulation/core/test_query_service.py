@@ -147,7 +147,10 @@ class TestSimulationQueryServiceGetTurnData:
             ),
         ]
         mock_repos["run_repo"].get_run.return_value = sample_run
-        mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [feed1, feed2]
+        mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [
+            feed1,
+            feed2,
+        ]
         mock_repos["feed_post_repo"].read_feed_posts_by_uris.return_value = posts
 
         result = query_service.get_turn_data(sample_run.run_id, 0)

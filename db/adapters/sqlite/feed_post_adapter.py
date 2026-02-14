@@ -107,7 +107,10 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             try:
                 conn.executemany(
                     _INSERT_FEED_POST_SQL,
-                    [tuple(getattr(post, col) for col in FEED_POST_COLUMNS) for post in posts],
+                    [
+                        tuple(getattr(post, col) for col in FEED_POST_COLUMNS)
+                        for post in posts
+                    ],
                 )
                 conn.commit()
             except Exception:

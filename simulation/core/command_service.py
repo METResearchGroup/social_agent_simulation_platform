@@ -130,7 +130,7 @@ class SimulationCommandService:
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
-                action_history_store=action_history_store
+                action_history_store=action_history_store,
             )
         except Exception as e:
             logger.error(
