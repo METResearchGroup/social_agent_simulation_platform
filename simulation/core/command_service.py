@@ -10,15 +10,23 @@ from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
+from simulation.core.action_history import ActionHistoryStore
+from simulation.core.agent_action_feed_filter import (
+    AgentActionFeedFilter,
+    HistoryAwareActionFeedFilter,
+)
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.action_history import ActionHistoryStore
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
-from simulation.core.validators import validate_agents, validate_agents_without_feeds, validate_run
+from simulation.core.validators import (
+    validate_agents,
+    validate_agents_without_feeds,
+    validate_run,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +45,7 @@ class SimulationCommandService:
         action_history_store_factory: Callable[[], ActionHistoryStore],
         agent_action_rules_validator: AgentActionRulesValidator | None = None,
         agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
+        agent_action_feed_filter: AgentActionFeedFilter | None = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -50,6 +59,9 @@ class SimulationCommandService:
         )
         self.agent_action_history_recorder = (
             agent_action_history_recorder or AgentActionHistoryRecorder()
+        )
+        self.agent_action_feed_filter = (
+            agent_action_feed_filter or HistoryAwareActionFeedFilter()
         )
 
     def execute_run(self, run_config: RunConfig) -> Run:
@@ -212,9 +224,22 @@ class SimulationCommandService:
             if not feed:
                 continue
 
-            likes = agent.like_posts(feed)
-            comments = agent.comment_posts(feed)
-            follows = agent.follow_users(feed)
+            # Filter the feed into action-specific eligible candidates. For
+            # example, we don't want to allow an agent to like a post they've
+            # already liked, or comment on a post they've already commented on.
+            action_candidates = self.agent_action_feed_filter.filter_candidates(
+                run_id=run_id,
+                agent_handle=agent.handle,
+                feed=feed,
+                action_history_store=action_history_store,
+            )
+
+            # Generate the actions.
+            likes = agent.like_posts(action_candidates.like_candidates)
+            comments = agent.comment_posts(action_candidates.comment_candidates)
+            follows = agent.follow_users(action_candidates.follow_candidates)
+
+            # Validate the action rules.
             like_post_ids, comment_post_ids, follow_user_ids = (
                 self.agent_action_rules_validator.validate(
                     run_id=run_id,
@@ -226,6 +251,8 @@ class SimulationCommandService:
                     action_history_store=action_history_store,
                 )
             )
+
+            # Record the action targets into the DB.
             self.agent_action_history_recorder.record(
                 run_id=run_id,
                 agent_handle=agent.handle,

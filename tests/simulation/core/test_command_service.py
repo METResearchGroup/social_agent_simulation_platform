@@ -10,6 +10,7 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from simulation.core.agent_action_feed_filter import ActionCandidateFeeds
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
@@ -44,7 +45,19 @@ def mock_agent_factory():
 
 @pytest.fixture
 def command_service(mock_repos, mock_agent_factory):
-    action_history_store_factory = Mock(return_value=Mock())
+    action_history_store = Mock()
+    action_history_store.has_liked.return_value = False
+    action_history_store.has_commented.return_value = False
+    action_history_store.has_followed.return_value = False
+    action_history_store_factory = Mock(return_value=action_history_store)
+    agent_action_feed_filter = Mock()
+    agent_action_feed_filter.filter_candidates.side_effect = (
+        lambda **kwargs: ActionCandidateFeeds(
+            like_candidates=kwargs["feed"],
+            comment_candidates=kwargs["feed"],
+            follow_candidates=kwargs["feed"],
+        )
+    )
     return SimulationCommandService(
         run_repo=mock_repos["run_repo"],
         profile_repo=mock_repos["profile_repo"],
@@ -53,6 +66,7 @@ def command_service(mock_repos, mock_agent_factory):
         generated_feed_repo=mock_repos["generated_feed_repo"],
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
+        agent_action_feed_filter=agent_action_feed_filter,
     )
 
 
@@ -230,11 +244,13 @@ class TestSimulationCommandServiceExecuteRun:
             "feeds.feed_generator.generate_feeds",
             return_value={agent.handle: [feed_post]},
         ):
+            action_history_store = Mock()
             result = command_service._simulate_turn(
                 run_id=sample_run.run_id,
                 turn_number=0,
                 agents=[agent],
                 feed_algorithm="chronological",
+                action_history_store=action_history_store,
             )
 
         assert result.total_actions[TurnAction.LIKE] == 1
@@ -242,3 +258,88 @@ class TestSimulationCommandServiceExecuteRun:
         assert result.total_actions[TurnAction.FOLLOW] == 1
         command_service.agent_action_rules_validator.validate.assert_called_once()
         command_service.agent_action_history_recorder.record.assert_called_once()
+
+    def test_simulate_turn_uses_action_specific_filtered_candidates(
+        self, command_service, mock_repos, sample_run
+    ):
+        agent = SocialMediaAgent("agent1.bsky.social")
+        like_only_post = BlueskyFeedPost(
+            id="post_like",
+            uri="post_like",
+            author_display_name="Author A",
+            author_handle="author-a.bsky.social",
+            text="for likes",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2024_01_01-12:00:00",
+        )
+        comment_only_post = BlueskyFeedPost(
+            id="post_comment",
+            uri="post_comment",
+            author_display_name="Author B",
+            author_handle="author-b.bsky.social",
+            text="for comments",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2024_01_01-12:00:00",
+        )
+        follow_only_post = BlueskyFeedPost(
+            id="post_follow",
+            uri="post_follow",
+            author_display_name="Author C",
+            author_handle="author-c.bsky.social",
+            text="for follows",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2024_01_01-12:00:00",
+        )
+        full_feed = [like_only_post, comment_only_post, follow_only_post]
+
+        command_service.agent_action_feed_filter = Mock()
+        command_service.agent_action_feed_filter.filter_candidates.return_value = (
+            ActionCandidateFeeds(
+                like_candidates=[like_only_post],
+                comment_candidates=[comment_only_post],
+                follow_candidates=[follow_only_post],
+            )
+        )
+        agent.like_posts = Mock(return_value=[])
+        agent.comment_posts = Mock(return_value=[])
+        agent.follow_users = Mock(return_value=[])
+
+        command_service.agent_action_rules_validator = Mock()
+        command_service.agent_action_rules_validator.validate.return_value = ([], [], [])
+        command_service.agent_action_history_recorder = Mock()
+        mock_repos["run_repo"].get_run.return_value = sample_run
+
+        with patch(
+            "feeds.feed_generator.generate_feeds",
+            return_value={agent.handle: full_feed},
+        ):
+            action_history_store = Mock()
+            result = command_service._simulate_turn(
+                run_id=sample_run.run_id,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+                action_history_store=action_history_store,
+            )
+
+        expected_total_actions = {
+            TurnAction.LIKE: 0,
+            TurnAction.COMMENT: 0,
+            TurnAction.FOLLOW: 0,
+        }
+        assert result.total_actions == expected_total_actions
+        agent.like_posts.assert_called_once_with([like_only_post])
+        agent.comment_posts.assert_called_once_with([comment_only_post])
+        agent.follow_users.assert_called_once_with([follow_only_post])
