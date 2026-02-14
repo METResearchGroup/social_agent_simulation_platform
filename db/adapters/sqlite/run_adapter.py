@@ -12,6 +12,7 @@ from db.schema import runs
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.validators import validate_run_id, validate_turn_number
 
 
 class SQLiteRunAdapter(RunDatabaseAdapter):
@@ -152,10 +153,13 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             TurnMetadata if found, None otherwise
 
         Raises:
+            ValueError: If run_id is invalid or turn_number is invalid
             ValueError: If the turn metadata data is invalid (NULL fields, invalid action types)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
         with get_connection() as conn:
             try:
                 row = conn.execute(

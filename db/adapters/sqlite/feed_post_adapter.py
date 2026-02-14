@@ -8,7 +8,7 @@ from db.adapters.sqlite.schema_utils import ordered_column_names, required_colum
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.schema import bluesky_feed_posts
 from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.validators import validate_uri_exists
+from simulation.core.validators import validate_handle_exists, validate_uri_exists
 
 FEED_POST_COLUMNS = ordered_column_names(bluesky_feed_posts)
 FEED_POST_REQUIRED_FIELDS = required_column_names(bluesky_feed_posts)
@@ -155,10 +155,12 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             List of BlueskyFeedPost models for the author.
 
         Raises:
+            ValueError: If author_handle is empty
             ValueError: If any feed post data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
+        validate_handle_exists(author_handle)
         with get_connection() as conn:
             rows = conn.execute(
                 "SELECT * FROM bluesky_feed_posts WHERE author_handle = ?",

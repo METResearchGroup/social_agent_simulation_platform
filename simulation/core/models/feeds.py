@@ -5,6 +5,7 @@ import uuid
 from pydantic import BaseModel, field_validator
 
 from simulation.core.models.validators import validate_non_empty_string
+from simulation.core.validators import validate_turn_number as validate_turn_number_core
 
 
 class GeneratedFeed(BaseModel):
@@ -21,10 +22,7 @@ class GeneratedFeed(BaseModel):
     @classmethod
     def validate_agent_handle(cls, v: str) -> str:
         """Validate that agent_handle is a non-empty string."""
-        v = v.strip()
-        if not v:
-            raise ValueError("agent_handle cannot be empty")
-        return v
+        return validate_non_empty_string(v, "agent_handle")
 
     @field_validator("run_id")
     @classmethod
@@ -36,16 +34,13 @@ class GeneratedFeed(BaseModel):
     @classmethod
     def validate_feed_id(cls, v: str) -> str:
         """Validate that feed_id is a non-empty string."""
-        if not v or not v.strip():
-            raise ValueError("feed_id cannot be empty")
-        return v.strip()
+        return validate_non_empty_string(v, "feed_id")
 
     @field_validator("turn_number")
     @classmethod
     def validate_turn_number(cls, v: int) -> int:
         """Validate that turn_number is a non-negative integer."""
-        if v < 0:
-            raise ValueError("turn_number must be >= 0")
+        validate_turn_number_core(v)
         return v
 
     @classmethod

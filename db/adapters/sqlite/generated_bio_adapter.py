@@ -10,6 +10,7 @@ from db.schema import agent_bios
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.validators import validate_handle_exists
 
 AGENT_BIOS_COLUMNS = ordered_column_names(agent_bios)
 AGENT_BIOS_REQUIRED_FIELDS = required_column_names(agent_bios)
@@ -75,10 +76,12 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             GeneratedBio if found, None otherwise.
 
         Raises:
+            ValueError: If handle is empty
             ValueError: If the bio data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
+        validate_handle_exists(handle)
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM agent_bios WHERE handle = ?", (handle,)

@@ -8,6 +8,7 @@ from db.adapters.sqlite.schema_utils import ordered_column_names, required_colum
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.schema import bluesky_profiles
 from simulation.core.models.profiles import BlueskyProfile
+from simulation.core.validators import validate_handle_exists
 
 PROFILE_COLUMNS = ordered_column_names(bluesky_profiles)
 PROFILE_REQUIRED_FIELDS = required_column_names(bluesky_profiles)
@@ -62,10 +63,12 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             BlueskyProfile if found, None otherwise.
 
         Raises:
+            ValueError: If handle is empty
             ValueError: If the profile data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
+        validate_handle_exists(handle)
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM bluesky_profiles WHERE handle = ?", (handle,)

@@ -8,6 +8,11 @@ from db.adapters.sqlite.schema_utils import ordered_column_names, required_colum
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.schema import generated_feeds
 from simulation.core.models.feeds import GeneratedFeed
+from simulation.core.validators import (
+    validate_handle_exists,
+    validate_run_id,
+    validate_turn_number,
+)
 
 GENERATED_FEED_COLUMNS = ordered_column_names(generated_feeds)
 GENERATED_FEED_REQUIRED_FIELDS = required_column_names(generated_feeds)
@@ -172,10 +177,8 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ValueError: If agent_handle or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
-        if not agent_handle or not agent_handle.strip():
-            raise ValueError("agent_handle cannot be empty")
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
+        validate_handle_exists(agent_handle)
+        validate_run_id(run_id)
 
         with get_connection() as conn:
             rows = conn.execute(
@@ -200,10 +203,13 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             Returns empty list if no feeds found.
 
         Raises:
+            ValueError: If run_id or turn_number is invalid
             ValueError: If the feed data is invalid (NULL fields, invalid JSON)
             KeyError: If required columns are missing from the database row
             sqlite3.OperationalError: If database operation fails
         """
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
         with get_connection() as conn:
             rows = conn.execute(
                 "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?",
