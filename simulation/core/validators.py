@@ -1,7 +1,7 @@
 from db.exceptions import RunNotFoundError
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.runs import Run, RunConfig
+from simulation.core.models.runs import Run
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
@@ -20,16 +20,6 @@ def validate_run(run: Run | None, run_id: str):
     if run is None:
         raise RunNotFoundError(run_id)
 
-
-def validate_agents(
-    agents: list[SocialMediaAgent],
-    config: RunConfig,
-    run_id: str
-):
-    _validate_insufficient_agents(agents, config, run_id)
-    _validate_duplicate_agent_handles(agents)
-
-
 def validate_agents_without_feeds(
     agent_handles: set[str],
     agents_with_feeds: set[str],
@@ -44,18 +34,16 @@ def validate_agents_without_feeds(
         )
 
 
-def _validate_insufficient_agents(
-    agents: list[SocialMediaAgent], config: RunConfig, run_id: str
+def validate_insufficient_agents(
+    agents: list[SocialMediaAgent], requested_agents: int
 ):
     """Validate that the number of agents is sufficient."""
-    if len(agents) < config.num_agents:
+    if len(agents) < requested_agents:
         raise InsufficientAgentsError(
-            requested=config.num_agents,
-            available=len(agents),
-            run_id=run_id,
+            requested=requested_agents, available=len(agents),
         )
 
-def _validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
+def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
     """Validate that the agent handles are unique."""
     handles = [agent.handle for agent in agents]
     if len(handles) != len(set(handles)):

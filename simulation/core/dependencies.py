@@ -32,9 +32,12 @@ from simulation.core.agent_action_history_recorder import AgentActionHistoryReco
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.query_service import SimulationQueryService
+from simulation.core.validators import (
+    validate_duplicate_agent_handles,
+    validate_insufficient_agents,
+)
 
 
 def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
@@ -73,12 +76,9 @@ def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
         # Apply limit
         agents = all_agents[:num_agents]
 
-        # Validate agent count
-        if len(agents) < num_agents or len(agents) == 0:
-            raise InsufficientAgentsError(
-                requested=num_agents,
-                available=len(all_agents),
-            )
+        # Validate agents
+        validate_insufficient_agents(agents=agents, requested_agents=num_agents)
+        validate_duplicate_agent_handles(agents=agents)
 
         return agents
 

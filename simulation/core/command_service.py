@@ -23,7 +23,8 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.validators import (
-    validate_agents,
+    validate_duplicate_agent_handles,
+    validate_insufficient_agents,
     validate_agents_without_feeds,
     validate_run,
 )
@@ -296,7 +297,11 @@ class SimulationCommandService:
     ) -> list[SocialMediaAgent]:
         """Create agents for a simulation run."""
         agents = self.agent_factory(config.num_agents)
-        validate_agents(agents=agents, config=config, run_id=run_id)
+        validate_insufficient_agents(
+            agents=agents,
+            requested_agents=config.num_agents,
+        )
+        validate_duplicate_agent_handles(agents=agents)
 
         # TODO: this log should live within agent_factory.
         logger.info(
