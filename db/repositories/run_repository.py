@@ -13,6 +13,12 @@ from db.exceptions import (
 )
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.validators import (
+    validate_run_exists,
+    validate_run_id,
+    validate_turn_number,
+    validate_turn_number_less_than_max_turns,
+)
 
 
 class RunRepository(ABC):
@@ -146,8 +152,7 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             ValueError: If run_id is empty or None
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
+        validate_run_id(run_id)
         return self._db_adapter.read_run(run_id)
 
     def list_runs(self) -> list[Run]:
@@ -168,18 +173,18 @@ class SQLiteRunRepository(RunRepository):
             RunStatusUpdateError: If the status update fails due to a database error
         """
         # Validate input parameters
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
+        validate_run_id(run_id)
+
         if status is None:
             raise ValueError("status cannot be None")
 
         # Get current run to validate state transition
         current_run = self.get_run(run_id)
-        if current_run is None:
-            raise RunNotFoundError(run_id)
+        validate_run_exists(run=current_run, run_id=run_id)
 
-        current_status = current_run.status
+        current_status = current_run.status # type: ignore
 
+        # TODO: move to validator.
         # Validate state transition
         if status != current_status:
             valid_next_states = self.VALID_TRANSITIONS.get(current_status, set())
@@ -222,10 +227,8 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        if turn_number < 0:
-            raise ValueError("turn_number cannot be negative")
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
 
         return self._db_adapter.read_turn_metadata(run_id, turn_number)
 
@@ -255,15 +258,13 @@ class SQLiteRunRepository(RunRepository):
         """
         # Validate run exists
         run = self.get_run(turn_metadata.run_id)
-        if run is None:
-            raise RunNotFoundError(turn_metadata.run_id)
 
-        # Validate turn_number is within bounds
-        if turn_metadata.turn_number >= run.total_turns:
-            raise ValueError(
-                f"turn_number {turn_metadata.turn_number} is out of bounds. "
-                f"Run '{turn_metadata.run_id}' has {run.total_turns} turns (0-{run.total_turns - 1})"
-            )
+        validate_run_exists(run=run, run_id=turn_metadata.run_id)
+
+        validate_turn_number_less_than_max_turns(
+            turn_number=turn_metadata.turn_number,
+            max_turns=run.total_turns, # type: ignore
+        )
 
         self._db_adapter.write_turn_metadata(turn_metadata)
 

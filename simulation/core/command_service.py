@@ -26,7 +26,7 @@ from simulation.core.validators import (
     validate_duplicate_agent_handles,
     validate_insufficient_agents,
     validate_agents_without_feeds,
-    validate_run,
+    validate_run_exists,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,7 +194,7 @@ class SimulationCommandService:
         """Simulate a single turn of the simulation."""
 
         run = self.run_repo.get_run(run_id)
-        validate_run(run=run, run_id=run_id)
+        validate_run_exists(run=run, run_id=run_id)
 
         from feeds.feed_generator import generate_feeds
 

@@ -14,9 +14,7 @@ def validate_turn_number(turn_number: int):
     if turn_number is None or turn_number < 0:
         raise ValueError("turn_number is invalid")
 
-# TODO: should consolidate this and validate_run_id
-# to a single validate_run function.
-def validate_run(run: Run | None, run_id: str):
+def validate_run_exists(run: Run | None, run_id: str):
     if run is None:
         raise RunNotFoundError(run_id)
 
@@ -51,4 +49,11 @@ def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
         raise ValueError(
             f"Duplicate agent handles found: {set(duplicates)}. "
             "All agent handles must be unique."
+        )
+
+def validate_turn_number_less_than_max_turns(turn_number: int, max_turns: int):
+    if turn_number >= max_turns:
+        raise ValueError(
+            f"Turn number {turn_number} is greater than the maximum number of turns: {max_turns}. "
+            "Turn number must be less than the maximum number of turns."
         )
