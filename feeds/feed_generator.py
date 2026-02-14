@@ -34,25 +34,12 @@ def generate_feeds(
 ) -> dict[str, list[BlueskyFeedPost]]:
     """Generate feeds for all the agents.
 
-    Uses dependency injection for repositories to enable testability and consistency
-    with the engine's dependency injection pattern. Uses batch queries for efficient
-    post hydration instead of loading all posts.
-
-    Returns a dictionary of agent handles to lists of hydrated BlueskyFeedPost models.
-
-    Does the following:
-    1. Generates a feed for each agent using the specified algorithm.
-    2. Writes the unhydrated feeds to the database.
-    3. Hydrates the posts for each feed using batch queries.
-    4. Handles missing posts gracefully (logs warning, skips silently).
-    5. Returns a dictionary of agent handles to lists of hydrated BlueskyFeedPost models.
-
     Args:
         agents: List of agents to generate feeds for.
         run_id: The run ID for this simulation.
         turn_number: The turn number for this simulation.
         generated_feed_repo: Repository for writing generated feeds.
-        feed_post_repo: Repository for reading feed posts (used for batch hydration).
+        feed_post_repo: Repository for reading feed posts.
         feed_algorithm: Algorithm name to use (must be registered in _FEED_ALGORITHMS).
 
     Returns:
@@ -83,7 +70,8 @@ def _generate_feeds(
     generated_feed_repo: GeneratedFeedRepository,
     feed_algorithm: str,
 ) -> dict[str, GeneratedFeed]:
-    """Generate feeds for each agent, persist them, and return the feed dict."""
+    """Generate a feed per agent via the feed algorithm and persists the
+    generated feed to permanent storage."""
     feeds: dict[str, GeneratedFeed] = {}
     for agent in agents:
         # TODO: right now we load all posts per agent, but obviously
@@ -105,7 +93,7 @@ def _hydrate_generated_feeds(
     run_id: str,
     turn_number: int,
 ) -> dict[str, list[BlueskyFeedPost]]:
-    """Hydrate post URIs in feeds via batch lookup; log missing posts; return agent -> hydrated posts."""
+    """Hydrate feeds using a single batch query, then map each feed's URIs to posts."""
     # iterate through feeds, grab only the unique URIs, and hydrate
     all_post_uris: set[str] = set()
     for feed in feeds.values():
@@ -157,7 +145,7 @@ def _generate_feed(
     turn_number: int,
     feed_algorithm: str,
 ) -> GeneratedFeed:
-    """Generate a feed for an agent from candidate posts (algorithm + model only; no I/O)."""
+    """Run the registered feed algorithm on candidate posts and return a generated feed."""
     if feed_algorithm not in _FEED_ALGORITHMS:
         raise ValueError(f"Unknown feed algorithm: {feed_algorithm}")
     algorithm = _FEED_ALGORITHMS[feed_algorithm]
@@ -179,7 +167,8 @@ def _generate_single_agent_feed(
     generated_feed_repo: GeneratedFeedRepository,
     feed_algorithm: str,
 ) -> GeneratedFeed:
-    """Load candidates for one agent, generate feed, persist it, and return the feed."""
+    """Load candidate posts for one agent, run the feed algorithm, persist, and
+    return the generated feed."""
     candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
         agent=agent, run_id=run_id
     )

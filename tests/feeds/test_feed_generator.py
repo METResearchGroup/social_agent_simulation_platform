@@ -6,7 +6,7 @@ import pytest
 
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from feeds.feed_generator import generate_feed, generate_feeds
+from feeds.feed_generator import _generate_feed, generate_feeds
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
@@ -77,19 +77,19 @@ def sample_posts():
 
 
 class TestGenerateFeed:
-    """Tests for generate_feed function."""
+    """Tests for _generate_feed function."""
 
     def test_generates_feed_with_chronological_algorithm(
         self, sample_agent, sample_posts
     ):
-        """Test that generate_feed uses chronological algorithm correctly."""
+        """Test that _generate_feed uses chronological algorithm correctly."""
         # Arrange
         run_id = "run_123"
         turn_number = 0
         feed_algorithm = "chronological"
 
         # Act
-        result = generate_feed(
+        result = _generate_feed(
             agent=sample_agent,
             candidate_posts=sample_posts,
             run_id=run_id,
@@ -109,7 +109,7 @@ class TestGenerateFeed:
         assert result.post_uris[2] == "at://did:plc:test1/app.bsky.feed.post/post1"
 
     def test_raises_valueerror_for_unknown_algorithm(self, sample_agent, sample_posts):
-        """Test that generate_feed raises ValueError for unknown algorithm."""
+        """Test that _generate_feed raises ValueError for unknown algorithm."""
         # Arrange
         run_id = "run_123"
         turn_number = 0
@@ -119,7 +119,7 @@ class TestGenerateFeed:
         with pytest.raises(
             ValueError, match="Unknown feed algorithm: unknown_algorithm"
         ):
-            generate_feed(
+            _generate_feed(
                 agent=sample_agent,
                 candidate_posts=sample_posts,
                 run_id=run_id,
