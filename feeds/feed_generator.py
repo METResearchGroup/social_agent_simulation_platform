@@ -127,11 +127,25 @@ def _hydrate_generated_feeds(
             feed_posts.append(uri_to_post[post_uri])
         agent_to_hydrated_feeds[agent_handle] = feed_posts
 
-    # Log aggregated warnings for missing posts (one per agent, not per URI)
+    _log_warning_missing_posts(
+        missing_uris_by_agent=missing_uris_by_agent,
+        feeds=feeds,
+        run_id=run_id,
+        turn_number=turn_number,
+    )
+    return agent_to_hydrated_feeds
+
+
+def _log_warning_missing_posts(
+    missing_uris_by_agent: dict[str, list[str]],
+    feeds: dict[str, GeneratedFeed],
+    run_id: str,
+    turn_number: int,
+) -> None:
+    """Log one aggregated warning per agent for missing post URIs (first 5 URIs shown, then count)."""
     for agent_handle, missing_uris in missing_uris_by_agent.items():
         feed_id = feeds[agent_handle].feed_id
         missing_count = len(missing_uris)
-        # Show first 5 URIs, then truncate if more
         uris_preview = missing_uris[:5]
         uris_str = ", ".join(uris_preview)
         if len(missing_uris) > 5:
@@ -140,8 +154,6 @@ def _hydrate_generated_feeds(
             f"Missing {missing_count} post(s) for agent {agent_handle} in run {run_id}, "
             f"turn {turn_number} (feed_id={feed_id}). Missing URIs: {uris_str}"
         )
-
-    return agent_to_hydrated_feeds
 
 
 def _generate_feed(
