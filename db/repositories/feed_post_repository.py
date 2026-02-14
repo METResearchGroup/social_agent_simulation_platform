@@ -5,6 +5,9 @@ from typing import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
 from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.validators import (
+    validate_handle_exists, validate_posts_exist, validate_uri_exists, validate_uris_exist
+)
 
 
 class FeedPostRepository(ABC):
@@ -145,8 +148,7 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             sqlite3.IntegrityError: If any uri violates constraints (from adapter)
             sqlite3.OperationalError: If database operation fails (from adapter)
         """
-        if posts is None:
-            raise ValueError("posts cannot be None")
+        validate_posts_exist(posts=posts)
 
         # Validation is handled by Pydantic models (BlueskyFeedPost.validate_uri)
         # Pydantic will raise ValueError if any post has an empty uri
@@ -169,8 +171,7 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             Pydantic validators only run when creating models. Since this method accepts a raw string
             parameter (not a BlueskyFeedPost model), we validate uri here.
         """
-        if not uri or not uri.strip():
-            raise ValueError("uri cannot be empty")
+        validate_uri_exists(uri=uri)
         return self._db_adapter.read_feed_post(uri)
 
     def list_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
@@ -189,8 +190,7 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             Pydantic validators only run when creating models. Since this method accepts a raw string
             parameter (not a BlueskyFeedPost model), we validate author_handle here.
         """
-        if not author_handle or not author_handle.strip():
-            raise ValueError("author_handle cannot be empty")
+        validate_handle_exists(handle=author_handle)
         return self._db_adapter.read_feed_posts_by_author(author_handle)
 
     def list_all_feed_posts(self) -> list[BlueskyFeedPost]:
@@ -212,8 +212,11 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             Returns empty list if no URIs provided or if no posts found.
             Missing URIs are silently skipped (only existing posts are returned).
         """
-        if not uris:
+        try:
+            validate_uris_exist(uris=uris)
+        except ValueError:
             return []
+
         return self._db_adapter.read_feed_posts_by_uris(uris)
 
 

@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from simulation.core.models.feeds import GeneratedFeed
+from simulation.core.validators import (
+    validate_handle_exists, validate_run_id, validate_turn_number
+)
 
 
 class GeneratedFeedRepository(ABC):
@@ -139,10 +142,9 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             Pydantic validators only run when creating models. Since this method accepts raw string
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
-        if not agent_handle or not agent_handle.strip():
-            raise ValueError("agent_handle cannot be empty")
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
+        validate_handle_exists(handle=agent_handle)
+        validate_run_id(run_id=run_id)
+        validate_turn_number(turn_number=turn_number)
         return self._db_adapter.read_generated_feed(agent_handle, run_id, turn_number)
 
     def list_all_generated_feeds(self) -> list[GeneratedFeed]:
@@ -171,11 +173,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             Pydantic validators only run when creating models. Since this method accepts raw string
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
-        if not agent_handle or not agent_handle.strip():
-            raise ValueError("agent_handle cannot be empty")
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-
+        validate_handle_exists(handle=agent_handle)
+        validate_run_id(run_id=run_id)
         return self._db_adapter.read_post_uris_for_run(agent_handle, run_id)
 
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
@@ -196,10 +195,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
                       Implementations should document the specific exception types
                       they raise.
         """
-        if not run_id or not run_id.strip():
-            raise ValueError("run_id cannot be empty")
-        if turn_number < 0:
-            raise ValueError("turn_number cannot be negative")
+        validate_run_id(run_id=run_id)
+        validate_turn_number(turn_number=turn_number)
         return self._db_adapter.read_feeds_for_turn(run_id, turn_number)
 
 

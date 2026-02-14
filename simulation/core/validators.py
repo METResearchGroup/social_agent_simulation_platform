@@ -1,6 +1,8 @@
+from typing import Iterable
 from db.exceptions import InvalidTransitionError, RunNotFoundError
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
@@ -40,6 +42,10 @@ def validate_insufficient_agents(
         raise InsufficientAgentsError(
             requested=requested_agents, available=len(agents),
         )
+
+def validate_handle_exists(handle: str):
+    if not handle or not handle.strip():
+        raise ValueError("handle cannot be empty")
 
 def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
     """Validate that the agent handles are unique."""
@@ -93,3 +99,16 @@ def validate_run_status_transition(
             target_status=target_status.value,
             valid_transitions=valid_transitions_list,
         )
+
+
+def validate_uri_exists(uri: str):
+    if not uri or not uri.strip():
+        raise ValueError("uri cannot be empty")
+
+def validate_uris_exist(uris: Iterable[str]):
+    if not uris:
+        raise ValueError("uris cannot be empty")
+
+def validate_posts_exist(posts: list[BlueskyFeedPost] | None):
+    if posts is None:
+        raise ValueError("posts cannot be None")

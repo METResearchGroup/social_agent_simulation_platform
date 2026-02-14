@@ -5,6 +5,7 @@ from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
 from simulation.core.models.profiles import BlueskyProfile
+from simulation.core.validators import validate_handle_exists
 
 
 class ProfileRepository(ABC):
@@ -93,8 +94,7 @@ class SQLiteProfileRepository(ProfileRepository):
             Pydantic validators only run when creating models. Since this method accepts a raw string
             parameter (not a BlueskyProfile model), we validate handle here.
         """
-        if not handle or not handle.strip():
-            raise ValueError("handle cannot be empty")
+        validate_handle_exists(handle=handle)
         return self._db_adapter.read_profile(handle)
 
     def list_profiles(self) -> list[BlueskyProfile]:
