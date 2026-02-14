@@ -93,6 +93,20 @@ def _write_generated_feeds(
         generated_feed_repo.write_generated_feed(feed)
 
 
+def _load_hydrated_posts(
+    feeds: dict[str, GeneratedFeed],
+    feed_post_repo: FeedPostRepository,
+) -> dict[str, BlueskyFeedPost]:
+    """Collect all post URIs from feeds, fetch posts in one batch, return uri -> post map."""
+    all_post_uris: set[str] = set()
+    for feed in feeds.values():
+        all_post_uris.update(feed.post_uris)
+    hydrated_posts: list[BlueskyFeedPost] = feed_post_repo.read_feed_posts_by_uris(
+        all_post_uris
+    )
+    return {p.uri: p for p in hydrated_posts}
+
+
 def _hydrate_generated_feeds(
     feeds: dict[str, GeneratedFeed],
     feed_post_repo: FeedPostRepository,
@@ -100,33 +114,12 @@ def _hydrate_generated_feeds(
     turn_number: int,
 ) -> dict[str, list[BlueskyFeedPost]]:
     """Hydrate feeds using a single batch query, then map each feed's URIs to posts."""
-    # iterate through feeds, grab only the unique URIs, and hydrate
-    all_post_uris: set[str] = set()
-    for feed in feeds.values():
-        all_post_uris.update(feed.post_uris)
-
-    hydrated_posts: list[BlueskyFeedPost] = feed_post_repo.read_feed_posts_by_uris(
-        all_post_uris
+    uri_to_post: dict[str, BlueskyFeedPost] = _load_hydrated_posts(
+        feeds=feeds, feed_post_repo=feed_post_repo
     )
-    uri_to_post: dict[str, BlueskyFeedPost] = {p.uri: p for p in hydrated_posts}
-
-    # now iterate through feeds and hydrate the posts.
-    # Collect missing URIs per agent for aggregated logging
-    missing_uris_by_agent: dict[str, list[str]] = {}
-    agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = {}
-    for agent_handle, feed in feeds.items():
-        feed_posts: list[BlueskyFeedPost] = []
-        for post_uri in feed.post_uris:
-            # Skip silently if missing. Currently OK and matches other specs
-            # related to graceful handling of missing posts. Can be
-            # revisited as a fast follow later. Currently, missing posts are an
-            # edge case.
-            if post_uri not in uri_to_post:
-                missing_uris_by_agent.setdefault(agent_handle, []).append(post_uri)
-                continue
-            feed_posts.append(uri_to_post[post_uri])
-        agent_to_hydrated_feeds[agent_handle] = feed_posts
-
+    agent_to_hydrated_feeds, missing_uris_by_agent = _hydrate_feed_items(
+        feeds=feeds, uri_to_post=uri_to_post
+    )
     _log_warning_missing_posts(
         missing_uris_by_agent=missing_uris_by_agent,
         feeds=feeds,
@@ -134,6 +127,28 @@ def _hydrate_generated_feeds(
         turn_number=turn_number,
     )
     return agent_to_hydrated_feeds
+
+
+def _hydrate_feed_items(
+    feeds: dict[str, GeneratedFeed],
+    uri_to_post: dict[str, BlueskyFeedPost],
+) -> tuple[dict[str, list[BlueskyFeedPost]], dict[str, list[str]]]:
+    """Map each feed's post URIs to hydrated posts; record missing URIs per agent.
+
+    Missing URIs are skipped in the result and collected for logging. Preserves feed order.
+    Returns (agent_to_hydrated_feeds, missing_uris_by_agent).
+    """
+    missing_uris_by_agent: dict[str, list[str]] = {}
+    agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = {}
+    for agent_handle, feed in feeds.items():
+        feed_posts: list[BlueskyFeedPost] = []
+        for post_uri in feed.post_uris:
+            if post_uri not in uri_to_post:
+                missing_uris_by_agent.setdefault(agent_handle, []).append(post_uri)
+                continue
+            feed_posts.append(uri_to_post[post_uri])
+        agent_to_hydrated_feeds[agent_handle] = feed_posts
+    return (agent_to_hydrated_feeds, missing_uris_by_agent)
 
 
 def _log_warning_missing_posts(
