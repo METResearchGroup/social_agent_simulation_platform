@@ -4,10 +4,19 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
+from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.schema import agent_bios
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
+
+AGENT_BIOS_COLUMNS = ordered_column_names(agent_bios)
+AGENT_BIOS_REQUIRED_FIELDS = required_column_names(agent_bios)
+_INSERT_AGENT_BIOS_SQL = (
+    f"INSERT OR REPLACE INTO agent_bios ({', '.join(AGENT_BIOS_COLUMNS)}) "
+    f"VALUES ({', '.join('?' for _ in AGENT_BIOS_COLUMNS)})"
+)
 
 
 class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
@@ -33,11 +42,7 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            [
-                "handle",
-                "generated_bio",
-                "created_at",
-            ],
+            AGENT_BIOS_REQUIRED_FIELDS,
             context=context,
         )
 
@@ -51,19 +56,13 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.IntegrityError: If handle violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        created_at = bio.metadata.created_at
-        if created_at is None:
-            created_at = get_current_timestamp()
-
+        created_at = bio.metadata.created_at or get_current_timestamp()
+        row_values = tuple(
+            created_at if col == "created_at" else getattr(bio, col)
+            for col in AGENT_BIOS_COLUMNS
+        )
         with get_connection() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO agent_bios
-                (handle, generated_bio, created_at)
-                VALUES (?, ?, ?)
-            """,
-                (bio.handle, bio.generated_bio, created_at),
-            )
+            conn.execute(_INSERT_AGENT_BIOS_SQL, row_values)
             conn.commit()
 
     def read_generated_bio(self, handle: str) -> Optional[GeneratedBio]:

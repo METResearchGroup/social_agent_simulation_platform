@@ -7,7 +7,9 @@ from unittest.mock import patch
 
 import pytest
 
+from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
+from db.schema import bluesky_feed_posts
 
 
 @pytest.fixture
@@ -160,3 +162,29 @@ class TestInitializeDatabase:
                 )
 
             conn.close()
+
+    def test_bluesky_feed_posts_schema_matches_canonical(self, temp_db):
+        """PRAGMA table_info(bluesky_feed_posts) matches db.schema column order and NOT NULL."""
+        with patch("db.adapters.sqlite.sqlite.DB_PATH", temp_db):
+            initialize_database()
+
+            conn = get_connection()
+            cursor = conn.execute("PRAGMA table_info(bluesky_feed_posts)")
+            rows = cursor.fetchall()
+            conn.close()
+
+            # PRAGMA table_info: (cid, name, type, notnull, dflt_value, pk)
+            db_columns = [row[1] for row in rows]
+            db_notnull = {row[1]: bool(row[3]) for row in rows}
+
+            expected_order = ordered_column_names(bluesky_feed_posts)
+            assert db_columns == expected_order, (
+                f"bluesky_feed_posts column order mismatch: got {db_columns}, expected {expected_order}"
+            )
+
+            required = set(required_column_names(bluesky_feed_posts))
+            for col in expected_order:
+                assert db_notnull[col] == (col in required), (
+                    f"bluesky_feed_posts.{col}: NOT NULL in DB is {db_notnull[col]}, "
+                    f"schema nullable=False is {col in required}"
+                )

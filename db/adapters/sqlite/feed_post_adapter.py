@@ -4,9 +4,19 @@ import sqlite3
 from typing import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
+from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.schema import bluesky_feed_posts
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.validators import validate_uri_exists
+
+FEED_POST_COLUMNS = ordered_column_names(bluesky_feed_posts)
+FEED_POST_REQUIRED_FIELDS = required_column_names(bluesky_feed_posts)
+
+_INSERT_FEED_POST_SQL = (
+    f"INSERT OR REPLACE INTO bluesky_feed_posts ({', '.join(FEED_POST_COLUMNS)}) "
+    f"VALUES ({', '.join('?' for _ in FEED_POST_COLUMNS)})"
+)
 
 
 class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
@@ -32,18 +42,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            [
-                "uri",
-                "author_display_name",
-                "author_handle",
-                "text",
-                "bookmark_count",
-                "like_count",
-                "quote_count",
-                "reply_count",
-                "repost_count",
-                "created_at",
-            ],
+            FEED_POST_REQUIRED_FIELDS,
             context=context,
         )
 
@@ -86,24 +85,8 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         """
         with get_connection() as conn:
             conn.execute(
-                """
-                INSERT OR REPLACE INTO bluesky_feed_posts
-                (uri, author_display_name, author_handle, text, bookmark_count,
-                 like_count, quote_count, reply_count, repost_count, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    post.uri,
-                    post.author_display_name,
-                    post.author_handle,
-                    post.text,
-                    post.bookmark_count,
-                    post.like_count,
-                    post.quote_count,
-                    post.reply_count,
-                    post.repost_count,
-                    post.created_at,
-                ),
+                _INSERT_FEED_POST_SQL,
+                tuple(getattr(post, col) for col in FEED_POST_COLUMNS),
             )
             conn.commit()
 
@@ -123,27 +106,8 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         with get_connection() as conn:
             try:
                 conn.executemany(
-                    """
-                    INSERT OR REPLACE INTO bluesky_feed_posts
-                    (uri, author_display_name, author_handle, text, bookmark_count,
-                     like_count, quote_count, reply_count, repost_count, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    [
-                        (
-                            post.uri,
-                            post.author_display_name,
-                            post.author_handle,
-                            post.text,
-                            post.bookmark_count,
-                            post.like_count,
-                            post.quote_count,
-                            post.reply_count,
-                            post.repost_count,
-                            post.created_at,
-                        )
-                        for post in posts
-                    ],
+                    _INSERT_FEED_POST_SQL,
+                    [tuple(getattr(post, col) for col in FEED_POST_COLUMNS) for post in posts],
                 )
                 conn.commit()
             except Exception:
