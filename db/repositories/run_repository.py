@@ -16,6 +16,7 @@ from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import (
     validate_run_exists,
     validate_run_id,
+    validate_run_status_transition,
     validate_turn_number,
     validate_turn_number_less_than_max_turns,
 )
@@ -172,37 +173,28 @@ class SQLiteRunRepository(RunRepository):
             InvalidTransitionError: If the status transition is invalid
             RunStatusUpdateError: If the status update fails due to a database error
         """
-        # Validate input parameters
-        validate_run_id(run_id)
-
-        if status is None:
-            raise ValueError("status cannot be None")
-
-        # Get current run to validate state transition
-        current_run = self.get_run(run_id)
-        validate_run_exists(run=current_run, run_id=run_id)
-
-        current_status = current_run.status # type: ignore
-
-        # TODO: move to validator.
-        # Validate state transition
-        if status != current_status:
-            valid_next_states = self.VALID_TRANSITIONS.get(current_status, set())
-            if status not in valid_next_states:
-                valid_transitions_list = (
-                    [s.value for s in valid_next_states] if valid_next_states else None
-                )
-                raise InvalidTransitionError(
-                    run_id=run_id,
-                    current_status=current_status.value,
-                    target_status=status.value,
-                    valid_transitions=valid_transitions_list,
-                )
-
         try:
+            # Validate input parameters
+            validate_run_id(run_id)
+
+            # Get current run to validate state transition
+            current_run = self.get_run(run_id)
+            validate_run_exists(run=current_run, run_id=run_id)
+
+            # Validate the status transition
+            current_status = current_run.status # type: ignore
+            validate_run_status_transition(
+                run_id=run_id,
+                current_status=current_status,
+                target_status=status,
+                valid_transitions=self.VALID_TRANSITIONS,
+            )
+
+            # Update the run status, once validated.
             ts = self._get_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
             self._db_adapter.update_run_status(run_id, status.value, completed_at)
+
         except (RunNotFoundError, InvalidTransitionError):
             # Re-raise domain exceptions as-is
             raise

@@ -1,7 +1,7 @@
-from db.exceptions import RunNotFoundError
+from db.exceptions import InvalidTransitionError, RunNotFoundError
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.runs import Run
+from simulation.core.models.runs import Run, RunStatus
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
@@ -56,4 +56,40 @@ def validate_turn_number_less_than_max_turns(turn_number: int, max_turns: int):
         raise ValueError(
             f"Turn number {turn_number} is greater than the maximum number of turns: {max_turns}. "
             "Turn number must be less than the maximum number of turns."
+        )
+
+
+def validate_run_status_transition(
+    *,
+    run_id: str,
+    current_status: RunStatus,
+    target_status: RunStatus,
+    valid_transitions: dict[RunStatus, set[RunStatus]],
+):
+    """Check to see if a run status transition is valid.
+    
+    For example, a run can only transition from RUNNING to COMPLETED or FAILED.
+    A run cannot transition from COMPLETED or FAILED to RUNNING.
+
+    Args:
+        run_id: The ID of the run
+        current_status: The current status of the run
+        target_status: The target status of the run
+        valid_transitions: A dictionary of valid transitions for each status
+    """
+    if target_status == current_status:
+        return
+
+    valid_next_states = valid_transitions.get(current_status, set())
+    if target_status not in valid_next_states:
+        valid_transitions_list = (
+            [status.value for status in valid_next_states]
+            if valid_next_states
+            else None
+        )
+        raise InvalidTransitionError(
+            run_id=run_id,
+            current_status=current_status.value,
+            target_status=target_status.value,
+            valid_transitions=valid_transitions_list,
         )
