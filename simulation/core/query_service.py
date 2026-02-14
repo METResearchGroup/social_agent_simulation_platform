@@ -1,10 +1,12 @@
 from typing import Optional
 
 from simulation.core.exceptions import RunNotFoundError
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.run_repository import RunRepository
 from simulation.core.models.runs import Run
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedFeedRepository,
+    RunRepository,
+)
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.validators import validate_run_id, validate_turn_number
 

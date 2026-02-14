@@ -3,23 +3,15 @@
 from collections.abc import Callable
 from typing import Optional
 
-from db.repositories.feed_post_repository import (
-    FeedPostRepository,
-    create_sqlite_feed_post_repository,
-)
+from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
-    GeneratedBioRepository,
     create_sqlite_generated_bio_repository,
 )
 from db.repositories.generated_feed_repository import (
-    GeneratedFeedRepository,
     create_sqlite_generated_feed_repository,
 )
-from db.repositories.profile_repository import (
-    ProfileRepository,
-    create_sqlite_profile_repository,
-)
-from db.repositories.run_repository import RunRepository, create_sqlite_repository
+from db.repositories.profile_repository import create_sqlite_profile_repository
+from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.action_history import (
     ActionHistoryStore,
     InMemoryActionHistoryStore,
@@ -33,6 +25,13 @@ from simulation.core.agent_action_rules_validator import AgentActionRulesValidat
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.models.agents import SocialMediaAgent
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    GeneratedFeedRepository,
+    ProfileRepository,
+    RunRepository,
+)
 from simulation.core.query_service import SimulationQueryService
 from simulation.core.validators import (
     validate_duplicate_agent_handles,
