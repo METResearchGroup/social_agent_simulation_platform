@@ -124,22 +124,22 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             RunCreationError: If the run cannot be created due to a database error
         """
-        ts = self._get_timestamp()
-        run_id = f"run_{ts}_{uuid.uuid4()}"
-
-        run = Run(
-            run_id=run_id,
-            created_at=ts,
-            total_turns=config.num_turns,
-            total_agents=config.num_agents,
-            started_at=ts,
-            status=RunStatus.RUNNING,
-        )
         try:
+            ts = self._get_timestamp()
+            run_id = f"run_{ts}_{uuid.uuid4()}"
+
+            run = Run(
+                run_id=run_id,
+                created_at=ts,
+                total_turns=config.num_turns,
+                total_agents=config.num_agents,
+                started_at=ts,
+                status=RunStatus.RUNNING,
+            )
             self._db_adapter.write_run(run)
+            return run
         except Exception as e:
             raise RunCreationError(run_id, str(e)) from e
-        return run
 
     def get_run(self, run_id: str) -> Optional[Run]:
         """Get a run from SQLite.
