@@ -176,7 +176,7 @@ class SimulationCommandService:
         turn_number: int,
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
-        action_history_store: ActionHistoryStore | None = None,
+        action_history_store: ActionHistoryStore,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
@@ -206,8 +206,6 @@ class SimulationCommandService:
             "follows": 0,
         }
 
-        history_store = action_history_store or self.action_history_store_factory()
-
         for agent in agents:
             feed = agent_to_hydrated_feeds.get(agent.handle, [])
 
@@ -225,7 +223,7 @@ class SimulationCommandService:
                     likes=likes,
                     comments=comments,
                     follows=follows,
-                    action_history_store=history_store,
+                    action_history_store=action_history_store,
                 )
             )
             self.agent_action_history_recorder.record(
@@ -234,7 +232,7 @@ class SimulationCommandService:
                 like_post_ids=like_post_ids,
                 comment_post_ids=comment_post_ids,
                 follow_user_ids=follow_user_ids,
-                action_history_store=history_store,
+                action_history_store=action_history_store,
             )
 
             total_actions["likes"] += len(likes)
