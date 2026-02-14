@@ -13,7 +13,7 @@ from simulation.core.exceptions import (
 )
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
-from simulation.core.ports import RunRepository
+from db.repositories.interfaces import RunRepository
 from simulation.core.validators import (
     validate_run_exists,
     validate_run_id,

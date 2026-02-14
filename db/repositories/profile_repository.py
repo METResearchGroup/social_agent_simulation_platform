@@ -4,7 +4,7 @@ from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
 from simulation.core.models.profiles import BlueskyProfile
-from simulation.core.ports import ProfileRepository
+from db.repositories.interfaces import ProfileRepository
 from simulation.core.validators import validate_handle_exists
 
 

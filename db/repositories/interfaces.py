@@ -1,8 +1,8 @@
-"""Application ports (repository interfaces).
+"""Repository interfaces.
 
-Repository and adapter port definitions live here so that the application
-layer does not depend on db for interface types. Implementations (e.g. SQLite)
-live in db/repositories and implement these interfaces.
+Abstract repository port definitions live here, close to but decoupled from
+implementations in this package. Concrete implementations (e.g. SQLite*)
+implement these interfaces.
 """
 
 from abc import ABC, abstractmethod

@@ -25,7 +25,7 @@ from simulation.core.agent_action_rules_validator import AgentActionRulesValidat
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.ports import (
+from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,

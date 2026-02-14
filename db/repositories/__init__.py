@@ -15,7 +15,7 @@ from db.repositories.profile_repository import (
     create_sqlite_profile_repository,
 )
 from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
-from simulation.core.ports import (
+from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,

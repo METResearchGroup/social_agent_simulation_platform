@@ -2,7 +2,7 @@ from typing import Optional
 
 from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.runs import Run
-from simulation.core.ports import (
+from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedFeedRepository,
     RunRepository,

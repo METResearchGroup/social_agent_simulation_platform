@@ -9,7 +9,7 @@ from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
-from simulation.core.ports import (
+from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,

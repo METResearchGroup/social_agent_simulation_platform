@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
 from lib.decorators import record_runtime
-from simulation.core.ports import (
+from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,

@@ -2,7 +2,7 @@
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.ports import GeneratedFeedRepository
+from db.repositories.interfaces import GeneratedFeedRepository
 from simulation.core.validators import (
     validate_handle_exists,
     validate_run_id,
