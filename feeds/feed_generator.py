@@ -52,9 +52,9 @@ def generate_feeds(
         agents=agents,
         run_id=run_id,
         turn_number=turn_number,
-        generated_feed_repo=generated_feed_repo,
         feed_algorithm=feed_algorithm,
     )
+    _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
     return _hydrate_generated_feeds(
         feeds=feeds,
         feed_post_repo=feed_post_repo,
@@ -67,11 +67,9 @@ def _generate_feeds(
     agents: list[SocialMediaAgent],
     run_id: str,
     turn_number: int,
-    generated_feed_repo: GeneratedFeedRepository,
     feed_algorithm: str,
 ) -> dict[str, GeneratedFeed]:
-    """Generate a feed per agent via the feed algorithm and persists the
-    generated feed to permanent storage."""
+    """Generate a feed per agent via the feed algorithm; no persistence."""
     feeds: dict[str, GeneratedFeed] = {}
     for agent in agents:
         # TODO: right now we load all posts per agent, but obviously
@@ -80,11 +78,19 @@ def _generate_feeds(
             agent=agent,
             run_id=run_id,
             turn_number=turn_number,
-            generated_feed_repo=generated_feed_repo,
             feed_algorithm=feed_algorithm,
         )
         feeds[agent.handle] = feed
     return feeds
+
+
+def _write_generated_feeds(
+    feeds: dict[str, GeneratedFeed],
+    generated_feed_repo: GeneratedFeedRepository,
+) -> None:
+    """Persist each generated feed via the repository."""
+    for feed in feeds.values():
+        generated_feed_repo.write_generated_feed(feed)
 
 
 def _hydrate_generated_feeds(
@@ -164,20 +170,16 @@ def _generate_single_agent_feed(
     agent: SocialMediaAgent,
     run_id: str,
     turn_number: int,
-    generated_feed_repo: GeneratedFeedRepository,
     feed_algorithm: str,
 ) -> GeneratedFeed:
-    """Load candidate posts for one agent, run the feed algorithm, persist, and
-    return the generated feed."""
+    """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
     candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
         agent=agent, run_id=run_id
     )
-    feed: GeneratedFeed = _generate_feed(
+    return _generate_feed(
         agent=agent,
         candidate_posts=candidate_posts,
         run_id=run_id,
         turn_number=turn_number,
         feed_algorithm=feed_algorithm,
     )
-    generated_feed_repo.write_generated_feed(feed)
-    return feed
