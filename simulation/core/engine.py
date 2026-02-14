@@ -6,7 +6,7 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
-from simulation.core.action_history import ActionHistoryStore
+from simulation.core.action_history import ActionHistoryStore, InMemoryActionHistoryStore
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -35,28 +35,24 @@ class SimulationEngine:
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
+        self.action_history_store_factory = (
+            action_history_store_factory or InMemoryActionHistoryStore
+        )
 
         self.query_service = query_service or SimulationQueryService(
             run_repo=run_repo,
             feed_post_repo=feed_post_repo,
             generated_feed_repo=generated_feed_repo,
         )
-        if command_service is not None:
-            self.command_service = command_service
-        else:
-            if action_history_store_factory is None:
-                raise ValueError(
-                    "action_history_store_factory is required when command_service is not provided"
-                )
-            self.command_service = SimulationCommandService(
-                run_repo=run_repo,
-                profile_repo=profile_repo,
-                feed_post_repo=feed_post_repo,
-                generated_bio_repo=generated_bio_repo,
-                generated_feed_repo=generated_feed_repo,
-                agent_factory=agent_factory,
-                action_history_store_factory=action_history_store_factory,
-            )
+        self.command_service = command_service or SimulationCommandService(
+            run_repo=run_repo,
+            profile_repo=profile_repo,
+            feed_post_repo=feed_post_repo,
+            generated_bio_repo=generated_bio_repo,
+            generated_feed_repo=generated_feed_repo,
+            agent_factory=agent_factory,
+            action_history_store_factory=self.action_history_store_factory,
+        )
 
     def execute_run(self, run_config: RunConfig) -> Run:
         return self.command_service.execute_run(run_config)
@@ -85,7 +81,10 @@ class SimulationEngine:
         turn_number: int,
         agents: list[SocialMediaAgent],
     ) -> None:
-        self.command_service.simulate_turn(run, run_config, turn_number, agents)
+        self.command_service.simulate_turn(
+            run, run_config, turn_number, agents,
+            action_history_store=self.action_history_store_factory(),
+        )
 
     def simulate_turns(
         self,
@@ -94,7 +93,10 @@ class SimulationEngine:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
     ) -> None:
-        self.command_service.simulate_turns(total_turns, run, run_config, agents)
+        self.command_service.simulate_turns(
+            total_turns, run, run_config, agents,
+            action_history_store=self.action_history_store_factory(),
+        )
 
     def create_agents_for_run(
         self,
