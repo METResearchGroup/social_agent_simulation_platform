@@ -17,6 +17,7 @@ from db.repositories.interfaces import (
     RunRepository,
 )
 from simulation.core.query_service import SimulationQueryService
+from feeds.interfaces import FeedGenerator
 
 
 class SimulationEngine:
@@ -33,6 +34,7 @@ class SimulationEngine:
         action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
         query_service: Optional[SimulationQueryService] = None,
         command_service: Optional[SimulationCommandService] = None,
+        feed_generator: Optional[FeedGenerator] = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -49,15 +51,23 @@ class SimulationEngine:
             feed_post_repo=feed_post_repo,
             generated_feed_repo=generated_feed_repo,
         )
-        self.command_service = command_service or SimulationCommandService(
-            run_repo=run_repo,
-            profile_repo=profile_repo,
-            feed_post_repo=feed_post_repo,
-            generated_bio_repo=generated_bio_repo,
-            generated_feed_repo=generated_feed_repo,
-            agent_factory=agent_factory,
-            action_history_store_factory=self.action_history_store_factory,
-        )
+        if command_service is not None:
+            self.command_service = command_service
+        else:
+            if feed_generator is None:
+                raise ValueError(
+                    "feed_generator is required when command_service is not provided"
+                )
+            self.command_service = SimulationCommandService(
+                run_repo=run_repo,
+                profile_repo=profile_repo,
+                feed_post_repo=feed_post_repo,
+                generated_bio_repo=generated_bio_repo,
+                generated_feed_repo=generated_feed_repo,
+                agent_factory=agent_factory,
+                action_history_store_factory=self.action_history_store_factory,
+                feed_generator=feed_generator,
+            )
 
     def execute_run(self, run_config: RunConfig) -> Run:
         return self.command_service.execute_run(run_config)
