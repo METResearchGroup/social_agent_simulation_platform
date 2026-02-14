@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.validators import (
-    validate_handle_exists, validate_run_id, validate_turn_number
+    validate_handle_exists,
+    validate_run_id,
+    validate_turn_number,
 )
 
 

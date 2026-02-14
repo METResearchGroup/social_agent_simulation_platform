@@ -6,7 +6,10 @@ from typing import Iterable
 from db.adapters.base import FeedPostDatabaseAdapter
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.validators import (
-    validate_handle_exists, validate_posts_exist, validate_uri_exists, validate_uris_exist
+    validate_handle_exists,
+    validate_posts_exist,
+    validate_uri_exists,
+    validate_uris_exist,
 )
 
 

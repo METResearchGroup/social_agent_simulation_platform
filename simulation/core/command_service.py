@@ -23,9 +23,9 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.validators import (
+    validate_agents_without_feeds,
     validate_duplicate_agent_handles,
     validate_insufficient_agents,
-    validate_agents_without_feeds,
     validate_run_exists,
 )
 

@@ -6,7 +6,10 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
-from simulation.core.action_history import ActionHistoryStore, InMemoryActionHistoryStore
+from simulation.core.action_history import (
+    ActionHistoryStore,
+    InMemoryActionHistoryStore,
+)
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus

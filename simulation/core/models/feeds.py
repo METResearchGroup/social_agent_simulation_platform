@@ -6,6 +6,8 @@ from pydantic import BaseModel, field_validator
 
 from simulation.core.models.validators import (
     validate_non_empty_string,
+)
+from simulation.core.models.validators import (
     validate_turn_number as validate_turn_number_core,
 )
 

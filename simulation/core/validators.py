@@ -1,4 +1,5 @@
 from typing import Iterable
+
 from db.exceptions import InvalidTransitionError, RunNotFoundError
 from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
@@ -8,7 +9,6 @@ from simulation.core.models.runs import Run, RunStatus
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
 
-from simulation.core.models.validators import validate_turn_number
 
 
 def validate_run_id(run_id: str):
