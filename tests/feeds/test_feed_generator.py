@@ -170,7 +170,7 @@ class TestGenerateFeeds:
         assert len(result["agent1.bsky.social"]) == len(sample_posts)
         assert len(result["agent2.bsky.social"]) == len(sample_posts)
         # Verify repositories were called
-        assert mock_generated_feed_repo.create_or_update_generated_feed.call_count == 2
+        assert mock_generated_feed_repo.write_generated_feed.call_count == 2
         # Verify batch query was used (not list_all_feed_posts)
         mock_feed_post_repo.read_feed_posts_by_uris.assert_called_once()
         # Verify load_candidate_posts was called for each agent
@@ -334,10 +334,10 @@ class TestGenerateFeeds:
         )
 
         # Assert
-        # Verify create_or_update_generated_feed was called
-        mock_generated_feed_repo.create_or_update_generated_feed.assert_called_once()
+        # Verify write_generated_feed was called
+        mock_generated_feed_repo.write_generated_feed.assert_called_once()
         # Verify the feed passed to the repository has correct values
-        call_args = mock_generated_feed_repo.create_or_update_generated_feed.call_args[
+        call_args = mock_generated_feed_repo.write_generated_feed.call_args[
             0
         ][0]
         assert isinstance(call_args, GeneratedFeed)
@@ -413,7 +413,7 @@ class TestGenerateFeeds:
         # Assert
         assert result == {}
         mock_load_candidate_posts.assert_not_called()
-        mock_generated_feed_repo.create_or_update_generated_feed.assert_not_called()
+        mock_generated_feed_repo.write_generated_feed.assert_not_called()
         # read_feed_posts_by_uris is called with empty set when no agents
         mock_feed_post_repo.read_feed_posts_by_uris.assert_called_once()
         call_args = mock_feed_post_repo.read_feed_posts_by_uris.call_args[0][0]
@@ -452,7 +452,7 @@ class TestGenerateFeeds:
         assert sample_agent.handle in result
         assert result[sample_agent.handle] == []
         # Should still write the feed (even if empty)
-        mock_generated_feed_repo.create_or_update_generated_feed.assert_called_once()
+        mock_generated_feed_repo.write_generated_feed.assert_called_once()
 
     @patch("feeds.feed_generator.load_candidate_posts")
     def test_registry_pattern_works_correctly(
@@ -488,4 +488,4 @@ class TestGenerateFeeds:
         assert len(result) == 1
         assert sample_agent.handle in result
         # Verify the feed was generated (registry worked)
-        mock_generated_feed_repo.create_or_update_generated_feed.assert_called_once()
+        mock_generated_feed_repo.write_generated_feed.assert_called_once()

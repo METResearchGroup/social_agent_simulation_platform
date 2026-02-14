@@ -13,8 +13,8 @@ class GeneratedFeedRepository(ABC):
     """Abstract base class defining the interface for generated feed repositories."""
 
     @abstractmethod
-    def create_or_update_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
-        """Create or update a generated feed.
+    def write_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
+        """Write a generated feed (insert or replace by composite key).
 
         Args:
             feed: GeneratedFeed model to create or update
@@ -98,8 +98,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         """
         self._db_adapter = db_adapter
 
-    def create_or_update_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
-        """Create or update a generated feed in SQLite.
+    def write_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
+        """Write a generated feed to SQLite (insert or replace by composite key).
 
         Args:
             feed: GeneratedFeed model to create or update

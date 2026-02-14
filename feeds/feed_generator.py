@@ -104,7 +104,7 @@ def generate_feeds(
             turn_number=turn_number,
             feed_algorithm=feed_algorithm,
         )
-        generated_feed_repo.create_or_update_generated_feed(feed)
+        generated_feed_repo.write_generated_feed(feed)
         feeds[agent.handle] = feed
 
     # iterate through feeds, grab only the unique URIs, and hydrate
