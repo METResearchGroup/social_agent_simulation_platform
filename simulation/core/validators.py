@@ -8,13 +8,13 @@ from simulation.core.models.runs import Run, RunStatus
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
 
+from simulation.core.models.validators import validate_turn_number
+
+
 def validate_run_id(run_id: str):
     if not run_id or not run_id.strip():
         raise ValueError("run_id is invalid")
 
-def validate_turn_number(turn_number: int):
-    if turn_number is None or turn_number < 0:
-        raise ValueError("turn_number is invalid")
 
 def validate_run_exists(run: Run | None, run_id: str):
     if run is None:

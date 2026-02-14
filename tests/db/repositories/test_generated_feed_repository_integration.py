@@ -81,7 +81,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         )
 
         # Create feed
-        created_feed = repo.create_or_update_generated_feed(feed)
+        created_feed = repo.write_generated_feed(feed)
         assert created_feed.feed_id == "feed_test123"
         assert created_feed.run_id == "run_123"
         assert created_feed.turn_number == 1
@@ -96,8 +96,8 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert retrieved_feed.post_uris == created_feed.post_uris
         assert retrieved_feed.created_at == created_feed.created_at
 
-    def test_create_or_update_generated_feed_updates_existing_feed(self, temp_db):
-        """Test that create_or_update_generated_feed updates an existing feed (composite key)."""
+    def test_write_generated_feed_updates_existing_feed(self, temp_db):
+        """Test that write_generated_feed updates an existing feed (composite key)."""
         repo = create_sqlite_generated_feed_repository()
         _ensure_run_exists("run_123")
 
@@ -110,7 +110,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
-        repo.create_or_update_generated_feed(initial_feed)
+        repo.write_generated_feed(initial_feed)
 
         # Update the feed (same composite key, different feed_id and post_uris)
         updated_feed = GeneratedFeed(
@@ -124,7 +124,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             ],
             created_at="2024-01-02T00:00:00Z",
         )
-        repo.create_or_update_generated_feed(updated_feed)
+        repo.write_generated_feed(updated_feed)
 
         # Verify update
         retrieved_feed = repo.get_generated_feed("test.bsky.social", "run_123", 1)
@@ -167,7 +167,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         ]
 
         for feed in feeds:
-            repo.create_or_update_generated_feed(feed)
+            repo.write_generated_feed(feed)
 
         # List all feeds
         all_feeds = repo.list_all_generated_feeds()
@@ -230,9 +230,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-03T00:00:00Z",
         )
 
-        repo.create_or_update_generated_feed(feed1)
-        repo.create_or_update_generated_feed(feed2)
-        repo.create_or_update_generated_feed(feed3)
+        repo.write_generated_feed(feed1)
+        repo.write_generated_feed(feed2)
+        repo.write_generated_feed(feed3)
 
         # Retrieve each feed
         retrieved1 = repo.get_generated_feed("alice.bsky.social", "run_1", 1)
@@ -249,7 +249,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert retrieved2.turn_number == 2
         assert retrieved3.turn_number == 1
 
-    def test_create_or_update_generated_feed_with_empty_agent_handle_raises_error(
+    def test_write_generated_feed_with_empty_agent_handle_raises_error(
         self, temp_db
     ):
         """Test that creating GeneratedFeed with empty agent_handle raises ValidationError from Pydantic."""
@@ -270,7 +270,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         """Test that get_generated_feed raises ValueError when agent_handle is empty."""
         repo = create_sqlite_generated_feed_repository()
 
-        with pytest.raises(ValueError, match="agent_handle cannot be empty"):
+        with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
     def test_generated_feed_with_multiple_post_uris(self, temp_db):
@@ -290,7 +290,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
 
-        repo.create_or_update_generated_feed(feed)
+        repo.write_generated_feed(feed)
         retrieved = repo.get_generated_feed("test.bsky.social", "run_123", 1)
 
         assert retrieved is not None
@@ -337,10 +337,10 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-01T00:00:03Z",
         )
 
-        repo.create_or_update_generated_feed(feed1)
-        repo.create_or_update_generated_feed(feed2)
-        repo.create_or_update_generated_feed(feed3)
-        repo.create_or_update_generated_feed(feed4)
+        repo.write_generated_feed(feed1)
+        repo.write_generated_feed(feed2)
+        repo.write_generated_feed(feed3)
+        repo.write_generated_feed(feed4)
 
         # Read feeds for run_123, turn 0
         feeds = repo.read_feeds_for_turn("run_123", 0)
