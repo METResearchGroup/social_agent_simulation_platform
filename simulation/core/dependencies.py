@@ -37,6 +37,8 @@ from simulation.core.validators import (
     validate_duplicate_agent_handles,
     validate_insufficient_agents,
 )
+from feeds.interfaces import FeedGenerator
+from feeds.feed_generator_adapter import FeedGeneratorAdapter
 
 
 def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
@@ -194,6 +196,7 @@ def create_command_service(
     generated_feed_repo: GeneratedFeedRepository,
     agent_factory: Callable[[int], list[SocialMediaAgent]],
     action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
+    feed_generator: Optional[FeedGenerator] = None,
     agent_action_rules_validator: Optional[AgentActionRulesValidator] = None,
     agent_action_history_recorder: Optional[AgentActionHistoryRecorder] = None,
     agent_action_feed_filter: Optional[AgentActionFeedFilter] = None,
@@ -201,6 +204,11 @@ def create_command_service(
     """Create command-side service with execution dependencies."""
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
+    if feed_generator is None:
+        feed_generator = FeedGeneratorAdapter(
+            generated_feed_repo=generated_feed_repo,
+            feed_post_repo=feed_post_repo,
+        )
 
     return SimulationCommandService(
         run_repo=run_repo,
@@ -210,6 +218,7 @@ def create_command_service(
         generated_feed_repo=generated_feed_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
+        feed_generator=feed_generator,
         agent_action_rules_validator=agent_action_rules_validator
         or AgentActionRulesValidator(),
         agent_action_history_recorder=agent_action_history_recorder

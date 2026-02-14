@@ -30,6 +30,7 @@ from simulation.core.validators import (
     validate_insufficient_agents,
     validate_run_exists,
 )
+from feeds.interfaces import FeedGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class SimulationCommandService:
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
+        feed_generator: FeedGenerator,
         agent_action_rules_validator: AgentActionRulesValidator | None = None,
         agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
         agent_action_feed_filter: AgentActionFeedFilter | None = None,
@@ -57,6 +59,7 @@ class SimulationCommandService:
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
+        self.feed_generator = feed_generator
         self.agent_action_rules_validator = (
             agent_action_rules_validator or AgentActionRulesValidator()
         )
@@ -198,16 +201,13 @@ class SimulationCommandService:
         run = self.run_repo.get_run(run_id)
         validate_run_exists(run=run, run_id=run_id)
 
-        from feeds.feed_generator import generate_feeds
-
-        # TODO: revisit how feeds are generated, to make sure it's cleaned up.
-        agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = generate_feeds(
-            agents=agents,
-            run_id=run_id,
-            turn_number=turn_number,
-            generated_feed_repo=self.generated_feed_repo,
-            feed_post_repo=self.feed_post_repo,
-            feed_algorithm=feed_algorithm,
+        agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = (
+            self.feed_generator.generate_feeds(
+                agents=agents,
+                run_id=run_id,
+                turn_number=turn_number,
+                feed_algorithm=feed_algorithm,
+            )
         )
 
         validate_agents_without_feeds(
