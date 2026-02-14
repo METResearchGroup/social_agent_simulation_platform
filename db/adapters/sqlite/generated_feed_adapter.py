@@ -4,8 +4,17 @@ import json
 import sqlite3
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
+from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.schema import generated_feeds
 from simulation.core.models.feeds import GeneratedFeed
+
+GENERATED_FEED_COLUMNS = ordered_column_names(generated_feeds)
+GENERATED_FEED_REQUIRED_FIELDS = required_column_names(generated_feeds)
+_INSERT_GENERATED_FEED_SQL = (
+    f"INSERT OR REPLACE INTO generated_feeds ({', '.join(GENERATED_FEED_COLUMNS)}) "
+    f"VALUES ({', '.join('?' for _ in GENERATED_FEED_COLUMNS)})"
+)
 
 
 class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
@@ -31,14 +40,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         """
         validate_required_fields(
             row,
-            [
-                "feed_id",
-                "run_id",
-                "turn_number",
-                "agent_handle",
-                "post_uris",
-                "created_at",
-            ],
+            GENERATED_FEED_REQUIRED_FIELDS,
             context=context,
         )
 
@@ -52,22 +54,12 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.IntegrityError: If composite key violates constraints
             sqlite3.OperationalError: If database operation fails
         """
+        row_values = tuple(
+            json.dumps(feed.post_uris) if col == "post_uris" else getattr(feed, col)
+            for col in GENERATED_FEED_COLUMNS
+        )
         with get_connection() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO generated_feeds
-                (feed_id, run_id, turn_number, agent_handle, post_uris, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    feed.feed_id,
-                    feed.run_id,
-                    feed.turn_number,
-                    feed.agent_handle,
-                    json.dumps(feed.post_uris),
-                    feed.created_at,
-                ),
-            )
+            conn.execute(_INSERT_GENERATED_FEED_SQL, row_values)
             conn.commit()
 
     def read_generated_feed(

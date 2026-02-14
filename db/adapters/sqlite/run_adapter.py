@@ -5,8 +5,10 @@ import sqlite3
 from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.schema_utils import required_column_names
+from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.exceptions import DuplicateTurnMetadataError, RunNotFoundError
+from db.schema import runs
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
@@ -32,19 +34,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             ValueError: If required fields are NULL or status is invalid
             KeyError: If required columns are missing from row
         """
-        # Validate required fields are not NULL
-        if row["run_id"] is None:
-            raise ValueError("run_id cannot be NULL")
-        if row["created_at"] is None:
-            raise ValueError("created_at cannot be NULL")
-        if row["total_turns"] is None:
-            raise ValueError("total_turns cannot be NULL")
-        if row["total_agents"] is None:
-            raise ValueError("total_agents cannot be NULL")
-        if row["started_at"] is None:
-            raise ValueError("started_at cannot be NULL")
-        if row["status"] is None:
-            raise ValueError("status cannot be NULL")
+        validate_required_fields(row, required_column_names(runs))
 
         # Convert status string to RunStatus enum, handling invalid values
         try:
