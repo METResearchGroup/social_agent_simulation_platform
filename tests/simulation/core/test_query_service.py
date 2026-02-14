@@ -54,7 +54,7 @@ class TestSimulationQueryServiceGetRun:
         mock_repos["run_repo"].get_run.assert_called_once_with(sample_run.run_id)
 
     def test_raises_value_error_for_empty_id(self, query_service):
-        with pytest.raises(ValueError, match="run_id cannot be empty"):
+        with pytest.raises(ValueError, match="run_id is invalid"):
             query_service.get_run("")
 
 
