@@ -44,6 +44,7 @@ def mock_agent_factory():
 
 @pytest.fixture
 def command_service(mock_repos, mock_agent_factory):
+    action_history_store_factory = Mock(return_value=Mock())
     return SimulationCommandService(
         run_repo=mock_repos["run_repo"],
         profile_repo=mock_repos["profile_repo"],
@@ -51,6 +52,7 @@ def command_service(mock_repos, mock_agent_factory):
         generated_bio_repo=mock_repos["generated_bio_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
         agent_factory=mock_agent_factory,
+        action_history_store_factory=action_history_store_factory,
     )
 
 

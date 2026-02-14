@@ -6,6 +6,7 @@ from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from simulation.core.action_history import ActionHistoryStore
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -24,6 +25,7 @@ class SimulationEngine:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
+        action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
         query_service: Optional[SimulationQueryService] = None,
         command_service: Optional[SimulationCommandService] = None,
     ):
@@ -39,14 +41,22 @@ class SimulationEngine:
             feed_post_repo=feed_post_repo,
             generated_feed_repo=generated_feed_repo,
         )
-        self.command_service = command_service or SimulationCommandService(
-            run_repo=run_repo,
-            profile_repo=profile_repo,
-            feed_post_repo=feed_post_repo,
-            generated_bio_repo=generated_bio_repo,
-            generated_feed_repo=generated_feed_repo,
-            agent_factory=agent_factory,
-        )
+        if command_service is not None:
+            self.command_service = command_service
+        else:
+            if action_history_store_factory is None:
+                raise ValueError(
+                    "action_history_store_factory is required when command_service is not provided"
+                )
+            self.command_service = SimulationCommandService(
+                run_repo=run_repo,
+                profile_repo=profile_repo,
+                feed_post_repo=feed_post_repo,
+                generated_bio_repo=generated_bio_repo,
+                generated_feed_repo=generated_feed_repo,
+                agent_factory=agent_factory,
+                action_history_store_factory=action_history_store_factory,
+            )
 
     def execute_run(self, run_config: RunConfig) -> Run:
         return self.command_service.execute_run(run_config)

@@ -12,7 +12,7 @@ from lib.decorators import record_runtime
 from lib.utils import get_current_timestamp
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.action_history import ActionHistoryStore, InMemoryActionHistoryStore
+from simulation.core.action_history import ActionHistoryStore
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
@@ -34,6 +34,7 @@ class SimulationCommandService:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
+        action_history_store_factory: Callable[[], ActionHistoryStore],
         agent_action_rules_validator: AgentActionRulesValidator | None = None,
         agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
     ):
@@ -43,6 +44,7 @@ class SimulationCommandService:
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
+        self.action_history_store_factory = action_history_store_factory
         self.agent_action_rules_validator = (
             agent_action_rules_validator or AgentActionRulesValidator()
         )
@@ -61,7 +63,7 @@ class SimulationCommandService:
                 run=run,
                 run_config=run_config,
                 agents=agents,
-                action_history_store=InMemoryActionHistoryStore(),
+                action_history_store=self.action_history_store_factory(),
             )
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
@@ -114,7 +116,7 @@ class SimulationCommandService:
                 agents,
                 run_config.feed_algorithm,
                 action_history_store=action_history_store
-                or InMemoryActionHistoryStore(),
+                or self.action_history_store_factory(),
             )
         except Exception as e:
             logger.error(
@@ -143,7 +145,7 @@ class SimulationCommandService:
         agents: list[SocialMediaAgent],
         action_history_store: ActionHistoryStore | None = None,
     ) -> None:
-        history_store = action_history_store or InMemoryActionHistoryStore()
+        history_store = action_history_store or self.action_history_store_factory()
         for turn_number in range(total_turns):
             self.simulate_turn(
                 run=run,
@@ -204,7 +206,7 @@ class SimulationCommandService:
             "follows": 0,
         }
 
-        history_store = action_history_store or InMemoryActionHistoryStore()
+        history_store = action_history_store or self.action_history_store_factory()
 
         for agent in agents:
             feed = agent_to_hydrated_feeds.get(agent.handle, [])
