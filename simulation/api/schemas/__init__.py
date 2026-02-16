@@ -5,6 +5,7 @@ from simulation.api.schemas.simulation import (
     LikesPerTurnItem,
     RunRequest,
     RunResponse,
+    RunResponseStatus,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "LikesPerTurnItem",
     "RunRequest",
     "RunResponse",
+    "RunResponseStatus",
 ]

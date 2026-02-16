@@ -1,6 +1,8 @@
 """Request/response schemas for the simulation run API."""
 
-from pydantic import BaseModel, field_validator
+from enum import Enum
+
+from pydantic import BaseModel, field_validator, model_validator
 
 from simulation.core.validators import (
     validate_feed_algorithm,
@@ -47,13 +49,28 @@ class ErrorDetail(BaseModel):
     detail: str | None = None
 
 
+class RunResponseStatus(str, Enum):
+    """Status of a simulation run as returned by the API."""
+
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class RunResponse(BaseModel):
     """Response body for POST /v1/simulations/run."""
 
     run_id: str
-    status: str  # "completed" | "failed"
+    status: RunResponseStatus
     num_agents: int
     num_turns: int
     likes_per_turn: list[LikesPerTurnItem]
     total_likes: int
     error: ErrorDetail | None = None
+
+    @model_validator(mode="after")
+    def _validate_status_error_consistency(self) -> "RunResponse":
+        if self.status == RunResponseStatus.FAILED and self.error is None:
+            raise ValueError("error must be set when status is 'failed'")
+        if self.status == RunResponseStatus.COMPLETED and self.error is not None:
+            raise ValueError("error must be None when status is 'completed'")
+        return self

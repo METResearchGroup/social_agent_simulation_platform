@@ -5,6 +5,7 @@ from simulation.api.schemas.simulation import (
     LikesPerTurnItem,
     RunRequest,
     RunResponse,
+    RunResponseStatus,
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import SimulationRunFailure
@@ -39,7 +40,7 @@ def execute(
         detail = str(e.cause) if e.cause else None
         return RunResponse(
             run_id=e.run_id,
-            status="failed",
+            status=RunResponseStatus.FAILED,
             num_agents=run_config.num_agents,
             num_turns=run_config.num_turns,
             likes_per_turn=likes_per_turn,
@@ -56,7 +57,7 @@ def execute(
     likes_per_turn, total_likes = _build_likes_per_turn_from_metadata(metadata_list)
     return RunResponse(
         run_id=run.run_id,
-        status="completed",
+        status=RunResponseStatus.COMPLETED,
         num_agents=run.total_agents,
         num_turns=run.total_turns,
         likes_per_turn=likes_per_turn,

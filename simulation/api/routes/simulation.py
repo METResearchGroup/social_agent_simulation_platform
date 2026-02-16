@@ -20,7 +20,7 @@ router = APIRouter(tags=["simulation"])
     response_model=RunResponse,
     status_code=200,
     summary="Run a simulation",
-    description="Execute a synchronous simulation run and return run_id, status, and likes per turn.",
+    description="Execute a synchronous simulation run.",
 )
 async def post_simulations_run(
     request: Request, body: RunRequest
