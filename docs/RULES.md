@@ -64,6 +64,7 @@ Testing:
   - Should these end-to-end tests be persisted or removed after verification?
   - Should I/O operations be mocked or use real I/O?
 - Use explicit expected-result variables in tests (e.g. expected_result = {...} then assert against it) to keep assertions readable.
+- Make use of fixtures to systematize resource setup/teardown across tests.
 
 Docstrings:
 

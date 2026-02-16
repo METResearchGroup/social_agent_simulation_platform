@@ -1,23 +1,17 @@
 """Tests for POST /v1/simulations/run endpoint."""
 
-from typing import cast
 from unittest.mock import MagicMock
 
-from fastapi import FastAPI
-
-from simulation.api.main import app
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
-def test_post_simulations_run_success_returns_completed_and_likes():
+def test_post_simulations_run_success_returns_completed_and_likes(simulation_client):
     """Success run returns 200 with status completed and likes per turn."""
-    from fastapi.testclient import TestClient
-
-    from lib.timestamp_utils import get_current_timestamp
-
+    client, fastapi_app = simulation_client
     run = Run(
         run_id="run-success-1",
         created_at=get_current_timestamp(),
@@ -42,13 +36,11 @@ def test_post_simulations_run_success_returns_completed_and_likes():
     mock_engine = MagicMock()
     mock_engine.execute_run.return_value = run
     mock_engine.list_turn_metadata.return_value = metadata_list
-    with TestClient(app=app) as client:
-        fastapi_app = cast(FastAPI, client.app)
-        fastapi_app.state.engine = mock_engine
-        response = client.post(
-            "/v1/simulations/run",
-            json={"num_agents": 1, "num_turns": 1},
-        )
+    fastapi_app.state.engine = mock_engine
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 1, "num_turns": 1},
+    )
     assert response.status_code == 200
     data = response.json()
     expected_result = {
@@ -66,12 +58,9 @@ def test_post_simulations_run_success_returns_completed_and_likes():
     assert data["total_likes"] == 0
 
 
-def test_post_simulations_run_defaults_num_turns_and_feed_algorithm():
+def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_client):
     """Request with only num_agents uses default num_turns=10 and feed_algorithm=chronological."""
-    from fastapi.testclient import TestClient
-
-    from lib.timestamp_utils import get_current_timestamp
-
+    client, fastapi_app = simulation_client
     run = Run(
         run_id="run-defaults-1",
         created_at=get_current_timestamp(),
@@ -97,13 +86,11 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm():
     mock_engine = MagicMock()
     mock_engine.execute_run.return_value = run
     mock_engine.list_turn_metadata.return_value = metadata_list
-    with TestClient(app=app) as client:
-        fastapi_app = cast(FastAPI, client.app)
-        fastapi_app.state.engine = mock_engine
-        response = client.post(
-            "/v1/simulations/run",
-            json={"num_agents": 1},
-        )
+    fastapi_app.state.engine = mock_engine
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 1},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["num_turns"] == 10
@@ -111,59 +98,50 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm():
     assert len(data["likes_per_turn"]) == 10
 
 
-def test_post_simulations_run_validation_num_agents_zero():
+def test_post_simulations_run_validation_num_agents_zero(simulation_client):
     """Invalid num_agents returns 422."""
-    from fastapi.testclient import TestClient
-
-    with TestClient(app=app) as client:
-        response = client.post(
-            "/v1/simulations/run",
-            json={"num_agents": 0},
-        )
+    client, _ = simulation_client
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 0},
+    )
     assert response.status_code == 422
 
 
-def test_post_simulations_run_validation_num_agents_missing():
+def test_post_simulations_run_validation_num_agents_missing(simulation_client):
     """Missing num_agents returns 422."""
-    from fastapi.testclient import TestClient
-
-    with TestClient(app=app) as client:
-        response = client.post(
-            "/v1/simulations/run",
-            json={},
-        )
+    client, _ = simulation_client
+    response = client.post(
+        "/v1/simulations/run",
+        json={},
+    )
     assert response.status_code == 422
 
 
-def test_post_simulations_run_validation_invalid_feed_algorithm():
+def test_post_simulations_run_validation_invalid_feed_algorithm(simulation_client):
     """Invalid feed_algorithm returns 422."""
-    from fastapi.testclient import TestClient
-
-    with TestClient(app=app) as client:
-        response = client.post(
-            "/v1/simulations/run",
-            json={"num_agents": 1, "feed_algorithm": "invalid_algo"},
-        )
+    client, _ = simulation_client
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 1, "feed_algorithm": "invalid_algo"},
+    )
     assert response.status_code == 422
 
 
-def test_post_simulations_run_pre_create_failure_returns_500():
+def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
     """Failure before run creation returns 500 with error payload."""
-    from fastapi.testclient import TestClient
-
+    client, fastapi_app = simulation_client
     mock_engine = MagicMock()
     mock_engine.execute_run.side_effect = SimulationRunFailure(
         message="Run creation or status update failed",
         run_id=None,
         cause=RuntimeError("db error"),
     )
-    with TestClient(app=app) as client:
-        fastapi_app = cast(FastAPI, client.app)
-        fastapi_app.state.engine = mock_engine
-        response = client.post(
-            "/v1/simulations/run",
-            json={"num_agents": 2, "num_turns": 2},
-        )
+    fastapi_app.state.engine = mock_engine
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 2, "num_turns": 2},
+    )
     assert response.status_code == 500
     data = response.json()
     assert "error" in data
@@ -171,10 +149,11 @@ def test_post_simulations_run_pre_create_failure_returns_500():
     assert data["error"]["message"] == "Run creation or status update failed"
 
 
-def test_post_simulations_run_partial_failure_returns_200_with_partial_likes():
+def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
+    simulation_client,
+):
     """Mid-run failure returns 200 with status failed and partial likes_per_turn."""
-    from fastapi.testclient import TestClient
-
+    client, fastapi_app = simulation_client
     partial_metadata = [
         TurnMetadata(
             run_id="run-partial-1",
@@ -194,13 +173,11 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_likes():
         cause=RuntimeError("turn 1 failed"),
     )
     mock_engine.list_turn_metadata.return_value = partial_metadata
-    with TestClient(app=app) as client:
-        fastapi_app = cast(FastAPI, client.app)
-        fastapi_app.state.engine = mock_engine
-        response = client.post(
-            "/v1/simulations/run",
-            json={"num_agents": 2, "num_turns": 2},
-        )
+    fastapi_app.state.engine = mock_engine
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 2, "num_turns": 2},
+    )
     assert response.status_code == 200
     data = response.json()
     expected_result = {
