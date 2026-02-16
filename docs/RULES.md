@@ -63,6 +63,7 @@ Testing:
 - Before finalizing tests, decide:
   - Should these end-to-end tests be persisted or removed after verification?
   - Should I/O operations be mocked or use real I/O?
+- Use explicit expected-result variables in tests (e.g. expected_result = {...} then assert against it) to keep assertions readable.
 
 Docstrings:
 
@@ -76,10 +77,6 @@ Error and failure semantics:
 
 - Use a stable error payload shape (e.g. code, message, detail) and sanitize detail; avoid exposing stack traces or internal paths.
 - Partial results on mid-run failure: return 200 with status="failed", partial data (e.g. likes_per_turn), and an error object—reserve 500 for pre-creation or infrastructure failures so clients can rely on partial results when a run exists.
-
-Testing:
-
-- Use explicit expected-result variables in tests (e.g. expected_result = {...} then assert against it) to keep assertions readable.
 
 API layer vs core
 
