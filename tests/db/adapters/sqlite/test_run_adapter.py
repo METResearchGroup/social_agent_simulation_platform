@@ -306,7 +306,9 @@ class TestSQLiteRunAdapterReadTurnMetadata:
 class TestSQLiteRunAdapterReadTurnMetadataForRun:
     """Tests for SQLiteRunAdapter.read_turn_metadata_for_run method."""
 
-    def test_returns_turn_metadata_rows_in_turn_order(self, adapter, mock_db_connection):
+    def test_returns_turn_metadata_rows_in_turn_order(
+        self, adapter, mock_db_connection
+    ):
         run_id = "run_123"
         row_turn_0 = create_mock_row(
             {
