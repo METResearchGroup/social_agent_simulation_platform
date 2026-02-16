@@ -18,7 +18,15 @@ APIs should accept explicit parameters, not implicit behavior
 - The new update_run_status(run, status) makes the status explicit.
 - Prefer parameters that describe what to do, not hidden, fixed behavior.
 
-Prefer single or minimal public APIs. Default to private APIs that perform the implementation and expose one or two public API functions that do the composite task. The public API should appear first out of all the functions or classes, to then be followed by the private API functions. It should be in descending order of callers; the public API first, then the immediate private APIs called by the public API, then the private APIs called by only other private APIs.
+Prefer single or minimal public APIs. Default to private APIs that perform the implementation and expose one or two public API functions that do the composite task.
+
+Organization:
+
+- Public APIs should appear first among all functions or classes
+- Follow with private APIs in descending order of callers:
+  1. Public API first
+  2. Immediate private APIs called by the public API
+  3. Private APIs called only by other private APIs
 
 Don't hardcode defaults or constants into functions inline. Define as file-level constants, underneath the imports, and then use them. This helps us keep track of hardcoded behaviors. Give file-level constants clear names and explicit types.
 
@@ -51,7 +59,10 @@ Per-commit:
 
 Testing:
 
-- In addition to unit tests, add throwaway end-to-end tests to verify functionality. Ask the user if they want these end-to-end tests to be persisted, and if they want to mock I/O or use real I/O.
+- Add throwaway end-to-end tests to verify functionality
+- Before finalizing tests, decide:
+  - Should these end-to-end tests be persisted or removed after verification?
+  - Should I/O operations be mocked or use real I/O?
 
 Docstrings:
 
@@ -76,3 +87,18 @@ API layer vs core
   - Core stays reusable: CLI, API, and tests can each choose their own defaults (or none)
   - Core stays obvious: reading RunConfig tells you exactly what must be provided.
   - Defaults live in one place: the API (or whatever layer builds the config).
+
+Fixed sets of values (e.g. status, type, kind):
+
+- Prefer an enum when the same set of values is used in more than one place (schemas, services, routes) or when you want a single shared type and stable OpenAPI/docs. Use a str-backed enum (e.g. class RunResponseStatus(str, Enum)) so JSON stays string values.
+- Use a Pydantic model (or discriminated union) when you need different required fields per value.
+- Prefer enum over Literal when you need a shared, reusable type; Literal is fine for a one-off field used only in one schema.
+
+Deterministic outputs:
+
+- When a function returns a list (or list-derived result) and the input order is not guaranteed by the caller, sort by a meaningful key before building the result so the function’s output is deterministic regardless of input order. Use a domain-natural key (e.g. turn_number, created_at, id).
+- Assume ordering matters for API responses and serialized data unless told otherwise; document or enforce the ordering (e.g. “ordered by turn_number ascending”) so clients get stable, repeatable results.
+
+Response schema consistency:
+
+- For response fields that depend on each other (e.g. status and error), use a shared enum for the discriminating field and a Pydantic @model_validator(mode="after") to enforce the invariant (e.g. when status is "failed", error must be set; when "completed", error must be None) so invalid combinations are rejected at the boundary.
