@@ -85,6 +85,38 @@ class TestSimulationQueryServiceGetTurnMetadata:
             query_service.get_turn_metadata("run_123", -1)
 
 
+class TestSimulationQueryServiceListTurnMetadata:
+    def test_returns_turn_metadata_list(self, query_service, mock_repos):
+        expected_result = [
+            TurnMetadata(
+                run_id="run_123",
+                turn_number=0,
+                total_actions={},
+                created_at="2024_01_01-12:00:00",
+            ),
+            TurnMetadata(
+                run_id="run_123",
+                turn_number=1,
+                total_actions={},
+                created_at="2024_01_01-12:01:00",
+            ),
+        ]
+        mock_repos["run_repo"].list_turn_metadata.return_value = expected_result
+
+        result = query_service.list_turn_metadata("run_123")
+
+        assert result == expected_result
+        mock_repos["run_repo"].list_turn_metadata.assert_called_once_with(
+            run_id="run_123"
+        )
+
+    def test_validates_run_id(self, query_service, mock_repos):
+        with pytest.raises(ValueError, match="run_id is invalid"):
+            query_service.list_turn_metadata("")
+
+        mock_repos["run_repo"].list_turn_metadata.assert_not_called()
+
+
 class TestSimulationQueryServiceGetTurnData:
     def test_returns_turn_data_with_feeds_and_posts(
         self, query_service, mock_repos, sample_run

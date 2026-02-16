@@ -83,6 +83,9 @@ class SimulationEngine:
     ) -> Optional[TurnMetadata]:
         return self.query_service.get_turn_metadata(run_id, turn_number)
 
+    def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
+        return self.query_service.list_turn_metadata(run_id)
+
     def get_turn_data(self, run_id: str, turn_number: int) -> Optional[TurnData]:
         return self.query_service.get_turn_data(run_id, turn_number)
 

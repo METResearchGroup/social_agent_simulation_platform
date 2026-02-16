@@ -35,3 +35,12 @@ Imports:
 Type annotations:
 
 - Use | instead of "Optional" for typing
+
+API design and rollout
+
+- Prefer sync endpoints first to lock in behavior and contracts; add async/job-based APIs later for concurrency and scale.
+
+Per-commit:
+
+- Run all pre-commit hooks.
+- Follow ci.yml and run those commands (e.g., "ruff", "uv run pytest") and fix errors as needed.

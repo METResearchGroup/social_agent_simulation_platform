@@ -41,6 +41,11 @@ class SimulationQueryService:
         validate_turn_number(turn_number)
         return self.run_repo.get_turn_metadata(run_id, turn_number)
 
+    def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
+        """List all turn metadata for a run in turn order."""
+        validate_run_id(run_id)
+        return self.run_repo.list_turn_metadata(run_id=run_id)
+
     def get_turn_data(self, run_id: str, turn_number: int) -> Optional[TurnData]:
         """Returns full turn data with feeds and posts."""
         validate_run_id(run_id)

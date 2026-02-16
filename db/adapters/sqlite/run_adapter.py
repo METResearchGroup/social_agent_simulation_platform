@@ -215,6 +215,51 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 f"total_actions={total_actions}, created_at={row['created_at']}"
             ) from e
 
+    def read_turn_metadata_for_run(self, run_id: str) -> list[TurnMetadata]:
+        """Read all turn metadata rows for a run from SQLite.
+
+        Args:
+            run_id: The ID of the run
+
+        Returns:
+            List of TurnMetadata ordered by turn_number ascending.
+            Returns empty list if no metadata exists for the run.
+
+        Raises:
+            ValueError: If run_id is invalid or row data is invalid
+            sqlite3.OperationalError: If database operation fails
+            KeyError: If required columns are missing from a database row
+        """
+        validate_run_id(run_id)
+
+        with get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
+                (run_id,),
+            ).fetchall()
+
+        turn_metadata_list: list[TurnMetadata] = []
+        for row in rows:
+            _validate_turn_metadata_row(row)
+            total_actions = _parse_total_actions_from_row(row)
+            try:
+                turn_metadata_list.append(
+                    TurnMetadata(
+                        run_id=row["run_id"],
+                        turn_number=row["turn_number"],
+                        total_actions=total_actions,
+                        created_at=row["created_at"],
+                    )
+                )
+            except Exception as e:
+                raise ValueError(
+                    f"Invalid turn metadata data: {e}. "
+                    f"run_id={row['run_id']}, turn_number={row['turn_number']}, "
+                    f"total_actions={total_actions}, created_at={row['created_at']}"
+                ) from e
+
+        return turn_metadata_list
+
     def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
         """Write turn metadata to SQLite.
 

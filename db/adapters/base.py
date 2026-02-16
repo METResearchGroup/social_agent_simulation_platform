@@ -116,6 +116,26 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def read_turn_metadata_for_run(self, run_id: str) -> list[TurnMetadata]:
+        """Read all turn metadata for a specific run.
+
+        Args:
+            run_id: The ID of the run
+
+        Returns:
+            List of TurnMetadata ordered by turn_number ascending.
+            Returns empty list if no rows are found for the run.
+
+        Raises:
+            ValueError: If run_id is invalid or any row contains invalid turn metadata
+            KeyError: If required columns are missing from any database row
+            Exception: Database-specific exception if the operation fails.
+                      Implementations should document the specific exception types
+                      they raise.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
         """Write turn metadata to the database.
 

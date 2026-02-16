@@ -65,6 +65,22 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
+        """List all turn metadata for a run in turn order.
+
+        Args:
+            run_id: The ID of the run
+
+        Returns:
+            List of TurnMetadata ordered by turn_number ascending.
+            Returns empty list if no metadata exists for this run.
+
+        Raises:
+            ValueError: If run_id is empty
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
         """Write turn metadata to the database.
 

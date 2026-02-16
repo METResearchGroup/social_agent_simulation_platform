@@ -157,6 +157,25 @@ class SQLiteRunRepository(RunRepository):
 
         return self._db_adapter.read_turn_metadata(run_id, turn_number)
 
+    def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
+        """List all turn metadata for a run in turn order.
+
+        Args:
+            run_id: The ID of the run
+
+        Returns:
+            List of TurnMetadata ordered by turn_number ascending.
+            Returns empty list if no metadata exists for this run.
+
+        Raises:
+            ValueError: If run_id is empty
+            ValueError: If turn metadata data is invalid
+            KeyError: If required columns are missing from the database row
+            Exception: Database-specific exceptions from the adapter
+        """
+        validate_run_id(run_id)
+        return self._db_adapter.read_turn_metadata_for_run(run_id=run_id)
+
     def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
         """Write turn metadata to the database.
 
