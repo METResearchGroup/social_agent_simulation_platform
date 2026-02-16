@@ -22,11 +22,12 @@ from db.repositories.interfaces import (
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.engine import SimulationEngine
 from simulation.core.models.agents import SocialMediaAgent
-
-from .agent import create_default_agent_factory
-from .action_history_store import create_default_action_history_store_factory
-from .command_service import create_command_service
-from .query_service import create_query_service
+from simulation.core.factories.action_history_store import (
+    create_default_action_history_store_factory,
+)
+from simulation.core.factories.agent import create_default_agent_factory
+from simulation.core.factories.command_service import create_command_service
+from simulation.core.factories.query_service import create_query_service
 
 
 def create_engine(
