@@ -3,8 +3,8 @@
 from collections.abc import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
-from simulation.core.models.posts import BlueskyFeedPost
 from db.repositories.interfaces import FeedPostRepository
+from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.validators import (
     validate_handle_exists,
     validate_posts_exist,

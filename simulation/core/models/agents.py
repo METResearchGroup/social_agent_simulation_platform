@@ -18,7 +18,9 @@ class SocialMediaAgent:
         self.comments: list[GeneratedComment] = []
         self.follows: list[GeneratedFollow] = []
 
-    def get_feed(self, run_id: str, turn_number: int = 0, *, created_at: str) -> GeneratedFeed:
+    def get_feed(
+        self, run_id: str, turn_number: int = 0, *, created_at: str
+    ) -> GeneratedFeed:
         """Get a feed for this agent.
 
         Args:

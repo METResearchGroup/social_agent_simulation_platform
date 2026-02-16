@@ -8,8 +8,6 @@ from simulation.core.action_history import (
 )
 
 
-def create_default_action_history_store_factory() -> (
-    Callable[[], ActionHistoryStore]
-):
+def create_default_action_history_store_factory() -> Callable[[], ActionHistoryStore]:
     """Create the default run-scoped action history store factory."""
     return InMemoryActionHistoryStore

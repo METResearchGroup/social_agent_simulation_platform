@@ -3,8 +3,8 @@
 from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
-from simulation.core.models.generated.bio import GeneratedBio
 from db.repositories.interfaces import GeneratedBioRepository
+from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.validators import validate_handle_exists
 
 

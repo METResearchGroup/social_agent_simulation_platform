@@ -4,6 +4,7 @@ import uuid
 from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
+from db.repositories.interfaces import RunRepository
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.exceptions import (
     InvalidTransitionError,
@@ -13,7 +14,6 @@ from simulation.core.exceptions import (
 )
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
-from db.repositories.interfaces import RunRepository
 from simulation.core.validators import (
     validate_run_exists,
     validate_run_id,

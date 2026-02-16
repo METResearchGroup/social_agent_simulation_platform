@@ -1,8 +1,8 @@
 """SQLite implementation of generated feed repositories."""
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
-from simulation.core.models.feeds import GeneratedFeed
 from db.repositories.interfaces import GeneratedFeedRepository
+from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.validators import (
     validate_handle_exists,
     validate_run_id,

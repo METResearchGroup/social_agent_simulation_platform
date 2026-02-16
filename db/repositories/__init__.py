@@ -10,11 +10,6 @@ from db.repositories.generated_feed_repository import (
     SQLiteGeneratedFeedRepository,
     create_sqlite_generated_feed_repository,
 )
-from db.repositories.profile_repository import (
-    SQLiteProfileRepository,
-    create_sqlite_profile_repository,
-)
-from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
@@ -22,6 +17,11 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
+from db.repositories.profile_repository import (
+    SQLiteProfileRepository,
+    create_sqlite_profile_repository,
+)
+from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
 
 __all__ = [
     "FeedPostRepository",
