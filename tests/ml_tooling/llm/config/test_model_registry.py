@@ -96,7 +96,9 @@ class TestModelConfig:
             with pytest.raises(ValueError, match="No provider found for model"):
                 ModelConfig("unknown-model", loaded_config)
 
-    def test_init_sets_provider_name_correctly(self, loaded_config, mock_provider_registry):
+    def test_init_sets_provider_name_correctly(
+        self, loaded_config, mock_provider_registry
+    ):
         """Test that __init__ correctly identifies and sets the provider name."""
         # Arrange & Act
         model_config = ModelConfig("gpt-4o-mini", loaded_config)
@@ -105,7 +107,9 @@ class TestModelConfig:
         assert model_config.provider_name == "openai"
         assert model_config.model_identifier == "gpt-4o-mini"
 
-    def test_init_sets_model_config_correctly(self, loaded_config, mock_provider_registry):
+    def test_init_sets_model_config_correctly(
+        self, loaded_config, mock_provider_registry
+    ):
         """Test that __init__ correctly loads model-specific configuration."""
         # Arrange & Act
         model_config = ModelConfig("huggingface/unsloth/llama-3-8b", loaded_config)
@@ -165,7 +169,9 @@ class TestModelConfig:
         model_config = ModelConfig("gpt-4o-mini", loaded_config)
 
         # Act
-        result = model_config.get_kwarg_value("nonexistent_key", default="default_value")
+        result = model_config.get_kwarg_value(
+            "nonexistent_key", default="default_value"
+        )
 
         # Assert
         assert result == "default_value"
@@ -224,7 +230,9 @@ class TestModelConfig:
         model_config = ModelConfig("gpt-4o-mini", loaded_config)
 
         # Act
-        result = model_config.get_config_value("models", "openai", "llm_inference_kwargs")
+        result = model_config.get_config_value(
+            "models", "openai", "llm_inference_kwargs"
+        )
 
         # Assert
         assert isinstance(result, dict)
@@ -292,7 +300,10 @@ class TestModelConfig:
         # Assert
         # Model has api_base, provider has empty dict, default has temperature
         assert "api_base" in result
-        assert result["api_base"] == "https://api-inference.huggingface.co/models/unsloth/llama-3-8b"
+        assert (
+            result["api_base"]
+            == "https://api-inference.huggingface.co/models/unsloth/llama-3-8b"
+        )
 
     def test_get_all_llm_inference_kwargs_includes_all_levels(
         self, loaded_config, mock_provider_registry
@@ -363,7 +374,9 @@ class TestModelConfigRegistry:
             mock_get_provider.side_effect = ValueError("No provider found")
 
             # Act & Assert
-            with pytest.raises(ValueError, match="Model 'unsupported-model' is not supported"):
+            with pytest.raises(
+                ValueError, match="Model 'unsupported-model' is not supported"
+            ):
                 ModelConfigRegistry.get_model_config("unsupported-model")
 
         # Cleanup
@@ -459,14 +472,18 @@ class TestModelConfigRegistry:
         ModelConfigRegistry.set_config_path(nonexistent_path)
 
         # Act & Assert
-        with pytest.raises(FileNotFoundError, match="Model configuration file not found"):
+        with pytest.raises(
+            FileNotFoundError, match="Model configuration file not found"
+        ):
             ModelConfigRegistry._load_config()
 
         # Cleanup
         ModelConfigRegistry._config = None
         ModelConfigRegistry._config_path = None
 
-    def test_load_config_is_thread_safe(self, actual_config_path, mock_provider_registry):
+    def test_load_config_is_thread_safe(
+        self, actual_config_path, mock_provider_registry
+    ):
         """Test that _load_config is thread-safe by checking it can be called concurrently."""
         import threading
 

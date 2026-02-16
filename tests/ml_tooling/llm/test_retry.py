@@ -128,7 +128,9 @@ class TestRetryLlmCompletion:
             LLMPermissionDeniedError("Permission denied"),
         ],
     )
-    def test_retry_llm_completion_does_not_retry_on_non_retryable_errors(self, exception):
+    def test_retry_llm_completion_does_not_retry_on_non_retryable_errors(
+        self, exception
+    ):
         """Test that decorated function does not retry on non-retryable errors."""
         call_count = 0
 

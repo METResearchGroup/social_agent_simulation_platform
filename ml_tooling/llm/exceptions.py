@@ -64,7 +64,9 @@ class LLMInvalidRequestError(LLMException):
 class LLMPermissionDeniedError(LLMException):
     """Permission denied error - should not be retried."""
 
-    category = ExceptionCategory.AUTH_ERROR  # Treated same as auth error for retry logic
+    category = (
+        ExceptionCategory.AUTH_ERROR
+    )  # Treated same as auth error for retry logic
 
 
 class LLMTransientError(LLMException):

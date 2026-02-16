@@ -112,7 +112,9 @@ class ModelConfig:
                     f"Path so far: {' -> '.join(path_so_far)}"
                 )
             if key not in value:
-                raise KeyError(f"Configuration key not found: {' -> '.join(path_so_far)}")
+                raise KeyError(
+                    f"Configuration key not found: {' -> '.join(path_so_far)}"
+                )
             value = value[key]
         return value
 

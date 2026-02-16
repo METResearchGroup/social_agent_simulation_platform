@@ -44,7 +44,12 @@ class _DummyProvider(LLMProviderProtocol):
         return {"type": "json_schema", "json_schema": {"schema": {}}}
 
     def prepare_completion_kwargs(
-        self, model: str, messages: list[dict], response_format, model_config, **kwargs  # noqa: ANN001,ARG002
+        self,
+        model: str,
+        messages: list[dict],
+        response_format,
+        model_config,
+        **kwargs,  # noqa: ANN001,ARG002
     ) -> dict:
         return {"model": model, "messages": messages, **kwargs}
 
@@ -59,9 +64,13 @@ class TestLLMService:
         mock_litellm_completion.side_effect = Exception("API error")
 
         # Avoid depending on provider/model registry logic here.
-        with patch.object(service, "_prepare_completion_kwargs", return_value=({}, None)):
+        with patch.object(
+            service, "_prepare_completion_kwargs", return_value=({}, None)
+        ):
             with pytest.raises(Exception, match="API error"):
-                service._chat_completion(messages=messages, model="gpt-4o-mini", provider=provider)
+                service._chat_completion(
+                    messages=messages, model="gpt-4o-mini", provider=provider
+                )
 
     @patch("ml_tooling.llm.llm_service.litellm.completion")
     def test__chat_completion_returns_model_response(self, mock_litellm_completion):
@@ -74,12 +83,18 @@ class TestLLMService:
 
         mock_response = ModelResponse(
             id="test-id",
-            choices=[Choices(message=Message(role="assistant", content="test response"))],
+            choices=[
+                Choices(message=Message(role="assistant", content="test response"))
+            ],
         )
         mock_litellm_completion.return_value = mock_response
 
-        with patch.object(service, "_prepare_completion_kwargs", return_value=({}, None)):
-            result = service._chat_completion(messages=messages, model="gpt-4o-mini", provider=provider)
+        with patch.object(
+            service, "_prepare_completion_kwargs", return_value=({}, None)
+        ):
+            result = service._chat_completion(
+                messages=messages, model="gpt-4o-mini", provider=provider
+            )
 
         assert isinstance(result, ModelResponse)
         assert result.id == "test-id"
@@ -93,7 +108,9 @@ class TestLLMService:
 
         parsed_model = SamplePydanticModel(value="test", number=42)
 
-        with patch.object(service, "_get_provider_for_model", return_value=dummy_provider):
+        with patch.object(
+            service, "_get_provider_for_model", return_value=dummy_provider
+        ):
             with patch.object(
                 service, "_complete_and_validate_structured", return_value=parsed_model
             ) as mock_complete:
@@ -116,7 +133,9 @@ class TestLLMService:
         dummy_provider = _DummyProvider()
         messages = [{"role": "user", "content": "test prompt"}]
 
-        with patch.object(service, "_get_provider_for_model", return_value=dummy_provider):
+        with patch.object(
+            service, "_get_provider_for_model", return_value=dummy_provider
+        ):
             # Mock _complete_and_validate_structured to raise ValueError (simulating handle_completion_response)
             with patch.object(
                 service,
@@ -150,10 +169,14 @@ class TestLLMService:
         except ValidationError as e:
             validation_error = e
 
-        with patch.object(service, "_get_provider_for_model", return_value=dummy_provider):
+        with patch.object(
+            service, "_get_provider_for_model", return_value=dummy_provider
+        ):
             # Mock _complete_and_validate_structured to raise ValidationError
             with patch.object(
-                service, "_complete_and_validate_structured", side_effect=validation_error
+                service,
+                "_complete_and_validate_structured",
+                side_effect=validation_error,
             ):
                 with pytest.raises(ValidationError):
                     service.structured_completion(
@@ -170,7 +193,9 @@ class TestLLMService:
 
         parsed_model = SamplePydanticModel(value="test", number=42)
 
-        with patch.object(service, "_get_provider_for_model", return_value=dummy_provider):
+        with patch.object(
+            service, "_get_provider_for_model", return_value=dummy_provider
+        ):
             with patch.object(
                 service, "_complete_and_validate_structured", return_value=parsed_model
             ) as mock_complete:
