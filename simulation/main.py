@@ -7,7 +7,7 @@ from simulation.core.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from simulation.core.dependencies import create_engine
+from simulation.core.factories import create_engine
 from simulation.core.models.runs import RunConfig
 
 # TODO: This file will be deprecated in favor of `simulation/cli/main.py` in future PR
