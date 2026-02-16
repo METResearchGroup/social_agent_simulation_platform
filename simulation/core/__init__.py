@@ -9,7 +9,7 @@ def __getattr__(name: str):
 
         return SimulationEngine
     if name == "create_engine":
-        from .dependencies import create_engine
+        from .factories import create_engine
 
         return create_engine
     if name == "SimulationQueryService":
