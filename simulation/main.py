@@ -6,6 +6,7 @@ from simulation.core.exceptions import (
     RunCreationError,
     RunNotFoundError,
     RunStatusUpdateError,
+    SimulationRunFailure,
 )
 from simulation.core.factories import create_engine
 from simulation.core.models.runs import RunConfig
@@ -23,14 +24,8 @@ def do_simulation_run(config: RunConfig) -> None:
 
     print(f"Starting simulation: {config.num_agents} agents, {config.num_turns} turns")
 
-    try:
-        run = engine.execute_run(config)
-        print(f"Simulation run {run.run_id} completed in {run.total_turns} turns.")
-    except Exception as e:
-        # Error handling matches previous implementation
-        # Engine handles status updates internally, but we still catch and print
-        print(f"Error: Failed to complete simulation: {e}")
-        raise
+    run = engine.execute_run(config)
+    print(f"Simulation run {run.run_id} completed in {run.total_turns} turns.")
 
 
 def main():
@@ -45,6 +40,10 @@ def main():
 
     try:
         do_simulation_run(config)
+    except SimulationRunFailure as e:
+        run_context = e.run_id or "unknown"
+        print(f"Error: simulation run failed (run_id={run_context}): {e}")
+        sys.exit(1)
     except (
         RunNotFoundError,
         InvalidTransitionError,

@@ -19,7 +19,11 @@ from simulation.core.agent_action_feed_filter import (
 )
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
+from simulation.core.exceptions import (
+    DuplicateTurnMetadataError,
+    RunStatusUpdateError,
+    SimulationRunFailure,
+)
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
@@ -73,8 +77,16 @@ class SimulationCommandService:
     def execute_run(self, run_config: RunConfig) -> Run:
         """Execute a simulation run."""
         try:
-            run: Run = self.run_repo.create_run(run_config)
+            run = self.run_repo.create_run(run_config)
             self.update_run_status(run, RunStatus.RUNNING)
+        except Exception as e:
+            raise SimulationRunFailure(
+                message="Run creation or status update failed",
+                run_id=None,
+                cause=e,
+            ) from e
+
+        try:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
             action_history_store = self.action_history_store_factory()
 
@@ -87,9 +99,13 @@ class SimulationCommandService:
             )
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
-        except Exception:
+        except Exception as e:
             self.update_run_status(run, RunStatus.FAILED)
-            raise
+            raise SimulationRunFailure(
+                message="Run failed during execution",
+                run_id=run.run_id,
+                cause=e,
+            ) from e
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         try:

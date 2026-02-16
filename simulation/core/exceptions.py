@@ -153,6 +153,20 @@ class RunStatusUpdateError(Exception):
         super().__init__(message)
 
 
+class SimulationRunFailure(Exception):
+    """Raised when simulation run execution fails."""
+
+    def __init__(
+        self,
+        message: str,
+        run_id: str | None = None,
+        cause: BaseException | None = None,
+    ):
+        self.run_id = run_id
+        self.cause = cause
+        super().__init__(message)
+
+
 class DuplicateTurnMetadataError(Exception):
     """Raised when turn metadata already exists."""
 
