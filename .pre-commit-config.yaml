@@ -1,11 +1,15 @@
 # See https://pre-commit.com for more information
+# Ruff hooks mirror CI (.github/workflows/ci.yml): ruff check + ruff format --check
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.14
     hooks:
+      # Same as CI: uv run ruff check .
       - id: ruff-check
         args: [--fix]
+      # Same as CI: uv run ruff format --check .
       - id: ruff-format
+        args: [--check]
   - repo: local
     hooks:
       - id: complexipy
