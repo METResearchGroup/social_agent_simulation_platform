@@ -1,48 +1,11 @@
-"""Abstraction for profile repositories."""
+"""SQLite implementation of profile repositories."""
 
-from abc import ABC, abstractmethod
 from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
+from db.repositories.interfaces import ProfileRepository
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.validators import validate_handle_exists
-
-
-class ProfileRepository(ABC):
-    """Abstract base class defining the interface for profile repositories."""
-
-    @abstractmethod
-    def create_or_update_profile(self, profile: BlueskyProfile) -> BlueskyProfile:
-        """Create or update a profile.
-
-        Args:
-            profile: BlueskyProfile model to create or update
-
-        Returns:
-            The created or updated BlueskyProfile object
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_profile(self, handle: str) -> Optional[BlueskyProfile]:
-        """Get a profile by handle.
-
-        Args:
-            handle: Profile handle to look up
-
-        Returns:
-            BlueskyProfile model if found, None otherwise.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_profiles(self) -> list[BlueskyProfile]:
-        """List all profiles.
-
-        Returns:
-            List of all BlueskyProfile models.
-        """
-        raise NotImplementedError
 
 
 class SQLiteProfileRepository(ProfileRepository):

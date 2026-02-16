@@ -1,11 +1,14 @@
 from collections.abc import Callable
 from typing import Optional
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    GeneratedFeedRepository,
+    ProfileRepository,
+    RunRepository,
+)
+from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import (
     ActionHistoryStore,
     InMemoryActionHistoryStore,
@@ -31,6 +34,7 @@ class SimulationEngine:
         action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
         query_service: Optional[SimulationQueryService] = None,
         command_service: Optional[SimulationCommandService] = None,
+        feed_generator: Optional[FeedGenerator] = None,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -47,15 +51,23 @@ class SimulationEngine:
             feed_post_repo=feed_post_repo,
             generated_feed_repo=generated_feed_repo,
         )
-        self.command_service = command_service or SimulationCommandService(
-            run_repo=run_repo,
-            profile_repo=profile_repo,
-            feed_post_repo=feed_post_repo,
-            generated_bio_repo=generated_bio_repo,
-            generated_feed_repo=generated_feed_repo,
-            agent_factory=agent_factory,
-            action_history_store_factory=self.action_history_store_factory,
-        )
+        if command_service is not None:
+            self.command_service = command_service
+        else:
+            if feed_generator is None:
+                raise ValueError(
+                    "feed_generator is required when command_service is not provided"
+                )
+            self.command_service = SimulationCommandService(
+                run_repo=run_repo,
+                profile_repo=profile_repo,
+                feed_post_repo=feed_post_repo,
+                generated_bio_repo=generated_bio_repo,
+                generated_feed_repo=generated_feed_repo,
+                agent_factory=agent_factory,
+                action_history_store_factory=self.action_history_store_factory,
+                feed_generator=feed_generator,
+            )
 
     def execute_run(self, run_config: RunConfig) -> Run:
         return self.command_service.execute_run(run_config)

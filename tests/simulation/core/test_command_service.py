@@ -4,14 +4,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from db.exceptions import RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from feeds.interfaces import FeedGenerator
 from simulation.core.agent_action_feed_filter import ActionCandidateFeeds
 from simulation.core.command_service import SimulationCommandService
+from simulation.core.exceptions import RunStatusUpdateError
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.base import GenerationMetadata
@@ -44,7 +45,19 @@ def mock_agent_factory():
 
 
 @pytest.fixture
-def command_service(mock_repos, mock_agent_factory):
+def mock_feed_generator():
+    """Feed generator mock that returns one empty feed per agent (satisfies validate_agents_without_feeds)."""
+    mock = Mock(spec=FeedGenerator)
+    mock.generate_feeds.side_effect = (
+        lambda agents, run_id, turn_number, feed_algorithm: {
+            a.handle: [] for a in agents
+        }
+    )
+    return mock
+
+
+@pytest.fixture
+def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
     action_history_store = Mock()
     action_history_store.has_liked.return_value = False
     action_history_store.has_commented.return_value = False
@@ -66,6 +79,7 @@ def command_service(mock_repos, mock_agent_factory):
         generated_feed_repo=mock_repos["generated_feed_repo"],
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
+        feed_generator=mock_feed_generator,
         agent_action_feed_filter=agent_action_feed_filter,
     )
 
@@ -241,19 +255,19 @@ class TestSimulationCommandServiceExecuteRun:
             ["post_1"],
             ["user_1"],
         )
+        command_service.feed_generator.generate_feeds.return_value = {
+            agent.handle: [feed_post]
+        }
+        command_service.feed_generator.generate_feeds.side_effect = None
 
-        with patch(
-            "feeds.feed_generator.generate_feeds",
-            return_value={agent.handle: [feed_post]},
-        ):
-            action_history_store = Mock()
-            result = command_service._simulate_turn(
-                run_id=sample_run.run_id,
-                turn_number=0,
-                agents=[agent],
-                feed_algorithm="chronological",
-                action_history_store=action_history_store,
-            )
+        action_history_store = Mock()
+        result = command_service._simulate_turn(
+            run_id=sample_run.run_id,
+            turn_number=0,
+            agents=[agent],
+            feed_algorithm="chronological",
+            action_history_store=action_history_store,
+        )
 
         assert result.total_actions[TurnAction.LIKE] == 1
         assert result.total_actions[TurnAction.COMMENT] == 1
@@ -326,19 +340,19 @@ class TestSimulationCommandServiceExecuteRun:
         )
         command_service.agent_action_history_recorder = Mock()
         mock_repos["run_repo"].get_run.return_value = sample_run
+        command_service.feed_generator.generate_feeds.return_value = {
+            agent.handle: full_feed
+        }
+        command_service.feed_generator.generate_feeds.side_effect = None
 
-        with patch(
-            "feeds.feed_generator.generate_feeds",
-            return_value={agent.handle: full_feed},
-        ):
-            action_history_store = Mock()
-            result = command_service._simulate_turn(
-                run_id=sample_run.run_id,
-                turn_number=0,
-                agents=[agent],
-                feed_algorithm="chronological",
-                action_history_store=action_history_store,
-            )
+        action_history_store = Mock()
+        result = command_service._simulate_turn(
+            run_id=sample_run.run_id,
+            turn_number=0,
+            agents=[agent],
+            feed_algorithm="chronological",
+            action_history_store=action_history_store,
+        )
 
         expected_total_actions = {
             TurnAction.LIKE: 0,

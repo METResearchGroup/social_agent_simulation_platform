@@ -1,0 +1,112 @@
+"""Factory for creating the simulation engine."""
+
+from collections.abc import Callable
+
+from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
+from db.repositories.generated_bio_repository import (
+    create_sqlite_generated_bio_repository,
+)
+from db.repositories.generated_feed_repository import (
+    create_sqlite_generated_feed_repository,
+)
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    GeneratedFeedRepository,
+    ProfileRepository,
+    RunRepository,
+)
+from db.repositories.profile_repository import create_sqlite_profile_repository
+from db.repositories.run_repository import create_sqlite_repository
+from simulation.core.action_history import ActionHistoryStore
+from simulation.core.engine import SimulationEngine
+from simulation.core.factories.action_history_store import (
+    create_default_action_history_store_factory,
+)
+from simulation.core.factories.agent import create_default_agent_factory
+from simulation.core.factories.command_service import create_command_service
+from simulation.core.factories.query_service import create_query_service
+from simulation.core.models.agents import SocialMediaAgent
+
+
+def create_engine(
+    *,
+    run_repo: RunRepository | None = None,
+    profile_repo: ProfileRepository | None = None,
+    feed_post_repo: FeedPostRepository | None = None,
+    generated_bio_repo: GeneratedBioRepository | None = None,
+    generated_feed_repo: GeneratedFeedRepository | None = None,
+    agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
+    action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
+) -> SimulationEngine:
+    """Create a SimulationEngine with injected dependencies.
+
+    This factory function creates a SimulationEngine instance with all required
+    dependencies. If a dependency is not provided, it defaults to creating a
+    SQLite repository or the default agent factory.
+
+    Args:
+        run_repo: Optional. Run repository. Defaults to SQLite implementation.
+        profile_repo: Optional. Profile repository. Defaults to SQLite implementation.
+        feed_post_repo: Optional. Feed post repository. Defaults to SQLite implementation.
+        generated_bio_repo: Optional. Generated bio repository. Defaults to SQLite implementation.
+        generated_feed_repo: Optional. Generated feed repository. Defaults to SQLite implementation.
+        agent_factory: Optional. Agent factory function. Defaults to create_default_agent_factory().
+
+    Returns:
+        A configured SimulationEngine instance.
+
+    Example:
+        >>> # Use all defaults
+        >>> engine = create_engine()
+        >>>
+        >>> # Override specific dependencies
+        >>> engine = create_engine(
+        ...     run_repo=my_custom_repo,
+        ...     agent_factory=my_custom_factory,
+        ... )
+    """
+    # Create default repositories if not provided
+    if run_repo is None:
+        run_repo = create_sqlite_repository()
+    if profile_repo is None:
+        profile_repo = create_sqlite_profile_repository()
+    if feed_post_repo is None:
+        feed_post_repo = create_sqlite_feed_post_repository()
+    if generated_bio_repo is None:
+        generated_bio_repo = create_sqlite_generated_bio_repository()
+    if generated_feed_repo is None:
+        generated_feed_repo = create_sqlite_generated_feed_repository()
+
+    # Create default agent factory if not provided
+    if agent_factory is None:
+        agent_factory = create_default_agent_factory()
+    if action_history_store_factory is None:
+        action_history_store_factory = create_default_action_history_store_factory()
+
+    query_service = create_query_service(
+        run_repo=run_repo,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
+    )
+    command_service = create_command_service(
+        run_repo=run_repo,
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+        generated_feed_repo=generated_feed_repo,
+        agent_factory=agent_factory,
+        action_history_store_factory=action_history_store_factory,
+    )
+
+    return SimulationEngine(
+        run_repo=run_repo,
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+        generated_feed_repo=generated_feed_repo,
+        agent_factory=agent_factory,
+        action_history_store_factory=action_history_store_factory,
+        query_service=query_service,
+        command_service=command_service,
+    )

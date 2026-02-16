@@ -2,12 +2,14 @@ import logging
 import time
 from collections.abc import Callable
 
-from db.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    GeneratedFeedRepository,
+    ProfileRepository,
+    RunRepository,
+)
+from feeds.interfaces import FeedGenerator
 from lib.decorators import record_runtime
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore
@@ -17,6 +19,7 @@ from simulation.core.agent_action_feed_filter import (
 )
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
+from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
@@ -44,6 +47,7 @@ class SimulationCommandService:
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
+        feed_generator: FeedGenerator,
         agent_action_rules_validator: AgentActionRulesValidator | None = None,
         agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
         agent_action_feed_filter: AgentActionFeedFilter | None = None,
@@ -55,6 +59,7 @@ class SimulationCommandService:
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
+        self.feed_generator = feed_generator
         self.agent_action_rules_validator = (
             agent_action_rules_validator or AgentActionRulesValidator()
         )
@@ -196,16 +201,13 @@ class SimulationCommandService:
         run = self.run_repo.get_run(run_id)
         validate_run_exists(run=run, run_id=run_id)
 
-        from feeds.feed_generator import generate_feeds
-
-        # TODO: revisit how feeds are generated, to make sure it's cleaned up.
-        agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = generate_feeds(
-            agents=agents,
-            run_id=run_id,
-            turn_number=turn_number,
-            generated_feed_repo=self.generated_feed_repo,
-            feed_post_repo=self.feed_post_repo,
-            feed_algorithm=feed_algorithm,
+        agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = (
+            self.feed_generator.generate_feeds(
+                agents=agents,
+                run_id=run_id,
+                turn_number=turn_number,
+                feed_algorithm=feed_algorithm,
+            )
         )
 
         validate_agents_without_feeds(

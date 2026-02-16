@@ -1,9 +1,9 @@
-"""Abstraction for feed post repositories."""
+"""SQLite implementation of feed post repositories."""
 
-from abc import ABC, abstractmethod
-from typing import Iterable
+from collections.abc import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
+from db.repositories.interfaces import FeedPostRepository
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.validators import (
     validate_handle_exists,
@@ -11,93 +11,6 @@ from simulation.core.validators import (
     validate_uri_exists,
     validate_uris_exist,
 )
-
-
-class FeedPostRepository(ABC):
-    """Abstract base class defining the interface for feed post repositories."""
-
-    @abstractmethod
-    def create_or_update_feed_post(self, post: BlueskyFeedPost) -> BlueskyFeedPost:
-        """Create or update a feed post.
-
-        Args:
-            post: BlueskyFeedPost model to create or update
-
-        Returns:
-            The created or updated BlueskyFeedPost object
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def create_or_update_feed_posts(
-        self, posts: list[BlueskyFeedPost]
-    ) -> list[BlueskyFeedPost]:
-        """Create or update multiple feed posts (batch operation).
-
-        Args:
-            posts: List of BlueskyFeedPost models to create or update
-
-        Returns:
-            List of created or updated BlueskyFeedPost objects
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_feed_post(self, uri: str) -> BlueskyFeedPost:
-        """Get a feed post by URI.
-
-        Args:
-            uri: Post URI to look up
-
-        Returns:
-            BlueskyFeedPost model if found.
-
-        Raises:
-            ValueError: If uri is empty or if no feed post is found for the given URI
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
-        """List all feed posts by a specific author.
-
-        Args:
-            author_handle: Author handle to filter by
-
-        Returns:
-            List of BlueskyFeedPost models for the author.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_all_feed_posts(self) -> list[BlueskyFeedPost]:
-        """List all feed posts.
-
-        Returns:
-            List of all BlueskyFeedPost models.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
-        """Read feed posts by URIs.
-
-        Args:
-            uris: Iterable of post URIs to look up
-
-        Returns:
-            List of BlueskyFeedPost models for the given URIs.
-            Returns empty list if no URIs provided or if no posts found.
-            Missing URIs are silently skipped (only existing posts are returned).
-
-        Raises:
-            ValueError: If the feed post data is invalid (NULL fields)
-            KeyError: If required columns are missing from any database row
-            Exception: Database-specific exception if the operation fails.
-                      Implementations should document the specific exception types
-                      they raise.
-        """
-        raise NotImplementedError
 
 
 class SQLiteFeedPostRepository(FeedPostRepository):
