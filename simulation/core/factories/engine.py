@@ -1,7 +1,6 @@
 """Factory for creating the simulation engine."""
 
 from collections.abc import Callable
-from typing import Optional
 
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
@@ -32,13 +31,13 @@ from simulation.core.factories.query_service import create_query_service
 
 def create_engine(
     *,
-    run_repo: Optional[RunRepository] = None,
-    profile_repo: Optional[ProfileRepository] = None,
-    feed_post_repo: Optional[FeedPostRepository] = None,
-    generated_bio_repo: Optional[GeneratedBioRepository] = None,
-    generated_feed_repo: Optional[GeneratedFeedRepository] = None,
-    agent_factory: Optional[Callable[[int], list[SocialMediaAgent]]] = None,
-    action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
+    run_repo: RunRepository | None = None,
+    profile_repo: ProfileRepository | None = None,
+    feed_post_repo: FeedPostRepository | None = None,
+    generated_bio_repo: GeneratedBioRepository | None = None,
+    generated_feed_repo: GeneratedFeedRepository | None = None,
+    agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
+    action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
 ) -> SimulationEngine:
     """Create a SimulationEngine with injected dependencies.
 

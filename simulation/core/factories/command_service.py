@@ -1,7 +1,6 @@
 """Factory for creating the simulation command service."""
 
 from collections.abc import Callable
-from typing import Optional
 
 from db.repositories.interfaces import (
     FeedPostRepository,
@@ -34,11 +33,11 @@ def create_command_service(
     generated_bio_repo: GeneratedBioRepository,
     generated_feed_repo: GeneratedFeedRepository,
     agent_factory: Callable[[int], list[SocialMediaAgent]],
-    action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
-    feed_generator: Optional[FeedGenerator] = None,
-    agent_action_rules_validator: Optional[AgentActionRulesValidator] = None,
-    agent_action_history_recorder: Optional[AgentActionHistoryRecorder] = None,
-    agent_action_feed_filter: Optional[AgentActionFeedFilter] = None,
+    action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
+    feed_generator: FeedGenerator | None = None,
+    agent_action_rules_validator: AgentActionRulesValidator | None = None,
+    agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
+    agent_action_feed_filter: AgentActionFeedFilter | None = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
     if action_history_store_factory is None:
