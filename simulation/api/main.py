@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from db.adapters.sqlite.sqlite import initialize_database
+from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
 
 
@@ -25,6 +26,8 @@ app = FastAPI(
     title="Agent Simulation Platform API",
     lifespan=lifespan,
 )
+
+app.include_router(simulation_router, prefix="/v1")
 
 
 @app.get("/health")

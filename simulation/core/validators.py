@@ -20,6 +20,31 @@ def validate_run_id(run_id: str):
         raise ValueError("run_id is invalid")
 
 
+def validate_num_agents(num_agents: int) -> int:
+    """Validate that num_agents is a positive integer."""
+    if num_agents <= 0:
+        raise ValueError("num_agents must be greater than 0")
+    return num_agents
+
+
+def validate_num_turns(num_turns: int | None) -> int | None:
+    """Validate that num_turns, when provided, is a positive integer."""
+    if num_turns is not None and num_turns <= 0:
+        raise ValueError("num_turns must be greater than 0")
+    return num_turns
+
+
+def validate_feed_algorithm(feed_algorithm: str | None) -> str | None:
+    """Validate that feed_algorithm, when provided, is a registered algorithm."""
+    if feed_algorithm is None:
+        return None
+    from feeds.feed_generator import _FEED_ALGORITHMS
+
+    if feed_algorithm not in _FEED_ALGORITHMS:
+        raise ValueError(f"Invalid feed algorithm: {feed_algorithm}")
+    return feed_algorithm
+
+
 def validate_run_exists(run: Run | None, run_id: str):
     if run is None:
         raise RunNotFoundError(run_id)
