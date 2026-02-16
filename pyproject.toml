@@ -7,6 +7,8 @@ requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.17.2",
     "pyyaml>=6.0",
+    "litellm>=1.59.10",
+    "tenacity>=8.2.3",
     "atproto>=0.0.63",
     "dotenv>=0.9.9",
     "langchain>=1.1.0",
@@ -84,7 +86,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.ruff.lint.isort]
-known-first-party = ["simulation", "db", "ai", "lib", "feeds", "jobs"]
+known-first-party = ["simulation", "db", "ai", "lib", "feeds", "jobs", "ml_tooling"]
 
 [tool.pyright]
 include = ["."]

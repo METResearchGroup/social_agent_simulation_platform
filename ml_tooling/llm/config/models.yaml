@@ -1,0 +1,75 @@
+# Model configurations organized by provider families.
+# Each provider family can have:
+# - llm_inference_kwargs: Default kwargs for all models in this provider
+# - supported_models: Model-specific configurations (llm_inference_kwargs: {} unless overrides needed)
+#
+# Kwarg resolution hierarchy: model-specific -> provider -> default
+# This means if a model has a specific kwarg, it overrides the provider default,
+# which in turn overrides the global default.
+
+models:
+  default:
+    # our default model is gpt-4o-mini.
+    default_model: "gpt-4o-mini"
+    llm_inference_kwargs:
+      temperature: 0.0
+
+  openai:
+    llm_inference_kwargs:
+      temperature: 0.0
+    supported_models:
+      "gpt-4o-mini":
+        llm_inference_kwargs: {}
+      "gpt-4o-mini-2024-07-18":
+        llm_inference_kwargs: {}
+      "gpt-4":
+        llm_inference_kwargs: {}
+      "gpt-5-nano":
+        llm_inference_kwargs: {
+          # From LiteLLM error message:
+          # gpt-5 models (including gpt-5-codex) don't support temperature=0.0.
+          # Only temperature=1 is supported. For gpt-5.1, temperature is
+          # supported when reasoning_effort='none' (or not specified, as it
+          #defaults to 'none').
+          temperature: 1
+        }
+
+  gemini:
+    llm_inference_kwargs:
+      temperature: 0.0
+      safety_settings:
+        - category: "HARM_CATEGORY_HARASSMENT"
+          threshold: "BLOCK_NONE"
+        - category: "HARM_CATEGORY_HATE_SPEECH"
+          threshold: "BLOCK_NONE"
+        - category: "HARM_CATEGORY_SEXUALLY_EXPLICIT"
+          threshold: "BLOCK_NONE"
+        - category: "HARM_CATEGORY_DANGEROUS_CONTENT"
+          threshold: "BLOCK_NONE"
+    supported_models:
+      "gemini/gemini-1.0-pro-latest":
+        llm_inference_kwargs: {}
+      "gemini/gemini-1.5-pro-latest":
+        llm_inference_kwargs: {}
+
+  groq:
+    llm_inference_kwargs:
+      temperature: 0.0
+      response_format:
+        type: "json_object"
+    supported_models:
+      "groq/llama3-8b-8192":
+        llm_inference_kwargs: {}
+      "groq/llama3-70b-8192":
+        llm_inference_kwargs: {}
+
+  huggingface:
+    # HuggingFace models typically need api_base in kwargs (set per-model)
+    llm_inference_kwargs: {}
+    supported_models:
+      "huggingface/unsloth/llama-3-8b":
+        llm_inference_kwargs:
+          api_base: "https://api-inference.huggingface.co/models/unsloth/llama-3-8b"
+      "huggingface/mistralai/Mixtral-8x22B-v0.1":
+        llm_inference_kwargs:
+          api_base: "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x22B-v0.1"
