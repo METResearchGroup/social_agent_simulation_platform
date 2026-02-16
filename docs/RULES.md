@@ -20,7 +20,7 @@ APIs should accept explicit parameters, not implicit behavior
 
 Prefer single or minimal public APIs. Default to private APIs that perform the implementation and expose one or two public API functions that do the composite task. The public API should appear first out of all the functions or classes, to then be followed by the private API functions. It should be in descending order of callers; the public API first, then the immediate private APIs called by the public API, then the private APIs called by only other private APIs.
 
-Don't hardcode defaults or constants into functions inline. Define as file-level constants, underneath the imports, and then use them. This helps us keep track of hardcoded behaviors.
+Don't hardcode defaults or constants into functions inline. Define as file-level constants, underneath the imports, and then use them. This helps us keep track of hardcoded behaviors. Give file-level constants clear names and explicit types.
 
 - Example: `feeds/feed_generator.py` exposes one public function, `generate_feeds`, which is the only function used by external callers. The actual functionality is largely managed by internal private functions.
 
@@ -56,3 +56,23 @@ Testing:
 Docstrings:
 
 - Avoid hardcoding implementation details (e.g., "runs XYZ function, calls XYZ database"). Keep docstrings related to (1) inputs/outputs, (2) expected exceptions, (3) core algorithmic details (including branching logic), and (4) known edge cases or gotchas or tricky situations.
+
+API routes
+
+- Keep HTTP routes thin. Routes should validate input, get dependencies (e.g. from request.app.state), call a service (or asyncio.to_thread(service, ...) for sync code), and return the response. Put orchestration (building config, calling engine, mapping to response DTOs) in a dedicated service module, not in the route.
+
+Error and failure semantics:
+
+- Use a stable error payload shape (e.g. code, message, detail) and sanitize detail; avoid exposing stack traces or internal paths.
+- Partial results on mid-run failure: return 200 with status="failed", partial data (e.g. likes_per_turn), and an error object—reserve 500 for pre-creation or infrastructure failures so clients can rely on partial results when a run exists.
+
+Testing:
+
+- Use explicit expected-result variables in tests (e.g. expected_result = {...} then assert against it) to keep assertions readable.
+
+API layer vs core
+
+- Apply defaults at the API boundary, not in shared models. Keep core/domain models (e.g. RunConfig) without default values; build them in the API layer (e.g. request DTO → service) and apply defaults there (e.g. DEFAULT_NUM_TURNS, DEFAULT_FEED_ALGORITHM) so core stays explicit and reusable. Core/domain models stay explicit: every field is required. No hidden defaults. Defaults are applied only when building those models, in the API layer (e.g. when turning a request DTO into a RunConfig). This means:
+  - Core stays reusable: CLI, API, and tests can each choose their own defaults (or none)
+  - Core stays obvious: reading RunConfig tells you exactly what must be provided.
+  - Defaults live in one place: the API (or whatever layer builds the config).
