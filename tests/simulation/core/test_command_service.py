@@ -10,7 +10,11 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from feeds.interfaces import FeedGenerator
-from simulation.core.agent_action_feed_filter import ActionCandidateFeeds
+from simulation.core.action_history import InMemoryActionHistoryStore
+from simulation.core.agent_action_feed_filter import (
+    ActionCandidateFeeds,
+    HistoryAwareActionFeedFilter,
+)
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
@@ -373,6 +377,63 @@ class TestSimulationCommandServiceExecuteRun:
             TurnAction.FOLLOW: 0,
         }
         assert result.total_actions == expected_total_actions
-        agent.like_posts.assert_called_once_with([like_only_post])
+        agent.like_posts.assert_called_once_with(
+            [like_only_post],
+            run_id=sample_run.run_id,
+            turn_number=0,
+        )
         agent.comment_posts.assert_called_once_with([comment_only_post])
         agent.follow_users.assert_called_once_with([follow_only_post])
+
+    def test_simulate_turn_produces_non_zero_likes_with_real_agent_and_filter(
+        self, command_service, mock_repos, sample_run
+    ):
+        """Real agent and HistoryAwareActionFeedFilter produce non-zero likes."""
+        agent = SocialMediaAgent("agent1.bsky.social")
+        feed_posts = [
+            BlueskyFeedPost(
+                id="post_1",
+                uri="post_1",
+                author_display_name="Author A",
+                author_handle="author-a.bsky.social",
+                text="content",
+                bookmark_count=0,
+                like_count=5,
+                quote_count=0,
+                reply_count=2,
+                repost_count=1,
+                created_at="2024_01_01-12:00:00",
+            ),
+            BlueskyFeedPost(
+                id="post_2",
+                uri="post_2",
+                author_display_name="Author B",
+                author_handle="author-b.bsky.social",
+                text="content",
+                bookmark_count=0,
+                like_count=10,
+                quote_count=0,
+                reply_count=0,
+                repost_count=0,
+                created_at="2024_01_01-11:00:00",
+            ),
+        ]
+
+        command_service.agent_action_feed_filter = HistoryAwareActionFeedFilter()
+        command_service.feed_generator.generate_feeds.return_value = {
+            agent.handle: feed_posts,
+        }
+        command_service.feed_generator.generate_feeds.side_effect = None
+        mock_repos["run_repo"].get_run.return_value = sample_run
+
+        action_history_store = InMemoryActionHistoryStore()
+        result = command_service._simulate_turn(
+            run_id=sample_run.run_id,
+            turn_number=0,
+            agents=[agent],
+            feed_algorithm="chronological",
+            action_history_store=action_history_store,
+        )
+
+        expected_min_likes = 1
+        assert result.total_actions[TurnAction.LIKE] >= expected_min_likes
