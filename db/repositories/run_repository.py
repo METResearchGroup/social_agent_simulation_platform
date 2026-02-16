@@ -1,17 +1,17 @@
-"""Abstraction for repositories."""
+"""SQLite implementation of run repositories."""
 
 import uuid
-from abc import ABC, abstractmethod
 from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
-from db.exceptions import (
+from db.repositories.interfaces import RunRepository
+from lib.timestamp_utils import get_current_timestamp
+from simulation.core.exceptions import (
     InvalidTransitionError,
     RunCreationError,
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import (
@@ -21,70 +21,6 @@ from simulation.core.validators import (
     validate_turn_number,
     validate_turn_number_less_than_max_turns,
 )
-
-
-class RunRepository(ABC):
-    """Abstract base class defining the interface for run repositories."""
-
-    @abstractmethod
-    def create_run(self, config: RunConfig) -> Run:
-        """Create a new run."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_run(self, run_id: str) -> Optional[Run]:
-        """Get a run by ID."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_runs(self) -> list[Run]:
-        """List all runs."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
-        """Update a run's status.
-
-        Raises:
-            RunNotFoundError: If the run with the given ID does not exist
-            InvalidTransitionError: If the status transition is invalid
-            RunStatusUpdateError: If the status update fails due to a database error
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_turn_metadata(
-        self, run_id: str, turn_number: int
-    ) -> Optional[TurnMetadata]:
-        """Get turn metadata for a specific run and turn.
-
-        Args:
-            run_id: The ID of the run
-            turn_number: The turn number (0-indexed)
-
-        Returns:
-            TurnMetadata if found, None otherwise
-
-        Raises:
-            ValueError: If run_id is empty or turn_number is negative
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
-        """Write turn metadata to the database.
-
-        Args:
-            turn_metadata: TurnMetadata model to write
-
-        Raises:
-            ValueError: If turn_metadata is invalid
-            DuplicateTurnMetadataError: If turn metadata already exists
-            Exception: Database-specific exception if constraints are violated or
-                      the operation fails. Implementations should document the
-                      specific exception types they raise.
-        """
-        raise NotImplementedError
 
 
 class SQLiteRunRepository(RunRepository):

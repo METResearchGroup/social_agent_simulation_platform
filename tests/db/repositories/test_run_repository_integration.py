@@ -10,12 +10,12 @@ import time
 import pytest
 
 from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
-from db.exceptions import (
+from db.repositories.run_repository import create_sqlite_repository
+from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
     RunNotFoundError,
 )
-from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 
 

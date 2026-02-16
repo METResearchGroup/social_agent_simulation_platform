@@ -1,48 +1,11 @@
-"""Abstraction for generated bio repositories."""
+"""SQLite implementation of generated bio repositories."""
 
-from abc import ABC, abstractmethod
 from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
+from db.repositories.interfaces import GeneratedBioRepository
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.validators import validate_handle_exists
-
-
-class GeneratedBioRepository(ABC):
-    """Abstract base class defining the interface for generated bio repositories."""
-
-    @abstractmethod
-    def create_or_update_generated_bio(self, bio: GeneratedBio) -> GeneratedBio:
-        """Create or update a generated bio.
-
-        Args:
-            bio: GeneratedBio model to create or update
-
-        Returns:
-            The created or updated GeneratedBio object
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_generated_bio(self, handle: str) -> Optional[GeneratedBio]:
-        """Get a generated bio by handle.
-
-        Args:
-            handle: Profile handle to look up
-
-        Returns:
-            GeneratedBio model if found, None otherwise.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_all_generated_bios(self) -> list[GeneratedBio]:
-        """List all generated bios.
-
-        Returns:
-            List of all GeneratedBio models.
-        """
-        raise NotImplementedError
 
 
 class SQLiteGeneratedBioRepository(GeneratedBioRepository):

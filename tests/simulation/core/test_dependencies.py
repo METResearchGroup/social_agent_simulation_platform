@@ -1,4 +1,4 @@
-"""Tests for simulation.core.dependencies module."""
+"""Tests for simulation.core.factories (factory functions previously in dependencies)."""
 
 from unittest.mock import Mock, patch
 
@@ -10,14 +10,14 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
-from simulation.core.dependencies import (
+from simulation.core.engine import SimulationEngine
+from simulation.core.exceptions import InsufficientAgentsError
+from simulation.core.factories import (
     create_command_service,
     create_default_agent_factory,
     create_engine,
     create_query_service,
 )
-from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.query_service import SimulationQueryService
 
