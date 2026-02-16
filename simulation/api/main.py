@@ -4,6 +4,7 @@ Run from repository root with PYTHONPATH set to project root, e.g.:
     PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,8 +16,8 @@ from simulation.core.factories import create_engine
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database and simulation engine on startup."""
-    initialize_database()
-    app.state.engine = create_engine()
+    await asyncio.to_thread(initialize_database)
+    app.state.engine = await asyncio.to_thread(create_engine)
     yield
 
 
