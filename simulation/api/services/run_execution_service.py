@@ -80,13 +80,17 @@ def _build_run_config(request: RunRequest) -> RunConfig:
 def _build_likes_per_turn_from_metadata(
     metadata_list: list[TurnMetadata],
 ) -> tuple[list[LikesPerTurnItem], int]:
-    """Derive likes_per_turn and total_likes from turn metadata list."""
+    """Derive likes_per_turn and total_likes from turn metadata list.
+
+    Sorts by turn_number so output is deterministic regardless of input order.
+    """
+    sorted_metadata = sorted(metadata_list, key=lambda tm: tm.turn_number)
     likes_per_turn = [
         LikesPerTurnItem(
             turn_number=tm.turn_number,
             likes=tm.total_actions.get(TurnAction.LIKE, 0),
         )
-        for tm in metadata_list
+        for tm in sorted_metadata
     ]
     total_likes = sum(item.likes for item in likes_per_turn)
     return likes_per_turn, total_likes
