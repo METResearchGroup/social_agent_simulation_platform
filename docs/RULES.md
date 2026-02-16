@@ -44,3 +44,4 @@ Per-commit:
 
 - Run all pre-commit hooks.
 - Follow ci.yml and run those commands (e.g., "ruff", "uv run pytest") and fix errors as needed.
+- ALWAYS run `uv run pre-commit run --all-files` after completing a batch of commitable work or after completing a TODO item.
