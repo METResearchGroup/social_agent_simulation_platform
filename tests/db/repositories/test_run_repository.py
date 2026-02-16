@@ -1308,6 +1308,68 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         assert result.total_actions[TurnAction.FOLLOW] == 0
 
 
+class TestSQLiteRunRepositoryListTurnMetadata:
+    """Tests for SQLiteRunRepository.list_turn_metadata method."""
+
+    def test_returns_ordered_turn_metadata_list(self):
+        mock_adapter = Mock(spec=RunDatabaseAdapter)
+        mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
+        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        run_id = "run_123"
+        expected_result = [
+            make_turn_metadata(
+                run_id=run_id,
+                turn_number=0,
+                total_actions={TurnAction.LIKE: 1},
+            ),
+            make_turn_metadata(
+                run_id=run_id,
+                turn_number=1,
+                total_actions={TurnAction.LIKE: 2},
+            ),
+        ]
+        mock_adapter.read_turn_metadata_for_run.return_value = expected_result
+
+        result = repo.list_turn_metadata(run_id)
+
+        assert result == expected_result
+        mock_adapter.read_turn_metadata_for_run.assert_called_once_with(run_id=run_id)
+
+    def test_returns_empty_list_when_adapter_returns_empty(self):
+        mock_adapter = Mock(spec=RunDatabaseAdapter)
+        mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
+        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        run_id = "run_123"
+        expected_result: list[TurnMetadata] = []
+        mock_adapter.read_turn_metadata_for_run.return_value = expected_result
+
+        result = repo.list_turn_metadata(run_id)
+
+        assert result == expected_result
+        mock_adapter.read_turn_metadata_for_run.assert_called_once_with(run_id=run_id)
+
+    def test_raises_valueerror_for_empty_run_id(self):
+        mock_adapter = Mock(spec=RunDatabaseAdapter)
+        mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
+        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+
+        with pytest.raises(ValueError, match="run_id is invalid"):
+            repo.list_turn_metadata("")
+
+        mock_adapter.read_turn_metadata_for_run.assert_not_called()
+
+    def test_propagates_adapter_exceptions(self):
+        mock_adapter = Mock(spec=RunDatabaseAdapter)
+        mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
+        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        run_id = "run_123"
+        adapter_error = ValueError("Invalid turn metadata data")
+        mock_adapter.read_turn_metadata_for_run.side_effect = adapter_error
+
+        with pytest.raises(ValueError, match="Invalid turn metadata data"):
+            repo.list_turn_metadata(run_id)
+
+
 class TestSQLiteRunRepositoryWriteTurnMetadata:
     """Tests for SQLiteRunRepository.write_turn_metadata method."""
 

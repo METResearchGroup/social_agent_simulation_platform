@@ -73,11 +73,13 @@ class TestSimulationEngineDelegation:
         engine.get_run("run_123")
         engine.list_runs()
         engine.get_turn_metadata("run_123", 0)
+        engine.list_turn_metadata("run_123")
         engine.get_turn_data("run_123", 0)
 
         query_service.get_run.assert_called_once_with("run_123")
         query_service.list_runs.assert_called_once()
         query_service.get_turn_metadata.assert_called_once_with("run_123", 0)
+        query_service.list_turn_metadata.assert_called_once_with("run_123")
         query_service.get_turn_data.assert_called_once_with("run_123", 0)
 
     def test_delegates_command_methods(self, engine, command_service):

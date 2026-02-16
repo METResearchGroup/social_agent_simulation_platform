@@ -891,3 +891,77 @@ class TestTurnMetadataIntegration:
             match="Turn number 5 is greater than the maximum number of turns: 5",
         ):
             repo.write_turn_metadata(turn_metadata)
+
+    def test_list_turn_metadata_returns_all_rows_in_turn_order(self, temp_db):
+        """Test listing turn metadata returns all rows ordered by turn_number."""
+        from lib.timestamp_utils import get_current_timestamp
+        from simulation.core.models.actions import TurnAction
+        from simulation.core.models.turns import TurnMetadata
+
+        repo = create_sqlite_repository()
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        run = repo.create_run(config)
+
+        for turn_number in [0, 1, 2]:
+            repo.write_turn_metadata(
+                TurnMetadata(
+                    run_id=run.run_id,
+                    turn_number=turn_number,
+                    total_actions={TurnAction.LIKE: turn_number + 1},
+                    created_at=get_current_timestamp(),
+                )
+            )
+
+        result = repo.list_turn_metadata(run.run_id)
+        expected_turn_numbers = [0, 1, 2]
+        assert len(result) == 3
+        assert [item.turn_number for item in result] == expected_turn_numbers
+
+    def test_list_turn_metadata_returns_empty_for_run_without_turns(self, temp_db):
+        """Test listing turn metadata returns empty list when no rows exist."""
+        repo = create_sqlite_repository()
+        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        run = repo.create_run(config)
+
+        result = repo.list_turn_metadata(run.run_id)
+        expected_result = []
+        assert result == expected_result
+
+    def test_list_turn_metadata_is_isolated_by_run(self, temp_db):
+        """Test listing turn metadata only returns rows for the requested run."""
+        from lib.timestamp_utils import get_current_timestamp
+        from simulation.core.models.actions import TurnAction
+        from simulation.core.models.turns import TurnMetadata
+
+        repo = create_sqlite_repository()
+        run_1 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+        )
+        run_2 = repo.create_run(
+            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+        )
+
+        repo.write_turn_metadata(
+            TurnMetadata(
+                run_id=run_1.run_id,
+                turn_number=0,
+                total_actions={TurnAction.LIKE: 10},
+                created_at=get_current_timestamp(),
+            )
+        )
+        repo.write_turn_metadata(
+            TurnMetadata(
+                run_id=run_2.run_id,
+                turn_number=0,
+                total_actions={TurnAction.LIKE: 20},
+                created_at=get_current_timestamp(),
+            )
+        )
+
+        result_run_1 = repo.list_turn_metadata(run_1.run_id)
+        result_run_2 = repo.list_turn_metadata(run_2.run_id)
+
+        assert len(result_run_1) == 1
+        assert len(result_run_2) == 1
+        assert result_run_1[0].run_id == run_1.run_id
+        assert result_run_2[0].run_id == run_2.run_id

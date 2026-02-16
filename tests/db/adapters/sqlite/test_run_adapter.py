@@ -303,6 +303,104 @@ class TestSQLiteRunAdapterReadTurnMetadata:
             assert call_args[0][1] == (run_id, turn_number)
 
 
+class TestSQLiteRunAdapterReadTurnMetadataForRun:
+    """Tests for SQLiteRunAdapter.read_turn_metadata_for_run method."""
+
+    def test_returns_turn_metadata_rows_in_turn_order(self, adapter, mock_db_connection):
+        run_id = "run_123"
+        row_turn_0 = create_mock_row(
+            {
+                "run_id": run_id,
+                "turn_number": 0,
+                "total_actions": json.dumps({"like": 1, "comment": 0, "follow": 0}),
+                "created_at": "2024_01_01-12:00:00",
+            }
+        )
+        row_turn_1 = create_mock_row(
+            {
+                "run_id": run_id,
+                "turn_number": 1,
+                "total_actions": json.dumps({"like": 3, "comment": 1, "follow": 0}),
+                "created_at": "2024_01_01-12:01:00",
+            }
+        )
+        expected_turn_numbers = [0, 1]
+
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchall.return_value = [row_turn_0, row_turn_1]
+
+            result = adapter.read_turn_metadata_for_run(run_id)
+
+            assert [item.turn_number for item in result] == expected_turn_numbers
+            assert result[1].total_actions[TurnAction.LIKE] == 3
+
+    def test_returns_empty_list_when_no_rows(self, adapter, mock_db_connection):
+        run_id = "run_123"
+        expected_result: list[TurnMetadata] = []
+
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchall.return_value = []
+
+            result = adapter.read_turn_metadata_for_run(run_id)
+
+            assert result == expected_result
+
+    def test_matches_single_turn_read_behavior(self, adapter, mock_db_connection):
+        run_id = "run_123"
+        turn_number = 0
+        row_data = {
+            "run_id": run_id,
+            "turn_number": turn_number,
+            "total_actions": json.dumps({"like": 7, "comment": 2, "follow": 1}),
+            "created_at": "2024_01_01-12:00:00",
+        }
+        mock_row = create_mock_row(row_data)
+
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchall.return_value = [mock_row]
+            list_result = adapter.read_turn_metadata_for_run(run_id)
+
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchone.return_value = mock_row
+            single_result = adapter.read_turn_metadata(run_id, turn_number)
+
+        assert len(list_result) == 1
+        assert single_result is not None
+        assert list_result[0] == single_result
+
+    def test_raises_valueerror_for_invalid_run_id(self, adapter):
+        with pytest.raises(ValueError, match="run_id is invalid"):
+            adapter.read_turn_metadata_for_run("")
+
+    def test_raises_operational_error_on_database_error(
+        self, adapter, mock_db_connection
+    ):
+        run_id = "run_123"
+        db_error = sqlite3.OperationalError("Database locked")
+
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_conn.execute.side_effect = db_error
+
+            with pytest.raises(sqlite3.OperationalError):
+                adapter.read_turn_metadata_for_run(run_id)
+
+    def test_calls_database_with_correct_parameters(self, adapter, mock_db_connection):
+        run_id = "run_123"
+
+        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+            mock_cursor.fetchall.return_value = []
+
+            adapter.read_turn_metadata_for_run(run_id)
+
+            mock_conn.execute.assert_called_once()
+            call_args = mock_conn.execute.call_args
+            assert (
+                "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC"
+                in str(call_args[0][0])
+            )
+            assert call_args[0][1] == (run_id,)
+
+
 class TestSQLiteRunAdapterWriteTurnMetadata:
     """Tests for SQLiteRunAdapter.write_turn_metadata method."""
 
