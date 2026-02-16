@@ -52,3 +52,7 @@ Per-commit:
 Testing:
 
 - In addition to unit tests, add throwaway end-to-end tests to verify functionality. Ask the user if they want these end-to-end tests to be persisted, and if they want to mock I/O or use real I/O.
+
+Docstrings:
+
+- Avoid hardcoding implementation details (e.g., "runs XYZ function, calls XYZ database"). Keep docstrings related to (1) inputs/outputs, (2) expected exceptions, (3) core algorithmic details (including branching logic), and (4) known edge cases or gotchas or tricky situations.
