@@ -12,7 +12,7 @@ from db.repositories.run_repository import RunRepository
 from feeds.interfaces import FeedGenerator
 from simulation.core.agent_action_feed_filter import ActionCandidateFeeds
 from simulation.core.command_service import SimulationCommandService
-from simulation.core.exceptions import RunStatusUpdateError
+from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.base import GenerationMetadata
@@ -153,6 +153,17 @@ class TestSimulationCommandServiceExecuteRun:
         assert calls[0][0] == (sample_run.run_id, RunStatus.RUNNING)
         assert calls[1][0] == (sample_run.run_id, RunStatus.COMPLETED)
 
+    def test_run_creation_failure_raises_simulation_run_failure_with_no_run_id(
+        self, command_service, mock_repos
+    ):
+        mock_repos["run_repo"].create_run.side_effect = RuntimeError("db error")
+
+        with pytest.raises(SimulationRunFailure) as exc_info:
+            command_service.execute_run(self._make_config(turns=1))
+
+        assert exc_info.value.run_id is None
+        mock_repos["run_repo"].update_run_status.assert_not_called()
+
     def test_agent_creation_failure_marks_failed(
         self, command_service, mock_repos, sample_run, mock_agent_factory
     ):
@@ -160,9 +171,10 @@ class TestSimulationCommandServiceExecuteRun:
         mock_repos["run_repo"].update_run_status.return_value = None
         mock_agent_factory.side_effect = RuntimeError("agent failure")
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(SimulationRunFailure) as exc_info:
             command_service.execute_run(self._make_config(turns=1))
 
+        assert exc_info.value.run_id == sample_run.run_id
         calls = mock_repos["run_repo"].update_run_status.call_args_list
         assert calls[0][0] == (sample_run.run_id, RunStatus.RUNNING)
         assert calls[1][0] == (sample_run.run_id, RunStatus.FAILED)
@@ -178,9 +190,10 @@ class TestSimulationCommandServiceExecuteRun:
             "simulation.core.command_service.SimulationCommandService._simulate_turn",
             side_effect=ValueError("invariant violation"),
         ):
-            with pytest.raises(RuntimeError, match="Failed to complete turn"):
+            with pytest.raises(SimulationRunFailure) as exc_info:
                 command_service.execute_run(self._make_config(turns=1))
 
+        assert exc_info.value.run_id == sample_run.run_id
         calls = mock_repos["run_repo"].update_run_status.call_args_list
         assert calls[0][0] == (sample_run.run_id, RunStatus.RUNNING)
         assert calls[1][0] == (sample_run.run_id, RunStatus.FAILED)
