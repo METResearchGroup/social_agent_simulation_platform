@@ -19,10 +19,10 @@ from simulation.core.agent_action_feed_filter import (
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.command_service import SimulationCommandService
-from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.factories.action_history_store import (
     create_default_action_history_store_factory,
 )
+from simulation.core.models.agents import SocialMediaAgent
 
 
 def create_command_service(

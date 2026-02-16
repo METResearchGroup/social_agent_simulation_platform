@@ -4,14 +4,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from simulation.core.exceptions import RunStatusUpdateError
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from feeds.interfaces import FeedGenerator
 from simulation.core.agent_action_feed_filter import ActionCandidateFeeds
 from simulation.core.command_service import SimulationCommandService
+from simulation.core.exceptions import RunStatusUpdateError
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.base import GenerationMetadata
@@ -21,7 +22,6 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnResult
-from feeds.interfaces import FeedGenerator
 
 
 @pytest.fixture

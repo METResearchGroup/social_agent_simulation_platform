@@ -1,7 +1,10 @@
 from typing import Iterable
 
-from simulation.core.exceptions import InvalidTransitionError, RunNotFoundError
-from simulation.core.exceptions import InsufficientAgentsError
+from simulation.core.exceptions import (
+    InsufficientAgentsError,
+    InvalidTransitionError,
+    RunNotFoundError,
+)
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus

@@ -9,8 +9,6 @@ from db.repositories.generated_bio_repository import (
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
-from db.repositories.profile_repository import create_sqlite_profile_repository
-from db.repositories.run_repository import create_sqlite_repository
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
@@ -18,15 +16,17 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
+from db.repositories.profile_repository import create_sqlite_profile_repository
+from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.engine import SimulationEngine
-from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.factories.action_history_store import (
     create_default_action_history_store_factory,
 )
 from simulation.core.factories.agent import create_default_agent_factory
 from simulation.core.factories.command_service import create_command_service
 from simulation.core.factories.query_service import create_query_service
+from simulation.core.models.agents import SocialMediaAgent
 
 
 def create_engine(
@@ -106,6 +106,7 @@ def create_engine(
         generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
         agent_factory=agent_factory,
+        action_history_store_factory=action_history_store_factory,
         query_service=query_service,
         command_service=command_service,
     )

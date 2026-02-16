@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from db.adapters.base import RunDatabaseAdapter
+from db.repositories.run_repository import SQLiteRunRepository as _SQLiteRunRepository
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
@@ -13,7 +14,6 @@ from simulation.core.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from db.repositories.run_repository import SQLiteRunRepository as _SQLiteRunRepository
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata

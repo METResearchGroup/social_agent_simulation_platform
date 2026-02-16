@@ -2,8 +2,6 @@ import logging
 import time
 from collections.abc import Callable
 
-from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
-from lib.decorators import record_runtime
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
@@ -11,6 +9,8 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
+from feeds.interfaces import FeedGenerator
+from lib.decorators import record_runtime
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.agent_action_feed_filter import (
@@ -19,6 +19,7 @@ from simulation.core.agent_action_feed_filter import (
 )
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
+from simulation.core.exceptions import DuplicateTurnMetadataError, RunStatusUpdateError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
@@ -30,7 +31,6 @@ from simulation.core.validators import (
     validate_insufficient_agents,
     validate_run_exists,
 )
-from feeds.interfaces import FeedGenerator
 
 logger = logging.getLogger(__name__)
 
