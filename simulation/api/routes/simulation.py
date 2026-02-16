@@ -15,24 +15,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["simulation"])
 
 
-def _error_response(
-    status_code: int,
-    code: str,
-    message: str,
-    detail: str | None = None,
-) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "error": {
-                "code": code,
-                "message": message,
-                "detail": detail,
-            }
-        },
-    )
-
-
 @router.post(
     "/simulations/run",
     response_model=RunResponse,
@@ -68,3 +50,21 @@ async def post_simulations_run(
             message="Internal server error",
             detail=None,
         )
+
+
+def _error_response(
+    status_code: int,
+    code: str,
+    message: str,
+    detail: str | None = None,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "error": {
+                "code": code,
+                "message": message,
+                "detail": detail,
+            }
+        },
+    )
