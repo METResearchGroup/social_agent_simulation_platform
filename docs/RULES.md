@@ -20,7 +20,7 @@ APIs should accept explicit parameters, not implicit behavior
 
 Prefer single or minimal public APIs. Default to private APIs that perform the implementation and expose one or two public API functions that do the composite task. The public API should appear first out of all the functions or classes, to then be followed by the private API functions. It should be in descending order of callers; the public API first, then the immediate private APIs called by the public API, then the private APIs called by only other private APIs.
 
-Don't hardcode defaults or constants into functions inline. Define as file-level constants and then use them. This helps us keep track of hardcoded behaviors.
+Don't hardcode defaults or constants into functions inline. Define as file-level constants, underneath the imports, and then use them. This helps us keep track of hardcoded behaviors.
 
 - Example: `feeds/feed_generator.py` exposes one public function, `generate_feeds`, which is the only function used by external callers. The actual functionality is largely managed by internal private functions.
 
@@ -37,7 +37,7 @@ Imports:
 Type annotations:
 
 - Use | instead of "Optional" or "Union" for typing.
-- When creating a variable as the result of a function, always include the type annotation in the variable definition.
+- When creating a variable as the result of a function, always include the type annotation in the variable definition. However, do this only on the happy path definition and instantiation of the function, not when it is defined in alternative branch or exception paths (so as to avoid pyright errors like "Declaration "metadata_list" is obscured by a declaration of the same name").
 
 API design and rollout
 
