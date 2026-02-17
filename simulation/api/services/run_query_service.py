@@ -26,8 +26,7 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
     """
     validated_run_id: str = validate_run_id(run_id)
     run = engine.get_run(validated_run_id)
-    validate_run_exists(run=run, run_id=validated_run_id)
-    assert run is not None
+    run = validate_run_exists(run=run, run_id=validated_run_id)
 
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(validated_run_id)
     turns: list[TurnActionsItem] = _build_turn_actions_items(
