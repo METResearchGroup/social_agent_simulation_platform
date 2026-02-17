@@ -116,9 +116,10 @@ Registries and swappable implementations
   central registry as the single source of truth. Avoid per-component registries
   that duplicate mode/config logic.
 
-Naming
+Fields and parameters
 
 - For fields that describe "why" or "how" something was chosen (e.g. reasoning
   for an action), use implementation-neutral names (e.g. `explanation` instead of
   `ai_reason`) so the field is accurate for deterministic, LLM, and other
   policies.
+- Do not add fields or params that aren't explicitly used, unless told to explicitly by the user.
