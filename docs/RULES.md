@@ -108,6 +108,7 @@ Validation helpers
 - Use shared validation helpers instead of inline checks. Put common validators
   (e.g. non-empty string) in a central module (e.g. lib/validation_utils.py) and
   reuse. Avoid duplicating patterns like `if not v or not v.strip(): raise ValueError(...)`.
+- Before adding a one-off check: Look for the same pattern elsewhere and centralize (e.g. “value in allowed set” → validate_value_in_set).
 
 Registries and swappable implementations
 
