@@ -208,8 +208,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         retrieved = repo.get_generated_bio("longbio.bsky.social")
 
         assert retrieved is not None
-        assert retrieved.generated_bio == long_bio_text
-        assert len(retrieved.generated_bio) >= 2500
+        expected_bio = long_bio_text.strip()
+        assert retrieved.generated_bio == expected_bio
+        assert len(retrieved.generated_bio) >= 2299
 
     def test_multiple_bios_with_different_handles(self, temp_db):
         """Test that multiple bios with different handles can coexist."""

@@ -16,5 +16,5 @@ def test_validate_behavior_mode_accepts_deterministic():
 
 def test_validate_behavior_mode_unknown_raises():
     """Unknown mode raises ValueError."""
-    with pytest.raises(ValueError, match="Unknown behavior mode"):
+    with pytest.raises(ValueError, match="behavior_mode must be one of"):
         validate_behavior_mode("unknown")

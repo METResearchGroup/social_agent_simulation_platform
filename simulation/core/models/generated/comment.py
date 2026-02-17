@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string, validate_not_none
 from simulation.core.models.actions import Comment
 from simulation.core.models.generated.base import GenerationMetadata
 
@@ -12,20 +13,14 @@ class GeneratedComment(BaseModel):
     @field_validator("comment")
     @classmethod
     def validate_comment(cls, v: Comment) -> Comment:
-        if not v:
-            raise ValueError("comment cannot be empty")
-        return v
+        return validate_not_none(v, "comment")
 
     @field_validator("explanation")
     @classmethod
     def validate_explanation(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("explanation cannot be empty")
-        return v
+        return validate_non_empty_string(v, "explanation")
 
     @field_validator("metadata")
     @classmethod
     def validate_metadata(cls, v: GenerationMetadata) -> GenerationMetadata:
-        if not v:
-            raise ValueError("metadata cannot be empty")
-        return v
+        return validate_not_none(v, "metadata")

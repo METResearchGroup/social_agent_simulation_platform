@@ -2,22 +2,11 @@ from enum import Enum
 
 from pydantic import BaseModel, ValidationInfo, field_validator
 
+from lib.validation_utils import validate_non_empty_string
 
-def validate_non_empty_string(v: str, info: ValidationInfo) -> str:
-    """Shared validator for non-empty string fields.
 
-    Checks None, coerces to str, strips whitespace, and raises ValueError
-    if the result is empty. Uses info.field_name for error messages.
-    """
-    field_name = info.field_name if info else "field"
-    if v is None:
-        raise ValueError(f"{field_name} must be a non-empty string")
-    if not isinstance(v, str):
-        v = str(v)
-    v = v.strip()
-    if not v:
-        raise ValueError(f"{field_name} must be a non-empty string")
-    return v
+def _field_name(info: ValidationInfo | None) -> str:
+    return getattr(info, "field_name", None) or "field"
 
 
 class Like(BaseModel):
@@ -30,7 +19,7 @@ class Like(BaseModel):
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""
-        return validate_non_empty_string(v, info)
+        return validate_non_empty_string(v, _field_name(info))
 
 
 class Comment(BaseModel):
@@ -43,7 +32,7 @@ class Comment(BaseModel):
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""
-        return validate_non_empty_string(v, info)
+        return validate_non_empty_string(v, _field_name(info))
 
 
 class Follow(BaseModel):
@@ -56,7 +45,7 @@ class Follow(BaseModel):
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""
-        return validate_non_empty_string(v, info)
+        return validate_non_empty_string(v, _field_name(info))
 
 
 class TurnAction(str, Enum):

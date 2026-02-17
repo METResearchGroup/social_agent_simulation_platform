@@ -371,7 +371,7 @@ class TestSQLiteRunAdapterReadTurnMetadataForRun:
         assert list_result[0] == single_result
 
     def test_raises_valueerror_for_invalid_run_id(self, adapter):
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             adapter.read_turn_metadata_for_run("")
 
     def test_raises_operational_error_on_database_error(

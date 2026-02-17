@@ -1157,7 +1157,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         turn_number = 0
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.get_turn_metadata(run_id, turn_number)
 
         # Verify adapter was not called
@@ -1173,7 +1173,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         turn_number = 0
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.get_turn_metadata(run_id, turn_number)
 
         # Verify adapter was not called
@@ -1189,7 +1189,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         turn_number = -1
 
         # Act & Assert
-        with pytest.raises(ValueError, match="turn_number is invalid"):
+        with pytest.raises(ValueError, match="turn_number must be >= 0"):
             repo.get_turn_metadata(run_id, turn_number)
 
         # Verify adapter was not called
@@ -1353,7 +1353,7 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
         repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
 
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.list_turn_metadata("")
 
         mock_adapter.read_turn_metadata_for_run.assert_not_called()

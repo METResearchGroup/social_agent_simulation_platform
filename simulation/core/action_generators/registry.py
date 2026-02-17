@@ -23,6 +23,15 @@ def get_like_generator(mode: str = DEFAULT_BEHAVIOR_MODE) -> LikeGenerator:
 
 
 def _create_like_generator(mode: str) -> LikeGenerator:
+    from lib.validation_utils import validate_value_in_set
+    from simulation.core.action_generators.validators import BEHAVIOR_MODES
+
+    validate_value_in_set(
+        mode,
+        "like_generator_mode",
+        BEHAVIOR_MODES,
+        allowed_display_name=str(BEHAVIOR_MODES),
+    )
     if mode == BEHAVIOR_MODE_DETERMINISTIC:
         from simulation.core.action_generators.like.algorithms.deterministic import (
             DeterministicLikeGenerator,

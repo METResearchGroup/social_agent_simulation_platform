@@ -2,7 +2,11 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator
 
-from simulation.core.models.validators import validate_non_empty_string
+from lib.validation_utils import (
+    validate_non_empty_string,
+    validate_nonnegative_value,
+    validate_value_in_set,
+)
 
 
 class RunConfig(BaseModel):
@@ -15,16 +19,12 @@ class RunConfig(BaseModel):
     @field_validator("num_agents")
     @classmethod
     def validate_num_agents(cls, v: int) -> int:
-        if v <= 0:
-            raise ValueError("num_agents must be greater than 0")
-        return v
+        return validate_nonnegative_value(v, "num_agents", ok_equals_zero=False)
 
     @field_validator("num_turns")
     @classmethod
     def validate_num_turns(cls, v: int) -> int:
-        if v <= 0:
-            raise ValueError("num_turns must be greater than 0")
-        return v
+        return validate_nonnegative_value(v, "num_turns", ok_equals_zero=False)
 
     @field_validator("feed_algorithm")
     @classmethod
@@ -32,9 +32,12 @@ class RunConfig(BaseModel):
         """Validate that feed_algorithm is a valid feed algorithm."""
         from feeds.feed_generator import _FEED_ALGORITHMS
 
-        if v not in _FEED_ALGORITHMS:
-            raise ValueError(f"Invalid feed algorithm: {v}")
-        return v
+        return validate_value_in_set(
+            v,
+            "feed_algorithm",
+            _FEED_ALGORITHMS,
+            allowed_display_name="registered feed algorithms",
+        )
 
 
 class RunStatus(str, Enum):
@@ -77,14 +80,10 @@ class Run(BaseModel):
     @classmethod
     def validate_total_turns(cls, v: int) -> int:
         """Validate that total_turns is an integer greater than zero."""
-        if v <= 0:
-            raise ValueError("total_turns must be greater than 0")
-        return v
+        return validate_nonnegative_value(v, "total_turns", ok_equals_zero=False)
 
     @field_validator("total_agents")
     @classmethod
     def validate_total_agents(cls, v: int) -> int:
         """Validate that total_agents is an integer greater than zero."""
-        if v <= 0:
-            raise ValueError("total_agents must be greater than 0")
-        return v
+        return validate_nonnegative_value(v, "total_agents", ok_equals_zero=False)
