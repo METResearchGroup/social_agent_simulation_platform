@@ -116,9 +116,7 @@ class TestGenerateFeed:
         feed_algorithm = "unknown_algorithm"
 
         # Act & Assert
-        with pytest.raises(
-            ValueError, match="Unknown feed algorithm: unknown_algorithm"
-        ):
+        with pytest.raises(ValueError, match="feed_algorithm must be one of"):
             _generate_feed(
                 agent=sample_agent,
                 candidate_posts=sample_posts,

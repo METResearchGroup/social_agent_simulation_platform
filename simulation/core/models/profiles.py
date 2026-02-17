@@ -1,5 +1,7 @@
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
+
 
 class Profile(BaseModel):
     """Base profile model - platform agnostic.
@@ -18,33 +20,25 @@ class Profile(BaseModel):
     @field_validator("handle")
     @classmethod
     def validate_handle(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("handle cannot be empty")
-        return v
+        return validate_non_empty_string(v, "handle")
 
     @field_validator("followers_count")
     @classmethod
     def validate_followers_count(cls, v: int) -> int:
         """Validate that followers_count is a non-negative integer."""
-        if v < 0:
-            raise ValueError("followers_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "followers_count")
 
     @field_validator("follows_count")
     @classmethod
     def validate_follows_count(cls, v: int) -> int:
         """Validate that follows_count is a non-negative integer."""
-        if v < 0:
-            raise ValueError("follows_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "follows_count")
 
     @field_validator("posts_count")
     @classmethod
     def validate_posts_count(cls, v: int) -> int:
         """Validate that posts_count is a non-negative integer."""
-        if v < 0:
-            raise ValueError("posts_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "posts_count")
 
 
 class BlueskyProfile(Profile):
@@ -55,6 +49,4 @@ class BlueskyProfile(Profile):
     @field_validator("did")
     @classmethod
     def validate_did(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("did cannot be empty")
-        return v
+        return validate_non_empty_string(v, "did")

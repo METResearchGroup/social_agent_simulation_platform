@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string, validate_not_none
 from simulation.core.models.generated.base import GenerationMetadata
 
 
@@ -13,20 +14,14 @@ class GeneratedBio(BaseModel):
     @field_validator("handle")
     @classmethod
     def validate_handle(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("handle cannot be empty")
-        return v
+        return validate_non_empty_string(v, "handle")
 
     @field_validator("generated_bio")
     @classmethod
     def validate_generated_bio(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("generated_bio cannot be empty")
-        return v
+        return validate_non_empty_string(v, "generated_bio")
 
     @field_validator("metadata")
     @classmethod
     def validate_metadata(cls, v: GenerationMetadata) -> GenerationMetadata:
-        if not v:
-            raise ValueError("metadata cannot be empty")
-        return v
+        return validate_not_none(v, "metadata")

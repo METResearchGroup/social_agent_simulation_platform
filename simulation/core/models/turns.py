@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.validators import validate_non_empty_string
 
 
 class TurnResult(BaseModel):
@@ -27,9 +27,7 @@ class TurnResult(BaseModel):
     @classmethod
     def validate_turn_number(cls, v: int) -> int:
         """Validate that turn_number is non-negative."""
-        if v < 0:
-            raise ValueError("turn_number must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "turn_number")
 
     model_config = {"frozen": True}  # Make immutable
 
@@ -55,9 +53,7 @@ class TurnMetadata(BaseModel):
     @classmethod
     def validate_turn_number(cls, v: int) -> int:
         """Validate that turn_number is non-negative."""
-        if v < 0:
-            raise ValueError("turn_number must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "turn_number")
 
     model_config = {"frozen": True}  # Make immutable
 
@@ -81,8 +77,6 @@ class TurnData(BaseModel):
     @classmethod
     def validate_turn_number(cls, v: int) -> int:
         """Validate that turn_number is non-negative."""
-        if v < 0:
-            raise ValueError("turn_number must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "turn_number")
 
     model_config = {"frozen": True}  # Make immutable

@@ -46,6 +46,8 @@ Type annotations:
 
 - Use | instead of "Optional" or "Union" for typing.
 - When creating a variable as the result of a function, always include the type annotation in the variable definition. However, do this only on the happy path definition and instantiation of the function, not when it is defined in alternative branch or exception paths (so as to avoid pyright errors like "Declaration "metadata_list" is obscured by a declaration of the same name").
+- Prefer generic Iterable over list or set, unless it truly needs to be a list or set (e.g., type as a list if we need order preserved). Err on the side of more generic annotation.
+- Avoid using the "Any" type annotation, unless absolutely needed. If you ever use it, flag to the user and get explicit approval.
 
 API design and rollout
 
@@ -100,3 +102,24 @@ Deterministic outputs:
 Response schema consistency:
 
 - For response fields that depend on each other (e.g. status and error), use a shared enum for the discriminating field and a Pydantic @model_validator(mode="after") to enforce the invariant (e.g. when status is "failed", error must be set; when "completed", error must be None) so invalid combinations are rejected at the boundary.
+
+Validation helpers
+
+- Use shared validation helpers instead of inline checks. Put common validators
+  (e.g. non-empty string) in a central module (e.g. lib/validation_utils.py) and
+  reuse. Avoid duplicating patterns like `if not v or not v.strip(): raise ValueError(...)`.
+- Before adding a one-off check: Look for the same pattern elsewhere and centralize (e.g. “value in allowed set” → validate_value_in_set).
+
+Registries and swappable implementations
+
+- For swappable implementations (e.g. behavior policies, algorithms), prefer a
+  central registry as the single source of truth. Avoid per-component registries
+  that duplicate mode/config logic.
+
+Fields and parameters
+
+- For fields that describe "why" or "how" something was chosen (e.g. reasoning
+  for an action), use implementation-neutral names (e.g. `explanation` instead of
+  `ai_reason`) so the field is accurate for deterministic, LLM, and other
+  policies.
+- Do not add fields or params that aren't explicitly used, unless told to explicitly by the user.

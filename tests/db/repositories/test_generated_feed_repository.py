@@ -209,7 +209,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.get_generated_feed("test.bsky.social", "", 1)
 
         mock_adapter.read_generated_feed.assert_not_called()
@@ -333,7 +333,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.read_feeds_for_turn("", 0)
 
         mock_adapter.read_feeds_for_turn.assert_not_called()
@@ -345,7 +345,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.read_feeds_for_turn("   ", 0)
 
         mock_adapter.read_feeds_for_turn.assert_not_called()
@@ -357,7 +357,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         repo = SQLiteGeneratedFeedRepository(mock_adapter)
 
         # Act & Assert
-        with pytest.raises(ValueError, match="turn_number is invalid"):
+        with pytest.raises(ValueError, match="turn_number must be >= 0"):
             repo.read_feeds_for_turn("run_123", -1)
 
         mock_adapter.read_feeds_for_turn.assert_not_called()

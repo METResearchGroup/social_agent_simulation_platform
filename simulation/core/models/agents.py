@@ -40,11 +40,25 @@ class SocialMediaAgent:
             created_at=created_at,
         )
 
-    def like_posts(self, feed: list[BlueskyFeedPost]) -> list[GeneratedLike]:
-        if len(feed) == 0:
-            print("[No-op for now] No posts to like.")
+    def like_posts(
+        self,
+        feed: list[BlueskyFeedPost],
+        *,
+        run_id: str,
+        turn_number: int,
+    ) -> list[GeneratedLike]:
+        """Generate likes from feed using the configured like generator."""
+        if not feed:
             return []
-        return []
+        from simulation.core.action_generators import get_like_generator
+
+        generator = get_like_generator()
+        return generator.generate(
+            candidates=feed,
+            run_id=run_id,
+            turn_number=turn_number,
+            agent_handle=self.handle,
+        )
 
     def comment_posts(self, feed: list[BlueskyFeedPost]) -> list[GeneratedComment]:
         if len(feed) == 0:

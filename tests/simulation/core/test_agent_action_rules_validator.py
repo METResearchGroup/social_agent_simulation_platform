@@ -23,7 +23,7 @@ def _like(agent_id: str, post_id: str) -> GeneratedLike:
             post_id=post_id,
             created_at="2024_01_01-12:00:00",
         ),
-        ai_reason="reason",
+        explanation="reason",
         metadata=_meta(),
     )
 
@@ -36,7 +36,7 @@ def _comment(agent_id: str, post_id: str) -> GeneratedComment:
             post_id=post_id,
             created_at="2024_01_01-12:00:00",
         ),
-        ai_reason="reason",
+        explanation="reason",
         metadata=_meta(),
     )
 
@@ -49,7 +49,7 @@ def _follow(agent_id: str, user_id: str) -> GeneratedFollow:
             user_id=user_id,
             created_at="2024_01_01-12:00:00",
         ),
-        ai_reason="reason",
+        explanation="reason",
         metadata=_meta(),
     )
 

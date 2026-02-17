@@ -254,7 +254,11 @@ class SimulationCommandService:
             )
 
             # Generate the actions.
-            likes = agent.like_posts(action_candidates.like_candidates)
+            likes = agent.like_posts(
+                action_candidates.like_candidates,
+                run_id=run_id,
+                turn_number=turn_number,
+            )
             comments = agent.comment_posts(action_candidates.comment_candidates)
             follows = agent.follow_users(action_candidates.follow_candidates)
 
