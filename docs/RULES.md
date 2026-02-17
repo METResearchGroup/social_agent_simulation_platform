@@ -100,3 +100,22 @@ Deterministic outputs:
 Response schema consistency:
 
 - For response fields that depend on each other (e.g. status and error), use a shared enum for the discriminating field and a Pydantic @model_validator(mode="after") to enforce the invariant (e.g. when status is "failed", error must be set; when "completed", error must be None) so invalid combinations are rejected at the boundary.
+
+Validation helpers
+
+- Use shared validation helpers instead of inline checks. Put common validators
+  (e.g. non-empty string) in a central module (e.g. lib/validation_utils.py) and
+  reuse. Avoid duplicating patterns like `if not v or not v.strip(): raise ValueError(...)`.
+
+Registries and swappable implementations
+
+- For swappable implementations (e.g. behavior policies, algorithms), prefer a
+  central registry as the single source of truth. Avoid per-component registries
+  that duplicate mode/config logic.
+
+Naming
+
+- For fields that describe "why" or "how" something was chosen (e.g. reasoning
+  for an action), use implementation-neutral names (e.g. `explanation` instead of
+  `ai_reason`) so the field is accurate for deterministic, LLM, and other
+  policies.
