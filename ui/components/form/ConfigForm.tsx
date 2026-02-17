@@ -12,8 +12,8 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
   const [numAgents, setNumAgents] = useState(defaultConfig.numAgents);
   const [numTurns, setNumTurns] = useState(defaultConfig.numTurns);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent): void => {
+    event.preventDefault();
     onSubmit({ numAgents, numTurns });
   };
 
@@ -37,9 +37,9 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
               min="1"
               max="20"
               value={numAgents}
-              onChange={(e) => {
-                const value = Number(e.currentTarget.value);
-                setNumAgents(isNaN(value) || value < 1 ? 1 : value);
+              onChange={(event) => {
+                const value: number = Number(event.currentTarget.value);
+                setNumAgents(Number.isNaN(value) || value < 1 ? 1 : value);
               }}
               className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
               required
@@ -58,9 +58,9 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
               min="1"
               max="100"
               value={numTurns}
-              onChange={(e) => {
-                const value = Number(e.currentTarget.value);
-                setNumTurns(isNaN(value) || value < 1 ? 1 : value);
+              onChange={(event) => {
+                const value: number = Number(event.currentTarget.value);
+                setNumTurns(Number.isNaN(value) || value < 1 ? 1 : value);
               }}
               className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
               required
@@ -77,4 +77,3 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
     </div>
   );
 }
-

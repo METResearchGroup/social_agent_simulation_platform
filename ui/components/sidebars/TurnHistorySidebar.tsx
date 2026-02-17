@@ -1,16 +1,10 @@
 'use client';
 
-interface TurnHistorySidebarProps {
-  availableTurns: number[];
-  selectedTurn: number | 'summary' | null;
-  onSelectTurn: (turn: number | 'summary') => void;
-}
+import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 
-export default function TurnHistorySidebar({
-  availableTurns,
-  selectedTurn,
-  onSelectTurn,
-}: TurnHistorySidebarProps) {
+export default function TurnHistorySidebar() {
+  const { availableTurns, selectedTurn, onSelectTurn } = useRunDetail();
+
   return (
     <div className="w-1/4 border-r border-beige-300 bg-beige-50 flex flex-col">
       <div className="p-4 border-b border-beige-300">
@@ -44,4 +38,3 @@ export default function TurnHistorySidebar({
     </div>
   );
 }
-
