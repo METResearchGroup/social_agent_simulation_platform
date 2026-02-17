@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import Optional
 
 from db.repositories.interfaces import (
     FeedPostRepository,
@@ -8,10 +7,8 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
-from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import (
     ActionHistoryStore,
-    InMemoryActionHistoryStore,
 )
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
@@ -31,10 +28,9 @@ class SimulationEngine:
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
-        action_history_store_factory: Optional[Callable[[], ActionHistoryStore]] = None,
-        query_service: Optional[SimulationQueryService] = None,
-        command_service: Optional[SimulationCommandService] = None,
-        feed_generator: Optional[FeedGenerator] = None,
+        action_history_store_factory: Callable[[], ActionHistoryStore],
+        query_service: SimulationQueryService,
+        command_service: SimulationCommandService,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -42,51 +38,26 @@ class SimulationEngine:
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_factory = agent_factory
-        self.action_history_store_factory = (
-            action_history_store_factory or InMemoryActionHistoryStore
-        )
-
-        self.query_service = query_service or SimulationQueryService(
-            run_repo=run_repo,
-            feed_post_repo=feed_post_repo,
-            generated_feed_repo=generated_feed_repo,
-        )
-        if command_service is not None:
-            self.command_service = command_service
-        else:
-            if feed_generator is None:
-                raise ValueError(
-                    "feed_generator is required when command_service is not provided"
-                )
-            self.command_service = SimulationCommandService(
-                run_repo=run_repo,
-                profile_repo=profile_repo,
-                feed_post_repo=feed_post_repo,
-                generated_bio_repo=generated_bio_repo,
-                generated_feed_repo=generated_feed_repo,
-                agent_factory=agent_factory,
-                action_history_store_factory=self.action_history_store_factory,
-                feed_generator=feed_generator,
-            )
+        self.action_history_store_factory = action_history_store_factory
+        self.query_service = query_service
+        self.command_service = command_service
 
     def execute_run(self, run_config: RunConfig) -> Run:
         return self.command_service.execute_run(run_config)
 
-    def get_run(self, run_id: str) -> Optional[Run]:
+    def get_run(self, run_id: str) -> Run | None:
         return self.query_service.get_run(run_id)
 
     def list_runs(self) -> list[Run]:
         return self.query_service.list_runs()
 
-    def get_turn_metadata(
-        self, run_id: str, turn_number: int
-    ) -> Optional[TurnMetadata]:
+    def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
         return self.query_service.get_turn_metadata(run_id, turn_number)
 
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
         return self.query_service.list_turn_metadata(run_id)
 
-    def get_turn_data(self, run_id: str, turn_number: int) -> Optional[TurnData]:
+    def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
         return self.query_service.get_turn_data(run_id, turn_number)
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:

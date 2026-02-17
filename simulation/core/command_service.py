@@ -15,7 +15,6 @@ from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.agent_action_feed_filter import (
     AgentActionFeedFilter,
-    HistoryAwareActionFeedFilter,
 )
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
@@ -38,6 +37,14 @@ from simulation.core.validators import (
 
 logger = logging.getLogger(__name__)
 
+STATUS_UPDATE_MAX_ATTEMPTS: int = 3
+STATUS_UPDATE_BACKOFF_BASE: int = 2
+ACTION_KEY_TO_TURN_ACTION: dict[str, TurnAction] = {
+    "likes": TurnAction.LIKE,
+    "comments": TurnAction.COMMENT,
+    "follows": TurnAction.FOLLOW,
+}
+
 
 class SimulationCommandService:
     """Command-side service for simulation execution and state changes."""
@@ -52,9 +59,9 @@ class SimulationCommandService:
         agent_factory: Callable[[int], list[SocialMediaAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
-        agent_action_rules_validator: AgentActionRulesValidator | None = None,
-        agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
-        agent_action_feed_filter: AgentActionFeedFilter | None = None,
+        agent_action_rules_validator: AgentActionRulesValidator,
+        agent_action_history_recorder: AgentActionHistoryRecorder,
+        agent_action_feed_filter: AgentActionFeedFilter,
     ):
         self.run_repo = run_repo
         self.profile_repo = profile_repo
@@ -64,15 +71,9 @@ class SimulationCommandService:
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
-        self.agent_action_rules_validator = (
-            agent_action_rules_validator or AgentActionRulesValidator()
-        )
-        self.agent_action_history_recorder = (
-            agent_action_history_recorder or AgentActionHistoryRecorder()
-        )
-        self.agent_action_feed_filter = (
-            agent_action_feed_filter or HistoryAwareActionFeedFilter()
-        )
+        self.agent_action_rules_validator = agent_action_rules_validator
+        self.agent_action_history_recorder = agent_action_history_recorder
+        self.agent_action_feed_filter = agent_action_feed_filter
 
     def execute_run(self, run_config: RunConfig) -> Run:
         """Execute a simulation run."""
@@ -108,33 +109,32 @@ class SimulationCommandService:
             ) from e
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
-        try:
-            attempts = 3
-            for attempt in range(attempts):
-                try:
-                    self.run_repo.update_run_status(run.run_id, status)
-                    break
-                except RunStatusUpdateError as e:
-                    if attempt == attempts - 1:
-                        if status != RunStatus.FAILED:
-                            try:
-                                self.run_repo.update_run_status(
-                                    run.run_id, RunStatus.FAILED
-                                )
-                            except Exception:
-                                logger.warning(
-                                    "Failed to update run %s status to %s",
-                                    run.run_id,
-                                    RunStatus.FAILED,
-                                    exc_info=True,
-                                )
-                        raise RunStatusUpdateError(
-                            run.run_id,
-                            f"Failed to update status to {status.value} after 3 attempts",
-                        ) from e
-                    time.sleep(2**attempt)
-        except Exception:
-            raise
+        for attempt in range(STATUS_UPDATE_MAX_ATTEMPTS):
+            try:
+                self.run_repo.update_run_status(run.run_id, status)
+                break
+            except RunStatusUpdateError as e:
+                if attempt == STATUS_UPDATE_MAX_ATTEMPTS - 1:
+                    if status != RunStatus.FAILED:
+                        try:
+                            self.run_repo.update_run_status(
+                                run.run_id, RunStatus.FAILED
+                            )
+                        except Exception:
+                            logger.warning(
+                                "Failed to update run %s status to %s",
+                                run.run_id,
+                                RunStatus.FAILED,
+                                exc_info=True,
+                            )
+                    raise RunStatusUpdateError(
+                        run.run_id,
+                        (
+                            "Failed to update status to "
+                            f"{status.value} after {STATUS_UPDATE_MAX_ATTEMPTS} attempts"
+                        ),
+                    ) from e
+                time.sleep(STATUS_UPDATE_BACKOFF_BASE**attempt)
 
     def simulate_turn(
         self,
@@ -232,9 +232,7 @@ class SimulationCommandService:
         )
 
         total_actions: dict[str, int] = {
-            "likes": 0,
-            "comments": 0,
-            "follows": 0,
+            action_key: 0 for action_key in ACTION_KEY_TO_TURN_ACTION
         }
 
         for agent in agents:
@@ -341,14 +339,8 @@ class SimulationCommandService:
         """Convert action counts from string keys to TurnAction enum keys."""
         converted: dict[TurnAction, int] = {}
 
-        mapping = {
-            "likes": TurnAction.LIKE,
-            "comments": TurnAction.COMMENT,
-            "follows": TurnAction.FOLLOW,
-        }
-
         all_enum_values = set(TurnAction)
-        mapped_values = set(mapping.values())
+        mapped_values = set(ACTION_KEY_TO_TURN_ACTION.values())
         if all_enum_values != mapped_values:
             missing = all_enum_values - mapped_values
             raise ValueError(
@@ -357,8 +349,8 @@ class SimulationCommandService:
             )
 
         for key, count in action_counts.items():
-            if key not in mapping:
+            if key not in ACTION_KEY_TO_TURN_ACTION:
                 raise ValueError(f"Unknown action type: {key}")
-            converted[mapping[key]] = count
+            converted[ACTION_KEY_TO_TURN_ACTION[key]] = count
 
         return converted

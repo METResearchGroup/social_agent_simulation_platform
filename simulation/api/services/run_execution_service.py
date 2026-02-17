@@ -1,5 +1,7 @@
 """Orchestrates simulation run execution and builds API response DTOs."""
 
+from collections.abc import Iterable
+
 from simulation.api.schemas.simulation import (
     ErrorDetail,
     LikesPerTurnItem,
@@ -37,7 +39,6 @@ def execute(
             raise
         metadata_list = engine.list_turn_metadata(e.run_id)
         likes_per_turn, total_likes = _build_likes_per_turn_from_metadata(metadata_list)
-        detail = str(e.cause) if e.cause else None
         return RunResponse(
             run_id=e.run_id,
             status=RunResponseStatus.FAILED,
@@ -48,7 +49,7 @@ def execute(
             error=ErrorDetail(
                 code="SIMULATION_FAILED",
                 message=e.args[0] if e.args else "Run failed during execution",
-                detail=detail,
+                detail=None,
             ),
         )
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(run.run_id)
@@ -78,7 +79,7 @@ def _build_run_config(request: RunRequest) -> RunConfig:
 
 
 def _build_likes_per_turn_from_metadata(
-    metadata_list: list[TurnMetadata],
+    metadata_list: Iterable[TurnMetadata],
 ) -> tuple[list[LikesPerTurnItem], int]:
     """Derive likes_per_turn and total_likes from turn metadata list.
 

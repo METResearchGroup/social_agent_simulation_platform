@@ -45,7 +45,18 @@ def command_service():
 
 
 @pytest.fixture
-def engine(deps, agent_factory, query_service, command_service):
+def action_history_store_factory():
+    return Mock()
+
+
+@pytest.fixture
+def engine(
+    deps,
+    agent_factory,
+    query_service,
+    command_service,
+    action_history_store_factory,
+):
     return SimulationEngine(
         run_repo=deps["run_repo"],
         profile_repo=deps["profile_repo"],
@@ -53,19 +64,27 @@ def engine(deps, agent_factory, query_service, command_service):
         generated_bio_repo=deps["generated_bio_repo"],
         generated_feed_repo=deps["generated_feed_repo"],
         agent_factory=agent_factory,
+        action_history_store_factory=action_history_store_factory,
         query_service=query_service,
         command_service=command_service,
     )
 
 
 class TestSimulationEngineCompatibility:
-    def test_keeps_dependency_attributes(self, engine, deps, agent_factory):
+    def test_keeps_dependency_attributes(
+        self,
+        engine,
+        deps,
+        agent_factory,
+        action_history_store_factory,
+    ):
         assert engine.run_repo is deps["run_repo"]
         assert engine.profile_repo is deps["profile_repo"]
         assert engine.feed_post_repo is deps["feed_post_repo"]
         assert engine.generated_bio_repo is deps["generated_bio_repo"]
         assert engine.generated_feed_repo is deps["generated_feed_repo"]
         assert engine.agent_factory is agent_factory
+        assert engine.action_history_store_factory is action_history_store_factory
 
 
 class TestSimulationEngineDelegation:

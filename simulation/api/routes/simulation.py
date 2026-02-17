@@ -116,7 +116,7 @@ async def _execute_simulation_run(
             status_code=500,
             code="RUN_CREATION_FAILED",
             message=e.args[0] if e.args else "Run creation or status update failed",
-            detail=str(e.cause) if e.cause else None,
+            detail=None,
         )
     except Exception:
         logger.exception("Unexpected error during simulation run")
