@@ -147,6 +147,13 @@ async def _execute_get_simulation_run(
             message="Run not found",
             detail=e.run_id,
         )
+    except ValueError as e:
+        return _error_response(
+            status_code=400,
+            code="INVALID_RUN_ID",
+            message="Invalid run_id",
+            detail=str(e),
+        )
     except Exception:
         logger.exception("Unexpected error while fetching run details")
         return _error_response(
