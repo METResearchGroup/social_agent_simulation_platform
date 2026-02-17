@@ -123,3 +123,15 @@ Fields and parameters
   `ai_reason`) so the field is accurate for deterministic, LLM, and other
   policies.
 - Do not add fields or params that aren't explicitly used, unless told to explicitly by the user.
+
+Logging and observability
+
+- Prefer centralized logging infra (one format, request identity, shared helpers) and let each layer (API, engine) add its own middleware or decorators that call that infra.
+- Use structured request logging with correlation (e.g. request_id, and where relevant run_id) so logs are parseable and traceable.
+Put timing in a single, reusable decorator (e.g. in lib/decorators.py) used by both API and core; avoid duplicate timing logic in multiple places.
+- Observability must not hide real failures: best-effort behavior (e.g. attaching duration to request.state) should be wrapped in a narrow try/except; log the error (e.g. with logger.warning and context like attach_attr, func.__qualname__) and continue, so the wrapped function’s exception is never replaced.
+
+Consolidation over duplication
+
+- Prefer one implementation per concern. When replacing an older pattern (e.g. a decorator), migrate existing callers to the new one and remove the old; avoid keeping two near-equivalents.
+- When renaming or replacing: prefer the clearer, long-term name and update call sites (e.g. timed instead of extending record_runtime with more options).
