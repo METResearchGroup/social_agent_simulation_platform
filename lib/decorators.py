@@ -5,7 +5,7 @@ import logging
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, Awaitable, ParamSpec, TypeVar, overload
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +16,27 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+@overload
 def timed(
     *,
     log_level: int | None = logging.DEBUG,
     attach_attr: str | None = None,
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+@overload
+def timed(
+    *,
+    log_level: int | None = logging.DEBUG,
+    attach_attr: str | None = None,
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]: ...
+
+
+def timed(
+    *,
+    log_level: int | None = logging.DEBUG,
+    attach_attr: str | None = None,
+) -> Callable[[Callable[P, Any]], Callable[P, Any]]:
     """Record elapsed time for sync or async callables.
 
     Inputs: optional keyword-only log_level (default DEBUG; None to disable
@@ -33,11 +49,11 @@ def timed(
     exception.
     """
 
-    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+    def decorator(func: Callable[P, Any]) -> Callable[P, Any]:
         if asyncio.iscoroutinefunction(func):
 
             @wraps(func)
-            async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> object:
                 start = time.perf_counter()
                 try:
                     return await func(*args, **kwargs)
@@ -50,10 +66,10 @@ def timed(
                         first_arg=args[0] if args else None,
                     )
 
-            return async_wrapper  # type: ignore[return-value]
+            return async_wrapper
 
         @wraps(func)
-        def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> object:
             start = time.perf_counter()
             try:
                 return func(*args, **kwargs)
@@ -66,7 +82,7 @@ def timed(
                     first_arg=args[0] if args else None,
                 )
 
-        return sync_wrapper  # type: ignore[return-value]
+        return sync_wrapper
 
     return decorator
 
