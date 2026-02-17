@@ -6,9 +6,7 @@ from pydantic import BaseModel, field_validator
 
 from lib.validation_utils import (
     validate_non_empty_string,
-)
-from lib.validation_utils import (
-    validate_turn_number as validate_turn_number_core,
+    validate_nonnegative_value,
 )
 
 
@@ -44,8 +42,7 @@ class GeneratedFeed(BaseModel):
     @classmethod
     def validate_turn_number(cls, v: int) -> int:
         """Validate that turn_number is a non-negative integer."""
-        validate_turn_number_core(v)
-        return v
+        return validate_nonnegative_value(v, "turn_number")
 
     @classmethod
     def generate_feed_id(cls) -> str:

@@ -6,6 +6,7 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from feeds.algorithms import generate_chronological_feed
 from feeds.candidate_generation import load_candidate_posts
 from lib.timestamp_utils import get_current_timestamp
+from lib.validation_utils import validate_value_in_set
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
@@ -180,8 +181,12 @@ def _generate_feed(
     feed_algorithm: str,
 ) -> GeneratedFeed:
     """Run the registered feed algorithm on candidate posts and return a generated feed."""
-    if feed_algorithm not in _FEED_ALGORITHMS:
-        raise ValueError(f"Unknown feed algorithm: {feed_algorithm}")
+    validate_value_in_set(
+        feed_algorithm,
+        "feed_algorithm",
+        _FEED_ALGORITHMS,
+        allowed_display_name="registered feed algorithms",
+    )
     algorithm = _FEED_ALGORITHMS[feed_algorithm]
     feed_dict = algorithm(candidate_posts=candidate_posts, agent=agent)
     return GeneratedFeed(

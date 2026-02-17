@@ -26,7 +26,7 @@ def test_get_like_generator_caches_instance():
 
 def test_get_like_generator_unknown_mode_raises():
     """Unknown mode raises ValueError."""
-    with pytest.raises(ValueError, match="Unknown behavior mode"):
+    with pytest.raises(ValueError, match="behavior_mode must be one of"):
         get_like_generator("unknown")
 
 

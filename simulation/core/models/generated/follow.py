@@ -1,6 +1,6 @@
 from pydantic import BaseModel, field_validator
 
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_utils import validate_non_empty_string, validate_not_none
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
 
@@ -13,9 +13,7 @@ class GeneratedFollow(BaseModel):
     @field_validator("follow")
     @classmethod
     def validate_follow(cls, v: Follow) -> Follow:
-        if not v:
-            raise ValueError("follow cannot be empty")
-        return v
+        return validate_not_none(v, "follow")
 
     @field_validator("explanation")
     @classmethod
@@ -25,6 +23,4 @@ class GeneratedFollow(BaseModel):
     @field_validator("metadata")
     @classmethod
     def validate_metadata(cls, v: GenerationMetadata) -> GenerationMetadata:
-        if not v:
-            raise ValueError("metadata cannot be empty")
-        return v
+        return validate_not_none(v, "metadata")

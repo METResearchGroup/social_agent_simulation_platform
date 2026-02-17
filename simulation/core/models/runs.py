@@ -2,7 +2,11 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator
 
-from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
+from lib.validation_utils import (
+    validate_non_empty_string,
+    validate_nonnegative_value,
+    validate_value_in_set,
+)
 
 
 class RunConfig(BaseModel):
@@ -28,9 +32,12 @@ class RunConfig(BaseModel):
         """Validate that feed_algorithm is a valid feed algorithm."""
         from feeds.feed_generator import _FEED_ALGORITHMS
 
-        if v not in _FEED_ALGORITHMS:
-            raise ValueError(f"Invalid feed algorithm: {v}")
-        return v
+        return validate_value_in_set(
+            v,
+            "feed_algorithm",
+            _FEED_ALGORITHMS,
+            allowed_display_name="registered feed algorithms",
+        )
 
 
 class RunStatus(str, Enum):

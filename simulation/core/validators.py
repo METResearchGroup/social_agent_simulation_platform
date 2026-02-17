@@ -1,7 +1,12 @@
 from typing import Iterable
 
-from lib.validation_utils import (  # noqa: F401
-    validate_turn_number,
+from lib.validation_utils import (
+    validate_non_empty_iterable,
+    validate_non_empty_string,
+    validate_nonnegative_value,
+    validate_not_none,
+    validate_turn_number,  # noqa: F401
+    validate_value_in_set,
 )
 from simulation.core.exceptions import (
     InsufficientAgentsError,
@@ -15,22 +20,20 @@ from simulation.core.models.runs import Run, RunStatus
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
 
-def validate_run_id(run_id: str):
-    if not run_id or not run_id.strip():
-        raise ValueError("run_id is invalid")
+def validate_run_id(run_id: str) -> str:
+    """Validate that run_id is a non-empty string. Returns stripped value."""
+    return validate_non_empty_string(run_id, "run_id")
 
 
 def validate_num_agents(num_agents: int) -> int:
     """Validate that num_agents is a positive integer."""
-    if num_agents <= 0:
-        raise ValueError("num_agents must be greater than 0")
-    return num_agents
+    return validate_nonnegative_value(num_agents, "num_agents", ok_equals_zero=False)
 
 
 def validate_num_turns(num_turns: int | None) -> int | None:
     """Validate that num_turns, when provided, is a positive integer."""
-    if num_turns is not None and num_turns <= 0:
-        raise ValueError("num_turns must be greater than 0")
+    if num_turns is not None:
+        validate_nonnegative_value(num_turns, "num_turns", ok_equals_zero=False)
     return num_turns
 
 
@@ -40,9 +43,12 @@ def validate_feed_algorithm(feed_algorithm: str | None) -> str | None:
         return None
     from feeds.feed_generator import _FEED_ALGORITHMS
 
-    if feed_algorithm not in _FEED_ALGORITHMS:
-        raise ValueError(f"Invalid feed algorithm: {feed_algorithm}")
-    return feed_algorithm
+    return validate_value_in_set(
+        feed_algorithm,
+        "feed_algorithm",
+        _FEED_ALGORITHMS,
+        allowed_display_name="registered feed algorithms",
+    )
 
 
 def validate_run_exists(run: Run | None, run_id: str):
@@ -73,9 +79,9 @@ def validate_insufficient_agents(agents: list[SocialMediaAgent], requested_agent
         )
 
 
-def validate_handle_exists(handle: str):
-    if not handle or not handle.strip():
-        raise ValueError("handle cannot be empty")
+def validate_handle_exists(handle: str) -> str:
+    """Validate that handle is a non-empty string. Returns stripped value."""
+    return validate_non_empty_string(handle, "handle")
 
 
 def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
@@ -133,16 +139,16 @@ def validate_run_status_transition(
         )
 
 
-def validate_uri_exists(uri: str):
-    if not uri or not uri.strip():
-        raise ValueError("uri cannot be empty")
+def validate_uri_exists(uri: str) -> str:
+    """Validate that uri is a non-empty string. Returns stripped value."""
+    return validate_non_empty_string(uri, "uri")
 
 
-def validate_uris_exist(uris: Iterable[str]):
-    if not uris:
-        raise ValueError("uris cannot be empty")
+def validate_uris_exist(uris: Iterable[str]) -> Iterable[str]:
+    """Validate that uris is not None and not empty."""
+    return validate_non_empty_iterable(uris, "uris")
 
 
-def validate_posts_exist(posts: list[BlueskyFeedPost] | None):
-    if posts is None:
-        raise ValueError("posts cannot be None")
+def validate_posts_exist(posts: list[BlueskyFeedPost] | None) -> list[BlueskyFeedPost]:
+    """Validate that posts is not None."""
+    return validate_not_none(posts, "posts")

@@ -54,7 +54,7 @@ class TestSimulationQueryServiceGetRun:
         mock_repos["run_repo"].get_run.assert_called_once_with(sample_run.run_id)
 
     def test_raises_value_error_for_empty_id(self, query_service):
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             query_service.get_run("")
 
 
@@ -81,7 +81,7 @@ class TestSimulationQueryServiceGetTurnMetadata:
         mock_repos["run_repo"].get_turn_metadata.assert_called_once_with("run_123", 0)
 
     def test_validates_turn_number(self, query_service):
-        with pytest.raises(ValueError, match="turn_number is invalid"):
+        with pytest.raises(ValueError, match="turn_number must be >= 0"):
             query_service.get_turn_metadata("run_123", -1)
 
 
@@ -111,7 +111,7 @@ class TestSimulationQueryServiceListTurnMetadata:
         )
 
     def test_validates_run_id(self, query_service, mock_repos):
-        with pytest.raises(ValueError, match="run_id is invalid"):
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
             query_service.list_turn_metadata("")
 
         mock_repos["run_repo"].list_turn_metadata.assert_not_called()
