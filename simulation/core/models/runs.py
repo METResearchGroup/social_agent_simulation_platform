@@ -8,6 +8,8 @@ from lib.validation_utils import (
     validate_value_in_set,
 )
 
+DEFAULT_FEED_ALGORITHM: str = "chronological"
+
 
 class RunConfig(BaseModel):
     """Configuration for a simulation run."""
@@ -66,6 +68,7 @@ class Run(BaseModel):
     created_at: str
     total_turns: int
     total_agents: int
+    feed_algorithm: str = DEFAULT_FEED_ALGORITHM
     started_at: str
     status: RunStatus
     completed_at: str | None = None
@@ -87,3 +90,16 @@ class Run(BaseModel):
     def validate_total_agents(cls, v: int) -> int:
         """Validate that total_agents is an integer greater than zero."""
         return validate_nonnegative_value(v, "total_agents", ok_equals_zero=False)
+
+    @field_validator("feed_algorithm")
+    @classmethod
+    def validate_feed_algorithm(cls, v: str) -> str:
+        """Validate that feed_algorithm is a valid feed algorithm."""
+        from feeds.feed_generator import _FEED_ALGORITHMS
+
+        return validate_value_in_set(
+            v,
+            "feed_algorithm",
+            _FEED_ALGORITHMS,
+            allowed_display_name="registered feed algorithms",
+        )

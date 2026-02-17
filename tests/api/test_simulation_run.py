@@ -17,6 +17,7 @@ def test_post_simulations_run_success_returns_completed_and_likes(simulation_cli
         created_at=get_current_timestamp(),
         total_turns=1,
         total_agents=1,
+        feed_algorithm="chronological",
         started_at=get_current_timestamp(),
         status=RunStatus.COMPLETED,
         completed_at=get_current_timestamp(),
@@ -66,6 +67,7 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
         created_at=get_current_timestamp(),
         total_turns=10,
         total_agents=1,
+        feed_algorithm="chronological",
         started_at=get_current_timestamp(),
         status=RunStatus.COMPLETED,
         completed_at=get_current_timestamp(),
@@ -197,3 +199,122 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
     assert data["error"] is not None
     assert data["error"]["code"] == "SIMULATION_FAILED"
     assert data["error"]["message"] == "Run failed during execution"
+
+
+def test_get_simulation_run_success_returns_config_and_turn_history(simulation_client):
+    """Existing run returns persisted config and deterministic turn history."""
+    client, fastapi_app = simulation_client
+    run = Run(
+        run_id="run-details-1",
+        created_at="2026-01-01T00:00:00",
+        total_turns=2,
+        total_agents=3,
+        feed_algorithm="chronological",
+        started_at="2026-01-01T00:00:00",
+        status=RunStatus.COMPLETED,
+        completed_at="2026-01-01T00:01:00",
+    )
+    metadata_list = [
+        TurnMetadata(
+            run_id=run.run_id,
+            turn_number=1,
+            total_actions={
+                TurnAction.LIKE: 2,
+                TurnAction.COMMENT: 1,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at="2026-01-01T00:00:02",
+        ),
+        TurnMetadata(
+            run_id=run.run_id,
+            turn_number=0,
+            total_actions={
+                TurnAction.LIKE: 1,
+                TurnAction.COMMENT: 0,
+                TurnAction.FOLLOW: 1,
+            },
+            created_at="2026-01-01T00:00:01",
+        ),
+    ]
+    mock_engine = MagicMock()
+    mock_engine.get_run.return_value = run
+    mock_engine.list_turn_metadata.return_value = metadata_list
+    fastapi_app.state.engine = mock_engine
+
+    response = client.get(f"/v1/simulations/runs/{run.run_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    expected_result = {
+        "run_id": run.run_id,
+        "status": "completed",
+        "config": {
+            "num_agents": 3,
+            "num_turns": 2,
+            "feed_algorithm": "chronological",
+        },
+        "turn_numbers": [0, 1],
+    }
+    assert data["run_id"] == expected_result["run_id"]
+    assert data["status"] == expected_result["status"]
+    assert data["config"] == expected_result["config"]
+    assert [turn["turn_number"] for turn in data["turns"]] == expected_result[
+        "turn_numbers"
+    ]
+    assert data["turns"][0]["total_actions"] == {
+        "like": 1,
+        "comment": 0,
+        "follow": 1,
+    }
+    assert data["turns"][1]["total_actions"] == {
+        "like": 2,
+        "comment": 1,
+        "follow": 0,
+    }
+
+
+def test_get_simulation_run_not_found_returns_404(simulation_client):
+    """Unknown run_id returns a stable not-found payload."""
+    client, fastapi_app = simulation_client
+    mock_engine = MagicMock()
+    mock_engine.get_run.return_value = None
+    fastapi_app.state.engine = mock_engine
+
+    response = client.get("/v1/simulations/runs/missing-run")
+
+    assert response.status_code == 404
+    data = response.json()
+    expected_result = {
+        "code": "RUN_NOT_FOUND",
+        "message": "Run not found",
+        "detail": "missing-run",
+    }
+    assert data["error"] == expected_result
+
+
+def test_get_simulation_run_returns_empty_turns_when_metadata_missing(
+    simulation_client,
+):
+    """Existing run with no turn metadata returns empty turns list."""
+    client, fastapi_app = simulation_client
+    run = Run(
+        run_id="run-empty-turns-1",
+        created_at="2026-01-01T00:00:00",
+        total_turns=3,
+        total_agents=2,
+        feed_algorithm="chronological",
+        started_at="2026-01-01T00:00:00",
+        status=RunStatus.RUNNING,
+        completed_at=None,
+    )
+    mock_engine = MagicMock()
+    mock_engine.get_run.return_value = run
+    mock_engine.list_turn_metadata.return_value = []
+    fastapi_app.state.engine = mock_engine
+
+    response = client.get(f"/v1/simulations/runs/{run.run_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    expected_result = []
+    assert data["turns"] == expected_result
