@@ -1,0 +1,1 @@
+"""Like action generators."""

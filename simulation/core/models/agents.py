@@ -47,14 +47,13 @@ class SocialMediaAgent:
         run_id: str,
         turn_number: int,
     ) -> list[GeneratedLike]:
-        """Generate likes from feed using deterministic scoring policy."""
+        """Generate likes from feed using the configured like generator."""
         if not feed:
             return []
-        from simulation.core.deterministic_like_policy import (
-            generate_deterministic_likes,
-        )
+        from simulation.core.action_generators import get_like_generator
 
-        return generate_deterministic_likes(
+        generator = get_like_generator()
+        return generator.generate(
             candidates=feed,
             run_id=run_id,
             turn_number=turn_number,

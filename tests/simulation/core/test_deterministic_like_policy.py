@@ -1,8 +1,8 @@
-"""Tests for simulation.core.deterministic_like_policy module."""
+"""Tests for simulation.core.action_generators.like.algorithms.deterministic module."""
 
-from simulation.core.deterministic_like_policy import (
+from simulation.core.action_generators.like.algorithms.deterministic import (
     TOP_K_POSTS_TO_LIKE,
-    generate_deterministic_likes,
+    DeterministicLikeGenerator,
 )
 from simulation.core.models.posts import BlueskyFeedPost
 
@@ -33,7 +33,8 @@ def _post(
 
 def test_returns_empty_when_no_candidates():
     """Empty candidates returns empty list."""
-    result = generate_deterministic_likes(
+    generator = DeterministicLikeGenerator()
+    result = generator.generate(
         candidates=[],
         run_id="run_1",
         turn_number=0,
@@ -45,11 +46,12 @@ def test_returns_empty_when_no_candidates():
 
 def test_returns_non_zero_likes_with_candidates():
     """Non-empty candidates with social proof produces likes."""
+    generator = DeterministicLikeGenerator()
     candidates = [
         _post("post_1", like_count=10),
         _post("post_2", like_count=5),
     ]
-    result = generate_deterministic_likes(
+    result = generator.generate(
         candidates=candidates,
         run_id="run_1",
         turn_number=0,
@@ -63,6 +65,7 @@ def test_returns_non_zero_likes_with_candidates():
 
 def test_determinism_same_inputs_same_output():
     """Repeated runs with identical inputs produce same likes."""
+    generator = DeterministicLikeGenerator()
     candidates = [
         _post("post_a", like_count=3),
         _post("post_b", like_count=7),
@@ -71,13 +74,13 @@ def test_determinism_same_inputs_same_output():
     turn_number = 1
     agent_handle = "agent2.bsky.social"
 
-    result1 = generate_deterministic_likes(
+    result1 = generator.generate(
         candidates=candidates,
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
     )
-    result2 = generate_deterministic_likes(
+    result2 = generator.generate(
         candidates=candidates,
         run_id=run_id,
         turn_number=turn_number,
@@ -91,8 +94,9 @@ def test_determinism_same_inputs_same_output():
 
 def test_respects_top_k_limit():
     """Never returns more than TOP_K likes."""
+    generator = DeterministicLikeGenerator()
     candidates = [_post(f"post_{i}", like_count=i) for i in range(5)]
-    result = generate_deterministic_likes(
+    result = generator.generate(
         candidates=candidates,
         run_id="run_1",
         turn_number=0,
@@ -104,11 +108,12 @@ def test_respects_top_k_limit():
 
 def test_higher_social_proof_preferred():
     """Post with higher like_count is preferred (first) when selecting top-k."""
+    generator = DeterministicLikeGenerator()
     low_social = _post("post_low", like_count=1)
     high_social = _post("post_high", like_count=100)
     candidates = [low_social, high_social]
 
-    result = generate_deterministic_likes(
+    result = generator.generate(
         candidates=candidates,
         run_id="run_1",
         turn_number=0,
@@ -123,11 +128,12 @@ def test_higher_social_proof_preferred():
 
 def test_recency_affects_ordering():
     """Newer posts score higher (first) when social proof is equal."""
+    generator = DeterministicLikeGenerator()
     old_post = _post("post_old", created_at="2024_01_01-00:00:00")
     new_post = _post("post_new", created_at="2024_12_31-23:59:59")
     candidates = [old_post, new_post]
 
-    result = generate_deterministic_likes(
+    result = generator.generate(
         candidates=candidates,
         run_id="run_1",
         turn_number=0,
@@ -142,8 +148,9 @@ def test_recency_affects_ordering():
 
 def test_generated_like_has_required_fields():
     """GeneratedLike has valid like_id, agent_id, post_id, ai_reason, metadata."""
+    generator = DeterministicLikeGenerator()
     candidates = [_post("post_1", like_count=1)]
-    result = generate_deterministic_likes(
+    result = generator.generate(
         candidates=candidates,
         run_id="run_1",
         turn_number=2,

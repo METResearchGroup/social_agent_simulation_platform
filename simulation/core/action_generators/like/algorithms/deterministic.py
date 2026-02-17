@@ -1,4 +1,4 @@
-"""Deterministic like generation policy for agent actions.
+"""Deterministic like generation algorithm.
 
 Produces reproducible, non-zero likes based on recency and social proof
 scoring. Domain-pure: imports only from simulation.core.models and stdlib.
@@ -6,6 +6,7 @@ scoring. Domain-pure: imports only from simulation.core.models and stdlib.
 
 from datetime import datetime
 
+from simulation.core.action_generators.interfaces import LikeGenerator
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.like import GeneratedLike
@@ -20,56 +21,39 @@ AI_REASON: str = "Deterministic: recency and social proof"
 CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 
 
-def generate_deterministic_likes(
-    *,
-    candidates: list[BlueskyFeedPost],
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-) -> list[GeneratedLike]:
-    """Generate likes from candidates using deterministic scoring.
+class DeterministicLikeGenerator(LikeGenerator):
+    """Generates likes using deterministic scoring (recency + social proof)."""
 
-    Scores each candidate by recency and social proof (like_count,
-    repost_count, reply_count), selects the top k, and builds
-    GeneratedLike objects with deterministic IDs and metadata.
+    def generate(
+        self,
+        *,
+        candidates: list[BlueskyFeedPost],
+        run_id: str,
+        turn_number: int,
+        agent_handle: str,
+    ) -> list[GeneratedLike]:
+        """Generate likes from candidates using deterministic scoring."""
+        if not candidates:
+            return []
 
-    Args:
-        candidates: Like-eligible feed posts (already filtered for
-            history and own-posts exclusion by callers).
-        run_id: Run identifier for deterministic IDs.
-        turn_number: Turn number for deterministic IDs.
-        agent_handle: Agent handle for deterministic IDs and Like.agent_id.
+        scored = [(_score_post(post, agent_handle), post) for post in candidates]
+        scored.sort(key=lambda x: (-x[0], x[1].id))
+        selected = scored[:TOP_K_POSTS_TO_LIKE]
 
-    Returns:
-        Up to TOP_K_POSTS_TO_LIKE GeneratedLike instances, ordered by
-        score descending then by post.id for deterministic output.
-    """
-    if not candidates:
-        return []
-
-    scored = [(_score_post(post, agent_handle), post) for post in candidates]
-    scored.sort(key=lambda x: (-x[0], x[1].id))
-    selected = scored[:TOP_K_POSTS_TO_LIKE]
-
-    return [
-        _build_generated_like(
-            post=post,
-            agent_handle=agent_handle,
-            run_id=run_id,
-            turn_number=turn_number,
-            post_index=idx,
-        )
-        for idx, (_, post) in enumerate(selected)
-    ]
+        return [
+            _build_generated_like(
+                post=post,
+                agent_handle=agent_handle,
+                run_id=run_id,
+                turn_number=turn_number,
+                post_index=idx,
+            )
+            for idx, (_, post) in enumerate(selected)
+        ]
 
 
 def _score_post(post: BlueskyFeedPost, agent_handle: str) -> float:
-    """Compute deterministic score for a post.
-
-    Combines recency (parsed from created_at) and social proof
-    (like_count, repost_count, reply_count). Higher score = more
-    likely to be liked.
-    """
+    """Compute deterministic score for a post."""
     recency = _recency_score(post.created_at)
     social = (
         post.like_count * LIKE_COUNT_WEIGHT
