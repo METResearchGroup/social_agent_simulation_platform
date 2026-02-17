@@ -8,7 +8,12 @@ from unittest.mock import patch
 import pytest
 
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
-from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
+from db.adapters.sqlite.sqlite import (
+    DB_PATH,
+    get_connection,
+    get_db_path,
+    initialize_database,
+)
 from db.schema import bluesky_feed_posts
 
 
@@ -39,6 +44,19 @@ class TestDBPath:
         """Test that DB_PATH ends with db.sqlite."""
         assert DB_PATH.endswith("db.sqlite")
 
+    def test_get_db_path_uses_default_when_env_not_set(self):
+        """get_db_path returns DB_PATH when SIM_DB_PATH is unset."""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("SIM_DB_PATH", None)
+            expected_result = DB_PATH
+            assert get_db_path() == expected_result
+
+    def test_get_db_path_uses_env_override(self, temp_db):
+        """get_db_path prefers SIM_DB_PATH when provided."""
+        with patch.dict(os.environ, {"SIM_DB_PATH": temp_db}, clear=False):
+            expected_result = temp_db
+            assert get_db_path() == expected_result
+
 
 class TestGetConnection:
     """Tests for get_connection function."""
@@ -62,6 +80,19 @@ class TestGetConnection:
         cursor = conn.execute("SELECT 1")
         assert cursor.fetchone()[0] == 1
         conn.close()
+
+    def test_connection_uses_sim_db_path_env_override(self, temp_db):
+        """get_connection should connect to path provided by SIM_DB_PATH."""
+        with patch.dict(os.environ, {"SIM_DB_PATH": temp_db}, clear=False):
+            conn = get_connection()
+            cursor = conn.execute("PRAGMA database_list")
+            rows = cursor.fetchall()
+            conn.close()
+
+        # Row format: (seq, name, file); row 0 is "main".
+        connected_path = rows[0][2]
+        expected_result = os.path.realpath(temp_db)
+        assert os.path.realpath(connected_path) == expected_result
 
 
 class TestInitializeDatabase:

@@ -12,7 +12,16 @@ from typing import Any
 
 from lib.constants import REPO_ROOT
 
+SIM_DB_PATH_ENV: str = "SIM_DB_PATH"
 DB_PATH = os.path.join(REPO_ROOT, "db", "db.sqlite")
+
+
+def get_db_path() -> str:
+    """Return the runtime SQLite path, preferring SIM_DB_PATH when set."""
+    configured_path = os.environ.get(SIM_DB_PATH_ENV)
+    if configured_path:
+        return configured_path
+    return DB_PATH
 
 
 def get_connection() -> sqlite3.Connection:
@@ -21,7 +30,7 @@ def get_connection() -> sqlite3.Connection:
     Returns:
         SQLite connection to db.sqlite with foreign key enforcement enabled
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(get_db_path())
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -114,21 +123,22 @@ def initialize_database() -> None:
     """
     from alembic.config import Config
 
-    db_dir = os.path.dirname(DB_PATH)
+    db_path: str = get_db_path()
+    db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
 
     pyproject_toml = os.path.join(REPO_ROOT, "pyproject.toml")
     cfg = Config(toml_file=str(pyproject_toml))
 
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(db_path) as conn:
         has_version = _has_alembic_version(conn)
         has_tables = _has_any_app_tables(conn)
 
     old_sim_db_path = os.environ.get("SIM_DB_PATH")
     old_sim_db_url = os.environ.get("SIM_DATABASE_URL")
     if old_sim_db_url is None and old_sim_db_path is None:
-        os.environ["SIM_DB_PATH"] = DB_PATH
+        os.environ["SIM_DB_PATH"] = db_path
     try:
         _apply_migrations(cfg, has_version, has_tables)
     finally:

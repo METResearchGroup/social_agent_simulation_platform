@@ -136,3 +136,5 @@ Consolidation over duplication
 
 - Prefer one implementation per concern. When replacing an older pattern (e.g. a decorator), migrate existing callers to the new one and remove the old; avoid keeping two near-equivalents.
 - When renaming or replacing: prefer the clearer, long-term name and update call sites (e.g. timed instead of extending record_runtime with more options).
+
+Package management — Use uv for Python; don’t use pip.
