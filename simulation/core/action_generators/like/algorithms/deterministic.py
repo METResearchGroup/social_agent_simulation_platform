@@ -1,7 +1,7 @@
 """Deterministic like generation algorithm.
 
 Produces reproducible, non-zero likes based on recency and social proof
-scoring. Domain-pure: imports only from simulation.core.models and stdlib.
+scoring.s
 """
 
 from datetime import datetime
@@ -17,7 +17,7 @@ RECENCY_WEIGHT: float = 1.0
 LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
-AI_REASON: str = "Deterministic: recency and social proof"
+EXPLANATION: str = "Deterministic: recency and social proof"
 CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 
 
@@ -106,7 +106,7 @@ def _build_generated_like(
             post_id=post_id,
             created_at=created_at,
         ),
-        ai_reason=AI_REASON,
+        explanation=EXPLANATION,
         metadata=GenerationMetadata(
             model_used=None,
             generation_metadata={"policy": "deterministic"},

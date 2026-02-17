@@ -147,7 +147,7 @@ def test_recency_affects_ordering():
 
 
 def test_generated_like_has_required_fields():
-    """GeneratedLike has valid like_id, agent_id, post_id, ai_reason, metadata."""
+    """GeneratedLike has valid like_id, agent_id, post_id, explanation, metadata."""
     generator = DeterministicLikeGenerator()
     candidates = [_post("post_1", like_count=1)]
     result = generator.generate(
@@ -168,5 +168,5 @@ def test_generated_like_has_required_fields():
     )
     assert like.like.agent_id == expected_handle
     assert like.like.post_id == expected_post_id
-    assert like.ai_reason
+    assert like.explanation
     assert like.metadata.generation_metadata == {"policy": "deterministic"}

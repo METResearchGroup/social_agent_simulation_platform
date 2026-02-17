@@ -232,7 +232,7 @@ class TestSimulationCommandServiceExecuteRun:
                         post_id="post_1",
                         created_at="2024_01_01-12:00:00",
                     ),
-                    ai_reason="reason",
+                    explanation="reason",
                     metadata=metadata,
                 )
             ]
@@ -246,7 +246,7 @@ class TestSimulationCommandServiceExecuteRun:
                         post_id="post_1",
                         created_at="2024_01_01-12:00:00",
                     ),
-                    ai_reason="reason",
+                    explanation="reason",
                     metadata=metadata,
                 )
             ]
@@ -260,7 +260,7 @@ class TestSimulationCommandServiceExecuteRun:
                         user_id="user_1",
                         created_at="2024_01_01-12:00:00",
                     ),
-                    ai_reason="reason",
+                    explanation="reason",
                     metadata=metadata,
                 )
             ]

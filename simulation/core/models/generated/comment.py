@@ -6,7 +6,7 @@ from simulation.core.models.generated.base import GenerationMetadata
 
 class GeneratedComment(BaseModel):
     comment: Comment
-    ai_reason: str
+    explanation: str
     metadata: GenerationMetadata
 
     @field_validator("comment")
@@ -16,11 +16,11 @@ class GeneratedComment(BaseModel):
             raise ValueError("comment cannot be empty")
         return v
 
-    @field_validator("ai_reason")
+    @field_validator("explanation")
     @classmethod
-    def validate_ai_reason(cls, v: str) -> str:
+    def validate_explanation(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("ai_reason cannot be empty")
+            raise ValueError("explanation cannot be empty")
         return v
 
     @field_validator("metadata")
