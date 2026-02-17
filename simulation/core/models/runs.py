@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator
 
-from simulation.core.models.validators import validate_non_empty_string
+from lib.validation_utils import validate_non_empty_string
 
 
 class RunConfig(BaseModel):

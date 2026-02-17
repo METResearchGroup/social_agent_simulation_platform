@@ -1,5 +1,7 @@
 from pydantic import BaseModel, field_validator, model_validator
 
+from lib.validation_utils import validate_non_empty_string
+
 
 class Post(BaseModel):
     """Base post model - platform agnostic.
@@ -18,16 +20,12 @@ class Post(BaseModel):
     @field_validator("id")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("id cannot be empty")
-        return v
+        return validate_non_empty_string(v, "id")
 
     @field_validator("author_handle")
     @classmethod
     def validate_author_handle(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("author_handle cannot be empty")
-        return v
+        return validate_non_empty_string(v, "author_handle")
 
 
 class BlueskyFeedPost(Post):
@@ -42,9 +40,7 @@ class BlueskyFeedPost(Post):
     @field_validator("uri")
     @classmethod
     def validate_uri(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("uri cannot be empty")
-        return v
+        return validate_non_empty_string(v, "uri")
 
     @field_validator("bookmark_count")
     @classmethod

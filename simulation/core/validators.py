@@ -1,5 +1,8 @@
 from typing import Iterable
 
+from lib.validation_utils import (  # noqa: F401
+    validate_turn_number,
+)
 from simulation.core.exceptions import (
     InsufficientAgentsError,
     InvalidTransitionError,
@@ -8,9 +11,6 @@ from simulation.core.exceptions import (
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunStatus
-from simulation.core.models.validators import (  # noqa: F401
-    validate_turn_number,
-)
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 

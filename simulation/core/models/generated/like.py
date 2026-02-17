@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
 
@@ -19,9 +20,7 @@ class GeneratedLike(BaseModel):
     @field_validator("explanation")
     @classmethod
     def validate_explanation(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("explanation cannot be empty")
-        return v
+        return validate_non_empty_string(v, "explanation")
 
     @field_validator("metadata")
     @classmethod

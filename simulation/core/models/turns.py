@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.validators import validate_non_empty_string
 
 
 class TurnResult(BaseModel):

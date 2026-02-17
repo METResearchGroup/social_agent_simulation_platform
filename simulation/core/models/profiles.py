@@ -1,5 +1,7 @@
 from pydantic import BaseModel, field_validator
 
+from lib.validation_utils import validate_non_empty_string
+
 
 class Profile(BaseModel):
     """Base profile model - platform agnostic.
@@ -18,9 +20,7 @@ class Profile(BaseModel):
     @field_validator("handle")
     @classmethod
     def validate_handle(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("handle cannot be empty")
-        return v
+        return validate_non_empty_string(v, "handle")
 
     @field_validator("followers_count")
     @classmethod
@@ -55,6 +55,4 @@ class BlueskyProfile(Profile):
     @field_validator("did")
     @classmethod
     def validate_did(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("did cannot be empty")
-        return v
+        return validate_non_empty_string(v, "did")
