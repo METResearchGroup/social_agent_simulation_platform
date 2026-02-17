@@ -90,14 +90,15 @@ API layer vs core
 
 Fixed sets of values (e.g. status, type, kind):
 
-- Prefer an enum when the same set of values is used in more than one place (schemas, services, routes) or when you want a single shared type and stable OpenAPI/docs. Use a str-backed enum (e.g. class RunResponseStatus(str, Enum)) so JSON stays string values.
-- Use a Pydantic model (or discriminated union) when you need different required fields per value.
-- Prefer enum over Literal when you need a shared, reusable type; Literal is fine for a one-off field used only in one schema.
+- Use a str-backed enum (e.g. class RunResponseStatus(str, Enum)) when the same set is used in more than one place (schemas, services, routes) or you want a single shared type and stable OpenAPI; JSON then stays string values.
+- Use a Pydantic model or discriminated union when each value has different required fields.
+- Prefer enum over Literal when the type is shared and reused; Literal is fine for a one-off field in a single schema.
 
 Deterministic outputs:
 
-- When a function returns a list (or list-derived result) and the input order is not guaranteed by the caller, sort by a meaningful key before building the result so the function’s output is deterministic regardless of input order. Use a domain-natural key (e.g. turn_number, created_at, id).
-- Assume ordering matters for API responses and serialized data unless told otherwise; document or enforce the ordering (e.g. “ordered by turn_number ascending”) so clients get stable, repeatable results.
+- Principle: Functions and API responses should be deterministic and repeatable when given the same inputs and config; avoid order-dependent or undefined ordering in results.
+- When a function returns a list (or list-derived result) and input order is not guaranteed, sort by a domain-natural key (e.g. turn_number, created_at, id) before building the result.
+- For API and serialized data, treat ordering as part of the contract unless otherwise specified: document or enforce it (e.g. “ordered by turn_number ascending”) so clients get stable, repeatable results.
 
 Response schema consistency:
 
@@ -123,3 +124,15 @@ Fields and parameters
   `ai_reason`) so the field is accurate for deterministic, LLM, and other
   policies.
 - Do not add fields or params that aren't explicitly used, unless told to explicitly by the user.
+
+Logging and observability
+
+- Prefer centralized logging infra (one format, request identity, shared helpers) and let each layer (API, engine) add its own middleware or decorators that call that infra.
+- Use structured request logging with correlation (e.g. request_id, and where relevant run_id) so logs are parseable and traceable.
+Put timing in a single, reusable decorator (e.g. in lib/decorators.py) used by both API and core; avoid duplicate timing logic in multiple places.
+- Observability must not hide real failures: best-effort behavior (e.g. attaching duration to request.state) should be wrapped in a narrow try/except; log the error (e.g. with logger.warning and context like attach_attr, func.__qualname__) and continue, so the wrapped function’s exception is never replaced.
+
+Consolidation over duplication
+
+- Prefer one implementation per concern. When replacing an older pattern (e.g. a decorator), migrate existing callers to the new one and remove the old; avoid keeping two near-equivalents.
+- When renaming or replacing: prefer the clearer, long-term name and update call sites (e.g. timed instead of extending record_runtime with more options).
