@@ -1,6 +1,6 @@
 from pydantic import BaseModel, field_validator, model_validator
 
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 
 
 class Post(BaseModel):
@@ -46,33 +46,25 @@ class BlueskyFeedPost(Post):
     @classmethod
     def validate_bookmark_count(cls, v: int) -> int:
         """Validate that bookmark_count is non-negative."""
-        if v < 0:
-            raise ValueError("bookmark_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "bookmark_count")
 
     @field_validator("quote_count")
     @classmethod
     def validate_quote_count(cls, v: int) -> int:
         """Validate that quote_count is non-negative."""
-        if v < 0:
-            raise ValueError("quote_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "quote_count")
 
     @field_validator("reply_count")
     @classmethod
     def validate_reply_count(cls, v: int) -> int:
         """Validate that reply_count is non-negative."""
-        if v < 0:
-            raise ValueError("reply_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "reply_count")
 
     @field_validator("repost_count")
     @classmethod
     def validate_repost_count(cls, v: int) -> int:
         """Validate that repost_count is non-negative."""
-        if v < 0:
-            raise ValueError("repost_count must be >= 0")
-        return v
+        return validate_nonnegative_value(v, "repost_count")
 
     @model_validator(mode="before")
     @classmethod
