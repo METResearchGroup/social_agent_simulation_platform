@@ -80,6 +80,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             created_at=row["created_at"],
             total_turns=row["total_turns"],
             total_agents=row["total_agents"],
+            feed_algorithm=row["feed_algorithm"],
             started_at=row["started_at"],
             status=status,
             completed_at=row["completed_at"],
@@ -96,14 +97,15 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             conn.execute(
                 """
                 INSERT OR REPLACE INTO runs 
-                (run_id, created_at, total_turns, total_agents, started_at, status, completed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (run_id, created_at, total_turns, total_agents, feed_algorithm, started_at, status, completed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     run.run_id,
                     run.created_at,
                     run.total_turns,
                     run.total_agents,
+                    run.feed_algorithm,
                     run.started_at,
                     run.status.value,  # Convert enum to string explicitly
                     run.completed_at,

@@ -4,6 +4,7 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from simulation.core.models.runs import RunStatus
 from simulation.core.validators import (
     validate_feed_algorithm,
     validate_num_agents,
@@ -74,3 +75,31 @@ class RunResponse(BaseModel):
         if self.status == RunResponseStatus.COMPLETED and self.error is not None:
             raise ValueError("error must be None when status is 'completed'")
         return self
+
+
+class RunConfigDetail(BaseModel):
+    """Configuration for a persisted run."""
+
+    num_agents: int
+    num_turns: int
+    feed_algorithm: str
+
+
+class TurnActionsItem(BaseModel):
+    """One turn summary with aggregate action counts."""
+
+    turn_number: int
+    created_at: str
+    total_actions: dict[str, int]
+
+
+class RunDetailsResponse(BaseModel):
+    """Response body for GET /v1/simulations/runs/{run_id}."""
+
+    run_id: str
+    status: RunStatus
+    created_at: str
+    started_at: str
+    completed_at: str | None = None
+    config: RunConfigDetail
+    turns: list[TurnActionsItem]

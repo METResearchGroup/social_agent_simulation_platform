@@ -51,9 +51,10 @@ def validate_feed_algorithm(feed_algorithm: str | None) -> str | None:
     )
 
 
-def validate_run_exists(run: Run | None, run_id: str):
+def validate_run_exists(run: Run | None, run_id: str) -> Run:
     if run is None:
         raise RunNotFoundError(run_id)
+    return run
 
 
 def validate_agents_without_feeds(
