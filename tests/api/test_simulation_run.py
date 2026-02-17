@@ -147,6 +147,7 @@ def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
     assert "error" in data
     assert data["error"]["code"] == "RUN_CREATION_FAILED"
     assert data["error"]["message"] == "Run creation or status update failed"
+    assert data["error"]["detail"] is None
 
 
 def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
@@ -197,3 +198,4 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
     assert data["error"] is not None
     assert data["error"]["code"] == "SIMULATION_FAILED"
     assert data["error"]["message"] == "Run failed during execution"
+    assert data["error"]["detail"] is None

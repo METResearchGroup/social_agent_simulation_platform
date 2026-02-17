@@ -110,6 +110,34 @@ class TestSimulationQueryServiceListTurnMetadata:
             run_id="run_123"
         )
 
+    def test_sorts_turn_metadata_by_turn_number(self, query_service, mock_repos):
+        unsorted_metadata = [
+            TurnMetadata(
+                run_id="run_123",
+                turn_number=2,
+                total_actions={},
+                created_at="2024_01_01-12:02:00",
+            ),
+            TurnMetadata(
+                run_id="run_123",
+                turn_number=0,
+                total_actions={},
+                created_at="2024_01_01-12:00:00",
+            ),
+            TurnMetadata(
+                run_id="run_123",
+                turn_number=1,
+                total_actions={},
+                created_at="2024_01_01-12:01:00",
+            ),
+        ]
+        mock_repos["run_repo"].list_turn_metadata.return_value = unsorted_metadata
+
+        result = query_service.list_turn_metadata("run_123")
+
+        expected_turn_numbers = [0, 1, 2]
+        assert [item.turn_number for item in result] == expected_turn_numbers
+
     def test_validates_run_id(self, query_service, mock_repos):
         with pytest.raises(ValueError, match="run_id cannot be empty"):
             query_service.list_turn_metadata("")

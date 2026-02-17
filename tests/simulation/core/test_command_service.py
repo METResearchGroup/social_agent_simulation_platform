@@ -15,6 +15,8 @@ from simulation.core.agent_action_feed_filter import (
     ActionCandidateFeeds,
     HistoryAwareActionFeedFilter,
 )
+from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
+from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
@@ -75,6 +77,9 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
             follow_candidates=kwargs["feed"],
         )
     )
+    agent_action_rules_validator = Mock(spec=AgentActionRulesValidator)
+    agent_action_rules_validator.validate.return_value = ([], [], [])
+    agent_action_history_recorder = Mock(spec=AgentActionHistoryRecorder)
     return SimulationCommandService(
         run_repo=mock_repos["run_repo"],
         profile_repo=mock_repos["profile_repo"],
@@ -84,6 +89,8 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=mock_feed_generator,
+        agent_action_rules_validator=agent_action_rules_validator,
+        agent_action_history_recorder=agent_action_history_recorder,
         agent_action_feed_filter=agent_action_feed_filter,
     )
 
