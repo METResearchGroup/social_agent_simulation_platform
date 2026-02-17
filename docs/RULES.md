@@ -46,6 +46,8 @@ Type annotations:
 
 - Use | instead of "Optional" or "Union" for typing.
 - When creating a variable as the result of a function, always include the type annotation in the variable definition. However, do this only on the happy path definition and instantiation of the function, not when it is defined in alternative branch or exception paths (so as to avoid pyright errors like "Declaration "metadata_list" is obscured by a declaration of the same name").
+- Prefer generic Iterable over list or set, unless it truly needs to be a list or set (e.g., type as a list if we need order preserved). Err on the side of more generic annotation.
+- Avoid using the "Any" type annotation, unless absolutely needed. If you ever use it, flag to the user and get explicit approval.
 
 API design and rollout
 
