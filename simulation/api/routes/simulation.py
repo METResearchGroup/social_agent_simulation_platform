@@ -1,11 +1,14 @@
 """Simulation run API routes."""
 
 import asyncio
+import json
 import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
+from lib.decorators import timed
+from lib.request_logging import log_route_completion
 from simulation.api.schemas.simulation import RunRequest, RunResponse
 from simulation.api.services.run_execution_service import execute
 from simulation.core.exceptions import SimulationRunFailure
@@ -13,6 +16,8 @@ from simulation.core.exceptions import SimulationRunFailure
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["simulation"])
+
+SIMULATION_RUN_ROUTE: str = "POST /v1/simulations/run"
 
 
 @router.post(
@@ -26,14 +31,43 @@ async def post_simulations_run(
     request: Request, body: RunRequest
 ) -> RunResponse | Response:
     """Execute a simulation run and return completed or partial results."""
+    response = await _execute_simulation_run(request=request, body=body)
+    request_id = getattr(request.state, "request_id", "")
+    latency_ms = getattr(request.state, "duration_ms", 0)
+    if isinstance(response, RunResponse):
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_RUN_ROUTE,
+            latency_ms=latency_ms,
+            run_id=response.run_id,
+            status=response.status.value,
+            error_code=response.error.code if response.error else None,
+        )
+    else:
+        error_code = _error_code_from_json_response(response)
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_RUN_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status=str(response.status_code),
+            error_code=error_code,
+        )
+    return response
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_simulation_run(
+    request: Request, body: RunRequest
+) -> RunResponse | Response:
+    """Run the simulation and return response; used for timing and logging."""
     engine = request.app.state.engine
     try:
-        response = await asyncio.to_thread(
+        return await asyncio.to_thread(
             execute,
             request=body,
             engine=engine,
         )
-        return response
     except SimulationRunFailure as e:
         logger.exception("Simulation run failed before run creation")
         return _error_response(
@@ -50,6 +84,25 @@ async def post_simulations_run(
             message="Internal server error",
             detail=None,
         )
+
+
+def _error_code_from_json_response(response: Response) -> str | None:
+    """Extract error code from JSONResponse content if present."""
+    content = getattr(response, "content", None)
+    if isinstance(content, dict):
+        return content.get("error", {}).get("code")
+    if hasattr(response, "body") and response.body:
+        try:
+            raw = response.body
+            if isinstance(raw, bytes):
+                raw = raw.decode()
+            else:
+                raw = bytes(raw).decode()
+            data = json.loads(raw)
+            return data.get("error", {}).get("code")
+        except (TypeError, ValueError):
+            return None
+    return None
 
 
 def _error_response(

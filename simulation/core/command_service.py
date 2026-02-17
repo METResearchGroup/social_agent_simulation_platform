@@ -10,7 +10,7 @@ from db.repositories.interfaces import (
     RunRepository,
 )
 from feeds.interfaces import FeedGenerator
-from lib.decorators import record_runtime
+from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.agent_action_feed_filter import (
@@ -203,7 +203,7 @@ class SimulationCommandService:
             self.update_run_status(run, RunStatus.FAILED)
             raise
 
-    @record_runtime
+    @timed()
     def _simulate_turn(
         self,
         run_id: str,

@@ -45,6 +45,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+markers = [
+    "smoke: smoke tests against a running API (set SIMULATION_API_URL to run).",
+]
 addopts = [
     "--strict-markers",
     "--disable-warnings",
