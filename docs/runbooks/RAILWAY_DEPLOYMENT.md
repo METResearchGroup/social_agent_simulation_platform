@@ -30,7 +30,7 @@ railway init
 2. Set environment variable:
 
 ```bash
-railway variables set SIM_DB_PATH=/data/db.sqlite
+railway variables --set "SIM_DB_PATH=/data/db.sqlite"
 ```
 
 Notes:
@@ -46,10 +46,10 @@ From repo root:
 railway up
 ```
 
-The runtime command is configured in `railway.json`:
+The runtime command is configured in `Dockerfile` (`CMD`):
 
 ```bash
-PYTHONPATH=. uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port ${PORT}
+uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
 ```
 
 ## Verify Deployment With Railway CLI + HTTP Checks
@@ -78,7 +78,7 @@ curl -sS -X POST "<APP_URL>/v1/simulations/run" \
 
 Expected behavior:
 - `GET /health` returns `{"status":"ok"}` with HTTP 200.
-- `POST /v1/simulations/run` returns HTTP 200 with `run_id`, `status`, `likes_per_turn`, and `total_likes`.
+- `POST /v1/simulations/run` returns HTTP 200 with `run_id`, `status`, `likes_per_turn`, and `total_likes` (status may be `failed` if no agent fixture data is loaded).
 
 ## Run Smoke Tests Against Deployed URL
 
