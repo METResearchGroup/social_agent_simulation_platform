@@ -1,7 +1,7 @@
 """Deterministic like generation algorithm.
 
 Produces reproducible, non-zero likes based on recency and social proof
-scoring.s
+scoring
 """
 
 from datetime import datetime, timezone
@@ -36,7 +36,7 @@ class DeterministicLikeGenerator(LikeGenerator):
         if not candidates:
             return []
 
-        scored = [(_score_post(post, agent_handle), post) for post in candidates]
+        scored = [(_score_post(post), post) for post in candidates]
         scored.sort(key=lambda x: (-x[0], x[1].id))
         selected = scored[:TOP_K_POSTS_TO_LIKE]
 
@@ -52,7 +52,7 @@ class DeterministicLikeGenerator(LikeGenerator):
         ]
 
 
-def _score_post(post: BlueskyFeedPost, agent_handle: str) -> float:
+def _score_post(post: BlueskyFeedPost) -> float:
     """Compute deterministic score for a post."""
     recency = _recency_score(post.created_at)
     social = (

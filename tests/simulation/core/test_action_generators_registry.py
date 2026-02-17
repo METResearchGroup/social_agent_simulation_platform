@@ -32,5 +32,6 @@ def test_get_like_generator_unknown_mode_raises():
 
 def test_default_mode_is_deterministic():
     """get_like_generator() with no args uses deterministic mode."""
-    generator = get_like_generator()
-    assert isinstance(generator, LikeGenerator)
+    default_generator = get_like_generator()
+    deterministic_generator = get_like_generator(BEHAVIOR_MODE_DETERMINISTIC)
+    assert default_generator is deterministic_generator
