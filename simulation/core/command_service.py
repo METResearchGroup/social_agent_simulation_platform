@@ -117,7 +117,9 @@ class SimulationCommandService:
                 if attempt == STATUS_UPDATE_MAX_ATTEMPTS - 1:
                     if status != RunStatus.FAILED:
                         try:
-                            self.run_repo.update_run_status(run.run_id, RunStatus.FAILED)
+                            self.run_repo.update_run_status(
+                                run.run_id, RunStatus.FAILED
+                            )
                         except Exception:
                             logger.warning(
                                 "Failed to update run %s status to %s",

@@ -51,9 +51,7 @@ class SimulationEngine:
     def list_runs(self) -> list[Run]:
         return self.query_service.list_runs()
 
-    def get_turn_metadata(
-        self, run_id: str, turn_number: int
-    ) -> TurnMetadata | None:
+    def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
         return self.query_service.get_turn_metadata(run_id, turn_number)
 
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:

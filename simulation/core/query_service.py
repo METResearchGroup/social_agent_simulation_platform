@@ -32,9 +32,7 @@ class SimulationQueryService:
         """List all runs."""
         return self.run_repo.list_runs()
 
-    def get_turn_metadata(
-        self, run_id: str, turn_number: int
-    ) -> TurnMetadata | None:
+    def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
         """Get turn metadata for a specific run and turn number."""
         validate_run_id(run_id)
         validate_turn_number(turn_number)
@@ -43,7 +41,9 @@ class SimulationQueryService:
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
         """List all turn metadata for a run in turn order."""
         validate_run_id(run_id)
-        metadata_list: list[TurnMetadata] = self.run_repo.list_turn_metadata(run_id=run_id)
+        metadata_list: list[TurnMetadata] = self.run_repo.list_turn_metadata(
+            run_id=run_id
+        )
         return sorted(metadata_list, key=lambda metadata: metadata.turn_number)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
