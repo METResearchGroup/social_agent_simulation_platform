@@ -4,7 +4,7 @@ Produces reproducible, non-zero likes based on recency and social proof
 scoring.s
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from simulation.core.action_generators.interfaces import LikeGenerator
 from simulation.core.models.actions import Like
@@ -67,6 +67,7 @@ def _recency_score(created_at: str) -> float:
     """Convert created_at to a numeric recency score (higher = newer)."""
     try:
         dt = datetime.strptime(created_at, CREATED_AT_FORMAT)
+        dt = dt.replace(tzinfo=timezone.utc)
         return float(dt.timestamp())
     except (ValueError, TypeError):
         return 0.0
