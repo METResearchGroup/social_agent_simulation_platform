@@ -181,6 +181,7 @@ class TestInitializeDatabase:
                 "created_at": "TEXT",
                 "total_turns": "INTEGER",
                 "total_agents": "INTEGER",
+                "feed_algorithm": "TEXT",
                 "started_at": "TEXT",
                 "status": "TEXT",
                 "completed_at": "TEXT",

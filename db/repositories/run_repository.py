@@ -66,6 +66,7 @@ class SQLiteRunRepository(RunRepository):
                 created_at=ts,
                 total_turns=config.num_turns,
                 total_agents=config.num_agents,
+                feed_algorithm=config.feed_algorithm,
                 started_at=ts,
                 status=RunStatus.RUNNING,
             )
