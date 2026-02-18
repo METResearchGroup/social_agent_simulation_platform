@@ -1,5 +1,6 @@
 """Tests for SimulationPersistenceService."""
 
+from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
@@ -22,6 +23,19 @@ def mock_run_repo():
 @pytest.fixture
 def mock_metrics_repo():
     return Mock()
+
+
+@pytest.fixture
+def mock_transaction_provider():
+    """TransactionProvider that yields a single mock conn so both repos receive the same conn."""
+
+    class MockTransactionProvider:
+        @contextmanager
+        def run_transaction(self):
+            conn = Mock()
+            yield conn
+
+    return MockTransactionProvider()
 
 
 @pytest.fixture
@@ -59,11 +73,12 @@ def sample_run_metrics():
 
 class TestCreateSimulationPersistenceService:
     def test_returns_simulation_persistence_service(
-        self, mock_run_repo, mock_metrics_repo
+        self, mock_run_repo, mock_metrics_repo, mock_transaction_provider
     ):
         service = create_simulation_persistence_service(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         assert isinstance(service, SimulationPersistenceService)
 
@@ -73,6 +88,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -80,6 +96,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         service.write_turn(
             turn_metadata=sample_turn_metadata,
@@ -97,12 +114,14 @@ class TestSimulationPersistenceServiceWriteTurn:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         service.write_turn(
             turn_metadata=sample_turn_metadata,
@@ -119,6 +138,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -130,6 +150,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         with pytest.raises(DuplicateTurnMetadataError):
             service.write_turn(
@@ -142,6 +163,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -149,6 +171,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         with pytest.raises(RuntimeError):
             service.write_turn(
@@ -163,12 +186,14 @@ class TestSimulationPersistenceServiceWriteRun:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_run_metrics,
     ):
         """When write_run is called, write_run_metrics and update_run_status are invoked in one transaction."""
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
@@ -187,11 +212,13 @@ class TestSimulationPersistenceServiceWriteRun:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_run_metrics,
     ):
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
@@ -207,12 +234,14 @@ class TestSimulationPersistenceServiceWriteRun:
         self,
         mock_run_repo,
         mock_metrics_repo,
+        mock_transaction_provider,
         sample_run_metrics,
     ):
         mock_metrics_repo.write_run_metrics.side_effect = RuntimeError("db error")
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
+            transaction_provider=mock_transaction_provider,
         )
         with pytest.raises(RuntimeError):
             service.write_run(run_id="run_1", run_metrics=sample_run_metrics)

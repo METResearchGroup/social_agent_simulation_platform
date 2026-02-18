@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
@@ -60,6 +61,7 @@ def create_command_service(
         simulation_persistence = create_simulation_persistence_service(
             run_repo=run_repo,
             metrics_repo=metrics_repo,
+            transaction_provider=SqliteTransactionProvider(),
         )
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()

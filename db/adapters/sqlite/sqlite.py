@@ -11,6 +11,7 @@ import os
 import sqlite3
 from typing import Any
 
+from db.adapters.base import TransactionProvider
 from lib.constants import REPO_ROOT
 
 SIM_DB_PATH_ENV: str = "SIM_DB_PATH"
@@ -54,6 +55,13 @@ def run_transaction():
         raise
     finally:
         conn.close()
+
+
+class SqliteTransactionProvider(TransactionProvider):
+    """SQLite implementation of TransactionProvider using the default DB path."""
+
+    def run_transaction(self):
+        return run_transaction()
 
 
 def validate_required_fields(

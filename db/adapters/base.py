@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import AbstractContextManager
 from typing import Iterable, Optional
 
 from simulation.core.models.feeds import GeneratedFeed
@@ -12,6 +13,24 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
+
+
+class TransactionProvider(ABC):
+    """Abstract interface for running a database transaction.
+
+    Implementations yield a connection for the duration of the transaction;
+    callers use it and do not commit. The provider commits on normal exit
+    and rolls back on exception.
+    """
+
+    @abstractmethod
+    def run_transaction(self) -> AbstractContextManager[object]:
+        """Enter a transaction and yield a connection.
+
+        Commit on normal exit, roll back on exception. The yielded object
+        is passed to repositories as their conn parameter.
+        """
+        raise NotImplementedError
 
 
 class RunDatabaseAdapter(ABC):

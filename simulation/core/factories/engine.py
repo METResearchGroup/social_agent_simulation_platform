@@ -2,6 +2,8 @@
 
 from collections.abc import Callable
 
+from db.adapters.base import TransactionProvider
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
@@ -44,6 +46,7 @@ def create_engine(
     generated_feed_repo: GeneratedFeedRepository | None = None,
     agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
+    transaction_provider: TransactionProvider | None = None,
 ) -> SimulationEngine:
     """Create a SimulationEngine with injected dependencies.
 
@@ -58,6 +61,7 @@ def create_engine(
         generated_bio_repo: Optional. Generated bio repository. Defaults to SQLite implementation.
         generated_feed_repo: Optional. Generated feed repository. Defaults to SQLite implementation.
         agent_factory: Optional. Agent factory function. Defaults to create_default_agent_factory().
+        transaction_provider: Optional. Provider for persistence transactions. Defaults to SQLite.
 
     Returns:
         A configured SimulationEngine instance.
@@ -91,6 +95,8 @@ def create_engine(
         agent_factory = create_default_agent_factory()
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
+    if transaction_provider is None:
+        transaction_provider = SqliteTransactionProvider()
 
     query_service = create_query_service(
         run_repo=run_repo,
@@ -101,6 +107,7 @@ def create_engine(
     simulation_persistence = create_simulation_persistence_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
+        transaction_provider=transaction_provider,
     )
     command_service = create_command_service(
         run_repo=run_repo,
