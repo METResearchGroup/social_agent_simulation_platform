@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:oxlint": "oxlint . --react-plugin",
+    "lint:doctor": "node scripts/check-react-doctor.mjs",
+    "lint:all": "npm run lint && npm run lint:oxlint"
   },
   "dependencies": {
     "next": "16.0.4",
@@ -20,6 +23,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
+    "oxlint": "^1",
+    "react-doctor": "latest",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

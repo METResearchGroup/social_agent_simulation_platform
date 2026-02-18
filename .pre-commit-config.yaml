@@ -14,11 +14,17 @@ repos:
     hooks:
       - id: complexipy
         name: complexipy
-        entry: uv run complexipy . --max-complexity-allowed 999
+        entry: bash -lc "uv run complexipy . --max-complexity-allowed 999"
         language: system
         pass_filenames: false
       - id: pyright
         name: pyright
-        entry: uv run pyright .
+        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run pyright ."
         language: system
         pass_filenames: false
+      - id: oxlint
+        name: oxlint + React Doctor (ui)
+        entry: bash -lc "cd ui && npm install && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
+        language: system
+        pass_filenames: false
+        files: ^ui/
