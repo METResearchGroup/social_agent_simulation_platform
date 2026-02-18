@@ -141,6 +141,7 @@ Consolidation over duplication
 
 - Prefer one implementation per concern. When replacing an older pattern (e.g. a decorator), migrate existing callers to the new one and remove the old; avoid keeping two near-equivalents.
 - When renaming or replacing: prefer the clearer, long-term name and update call sites (e.g. timed instead of extending record_runtime with more options).
+- When one pattern is already used in a layer (e.g. asyncio.to_thread for sync work in async routes), apply the same pattern to similar cases even if the immediate benefit is small. Consistency reduces surprises and makes future changes simpler.
 
 Package management — Use uv for Python; don’t use pip.
 
@@ -152,6 +153,7 @@ Document the contract, not just the implementation
 
 - When behavior could be surprising (e.g. overwrite vs fail-on-duplicate, retry safety), document the chosen contract (inputs, outputs, exceptions, idempotency/immutability) at the interface.
 - Prefer documenting intent at the boundary over leaving semantics to be inferred from implementation details.
+- Comment non-obvious design choices: If a choice is made for consistency, future-proofing, or maintainability rather than immediate benefit, add a short comment explaining why, so reviewers and future readers understand the intent.
 
 Persistence and model boundaries
 
