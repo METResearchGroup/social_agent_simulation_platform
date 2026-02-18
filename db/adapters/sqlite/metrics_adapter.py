@@ -40,9 +40,13 @@ def _parse_metrics_json(*, raw: str) -> ComputedMetrics:
 
 
 class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
-    def write_turn_metrics(self, turn_metrics: TurnMetrics) -> None:
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: sqlite3.Connection | None = None,
+    ) -> None:
         metrics_json = json.dumps(turn_metrics.metrics)
-        with get_connection() as conn:
+        if conn is not None:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO turn_metrics
@@ -56,7 +60,22 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
                     turn_metrics.created_at,
                 ),
             )
-            conn.commit()
+            return
+        with get_connection() as c:
+            c.execute(
+                """
+                INSERT OR REPLACE INTO turn_metrics
+                (run_id, turn_number, metrics, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    turn_metrics.run_id,
+                    turn_metrics.turn_number,
+                    metrics_json,
+                    turn_metrics.created_at,
+                ),
+            )
+            c.commit()
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:

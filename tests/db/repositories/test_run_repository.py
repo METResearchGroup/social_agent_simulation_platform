@@ -1409,7 +1409,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.write_turn_metadata(turn_metadata)
 
         # Assert
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
 
     def test_raises_run_not_found_error_when_run_does_not_exist(self):
         """Test that write_turn_metadata raises RunNotFoundError when run doesn't exist."""
@@ -1510,7 +1512,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
 
         assert exc_info.value.run_id == run_id
         assert exc_info.value.turn_number == 0
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
 
     def test_propagates_database_exceptions(self):
         """Test that write_turn_metadata propagates database exceptions from adapter."""
@@ -1547,7 +1551,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         with pytest.raises(sqlite3.OperationalError, match="Database locked"):
             repo.write_turn_metadata(turn_metadata)
 
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
 
     def test_calls_adapter_with_correct_turn_metadata(self):
         """Test that write_turn_metadata calls adapter with correct TurnMetadata object."""
@@ -1584,7 +1590,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.write_turn_metadata(turn_metadata)
 
         # Assert
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
         # Verify the exact object passed
         call_args = mock_adapter.write_turn_metadata.call_args[0]
         assert len(call_args) == 1

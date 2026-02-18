@@ -6,6 +6,7 @@ This module provides SQLite-specific infrastructure functions:
 - Database path configuration
 """
 
+import contextlib
 import os
 import sqlite3
 from typing import Any
@@ -34,6 +35,25 @@ def get_connection() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+@contextlib.contextmanager
+def run_transaction():
+    """Context manager for a single database transaction.
+
+    Opens a connection, yields it to the block, commits on normal exit,
+    rolls back on exception, and closes the connection in a finally block.
+    SQLite starts a transaction implicitly on first statement; no explicit BEGIN.
+    """
+    conn = get_connection()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def validate_required_fields(
