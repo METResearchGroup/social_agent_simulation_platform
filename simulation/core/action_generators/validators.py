@@ -2,7 +2,7 @@
 
 from lib.validation_utils import validate_value_in_set
 
-LIKE_ALGORITHMS: tuple[str, ...] = ("deterministic",)
+LIKE_ALGORITHMS: tuple[str, ...] = ("random_simple",)
 FOLLOW_ALGORITHMS: tuple[str, ...] = ("random_simple",)
 COMMENT_ALGORITHMS: tuple[str, ...] = ("random_simple",)
 

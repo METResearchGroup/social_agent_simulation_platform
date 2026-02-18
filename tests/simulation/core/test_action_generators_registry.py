@@ -19,13 +19,13 @@ class TestGetLikeGenerator:
 
     def test_returns_like_generator(self):
         """get_like_generator returns a LikeGenerator instance."""
-        generator = get_like_generator(algorithm="deterministic")
+        generator = get_like_generator(algorithm="random_simple")
         assert isinstance(generator, LikeGenerator)
 
     def test_caches_instance(self):
         """Same algorithm returns cached instance."""
-        g1 = get_like_generator(algorithm="deterministic")
-        g2 = get_like_generator(algorithm="deterministic")
+        g1 = get_like_generator(algorithm="random_simple")
+        g2 = get_like_generator(algorithm="random_simple")
         assert g1 is g2
 
     def test_unknown_algorithm_raises(self):
@@ -33,10 +33,10 @@ class TestGetLikeGenerator:
         with pytest.raises(ValueError, match="must be one of"):
             get_like_generator(algorithm="unknown")
 
-    def test_default_uses_config_deterministic(self):
-        """get_like_generator() with no args uses config default (deterministic)."""
+    def test_default_uses_config_random_simple(self):
+        """get_like_generator() with no args uses config default (random_simple)."""
         default_generator = get_like_generator()
-        explicit_generator = get_like_generator(algorithm="deterministic")
+        explicit_generator = get_like_generator(algorithm="random_simple")
         assert default_generator is explicit_generator
 
 

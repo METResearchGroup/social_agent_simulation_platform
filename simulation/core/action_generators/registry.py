@@ -21,12 +21,12 @@ from simulation.core.action_generators.validators import (
 )
 
 
-def _create_deterministic_like() -> LikeGenerator:
-    from simulation.core.action_generators.like.algorithms.deterministic import (
-        DeterministicLikeGenerator,
+def _create_random_simple_like() -> LikeGenerator:
+    from simulation.core.action_generators.like.algorithms.random_simple import (
+        RandomSimpleLikeGenerator,
     )
 
-    return DeterministicLikeGenerator()
+    return RandomSimpleLikeGenerator()
 
 
 def _create_random_simple_follow() -> FollowGenerator:
@@ -46,7 +46,7 @@ def _create_random_simple_comment() -> CommentGenerator:
 
 
 _LIKE_ALGORITHM_FACTORIES: dict[str, Callable[[], LikeGenerator]] = {
-    "deterministic": _create_deterministic_like,
+    "random_simple": _create_random_simple_like,
 }
 assert set(_LIKE_ALGORITHM_FACTORIES.keys()) == set(LIKE_ALGORITHMS)
 
