@@ -82,11 +82,17 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: object | None = None,
+    ) -> None:
         """Write turn metadata to the database.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection for transactional use; when provided,
+                  implementation uses it and does not commit.
 
         Raises:
             ValueError: If turn_metadata is invalid
@@ -99,8 +105,15 @@ class MetricsRepository(ABC):
     """Abstract base class defining the interface for metrics repositories."""
 
     @abstractmethod
-    def write_turn_metrics(self, turn_metrics: TurnMetrics) -> None:
-        """Write computed metrics for a specific run/turn."""
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write computed metrics for a specific run/turn.
+
+        When conn is provided, use it and do not commit (for transactional use).
+        """
         raise NotImplementedError
 
     @abstractmethod

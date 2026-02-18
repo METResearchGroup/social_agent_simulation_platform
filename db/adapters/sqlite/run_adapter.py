@@ -274,20 +274,28 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
 
         return turn_metadata_list
 
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: sqlite3.Connection | None = None,
+    ) -> None:
         """Write turn metadata to SQLite.
 
         Writes to the `turn_metadata` table. Uses INSERT.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection. When provided, use it and do not commit;
+                  when None, use a new connection and commit.
 
         Raises:
             sqlite3.OperationalError: If database operation fails
             DuplicateTurnMetadataError: If turn metadata already exists
         """
         existing_turn_metadata = self.read_turn_metadata(
-            turn_metadata.run_id, turn_metadata.turn_number
+            turn_metadata.run_id,
+            turn_metadata.turn_number,
+            conn=conn,
         )
 
         if existing_turn_metadata is not None:
@@ -295,10 +303,11 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 turn_metadata.run_id, turn_metadata.turn_number
             )
 
-        with get_connection() as conn:
-            total_actions_json = json.dumps(
-                {k.value: v for k, v in turn_metadata.total_actions.items()}
-            )
+        total_actions_json = json.dumps(
+            {k.value: v for k, v in turn_metadata.total_actions.items()}
+        )
+
+        if conn is not None:
             try:
                 conn.execute(
                     "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
@@ -309,11 +318,25 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                         turn_metadata.created_at,
                     ),
                 )
-                conn.commit()
             except sqlite3.IntegrityError:
-                # Defensive: handle constraint violations (bugs, edge cases, future changes)
-                # PRIMARY KEY violation indicates duplicate (run_id, turn_number)
                 raise DuplicateTurnMetadataError(
                     turn_metadata.run_id, turn_metadata.turn_number
                 )
-            # sqlite3.OperationalError and other exceptions propagate as-is
+            return
+
+        with get_connection() as c:
+            try:
+                c.execute(
+                    "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
+                    (
+                        turn_metadata.run_id,
+                        turn_metadata.turn_number,
+                        total_actions_json,
+                        turn_metadata.created_at,
+                    ),
+                )
+                c.commit()
+            except sqlite3.IntegrityError:
+                raise DuplicateTurnMetadataError(
+                    turn_metadata.run_id, turn_metadata.turn_number
+                )

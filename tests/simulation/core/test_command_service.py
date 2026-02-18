@@ -10,6 +10,7 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import MetricsRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from db.services.turn_persistence_service import TurnPersistenceService
 from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import InMemoryActionHistoryStore
 from simulation.core.agent_action_feed_filter import (
@@ -86,10 +87,12 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
     metrics_collector = Mock(spec=MetricsCollector)
     metrics_collector.collect_turn_metrics.return_value = {}
     metrics_collector.collect_run_metrics.return_value = {}
+    turn_persistence = Mock(spec=TurnPersistenceService)
     return SimulationCommandService(
         run_repo=mock_repos["run_repo"],
         metrics_repo=mock_repos["metrics_repo"],
         metrics_collector=metrics_collector,
+        turn_persistence=turn_persistence,
         profile_repo=mock_repos["profile_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_bio_repo=mock_repos["generated_bio_repo"],

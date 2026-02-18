@@ -167,6 +167,21 @@ class SimulationRunFailure(Exception):
         super().__init__(message)
 
 
+class InconsistentTurnDataError(ValueError):
+    """Raised when metadata and metrics have different sets of turn numbers."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        metadata_only: set[int] | None = None,
+        metrics_only: set[int] | None = None,
+    ):
+        self.metadata_only = metadata_only or set()
+        self.metrics_only = metrics_only or set()
+        super().__init__(message)
+
+
 class DuplicateTurnMetadataError(Exception):
     """Raised when turn metadata already exists."""
 

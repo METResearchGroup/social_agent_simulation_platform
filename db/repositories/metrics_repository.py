@@ -13,8 +13,12 @@ class SQLiteMetricsRepository(MetricsRepository):
     def __init__(self, *, db_adapter: MetricsDatabaseAdapter):
         self._db_adapter = db_adapter
 
-    def write_turn_metrics(self, turn_metrics: TurnMetrics) -> None:
-        self._db_adapter.write_turn_metrics(turn_metrics)
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: object | None = None,
+    ) -> None:
+        self._db_adapter.write_turn_metrics(turn_metrics, conn=conn)
 
     def get_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
         return self._db_adapter.read_turn_metrics(run_id, turn_number)

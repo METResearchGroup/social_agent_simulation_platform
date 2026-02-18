@@ -10,6 +10,10 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
+from db.services.turn_persistence_service import (
+    TurnPersistenceService,
+    create_turn_persistence_service,
+)
 from feeds.feed_generator_adapter import FeedGeneratorAdapter
 from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import ActionHistoryStore
@@ -38,6 +42,7 @@ def create_command_service(
     *,
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
+    turn_persistence: TurnPersistenceService | None = None,
     profile_repo: ProfileRepository,
     feed_post_repo: FeedPostRepository,
     generated_bio_repo: GeneratedBioRepository,
@@ -51,6 +56,11 @@ def create_command_service(
     agent_action_feed_filter: AgentActionFeedFilter | None = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
+    if turn_persistence is None:
+        turn_persistence = create_turn_persistence_service(
+            run_repo=run_repo,
+            metrics_repo=metrics_repo,
+        )
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
     if feed_generator is None:
@@ -75,6 +85,7 @@ def create_command_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
         metrics_collector=metrics_collector,
+        turn_persistence=turn_persistence,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         generated_bio_repo=generated_bio_repo,

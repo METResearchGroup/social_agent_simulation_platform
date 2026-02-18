@@ -10,7 +10,7 @@ from simulation.api.schemas.simulation import (
     TurnSummaryItem,
 )
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import SimulationRunFailure
+from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig
 from simulation.core.models.turns import TurnMetadata
@@ -39,6 +39,10 @@ def execute(
             raise
         metadata_list = engine.list_turn_metadata(e.run_id)
         turn_metrics_list = engine.list_turn_metrics(e.run_id)
+        _validate_turn_data_consistency(
+            metadata_list=metadata_list,
+            turn_metrics_list=turn_metrics_list,
+        )
         run_metrics = engine.get_run_metrics(e.run_id)
         turns: list[TurnSummaryItem] = _build_turn_summaries(
             metadata_list=metadata_list,
@@ -59,6 +63,10 @@ def execute(
         )
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(run.run_id)
     turn_metrics_list: list[TurnMetrics] = engine.list_turn_metrics(run.run_id)
+    _validate_turn_data_consistency(
+        metadata_list=metadata_list,
+        turn_metrics_list=turn_metrics_list,
+    )
     run_metrics: RunMetrics | None = engine.get_run_metrics(run.run_id)
     turns: list[TurnSummaryItem] = _build_turn_summaries(
         metadata_list=metadata_list,
@@ -86,29 +94,61 @@ def _build_run_config(request: RunRequest) -> RunConfig:
     )
 
 
+def _validate_turn_data_consistency(
+    *,
+    metadata_list: Iterable[TurnMetadata],
+    turn_metrics_list: Iterable[TurnMetrics],
+) -> None:
+    """Raise if metadata and metrics have different sets of turn numbers."""
+    metadata_turn_numbers = {m.turn_number for m in metadata_list}
+    metrics_turn_numbers = {t.turn_number for t in turn_metrics_list}
+    if metadata_turn_numbers != metrics_turn_numbers:
+        metadata_only = metadata_turn_numbers - metrics_turn_numbers
+        metrics_only = metrics_turn_numbers - metadata_turn_numbers
+        raise InconsistentTurnDataError(
+            (
+                "Turn metadata and turn metrics have different turn number sets: "
+                f"metadata_only={sorted(metadata_only)}, metrics_only={sorted(metrics_only)}"
+            ),
+            metadata_only=metadata_only,
+            metrics_only=metrics_only,
+        )
+
+
 def _build_turn_summaries(
     *,
     metadata_list: Iterable[TurnMetadata],
     turn_metrics_list: Iterable[TurnMetrics],
 ) -> list[TurnSummaryItem]:
-    """Build deterministic turn summaries by turn_number."""
+    """Build deterministic turn summaries by turn_number.
+
+    Callers must pass lists such that every turn number present in one list
+    is present in the other. The function validates and raises
+    InconsistentTurnDataError if not.
+    """
     metadata_by_turn: dict[int, TurnMetadata] = {
         item.turn_number: item for item in metadata_list
     }
     metrics_by_turn: dict[int, TurnMetrics] = {
         item.turn_number: item for item in turn_metrics_list
     }
-
-    all_turn_numbers = sorted(
-        set(metadata_by_turn.keys()) | set(metrics_by_turn.keys())
-    )
+    metadata_turns: set[int] = set(metadata_by_turn.keys())
+    metrics_turns: set[int] = set(metrics_by_turn.keys())
+    if metadata_turns != metrics_turns:
+        metadata_only = metadata_turns - metrics_turns
+        metrics_only = metrics_turns - metadata_turns
+        raise InconsistentTurnDataError(
+            (
+                "Turn metadata and turn metrics have different turn number sets: "
+                f"metadata_only={sorted(metadata_only)}, metrics_only={sorted(metrics_only)}"
+            ),
+            metadata_only=metadata_only,
+            metrics_only=metrics_only,
+        )
     turns: list[TurnSummaryItem] = []
-    for turn_number in all_turn_numbers:
-        metadata = metadata_by_turn.get(turn_number)
-        metrics = metrics_by_turn.get(turn_number)
-        if metadata is None or metrics is None:
-            # Incomplete turn: return partial state without computed metrics.
-            continue
+    for turn_number in sorted(metadata_turns):
+        metadata = metadata_by_turn[turn_number]
+        metrics = metrics_by_turn[turn_number]
         turns.append(
             TurnSummaryItem(
                 turn_number=turn_number,

@@ -178,11 +178,17 @@ class SQLiteRunRepository(RunRepository):
         """
         return self._db_adapter.read_turn_metadata_for_run(run_id=run_id)
 
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: object | None = None,
+    ) -> None:
         """Write turn metadata to the database.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection for transactional use; when provided,
+                  forwarded to adapter (no commit by adapter).
 
         Raises:
             RunNotFoundError: If the run with the given run_id does not exist
@@ -212,7 +218,7 @@ class SQLiteRunRepository(RunRepository):
             max_turns=run.total_turns,  # type: ignore
         )
 
-        self._db_adapter.write_turn_metadata(turn_metadata)
+        self._db_adapter.write_turn_metadata(turn_metadata, conn=conn)
 
 
 def create_sqlite_repository() -> SQLiteRunRepository:

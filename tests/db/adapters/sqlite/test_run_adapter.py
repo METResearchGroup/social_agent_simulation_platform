@@ -449,6 +449,27 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             # Verify commit was called
             mock_conn.commit.assert_called_once()
 
+    def test_write_turn_metadata_with_conn_does_not_commit(
+        self, adapter, default_test_data
+    ):
+        """When conn is passed, write_turn_metadata uses it and does not call commit."""
+        run_id = default_test_data["run_id"]
+        turn_number = default_test_data["turn_number"]
+        turn_metadata = TurnMetadata(
+            run_id=run_id,
+            turn_number=turn_number,
+            total_actions={TurnAction.LIKE: 1},
+            created_at="2024_01_01-12:00:00",
+        )
+        mock_conn = Mock()
+        mock_conn.execute = Mock()
+        adapter.read_turn_metadata = Mock(return_value=None)
+
+        adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
+
+        mock_conn.execute.assert_called_once()
+        mock_conn.commit.assert_not_called()
+
     def test_raises_duplicate_turn_metadata_error_when_already_exists(
         self, adapter, default_test_data
     ):

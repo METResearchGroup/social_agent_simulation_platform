@@ -6,6 +6,7 @@ This module provides SQLite-specific infrastructure functions:
 - Database path configuration
 """
 
+import contextlib
 import os
 import sqlite3
 from typing import Any
@@ -36,6 +37,7 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+@contextlib.contextmanager
 def run_transaction():
     """Context manager for a single database transaction.
 

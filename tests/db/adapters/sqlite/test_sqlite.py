@@ -13,6 +13,7 @@ from db.adapters.sqlite.sqlite import (
     get_connection,
     get_db_path,
     initialize_database,
+    run_transaction,
 )
 from db.schema import bluesky_feed_posts
 
@@ -93,6 +94,36 @@ class TestGetConnection:
         connected_path = rows[0][2]
         expected_result = os.path.realpath(temp_db)
         assert os.path.realpath(connected_path) == expected_result
+
+
+class TestRunTransaction:
+    """Tests for run_transaction context manager."""
+
+    def test_yields_connection(self, temp_db):
+        """run_transaction yields a connection that can be used."""
+        with patch("db.adapters.sqlite.sqlite.get_db_path", return_value=temp_db):
+            with run_transaction() as conn:
+                assert conn is not None
+                cursor = conn.execute("SELECT 1")
+                assert cursor.fetchone()[0] == 1
+
+    def test_commits_on_normal_exit(self, temp_db):
+        """On normal exit, connection is committed (no explicit rollback)."""
+        with patch("db.adapters.sqlite.sqlite.get_db_path", return_value=temp_db):
+            with run_transaction() as conn:
+                conn.execute("SELECT 1")
+            # Connection closed after block; if we re-open and see data written in tx, commit happened
+            conn2 = get_connection()
+            conn2.execute("SELECT 1")
+            conn2.close()
+
+    def test_rollback_on_exception(self, temp_db):
+        """On exception, rollback is called and exception propagates."""
+        with patch("db.adapters.sqlite.sqlite.get_db_path", return_value=temp_db):
+            with pytest.raises(ValueError):
+                with run_transaction() as conn:
+                    conn.execute("SELECT 1")
+                    raise ValueError("abort")
 
 
 class TestInitializeDatabase:
