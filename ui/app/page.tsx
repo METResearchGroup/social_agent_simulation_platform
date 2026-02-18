@@ -21,6 +21,8 @@ export default function Home() {
     runAgents,
     currentRunConfig,
     isStartScreen,
+    turnsError,
+    retryTurns,
     handleConfigSubmit,
     handleSelectRun,
     handleSelectTurn,
@@ -36,6 +38,8 @@ export default function Home() {
       currentRunConfig,
       runAgents,
       completedTurnsCount,
+      turnsError,
+      retryTurns,
       onSelectTurn: handleSelectTurn,
     }),
     [
@@ -46,6 +50,8 @@ export default function Home() {
       currentRunConfig,
       runAgents,
       completedTurnsCount,
+      turnsError,
+      retryTurns,
       handleSelectTurn,
     ],
   );

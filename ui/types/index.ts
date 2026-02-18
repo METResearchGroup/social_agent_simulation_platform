@@ -58,3 +58,24 @@ export interface RunConfig {
   numTurns: number;
 }
 
+/**
+ * Structured API error from backend. Backend uses { error: { code, message, detail } }.
+ * Thrown by fetchJson on non-2xx responses.
+ */
+export class ApiError extends Error {
+  readonly code: string;
+  readonly message: string;
+  readonly detail: string | null;
+  readonly status: number;
+
+  constructor(code: string, message: string, detail: string | null, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.message = message;
+    this.detail = detail;
+    this.status = status;
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
+}
+

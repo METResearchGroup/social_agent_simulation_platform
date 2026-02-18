@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DUMMY_AGENTS,
 } from '@/lib/dummy-data';
@@ -16,7 +16,7 @@ import {
   getRunConfig,
   withComputedRunStatuses,
 } from '@/lib/run-selectors';
-import { Run, RunConfig, Turn } from '@/types';
+import { ApiError, Run, RunConfig, Turn } from '@/types';
 
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
 const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
@@ -34,6 +34,10 @@ interface UseSimulationPageStateResult {
   runAgents: typeof DUMMY_AGENTS;
   currentRunConfig: RunConfig | null;
   isStartScreen: boolean;
+  /** Error from the last turns fetch attempt for the selected run. Cleared on success or retry. */
+  turnsError: ApiError | null;
+  /** Retries loading turns for a run. Clears error and triggers re-fetch immediately (bypasses throttle). */
+  retryTurns: (runId: string) => void;
   handleConfigSubmit: (config: RunConfig) => void;
   handleSelectRun: (runId: string) => void;
   handleSelectTurn: (turn: number | 'summary') => void;
@@ -52,6 +56,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const turnsFetchInFlightRef = useRef<Set<string>>(new Set());
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
+  const [turnsError, setTurnsError] = useState<ApiError | null>(null);
+  const [turnsRetryTrigger, setTurnsRetryTrigger] = useState<number>(0);
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -74,8 +80,15 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
   }, []);
 
+  /**
+   * Loads turns for the selected run. On failure, sets turnsError (run is not marked loaded).
+   * User can retry via retryTurns(runId) or by reselecting the run after 1.5s (throttle window).
+   */
   useEffect(() => {
     if (!selectedRunId || loadedTurnsRunIdsRef.current.has(selectedRunId)) {
+      if (selectedRunId) {
+        setTurnsError(null);
+      }
       return;
     }
 
@@ -93,18 +106,23 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     const runId: string = selectedRunId;
     turnsFetchInFlightRef.current.add(runId);
     lastTurnsFetchAttemptAtMsRef.current.set(runId, nowMs);
+    setTurnsError(null);
 
     const loadTurnsForRun = async (): Promise<void> => {
       try {
         const turnsForRun: Record<string, Turn> = await getTurnsForRun(runId);
         loadedTurnsRunIdsRef.current.add(runId);
         if (isMounted) {
+          setTurnsError(null);
           setFallbackTurns((previousTurns) => ({
             ...previousTurns,
             [runId]: turnsForRun,
           }));
         }
       } catch (error) {
+        if (isMounted && runId === selectedRunId) {
+          setTurnsError(error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0));
+        }
         console.error(`Failed to fetch turns for ${runId}:`, error);
       } finally {
         turnsFetchInFlightRef.current.delete(runId);
@@ -116,7 +134,14 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     return () => {
       isMounted = false;
     };
-  }, [selectedRunId]);
+  }, [selectedRunId, turnsRetryTrigger]);
+
+  const retryTurns = useCallback((runId: string) => {
+    loadedTurnsRunIdsRef.current.delete(runId);
+    lastTurnsFetchAttemptAtMsRef.current.delete(runId);
+    setTurnsError(null);
+    setTurnsRetryTrigger((t) => t + 1);
+  }, []);
 
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
@@ -195,6 +220,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     runAgents,
     currentRunConfig,
     isStartScreen: selectedRunId === null,
+    turnsError,
+    retryTurns,
     handleConfigSubmit,
     handleSelectRun,
     handleSelectTurn,

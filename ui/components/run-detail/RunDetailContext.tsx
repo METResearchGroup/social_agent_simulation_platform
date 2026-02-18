@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import { Agent, Run, RunConfig, Turn } from '@/types';
+import { Agent, ApiError, Run, RunConfig, Turn } from '@/types';
 
 interface RunDetailContextValue {
   selectedRun: Run | null;
@@ -11,6 +11,8 @@ interface RunDetailContextValue {
   currentRunConfig: RunConfig | null;
   runAgents: Agent[];
   completedTurnsCount: number;
+  turnsError: ApiError | null;
+  retryTurns: (runId: string) => void;
   onSelectTurn: (turn: number | 'summary') => void;
 }
 

@@ -1,4 +1,4 @@
-import { Run, Turn, Feed, AgentAction } from '@/types';
+import { ApiError, Run, Turn, Feed, AgentAction } from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
@@ -41,6 +41,11 @@ function buildApiUrl(path: string): string {
   return `${SIMULATION_API_BASE_URL}${path}`;
 }
 
+/**
+ * Fetches JSON from a URL. Throws ApiError on non-2xx responses.
+ * Backend uses { error: { code, message, detail } } for error payloads.
+ * On non-JSON or missing error shape, falls back to UNKNOWN_ERROR with raw text in message.
+ */
 async function fetchJson<T>(url: string): Promise<T> {
   const response: Response = await fetch(url, {
     method: 'GET',
@@ -51,7 +56,27 @@ async function fetchJson<T>(url: string): Promise<T> {
 
   if (!response.ok) {
     const responseText: string = await response.text();
-    throw new Error(`API request failed (${response.status}): ${responseText}`);
+    let code: string = 'UNKNOWN_ERROR';
+    let message: string = responseText || `Request failed (${response.status})`;
+    let detail: string | null = null;
+
+    try {
+      const data: unknown = JSON.parse(responseText);
+      const err =
+        data && typeof data === 'object' && data !== null && 'error' in data
+          ? (data as { error?: { code?: string; message?: string; detail?: string | null } })
+              .error
+          : null;
+      if (err && typeof err === 'object' && err !== null) {
+        code = (typeof err.code === 'string' && err.code) || code;
+        message = (typeof err.message === 'string' && err.message) || message;
+        detail = typeof err.detail === 'string' ? err.detail : err.detail === null ? null : null;
+      }
+    } catch {
+      // Non-JSON body: use fallback
+    }
+
+    throw new ApiError(code, message, detail, response.status);
   }
 
   return response.json() as Promise<T>;
