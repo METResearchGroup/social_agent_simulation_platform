@@ -5,6 +5,7 @@ from typing import Iterable, Optional
 
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
@@ -150,6 +151,30 @@ class RunDatabaseAdapter(ABC):
                       the operation fails. Implementations should document the
                       specific exception types they raise.
         """
+        raise NotImplementedError
+
+
+class MetricsDatabaseAdapter(ABC):
+    """Abstract interface for computed metrics persistence."""
+
+    @abstractmethod
+    def write_turn_metrics(self, turn_metrics: TurnMetrics) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_turn_metrics_for_run(self, run_id: str) -> list[TurnMetrics]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_run_metrics(self, run_metrics: RunMetrics) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_metrics(self, run_id: str) -> RunMetrics | None:
         raise NotImplementedError
 
 

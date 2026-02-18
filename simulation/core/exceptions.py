@@ -182,3 +182,22 @@ class DuplicateTurnMetadataError(Exception):
 
         message = f"Turn metadata already exists for run '{run_id}', turn {turn_number}"
         super().__init__(message)
+
+
+class MetricsComputationError(Exception):
+    """Raised when a required metric cannot be computed."""
+
+    def __init__(
+        self,
+        *,
+        metric_key: str,
+        run_id: str,
+        turn_number: int | None,
+        message: str,
+        cause: BaseException | None = None,
+    ):
+        self.metric_key = metric_key
+        self.run_id = run_id
+        self.turn_number = turn_number
+        self.cause = cause
+        super().__init__(message)

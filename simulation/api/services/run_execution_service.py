@@ -4,14 +4,14 @@ from collections.abc import Iterable
 
 from simulation.api.schemas.simulation import (
     ErrorDetail,
-    LikesPerTurnItem,
     RunRequest,
     RunResponse,
     RunResponseStatus,
+    TurnSummaryItem,
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import SimulationRunFailure
-from simulation.core.models.actions import TurnAction
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig
 from simulation.core.models.turns import TurnMetadata
 
@@ -38,14 +38,19 @@ def execute(
         if e.run_id is None:
             raise
         metadata_list = engine.list_turn_metadata(e.run_id)
-        likes_per_turn, total_likes = _build_likes_per_turn_from_metadata(metadata_list)
+        turn_metrics_list = engine.list_turn_metrics(e.run_id)
+        run_metrics = engine.get_run_metrics(e.run_id)
+        turns: list[TurnSummaryItem] = _build_turn_summaries(
+            metadata_list=metadata_list,
+            turn_metrics_list=turn_metrics_list,
+        )
         return RunResponse(
             run_id=e.run_id,
             status=RunResponseStatus.FAILED,
             num_agents=run_config.num_agents,
             num_turns=run_config.num_turns,
-            likes_per_turn=likes_per_turn,
-            total_likes=total_likes,
+            turns=turns,
+            run_metrics=run_metrics.metrics if run_metrics else None,
             error=ErrorDetail(
                 code="SIMULATION_FAILED",
                 message=e.args[0] if e.args else "Run failed during execution",
@@ -53,16 +58,19 @@ def execute(
             ),
         )
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(run.run_id)
-    likes_per_turn: list[LikesPerTurnItem]
-    total_likes: int
-    likes_per_turn, total_likes = _build_likes_per_turn_from_metadata(metadata_list)
+    turn_metrics_list: list[TurnMetrics] = engine.list_turn_metrics(run.run_id)
+    run_metrics: RunMetrics | None = engine.get_run_metrics(run.run_id)
+    turns: list[TurnSummaryItem] = _build_turn_summaries(
+        metadata_list=metadata_list,
+        turn_metrics_list=turn_metrics_list,
+    )
     return RunResponse(
         run_id=run.run_id,
         status=RunResponseStatus.COMPLETED,
         num_agents=run.total_agents,
         num_turns=run.total_turns,
-        likes_per_turn=likes_per_turn,
-        total_likes=total_likes,
+        turns=turns,
+        run_metrics=run_metrics.metrics if run_metrics else None,
         error=None,
     )
 
@@ -78,20 +86,35 @@ def _build_run_config(request: RunRequest) -> RunConfig:
     )
 
 
-def _build_likes_per_turn_from_metadata(
+def _build_turn_summaries(
+    *,
     metadata_list: Iterable[TurnMetadata],
-) -> tuple[list[LikesPerTurnItem], int]:
-    """Derive likes_per_turn and total_likes from turn metadata list.
+    turn_metrics_list: Iterable[TurnMetrics],
+) -> list[TurnSummaryItem]:
+    """Build deterministic turn summaries by turn_number."""
+    metadata_by_turn: dict[int, TurnMetadata] = {
+        item.turn_number: item for item in metadata_list
+    }
+    metrics_by_turn: dict[int, TurnMetrics] = {
+        item.turn_number: item for item in turn_metrics_list
+    }
 
-    Sorts by turn_number so output is deterministic regardless of input order.
-    """
-    sorted_metadata = sorted(metadata_list, key=lambda tm: tm.turn_number)
-    likes_per_turn = [
-        LikesPerTurnItem(
-            turn_number=tm.turn_number,
-            likes=tm.total_actions.get(TurnAction.LIKE, 0),
+    all_turn_numbers = sorted(
+        set(metadata_by_turn.keys()) | set(metrics_by_turn.keys())
+    )
+    turns: list[TurnSummaryItem] = []
+    for turn_number in all_turn_numbers:
+        metadata = metadata_by_turn.get(turn_number)
+        metrics = metrics_by_turn.get(turn_number)
+        if metadata is None or metrics is None:
+            # Incomplete turn: return partial state without computed metrics.
+            continue
+        turns.append(
+            TurnSummaryItem(
+                turn_number=turn_number,
+                created_at=metadata.created_at,
+                total_actions={k.value: v for k, v in metadata.total_actions.items()},
+                metrics=metrics.metrics,
+            )
         )
-        for tm in sorted_metadata
-    ]
-    total_likes = sum(item.likes for item in likes_per_turn)
-    return likes_per_turn, total_likes
+    return turns

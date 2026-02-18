@@ -7,6 +7,7 @@ import pytest
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.interfaces import MetricsRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from feeds.interfaces import FeedGenerator
@@ -19,6 +20,7 @@ from simulation.core.agent_action_history_recorder import AgentActionHistoryReco
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
+from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.base import GenerationMetadata
@@ -34,6 +36,7 @@ from simulation.core.models.turns import TurnResult
 def mock_repos():
     return {
         "run_repo": Mock(spec=RunRepository),
+        "metrics_repo": Mock(spec=MetricsRepository),
         "profile_repo": Mock(spec=ProfileRepository),
         "feed_post_repo": Mock(spec=FeedPostRepository),
         "generated_bio_repo": Mock(spec=GeneratedBioRepository),
@@ -80,8 +83,13 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
     agent_action_rules_validator = Mock(spec=AgentActionRulesValidator)
     agent_action_rules_validator.validate.return_value = ([], [], [])
     agent_action_history_recorder = Mock(spec=AgentActionHistoryRecorder)
+    metrics_collector = Mock(spec=MetricsCollector)
+    metrics_collector.collect_turn_metrics.return_value = {}
+    metrics_collector.collect_run_metrics.return_value = {}
     return SimulationCommandService(
         run_repo=mock_repos["run_repo"],
+        metrics_repo=mock_repos["metrics_repo"],
+        metrics_collector=metrics_collector,
         profile_repo=mock_repos["profile_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_bio_repo=mock_repos["generated_bio_repo"],

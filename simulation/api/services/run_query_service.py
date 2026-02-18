@@ -6,6 +6,7 @@ from simulation.api.schemas.simulation import (
     TurnActionsItem,
 )
 from simulation.core.engine import SimulationEngine
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import validate_run_exists, validate_run_id
 
@@ -29,9 +30,12 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
     run = validate_run_exists(run=run, run_id=validated_run_id)
 
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(validated_run_id)
+    turn_metrics_list: list[TurnMetrics] = engine.list_turn_metrics(validated_run_id)
     turns: list[TurnActionsItem] = _build_turn_actions_items(
-        metadata_list=metadata_list
+        metadata_list=metadata_list,
+        turn_metrics_list=turn_metrics_list,
     )
+    run_metrics: RunMetrics | None = engine.get_run_metrics(validated_run_id)
 
     return RunDetailsResponse(
         run_id=run.run_id,
@@ -45,13 +49,17 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
             feed_algorithm=run.feed_algorithm,
         ),
         turns=turns,
+        run_metrics=run_metrics.metrics if run_metrics else None,
     )
 
 
 def _build_turn_actions_items(
-    *, metadata_list: list[TurnMetadata]
+    *, metadata_list: list[TurnMetadata], turn_metrics_list: list[TurnMetrics]
 ) -> list[TurnActionsItem]:
     """Map turn metadata to deterministic, API-serializable turn summaries."""
+    metrics_by_turn: dict[int, TurnMetrics] = {
+        item.turn_number: item for item in turn_metrics_list
+    }
     sorted_metadata: list[TurnMetadata] = sorted(
         metadata_list,
         key=lambda item: item.turn_number,
@@ -63,6 +71,9 @@ def _build_turn_actions_items(
             total_actions={
                 action.value: count for action, count in item.total_actions.items()
             },
+            metrics=metrics_by_turn[item.turn_number].metrics
+            if item.turn_number in metrics_by_turn
+            else None,
         )
         for item in sorted_metadata
     ]

@@ -5,12 +5,13 @@ from unittest.mock import MagicMock
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
-def test_post_simulations_run_success_returns_completed_and_likes(simulation_client):
-    """Success run returns 200 with status completed and likes per turn."""
+def test_post_simulations_run_success_returns_completed_and_metrics(simulation_client):
+    """Success run returns 200 with status completed and per-turn metrics."""
     client, fastapi_app = simulation_client
     run = Run(
         run_id="run-success-1",
@@ -34,9 +35,24 @@ def test_post_simulations_run_success_returns_completed_and_likes(simulation_cli
             created_at=run.created_at,
         ),
     ]
+    turn_metrics_list = [
+        TurnMetrics(
+            run_id=run.run_id,
+            turn_number=0,
+            metrics={"turn.actions.total": 0},
+            created_at=run.created_at,
+        )
+    ]
+    run_metrics = RunMetrics(
+        run_id=run.run_id,
+        metrics={"run.actions.total": 0},
+        created_at=run.created_at,
+    )
     mock_engine = MagicMock()
     mock_engine.execute_run.return_value = run
     mock_engine.list_turn_metadata.return_value = metadata_list
+    mock_engine.list_turn_metrics.return_value = turn_metrics_list
+    mock_engine.get_run_metrics.return_value = run_metrics
     fastapi_app.state.engine = mock_engine
     response = client.post(
         "/v1/simulations/run",
@@ -55,8 +71,15 @@ def test_post_simulations_run_success_returns_completed_and_likes(simulation_cli
     assert data["num_turns"] == expected_result["num_turns"]
     assert data["error"] is expected_result["error"]
     assert data["run_id"] == run.run_id
-    assert data["likes_per_turn"] == [{"turn_number": 0, "likes": 0}]
-    assert data["total_likes"] == 0
+    assert data["turns"] == [
+        {
+            "turn_number": 0,
+            "created_at": run.created_at,
+            "total_actions": {"like": 0, "comment": 0, "follow": 0},
+            "metrics": {"turn.actions.total": 0},
+        }
+    ]
+    assert data["run_metrics"] == {"run.actions.total": 0}
 
 
 def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_client):
@@ -85,9 +108,25 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
         )
         for i in range(10)
     ]
+    turn_metrics_list = [
+        TurnMetrics(
+            run_id=run.run_id,
+            turn_number=i,
+            metrics={"turn.actions.total": 0},
+            created_at=run.created_at,
+        )
+        for i in range(10)
+    ]
+    run_metrics = RunMetrics(
+        run_id=run.run_id,
+        metrics={"run.actions.total": 0},
+        created_at=run.created_at,
+    )
     mock_engine = MagicMock()
     mock_engine.execute_run.return_value = run
     mock_engine.list_turn_metadata.return_value = metadata_list
+    mock_engine.list_turn_metrics.return_value = turn_metrics_list
+    mock_engine.get_run_metrics.return_value = run_metrics
     fastapi_app.state.engine = mock_engine
     response = client.post(
         "/v1/simulations/run",
@@ -97,7 +136,7 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
     data = response.json()
     assert data["num_turns"] == 10
     assert data["status"] == "completed"
-    assert len(data["likes_per_turn"]) == 10
+    assert len(data["turns"]) == 10
 
 
 def test_post_simulations_run_validation_num_agents_zero(simulation_client):
@@ -152,10 +191,10 @@ def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
     assert data["error"]["detail"] is None
 
 
-def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
+def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     simulation_client,
 ):
-    """Mid-run failure returns 200 with status failed and partial likes_per_turn."""
+    """Mid-run failure returns 200 with status failed and partial per-turn metrics."""
     client, fastapi_app = simulation_client
     partial_metadata = [
         TurnMetadata(
@@ -169,6 +208,14 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
             created_at="2026-01-01T00:00:00",
         ),
     ]
+    partial_turn_metrics = [
+        TurnMetrics(
+            run_id="run-partial-1",
+            turn_number=0,
+            metrics={"turn.actions.total": 3},
+            created_at="2026-01-01T00:00:00",
+        )
+    ]
     mock_engine = MagicMock()
     mock_engine.execute_run.side_effect = SimulationRunFailure(
         message="Run failed during execution",
@@ -176,6 +223,8 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
         cause=RuntimeError("turn 1 failed"),
     )
     mock_engine.list_turn_metadata.return_value = partial_metadata
+    mock_engine.list_turn_metrics.return_value = partial_turn_metrics
+    mock_engine.get_run_metrics.return_value = None
     fastapi_app.state.engine = mock_engine
     response = client.post(
         "/v1/simulations/run",
@@ -188,15 +237,22 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_likes(
         "status": "failed",
         "num_agents": 2,
         "num_turns": 2,
-        "likes_per_turn": [{"turn_number": 0, "likes": 3}],
-        "total_likes": 3,
+        "turns": [
+            {
+                "turn_number": 0,
+                "created_at": "2026-01-01T00:00:00",
+                "total_actions": {"like": 3, "comment": 0, "follow": 0},
+                "metrics": {"turn.actions.total": 3},
+            }
+        ],
+        "run_metrics": None,
     }
     assert data["run_id"] == expected_result["run_id"]
     assert data["status"] == expected_result["status"]
     assert data["num_agents"] == expected_result["num_agents"]
     assert data["num_turns"] == expected_result["num_turns"]
-    assert data["likes_per_turn"] == expected_result["likes_per_turn"]
-    assert data["total_likes"] == expected_result["total_likes"]
+    assert data["turns"] == expected_result["turns"]
+    assert data["run_metrics"] is expected_result["run_metrics"]
     assert data["error"] is not None
     assert data["error"]["code"] == "SIMULATION_FAILED"
     assert data["error"]["message"] == "Run failed during execution"

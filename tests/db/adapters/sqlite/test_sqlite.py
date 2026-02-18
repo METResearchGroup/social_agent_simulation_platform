@@ -113,6 +113,8 @@ class TestInitializeDatabase:
                 "generated_feeds",
                 "runs",
                 "turn_metadata",
+                "turn_metrics",
+                "run_metrics",
             ]
 
             for table in tables:
@@ -137,6 +139,7 @@ class TestInitializeDatabase:
                 "idx_runs_created_at",
                 "idx_bluesky_feed_posts_author_handle",
                 "idx_turn_metadata_run_id",
+                "idx_turn_metrics_run_id",
             ]
 
             for index in indexes:

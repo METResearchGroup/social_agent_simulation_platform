@@ -11,6 +11,7 @@ from typing import Optional
 
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -91,6 +92,35 @@ class RunRepository(ABC):
             ValueError: If turn_metadata is invalid
             DuplicateTurnMetadataError: If turn metadata already exists
         """
+        raise NotImplementedError
+
+
+class MetricsRepository(ABC):
+    """Abstract base class defining the interface for metrics repositories."""
+
+    @abstractmethod
+    def write_turn_metrics(self, turn_metrics: TurnMetrics) -> None:
+        """Write computed metrics for a specific run/turn."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        """Get computed metrics for a specific run/turn."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_metrics(self, run_id: str) -> list[TurnMetrics]:
+        """List computed metrics for a run in turn order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_run_metrics(self, run_metrics: RunMetrics) -> None:
+        """Write computed metrics for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_run_metrics(self, run_id: str) -> RunMetrics | None:
+        """Get computed metrics for a run."""
         raise NotImplementedError
 
 

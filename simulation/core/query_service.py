@@ -1,9 +1,11 @@
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedFeedRepository,
+    MetricsRepository,
     RunRepository,
 )
 from simulation.core.exceptions import RunNotFoundError
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
@@ -16,10 +18,12 @@ class SimulationQueryService:
     def __init__(
         self,
         run_repo: RunRepository,
+        metrics_repo: MetricsRepository,
         feed_post_repo: FeedPostRepository,
         generated_feed_repo: GeneratedFeedRepository,
     ):
         self.run_repo = run_repo
+        self.metrics_repo = metrics_repo
         self.feed_post_repo = feed_post_repo
         self.generated_feed_repo = generated_feed_repo
 
@@ -45,6 +49,22 @@ class SimulationQueryService:
             run_id=run_id
         )
         return sorted(metadata_list, key=lambda metadata: metadata.turn_number)
+
+    def get_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        validate_run_id(run_id)
+        validate_turn_number(turn_number)
+        return self.metrics_repo.get_turn_metrics(run_id, turn_number)
+
+    def list_turn_metrics(self, run_id: str) -> list[TurnMetrics]:
+        validate_run_id(run_id)
+        turn_metrics_list: list[TurnMetrics] = self.metrics_repo.list_turn_metrics(
+            run_id
+        )
+        return sorted(turn_metrics_list, key=lambda item: item.turn_number)
+
+    def get_run_metrics(self, run_id: str) -> RunMetrics | None:
+        validate_run_id(run_id)
+        return self.metrics_repo.get_run_metrics(run_id)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
         """Returns full turn data with feeds and posts."""

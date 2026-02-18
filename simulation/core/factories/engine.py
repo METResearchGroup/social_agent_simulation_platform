@@ -13,9 +13,11 @@ from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
+    MetricsRepository,
     ProfileRepository,
     RunRepository,
 )
+from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.action_history import ActionHistoryStore
@@ -32,6 +34,7 @@ from simulation.core.models.agents import SocialMediaAgent
 def create_engine(
     *,
     run_repo: RunRepository | None = None,
+    metrics_repo: MetricsRepository | None = None,
     profile_repo: ProfileRepository | None = None,
     feed_post_repo: FeedPostRepository | None = None,
     generated_bio_repo: GeneratedBioRepository | None = None,
@@ -69,6 +72,8 @@ def create_engine(
     # Create default repositories if not provided
     if run_repo is None:
         run_repo = create_sqlite_repository()
+    if metrics_repo is None:
+        metrics_repo = create_sqlite_metrics_repository()
     if profile_repo is None:
         profile_repo = create_sqlite_profile_repository()
     if feed_post_repo is None:
@@ -86,11 +91,13 @@ def create_engine(
 
     query_service = create_query_service(
         run_repo=run_repo,
+        metrics_repo=metrics_repo,
         feed_post_repo=feed_post_repo,
         generated_feed_repo=generated_feed_repo,
     )
     command_service = create_command_service(
         run_repo=run_repo,
+        metrics_repo=metrics_repo,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         generated_bio_repo=generated_bio_repo,
@@ -101,6 +108,7 @@ def create_engine(
 
     return SimulationEngine(
         run_repo=run_repo,
+        metrics_repo=metrics_repo,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         generated_bio_repo=generated_bio_repo,

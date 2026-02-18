@@ -80,7 +80,13 @@ def _has_alembic_version(conn: sqlite3.Connection) -> bool:
 
 def _has_any_app_tables(conn: sqlite3.Connection) -> bool:
     """Return True if any core app table exists (runs, generated_feeds, turn_metadata)."""
-    for name in ("runs", "generated_feeds", "turn_metadata"):
+    for name in (
+        "runs",
+        "generated_feeds",
+        "turn_metadata",
+        "turn_metrics",
+        "run_metrics",
+    ):
         if _table_exists(conn, name):
             return True
     return False

@@ -6,6 +6,7 @@ from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
+    MetricsRepository,
     ProfileRepository,
     RunRepository,
 )
@@ -23,8 +24,11 @@ from simulation.core.exceptions import (
     RunStatusUpdateError,
     SimulationRunFailure,
 )
+from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.json_types import JsonObject
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
@@ -52,6 +56,8 @@ class SimulationCommandService:
     def __init__(
         self,
         run_repo: RunRepository,
+        metrics_repo: MetricsRepository,
+        metrics_collector: MetricsCollector,
         profile_repo: ProfileRepository,
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
@@ -64,6 +70,8 @@ class SimulationCommandService:
         agent_action_feed_filter: AgentActionFeedFilter,
     ):
         self.run_repo = run_repo
+        self.metrics_repo = metrics_repo
+        self.metrics_collector = metrics_collector
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
@@ -97,6 +105,16 @@ class SimulationCommandService:
                 run_config=run_config,
                 agents=agents,
                 action_history_store=action_history_store,
+            )
+            run_metrics_dict: JsonObject = self.metrics_collector.collect_run_metrics(
+                run_id=run.run_id
+            )
+            self.metrics_repo.write_run_metrics(
+                RunMetrics(
+                    run_id=run.run_id,
+                    metrics=run_metrics_dict,
+                    created_at=get_current_timestamp(),
+                )
             )
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
@@ -305,6 +323,19 @@ class SimulationCommandService:
                 f"Turn metadata already exists for run {run_id}, turn {turn_number}. "
                 f"This may indicate a retry or duplicate execution. Error: {e}"
             )
+
+        computed_metrics: JsonObject = self.metrics_collector.collect_turn_metrics(
+            run_id=run_id,
+            turn_number=turn_number,
+        )
+        self.metrics_repo.write_turn_metrics(
+            TurnMetrics(
+                run_id=run_id,
+                turn_number=turn_number,
+                metrics=computed_metrics,
+                created_at=get_current_timestamp(),
+            )
+        )
 
         return TurnResult(
             turn_number=turn_number,
