@@ -182,7 +182,8 @@ async def _execute_get_simulation_runs(
 ) -> list[RunListItem] | Response:
     """Fetch run summaries and convert unexpected failures to HTTP responses."""
     try:
-        return list_runs_dummy()
+        # Use to_thread for consistency with other async routes and to prepare for real I/O later.
+        return await asyncio.to_thread(list_runs_dummy)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
         return _error_response(
@@ -230,7 +231,8 @@ async def _execute_get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
     try:
-        return get_turns_for_run_dummy(run_id=run_id)
+        # Use to_thread for consistency with other async routes and to prepare for real I/O later.
+        return await asyncio.to_thread(get_turns_for_run_dummy, run_id=run_id)
     except RunNotFoundError as e:
         return _error_response(
             status_code=404,
