@@ -8,6 +8,7 @@ from typing import cast
 
 from db.adapters.base import MetricsDatabaseAdapter
 from db.adapters.sqlite.sqlite import get_connection
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.json_types import JsonObject
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.validators import validate_run_id, validate_turn_number
@@ -58,10 +59,8 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
             )
             conn.commit()
 
+    @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
-        validate_run_id(run_id)
-        validate_turn_number(turn_number)
-
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM turn_metrics WHERE run_id = ? AND turn_number = ?",
@@ -80,9 +79,8 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
             created_at=row["created_at"],
         )
 
+    @validate_inputs((validate_run_id, "run_id"))
     def read_turn_metrics_for_run(self, run_id: str) -> list[TurnMetrics]:
-        validate_run_id(run_id)
-
         with get_connection() as conn:
             rows = conn.execute(
                 "SELECT * FROM turn_metrics WHERE run_id = ? ORDER BY turn_number ASC",
@@ -116,9 +114,8 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
             )
             conn.commit()
 
+    @validate_inputs((validate_run_id, "run_id"))
     def read_run_metrics(self, run_id: str) -> RunMetrics | None:
-        validate_run_id(run_id)
-
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM run_metrics WHERE run_id = ?",

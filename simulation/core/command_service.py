@@ -106,16 +106,7 @@ class SimulationCommandService:
                 agents=agents,
                 action_history_store=action_history_store,
             )
-            run_metrics_dict: JsonObject = self.metrics_collector.collect_run_metrics(
-                run_id=run.run_id
-            )
-            self.metrics_repo.write_run_metrics(
-                RunMetrics(
-                    run_id=run.run_id,
-                    metrics=run_metrics_dict,
-                    created_at=get_current_timestamp(),
-                )
-            )
+            self._collect_and_write_run_metrics(run_id=run.run_id)
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
         except Exception as e:
@@ -324,6 +315,27 @@ class SimulationCommandService:
                 f"This may indicate a retry or duplicate execution. Error: {e}"
             )
 
+        self._collect_and_write_turn_metrics(run_id=run_id, turn_number=turn_number)
+
+        return TurnResult(
+            turn_number=turn_number,
+            total_actions=converted_actions,
+            execution_time_ms=None,
+        )
+
+    def _collect_and_write_run_metrics(self, run_id: str) -> None:
+        run_metrics_dict: JsonObject = self.metrics_collector.collect_run_metrics(
+            run_id=run_id
+        )
+        self.metrics_repo.write_run_metrics(
+            RunMetrics(
+                run_id=run_id,
+                metrics=run_metrics_dict,
+                created_at=get_current_timestamp(),
+            )
+        )
+
+    def _collect_and_write_turn_metrics(self, run_id: str, turn_number: int) -> None:
         computed_metrics: JsonObject = self.metrics_collector.collect_turn_metrics(
             run_id=run_id,
             turn_number=turn_number,
@@ -335,12 +347,6 @@ class SimulationCommandService:
                 metrics=computed_metrics,
                 created_at=get_current_timestamp(),
             )
-        )
-
-        return TurnResult(
-            turn_number=turn_number,
-            total_actions=converted_actions,
-            execution_time_ms=None,
         )
 
     def _create_agents_for_run(
