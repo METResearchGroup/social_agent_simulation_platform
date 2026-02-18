@@ -10,7 +10,7 @@ _CONFIG_PATH: Path = Path(__file__).resolve().parent / "config.yaml"
 _cached: dict | None = None
 
 _FALLBACK_ALGORITHM_BY_ACTION: dict[str, str] = {
-    "like": "deterministic",
+    "like": "random_simple",
     "comment": "random_simple",
     "follow": "random_simple",
 }

@@ -1,5 +1,5 @@
 like:
-  default_algorithm: deterministic
+  default_algorithm: random_simple
 comment:
   default_algorithm: random_simple
 follow:

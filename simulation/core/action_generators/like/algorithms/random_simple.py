@@ -1,11 +1,15 @@
-"""Deterministic like generation algorithm.
+"""Random-simple like generation algorithm.
 
-Produces reproducible, non-zero likes based on recency and social proof
-scoring
+Selects top-k posts by recency + social proof, then uses random probability
+to decide whether to like each.
 """
 
+from __future__ import annotations
+
+import random
 from datetime import datetime, timezone
 
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_generators.interfaces import LikeGenerator
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
@@ -13,16 +17,18 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
 
 TOP_K_POSTS_TO_LIKE: int = 2
+LIKE_PROBABILITY: float = 0.30
 RECENCY_WEIGHT: float = 1.0
 LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
-EXPLANATION: str = "Deterministic: recency and social proof"
+EXPLANATION: str = "Simple: recency/social proof with random probability"
 CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
+LIKE_POLICY: str = "simple"
 
 
-class DeterministicLikeGenerator(LikeGenerator):
-    """Generates likes using deterministic scoring (recency + social proof)."""
+class RandomSimpleLikeGenerator(LikeGenerator):
+    """Generates likes using scoring (recency + social proof) and random probability."""
 
     def generate(
         self,
@@ -32,28 +38,32 @@ class DeterministicLikeGenerator(LikeGenerator):
         turn_number: int,
         agent_handle: str,
     ) -> list[GeneratedLike]:
-        """Generate likes from candidates using deterministic scoring."""
+        """Generate likes from candidates using scoring and random probability."""
         if not candidates:
             return []
 
         scored = [(_score_post(post), post) for post in candidates]
         scored.sort(key=lambda x: (-x[0], x[1].id))
-        selected = scored[:TOP_K_POSTS_TO_LIKE]
+        selected = [post for _, post in scored[:TOP_K_POSTS_TO_LIKE]]
 
-        return [
-            _build_generated_like(
-                post=post,
-                agent_handle=agent_handle,
-                run_id=run_id,
-                turn_number=turn_number,
-                post_index=idx,
+        generated: list[GeneratedLike] = []
+        for post in selected:
+            if not _should_like():
+                continue
+            generated.append(
+                _build_generated_like(
+                    post=post,
+                    agent_handle=agent_handle,
+                    run_id=run_id,
+                    turn_number=turn_number,
+                )
             )
-            for idx, (_, post) in enumerate(selected)
-        ]
+
+        return generated
 
 
 def _score_post(post: BlueskyFeedPost) -> float:
-    """Compute deterministic score for a post."""
+    """Compute score for a post (recency + social proof)."""
     recency = _recency_score(post.created_at)
     social = (
         post.like_count * LIKE_COUNT_WEIGHT
@@ -73,14 +83,9 @@ def _recency_score(created_at: str) -> float:
         return 0.0
 
 
-def _derive_created_at(
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-    post_index: int,
-) -> str:
-    """Derive a deterministic created_at string for GeneratedLike metadata."""
-    return f"det_{run_id}_turn{turn_number}_{agent_handle}_{post_index}"
+def _should_like() -> bool:
+    """Return whether to like using random probability in [0, 1)."""
+    return random.random() < LIKE_PROBABILITY
 
 
 def _build_generated_like(
@@ -89,17 +94,11 @@ def _build_generated_like(
     agent_handle: str,
     run_id: str,
     turn_number: int,
-    post_index: int,
 ) -> GeneratedLike:
-    """Build a GeneratedLike with deterministic IDs and metadata."""
+    """Build a GeneratedLike with IDs and metadata."""
     post_id = post.id
     like_id = f"like_{run_id}_{turn_number}_{agent_handle}_{post_id}"
-    created_at = _derive_created_at(
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=agent_handle,
-        post_index=post_index,
-    )
+    created_at = get_current_timestamp()
     return GeneratedLike(
         like=Like(
             like_id=like_id,
@@ -110,7 +109,10 @@ def _build_generated_like(
         explanation=EXPLANATION,
         metadata=GenerationMetadata(
             model_used=None,
-            generation_metadata={"policy": "deterministic"},
+            generation_metadata={
+                "policy": LIKE_POLICY,
+                "like_probability": LIKE_PROBABILITY,
+            },
             created_at=created_at,
         ),
     )

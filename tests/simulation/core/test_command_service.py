@@ -418,9 +418,12 @@ class TestSimulationCommandServiceExecuteRun:
         )
 
     def test_simulate_turn_produces_non_zero_likes_with_real_agent_and_filter(
-        self, command_service, mock_repos, sample_run
+        self, command_service, mock_repos, sample_run, monkeypatch
     ):
         """Real agent and HistoryAwareActionFeedFilter produce non-zero likes."""
+        import simulation.core.action_generators.like.algorithms.random_simple as like_mod
+
+        monkeypatch.setattr(like_mod, "LIKE_PROBABILITY", 1.0)
         agent = SocialMediaAgent("agent1.bsky.social")
         feed_posts = [
             BlueskyFeedPost(

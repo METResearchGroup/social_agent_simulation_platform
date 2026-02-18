@@ -6,9 +6,9 @@ from simulation.core.action_generators.validators import validate_algorithm
 
 
 def test_validate_algorithm_accepts_valid_like_algorithm():
-    """validate_algorithm accepts deterministic for like."""
-    result = validate_algorithm("like", "deterministic")
-    assert result == "deterministic"
+    """validate_algorithm accepts random_simple for like."""
+    result = validate_algorithm("like", "random_simple")
+    assert result == "random_simple"
 
 
 def test_validate_algorithm_accepts_valid_follow_algorithm():
