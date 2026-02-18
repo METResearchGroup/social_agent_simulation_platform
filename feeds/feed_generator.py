@@ -1,8 +1,7 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
 from feeds.algorithms import generate_chronological_feed
 from feeds.candidate_generation import load_candidate_posts
 from lib.timestamp_utils import get_current_timestamp
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 # - Algorithms need metadata/configuration
 # - Algorithms need to be registered from multiple modules
 # - Algorithms become complex classes rather than simple functions
-_FEED_ALGORITHMS: dict[str, Callable] = {
+_FEED_ALGORITHMS: dict[str, Callable[..., dict[str, str | list[str]]]] = {
     "chronological": generate_chronological_feed,
     # "rag": generate_rag_feed,  # TODO: Add in future PR
 }
@@ -55,6 +54,8 @@ def generate_feeds(
         run_id=run_id,
         turn_number=turn_number,
         feed_algorithm=feed_algorithm,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
     )
     _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
     return _hydrate_generated_feeds(
@@ -70,6 +71,8 @@ def _generate_feeds(
     run_id: str,
     turn_number: int,
     feed_algorithm: str,
+    feed_post_repo: FeedPostRepository,
+    generated_feed_repo: GeneratedFeedRepository,
 ) -> dict[str, GeneratedFeed]:
     """Generate a feed per agent via the feed algorithm; no persistence."""
     feeds: dict[str, GeneratedFeed] = {}
@@ -81,6 +84,8 @@ def _generate_feeds(
             run_id=run_id,
             turn_number=turn_number,
             feed_algorithm=feed_algorithm,
+            feed_post_repo=feed_post_repo,
+            generated_feed_repo=generated_feed_repo,
         )
         feeds[agent.handle] = feed
     return feeds
@@ -204,10 +209,15 @@ def _generate_single_agent_feed(
     run_id: str,
     turn_number: int,
     feed_algorithm: str,
+    feed_post_repo: FeedPostRepository,
+    generated_feed_repo: GeneratedFeedRepository,
 ) -> GeneratedFeed:
     """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
     candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
-        agent=agent, run_id=run_id
+        agent=agent,
+        run_id=run_id,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
     )
     return _generate_feed(
         agent=agent,

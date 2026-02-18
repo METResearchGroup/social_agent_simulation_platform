@@ -8,8 +8,6 @@ from lib.validation_utils import (
     validate_value_in_set,
 )
 
-DEFAULT_FEED_ALGORITHM: str = "chronological"
-
 
 class RunConfig(BaseModel):
     """Configuration for a simulation run."""
@@ -68,7 +66,7 @@ class Run(BaseModel):
     created_at: str
     total_turns: int
     total_agents: int
-    feed_algorithm: str = DEFAULT_FEED_ALGORITHM
+    feed_algorithm: str
     started_at: str
     status: RunStatus
     completed_at: str | None = None

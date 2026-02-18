@@ -6,14 +6,14 @@ from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 
-MAX_POSTS_PER_FEED = 20
+MAX_POSTS_PER_FEED: int = 20
 
 
 def generate_chronological_feed(
     candidate_posts: list[BlueskyFeedPost],
     agent: SocialMediaAgent,
     limit: int = MAX_POSTS_PER_FEED,
-) -> dict:
+) -> dict[str, str | list[str]]:
     """Generate a chronological feed for an agent."""
     # TODO: fast follow: insert randomness so that the feed isn't always the
     # same across rounds.
