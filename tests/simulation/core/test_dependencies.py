@@ -7,6 +7,7 @@ import pytest
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.interfaces import MetricsRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
@@ -33,6 +34,7 @@ class TestCreateEngine:
         # Assert
         assert isinstance(engine, SimulationEngine)
         assert engine.run_repo is not None
+        assert engine.metrics_repo is not None
         assert engine.profile_repo is not None
         assert engine.feed_post_repo is not None
         assert engine.generated_bio_repo is not None
@@ -89,6 +91,7 @@ class TestCreateEngine:
         assert engine.run_repo is mock_run_repo
         assert engine.agent_factory is mock_agent_factory
         # Other repos should be defaults (not None, actual instances)
+        assert engine.metrics_repo is not None
         assert engine.profile_repo is not None
         assert engine.feed_post_repo is not None
         assert engine.generated_bio_repo is not None
@@ -103,6 +106,7 @@ class TestCreateEngine:
 
         # Assert
         assert isinstance(engine.run_repo, RunRepository)
+        assert isinstance(engine.metrics_repo, MetricsRepository)
         assert isinstance(engine.profile_repo, ProfileRepository)
         assert isinstance(engine.feed_post_repo, FeedPostRepository)
         assert isinstance(engine.generated_bio_repo, GeneratedBioRepository)
@@ -118,6 +122,7 @@ class TestServiceBuilders:
     def test_create_query_service(self):
         service = create_query_service(
             run_repo=Mock(spec=RunRepository),
+            metrics_repo=Mock(spec=MetricsRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
         )
@@ -126,6 +131,7 @@ class TestServiceBuilders:
     def test_create_command_service(self):
         service = create_command_service(
             run_repo=Mock(spec=RunRepository),
+            metrics_repo=Mock(spec=MetricsRepository),
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
             generated_bio_repo=Mock(spec=GeneratedBioRepository),

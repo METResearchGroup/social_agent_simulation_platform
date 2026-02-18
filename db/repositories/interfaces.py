@@ -11,6 +11,7 @@ from typing import Optional
 
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -36,8 +37,15 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: object | None = None,
+    ) -> None:
         """Update a run's status.
+
+        When conn is provided, implementation uses it and does not commit.
 
         Raises:
             RunNotFoundError: If the run with the given ID does not exist
@@ -81,16 +89,77 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: object | None = None,
+    ) -> None:
         """Write turn metadata to the database.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection for transactional use; when provided,
+                  implementation uses it and does not commit.
 
         Raises:
             ValueError: If turn_metadata is invalid
             DuplicateTurnMetadataError: If turn metadata already exists
         """
+        raise NotImplementedError
+
+
+class MetricsRepository(ABC):
+    """Abstract base class defining the interface for metrics repositories."""
+
+    @abstractmethod
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write computed metrics for a specific run/turn.
+
+        When conn is provided, use it and do not commit (for transactional use).
+
+        Note:
+            This write is idempotent: an existing row with the same (run_id,
+            turn_number) may be replaced. Callers can safely retry or recompute;
+            duplicate writes do not raise. Implementations (e.g. SQLite) may use
+            INSERT OR REPLACE (delete+insert semantics).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        """Get computed metrics for a specific run/turn."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_metrics(self, run_id: str) -> list[TurnMetrics]:
+        """List computed metrics for a run in turn order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write computed metrics for a run.
+
+        When conn is provided, use it and do not commit (for transactional use).
+
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_run_metrics(self, run_id: str) -> RunMetrics | None:
+        """Get computed metrics for a run."""
         raise NotImplementedError
 
 
@@ -223,6 +292,13 @@ class GeneratedFeedRepository(ABC):
 
         Returns:
             The created or updated GeneratedFeed object
+
+        Note:
+            This write is idempotent: an existing row with the same composite
+            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            safely retry or recompute; duplicate writes do not raise.
+            Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 

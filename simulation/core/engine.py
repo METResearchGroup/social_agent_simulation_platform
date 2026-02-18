@@ -4,6 +4,7 @@ from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
+    MetricsRepository,
     ProfileRepository,
     RunRepository,
 )
@@ -12,6 +13,7 @@ from simulation.core.action_history import (
 )
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
@@ -23,6 +25,7 @@ class SimulationEngine:
     def __init__(
         self,
         run_repo: RunRepository,
+        metrics_repo: MetricsRepository,
         profile_repo: ProfileRepository,
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
@@ -33,6 +36,7 @@ class SimulationEngine:
         command_service: SimulationCommandService,
     ):
         self.run_repo = run_repo
+        self.metrics_repo = metrics_repo
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
@@ -56,6 +60,15 @@ class SimulationEngine:
 
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
         return self.query_service.list_turn_metadata(run_id)
+
+    def get_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        return self.query_service.get_turn_metrics(run_id, turn_number)
+
+    def list_turn_metrics(self, run_id: str) -> list[TurnMetrics]:
+        return self.query_service.list_turn_metrics(run_id)
+
+    def get_run_metrics(self, run_id: str) -> RunMetrics | None:
+        return self.query_service.get_run_metrics(run_id)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
         return self.query_service.get_turn_data(run_id, turn_number)

@@ -6,6 +6,7 @@ import pytest
 
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.interfaces import MetricsRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.feeds import GeneratedFeed
@@ -19,6 +20,7 @@ from simulation.core.query_service import SimulationQueryService
 def mock_repos():
     return {
         "run_repo": Mock(spec=RunRepository),
+        "metrics_repo": Mock(spec=MetricsRepository),
         "feed_post_repo": Mock(spec=FeedPostRepository),
         "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
     }
@@ -28,6 +30,7 @@ def mock_repos():
 def query_service(mock_repos):
     return SimulationQueryService(
         run_repo=mock_repos["run_repo"],
+        metrics_repo=mock_repos["metrics_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
     )

@@ -34,6 +34,7 @@ def _comment(agent_id: str, post_id: str) -> GeneratedComment:
             comment_id=f"comment_{agent_id}_{post_id}",
             agent_id=agent_id,
             post_id=post_id,
+            text="nice post",
             created_at="2024_01_01-12:00:00",
         ),
         explanation="reason",

@@ -60,13 +60,42 @@ class SocialMediaAgent:
             agent_handle=self.handle,
         )
 
-    def comment_posts(self, feed: list[BlueskyFeedPost]) -> list[GeneratedComment]:
-        if len(feed) == 0:
-            print("[No-op for now] No posts to comment on.")
+    def comment_posts(
+        self,
+        feed: list[BlueskyFeedPost],
+        *,
+        run_id: str,
+        turn_number: int,
+    ) -> list[GeneratedComment]:
+        """Generate comments from feed using the configured comment generator."""
+        if not feed:
             return []
-        return []
+        from simulation.core.action_generators import get_comment_generator
 
-    def follow_users(self, feed: list[BlueskyFeedPost]) -> list[GeneratedFollow]:
-        if len(feed) == 0:
-            print("[No-op for now] No users to follow.")
-        return []
+        generator = get_comment_generator()
+        return generator.generate(
+            candidates=feed,
+            run_id=run_id,
+            turn_number=turn_number,
+            agent_handle=self.handle,
+        )
+
+    def follow_users(
+        self,
+        feed: list[BlueskyFeedPost],
+        *,
+        run_id: str,
+        turn_number: int,
+    ) -> list[GeneratedFollow]:
+        """Generate follows from feed using the configured follow generator."""
+        if not feed:
+            return []
+        from simulation.core.action_generators import get_follow_generator
+
+        generator = get_follow_generator()
+        return generator.generate(
+            candidates=feed,
+            run_id=run_id,
+            turn_number=turn_number,
+            agent_handle=self.handle,
+        )

@@ -1,5 +1,6 @@
 """Read-side CQRS service for simulation run lookup APIs."""
 
+from lib.validation_decorators import validate_inputs
 from simulation.api.dummy_data import DUMMY_RUNS, DUMMY_TURNS
 from simulation.api.schemas.simulation import (
     RunConfigDetail,
@@ -10,6 +11,7 @@ from simulation.api.schemas.simulation import (
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import RunNotFoundError
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import validate_run_exists, validate_run_id
 
@@ -32,6 +34,7 @@ def get_turns_for_run_dummy(*, run_id: str) -> dict[str, TurnSchema]:
     return dict(sorted(turns.items(), key=lambda item: int(item[0])))
 
 
+@validate_inputs((validate_run_id, "run_id"))
 def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsResponse:
     """Build run-details response for a persisted run.
 
@@ -46,14 +49,16 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
         ValueError: If run_id is empty.
         RunNotFoundError: If the run does not exist.
     """
-    validated_run_id: str = validate_run_id(run_id)
-    run = engine.get_run(validated_run_id)
-    run = validate_run_exists(run=run, run_id=validated_run_id)
+    run = engine.get_run(run_id)
+    run = validate_run_exists(run=run, run_id=run_id)
 
-    metadata_list: list[TurnMetadata] = engine.list_turn_metadata(validated_run_id)
+    metadata_list: list[TurnMetadata] = engine.list_turn_metadata(run_id)
+    turn_metrics_list: list[TurnMetrics] = engine.list_turn_metrics(run_id)
     turns: list[TurnActionsItem] = _build_turn_actions_items(
-        metadata_list=metadata_list
+        metadata_list=metadata_list,
+        turn_metrics_list=turn_metrics_list,
     )
+    run_metrics: RunMetrics | None = engine.get_run_metrics(run_id)
 
     return RunDetailsResponse(
         run_id=run.run_id,
@@ -67,13 +72,17 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
             feed_algorithm=run.feed_algorithm,
         ),
         turns=turns,
+        run_metrics=run_metrics.metrics if run_metrics else None,
     )
 
 
 def _build_turn_actions_items(
-    *, metadata_list: list[TurnMetadata]
+    *, metadata_list: list[TurnMetadata], turn_metrics_list: list[TurnMetrics]
 ) -> list[TurnActionsItem]:
     """Map turn metadata to deterministic, API-serializable turn summaries."""
+    metrics_by_turn: dict[int, TurnMetrics] = {
+        item.turn_number: item for item in turn_metrics_list
+    }
     sorted_metadata: list[TurnMetadata] = sorted(
         metadata_list,
         key=lambda item: item.turn_number,
@@ -85,6 +94,9 @@ def _build_turn_actions_items(
             total_actions={
                 action.value: count for action, count in item.total_actions.items()
             },
+            metrics=metrics_by_turn[item.turn_number].metrics
+            if item.turn_number in metrics_by_turn
+            else None,
         )
         for item in sorted_metadata
     ]

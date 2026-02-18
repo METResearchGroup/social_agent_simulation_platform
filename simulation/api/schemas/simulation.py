@@ -1,9 +1,12 @@
 """Request/response schemas for the simulation run API."""
 
+from __future__ import annotations
+
 from enum import Enum
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
 from simulation.core.validators import (
     validate_feed_algorithm,
@@ -35,13 +38,6 @@ class RunRequest(BaseModel):
         return validate_feed_algorithm(v)
 
 
-class LikesPerTurnItem(BaseModel):
-    """One entry in the likes-per-turn list."""
-
-    turn_number: int
-    likes: int
-
-
 class ErrorDetail(BaseModel):
     """Error payload included when status is failed or on server error."""
 
@@ -64,8 +60,8 @@ class RunResponse(BaseModel):
     status: RunResponseStatus
     num_agents: int
     num_turns: int
-    likes_per_turn: list[LikesPerTurnItem]
-    total_likes: int
+    turns: list[TurnSummaryItem]
+    run_metrics: ComputedMetrics | None = None
     error: ErrorDetail | None = None
 
     @model_validator(mode="after")
@@ -139,6 +135,7 @@ class TurnActionsItem(BaseModel):
     turn_number: int
     created_at: str
     total_actions: dict[str, int]
+    metrics: ComputedMetrics | None = None
 
 
 class RunDetailsResponse(BaseModel):
@@ -151,3 +148,13 @@ class RunDetailsResponse(BaseModel):
     completed_at: str | None = None
     config: RunConfigDetail
     turns: list[TurnActionsItem]
+    run_metrics: ComputedMetrics | None = None
+
+
+class TurnSummaryItem(BaseModel):
+    """One turn summary with computed metrics."""
+
+    turn_number: int
+    created_at: str
+    total_actions: dict[str, int]
+    metrics: ComputedMetrics
