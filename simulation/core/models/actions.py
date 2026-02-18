@@ -26,9 +26,10 @@ class Comment(BaseModel):
     comment_id: str
     agent_id: str
     post_id: str
+    text: str
     created_at: str
 
-    @field_validator("comment_id", "agent_id", "post_id", mode="before")
+    @field_validator("comment_id", "agent_id", "post_id", "text", mode="before")
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""

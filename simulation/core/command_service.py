@@ -271,7 +271,11 @@ class SimulationCommandService:
                 run_id=run_id,
                 turn_number=turn_number,
             )
-            comments = agent.comment_posts(action_candidates.comment_candidates)
+            comments = agent.comment_posts(
+                action_candidates.comment_candidates,
+                run_id=run_id,
+                turn_number=turn_number,
+            )
             follows = agent.follow_users(action_candidates.follow_candidates)
 
             # Validate the action rules.
