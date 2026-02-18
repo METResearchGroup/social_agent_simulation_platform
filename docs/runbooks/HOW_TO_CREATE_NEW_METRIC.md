@@ -30,8 +30,16 @@ This runbook describes how to add a new metric to the simulation metrics framewo
 
 Metric keys are strings (examples: `turn.actions.total`, `run.actions.total_by_type`).
 
+- Metrics declare these as **class-level constants**:
+  - `KEY = "turn.some.metric"`
+  - `SCOPE = MetricScope.TURN` (or `MetricScope.RUN`)
 - Use `MetricScope.TURN` when the metric is per-turn and requires `turn_number`.
 - Use `MetricScope.RUN` when the metric is aggregated across the whole run.
+
+Optional:
+
+- If you want a metric to be available in the registry but **not enabled by default**, set:
+  - `DEFAULT_ENABLED = False`
 
 ### 2) Define an output schema (`output_adapter`)
 
@@ -72,10 +80,6 @@ If your metric depends on other metrics, declare them:
 - `requires` returns a tuple of metric keys
 - The collector will compute dependencies first and provide them in `prior`
 
-### 5) Use file-level constants
-
-Follow repo convention (`docs/RULES.md`): keep adapters and constants as file-level constants under imports, not inline inside methods.
-
 ## Example template (copy/paste)
 
 ```python
@@ -95,13 +99,9 @@ MY_METRIC_OUTPUT_ADAPTER = TypeAdapter(dict[str, int])
 
 
 class MyMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "turn.my_metric.example"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
+    KEY = "turn.my_metric.example"
+    SCOPE = MetricScope.TURN
+    DEFAULT_ENABLED = True
 
     @property
     def output_adapter(self):
@@ -169,15 +169,16 @@ This dict is what ends up as `RunMetrics.metrics` for the run.
 
 Update `simulation/core/metrics/defaults.py`:
 
-- Add a builder mapping in `create_default_metrics_registry()`
-- Decide whether it belongs in:
-  - `DEFAULT_TURN_METRIC_KEYS`
-  - `DEFAULT_RUN_METRIC_KEYS`
+- Add your metric class to `BUILTIN_METRICS`.
 
 Rules of thumb:
 
-- If a metric should be present in all runs by default, add it to the appropriate `DEFAULT_*_METRIC_KEYS`.
-- If it’s experimental / optional, wire it into the registry mapping but don’t add to defaults until you’re ready.
+- `BUILTIN_METRICS` is the **single source of truth**.
+  - The registry mapping is derived from it.
+  - `DEFAULT_TURN_METRIC_KEYS` / `DEFAULT_RUN_METRIC_KEYS` are derived from it (filtered by `SCOPE` and `DEFAULT_ENABLED`).
+- If a metric should be present in all runs by default, keep `DEFAULT_ENABLED = True`.
+- If it’s experimental / optional, set `DEFAULT_ENABLED = False`.
+- Keep the ordering in `BUILTIN_METRICS` stable; that ordering determines the derived default key ordering.
 
 ### 2) (Optional) Integrate with SQL-backed metrics
 
@@ -215,6 +216,7 @@ uv run pytest tests/simulation/core/test_metrics_collector.py
 
 ## Common pitfalls
 
+- **Forgetting `KEY` / `SCOPE`**: metrics must declare these class constants; missing them fails fast at import time.
 - **Forgetting `output_adapter`**: the metric won’t satisfy the `Metric` ABC and will fail at import/instantiation time.
 - **Returning non-JSON values**: e.g. `set(...)`, custom objects, bytes → collector will reject.
 - **Implicit coercion**: collector validation uses `strict=True`, so return the right types.
