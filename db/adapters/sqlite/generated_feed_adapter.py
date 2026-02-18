@@ -7,6 +7,7 @@ from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.schema import generated_feeds
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.validators import (
     validate_handle_exists,
@@ -144,6 +145,9 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             feeds.append(self._row_to_generated_feed(row))
         return feeds
 
+    @validate_inputs(
+        (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
+    )
     def read_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
         """Read all post URIs from generated feeds for a specific agent and run.
 
@@ -159,9 +163,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ValueError: If agent_handle or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
-        validate_handle_exists(agent_handle)
-        validate_run_id(run_id)
-
         with get_connection() as conn:
             rows = conn.execute(
                 """
@@ -173,6 +174,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ).fetchall()
             return {uri for row in rows for uri in json.loads(row["post_uris"])}
 
+    @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
         """Read all generated feeds for a specific run and turn.
 
@@ -190,8 +192,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             KeyError: If required columns are missing from the database row
             sqlite3.OperationalError: If database operation fails
         """
-        validate_run_id(run_id)
-        validate_turn_number(turn_number)
         with get_connection() as conn:
             rows = conn.execute(
                 "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?",
