@@ -10,7 +10,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
-from db.services.turn_persistence_service import TurnPersistenceService
+from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
@@ -54,7 +54,7 @@ class SimulationCommandService:
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
         metrics_collector: MetricsCollector,
-        turn_persistence: TurnPersistenceService,
+        simulation_persistence: SimulationPersistenceService,
         profile_repo: ProfileRepository,
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
@@ -69,7 +69,7 @@ class SimulationCommandService:
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
         self.metrics_collector = metrics_collector
-        self.turn_persistence = turn_persistence
+        self.simulation_persistence = simulation_persistence
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
@@ -104,7 +104,15 @@ class SimulationCommandService:
                 agents=agents,
                 action_history_store=action_history_store,
             )
-            self._collect_and_write_run_metrics(run_id=run.run_id)
+            run_metrics_dict: ComputedMetrics = (
+                self.metrics_collector.collect_run_metrics(run_id=run.run_id)
+            )
+            run_metrics = RunMetrics(
+                run_id=run.run_id,
+                metrics=run_metrics_dict,
+                created_at=get_current_timestamp(),
+            )
+            self.simulation_persistence.write_run(run.run_id, run_metrics)
             self.update_run_status(run, RunStatus.COMPLETED)
             return run
         except Exception as e:
@@ -315,7 +323,7 @@ class SimulationCommandService:
             created_at=created_at,
         )
 
-        self.turn_persistence.write_turn(
+        self.simulation_persistence.write_turn(
             turn_metadata=turn_metadata,
             turn_metrics=turn_metrics,
         )
@@ -324,18 +332,6 @@ class SimulationCommandService:
             turn_number=turn_number,
             total_actions=converted_actions,
             execution_time_ms=None,
-        )
-
-    def _collect_and_write_run_metrics(self, run_id: str) -> None:
-        run_metrics_dict: ComputedMetrics = self.metrics_collector.collect_run_metrics(
-            run_id=run_id
-        )
-        self.metrics_repo.write_run_metrics(
-            RunMetrics(
-                run_id=run_id,
-                metrics=run_metrics_dict,
-                created_at=get_current_timestamp(),
-            )
         )
 
     def _create_agents_for_run(

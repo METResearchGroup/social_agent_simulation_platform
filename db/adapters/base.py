@@ -73,7 +73,11 @@ class RunDatabaseAdapter(ABC):
 
     @abstractmethod
     def update_run_status(
-        self, run_id: str, status: str, completed_at: Optional[str] = None
+        self,
+        run_id: str,
+        status: str,
+        completed_at: Optional[str] = None,
+        conn: object | None = None,
     ) -> None:
         """Update a run's status.
 
@@ -82,6 +86,8 @@ class RunDatabaseAdapter(ABC):
             status: New status value (should be a valid RunStatus enum value as string)
             completed_at: Optional timestamp when the run was completed.
                          Should be set when status is 'completed', None otherwise.
+            conn: Optional connection. When provided, use it and do not commit;
+                  when None, use a new connection and commit.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
@@ -188,7 +194,12 @@ class MetricsDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_run_metrics(self, run_metrics: RunMetrics) -> None:
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write run metrics. When conn is provided, use it and do not commit."""
         raise NotImplementedError
 
     @abstractmethod

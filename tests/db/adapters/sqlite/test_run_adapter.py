@@ -687,3 +687,27 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
             # Verify commit was never called
             mock_conn.commit.assert_not_called()
+
+
+class TestSQLiteRunAdapterUpdateRunStatus:
+    """Tests for SQLiteRunAdapter.update_run_status method."""
+
+    def test_update_run_status_with_conn_does_not_commit(self, adapter):
+        """When conn is passed, update_run_status uses it and does not call commit."""
+        run_id = "run_123"
+        status = "completed"
+        completed_at = "2026-01-01T00:00:00"
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_cursor.rowcount = 1
+        mock_conn.execute.return_value = mock_cursor
+
+        adapter.update_run_status(
+            run_id=run_id,
+            status=status,
+            completed_at=completed_at,
+            conn=mock_conn,
+        )
+
+        mock_conn.execute.assert_called_once()
+        mock_conn.commit.assert_not_called()

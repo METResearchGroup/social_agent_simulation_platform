@@ -119,9 +119,13 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
             )
         return result
 
-    def write_run_metrics(self, run_metrics: RunMetrics) -> None:
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: sqlite3.Connection | None = None,
+    ) -> None:
         metrics_json = json.dumps(run_metrics.metrics)
-        with get_connection() as conn:
+        if conn is not None:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO run_metrics
@@ -130,7 +134,17 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
                 """,
                 (run_metrics.run_id, metrics_json, run_metrics.created_at),
             )
-            conn.commit()
+            return
+        with get_connection() as c:
+            c.execute(
+                """
+                INSERT OR REPLACE INTO run_metrics
+                (run_id, metrics, created_at)
+                VALUES (?, ?, ?)
+                """,
+                (run_metrics.run_id, metrics_json, run_metrics.created_at),
+            )
+            c.commit()
 
     @validate_inputs((validate_run_id, "run_id"))
     def read_run_metrics(self, run_id: str) -> RunMetrics | None:

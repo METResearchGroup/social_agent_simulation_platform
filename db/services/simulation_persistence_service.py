@@ -1,24 +1,24 @@
-"""Turn persistence: write turn metadata and turn metrics in a single transaction."""
+"""Simulation persistence: turn and run metrics in transactions or single writes."""
 
 from db.adapters.sqlite.sqlite import run_transaction
 from db.repositories.interfaces import MetricsRepository, RunRepository
-from simulation.core.models.metrics import TurnMetrics
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.turns import TurnMetadata
 
 
-def create_turn_persistence_service(
+def create_simulation_persistence_service(
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
-) -> "TurnPersistenceService":
-    """Create a TurnPersistenceService with the given repositories."""
-    return TurnPersistenceService(
+) -> "SimulationPersistenceService":
+    """Create a SimulationPersistenceService with the given repositories."""
+    return SimulationPersistenceService(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
     )
 
 
-class TurnPersistenceService:
-    """Writes turn metadata and turn metrics in one transaction (all-or-nothing per turn)."""
+class SimulationPersistenceService:
+    """Persists turn data (metadata + metrics in one transaction) and run metrics."""
 
     def __init__(
         self,
@@ -42,3 +42,10 @@ class TurnPersistenceService:
         with run_transaction() as conn:
             self._run_repo.write_turn_metadata(turn_metadata, conn=conn)
             self._metrics_repo.write_turn_metrics(turn_metrics, conn=conn)
+
+    def write_run(self, run_id: str, run_metrics: RunMetrics) -> None:
+        """Persist run metrics for a run.
+
+        Does not update run status; callers should call update_run_status separately.
+        """
+        self._metrics_repo.write_run_metrics(run_metrics)

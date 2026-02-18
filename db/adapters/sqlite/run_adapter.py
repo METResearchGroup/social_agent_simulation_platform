@@ -150,16 +150,23 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             return [self._row_to_run(row) for row in rows]
 
     def update_run_status(
-        self, run_id: str, status: str, completed_at: Optional[str] = None
+        self,
+        run_id: str,
+        status: str,
+        completed_at: Optional[str] = None,
+        conn: sqlite3.Connection | None = None,
     ) -> None:
         """Update run status in SQLite.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
             sqlite3.OperationalError: If database operation fails
             sqlite3.IntegrityError: If status value violates CHECK constraints
         """
-        with get_connection() as conn:
+        if conn is not None:
             cursor = conn.execute(
                 """
                 UPDATE runs 
@@ -170,7 +177,19 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             )
             if cursor.rowcount == 0:
                 raise RunNotFoundError(run_id)
-            conn.commit()
+            return
+        with get_connection() as c:
+            cursor = c.execute(
+                """
+                UPDATE runs 
+                SET status = ?, completed_at = ?
+                WHERE run_id = ?
+            """,
+                (status, completed_at, run_id),
+            )
+            if cursor.rowcount == 0:
+                raise RunNotFoundError(run_id)
+            c.commit()
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metadata(

@@ -95,12 +95,19 @@ class SQLiteRunRepository(RunRepository):
         """List all runs from SQLite."""
         return self._db_adapter.read_all_runs()
 
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: object | None = None,
+    ) -> None:
         """Update run status in SQLite.
 
         Args:
             run_id: Unique identifier for the run to update
             status: New RunStatus enum value
+            conn: Optional connection for transactional use; when provided,
+                  forwarded to adapter (no commit by adapter).
 
         Raises:
             ValueError: If run_id is empty or status is None
@@ -129,7 +136,7 @@ class SQLiteRunRepository(RunRepository):
             ts = get_current_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
             self._db_adapter.update_run_status(
-                validated_run_id, status.value, completed_at
+                validated_run_id, status.value, completed_at, conn=conn
             )
 
         except (RunNotFoundError, InvalidTransitionError):
