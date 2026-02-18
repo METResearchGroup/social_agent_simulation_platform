@@ -25,83 +25,64 @@ _INT_ADAPTER = TypeAdapter(int)
 _COUNTS_ADAPTER = TypeAdapter(dict[str, int])
 
 
-class _ConstMetric(Metric):
-    def __init__(
-        self,
-        *,
-        key: str,
-        scope: MetricScope,
-        value: int,
-        requires: tuple[str, ...] = (),
-    ):
-        self._key = key
-        self._scope = scope
-        self._value = value
-        self._requires = requires
+def _const_metric_class(
+    *,
+    key: str,
+    scope: MetricScope,
+    value: int,
+) -> type[Metric]:
+    class _ConstMetricImpl(Metric):
+        KEY = key
+        SCOPE = scope
+        VALUE = value
 
-    @property
-    def key(self) -> str:
-        return self._key
+        @property
+        def output_adapter(self):
+            return _INT_ADAPTER
 
-    @property
-    def scope(self) -> MetricScope:
-        return self._scope
+        def compute(
+            self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
+        ) -> JsonValue:
+            return self.VALUE
 
-    @property
-    def output_adapter(self):
-        return _INT_ADAPTER
-
-    @property
-    def requires(self) -> tuple[str, ...]:
-        return self._requires
-
-    def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
-        return self._value  # int is a valid JsonValue
+    return _ConstMetricImpl
 
 
-class _DerivedSumMetric(Metric):
-    def __init__(self, *, key: str, scope: MetricScope, requires: tuple[str, ...]):
-        self._key = key
-        self._scope = scope
-        self._requires = requires
+def _sum_metric_class(
+    *,
+    key: str,
+    scope: MetricScope,
+    requires_keys: tuple[str, ...],
+) -> type[Metric]:
+    class _SumMetricImpl(Metric):
+        KEY = key
+        SCOPE = scope
+        REQUIRES = requires_keys
 
-    @property
-    def key(self) -> str:
-        return self._key
+        @property
+        def output_adapter(self):
+            return _INT_ADAPTER
 
-    @property
-    def scope(self) -> MetricScope:
-        return self._scope
+        @property
+        def requires(self) -> tuple[str, ...]:
+            return self.REQUIRES
 
-    @property
-    def output_adapter(self):
-        return _INT_ADAPTER
+        def compute(
+            self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
+        ) -> JsonValue:
+            total = 0
+            for k in self.REQUIRES:
+                v = prior[k]
+                assert isinstance(v, int)
+                total += v
+            return total
 
-    @property
-    def requires(self) -> tuple[str, ...]:
-        return self._requires
-
-    def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
-        total = 0
-        for k in self._requires:
-            v = prior[k]
-            assert isinstance(v, int)
-            total += v
-        return total
+    return _SumMetricImpl
 
 
 class _BoomMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "turn.boom"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
+    KEY = "turn.boom"
+    SCOPE = MetricScope.TURN
 
     @property
     def output_adapter(self):
@@ -120,16 +101,16 @@ class TestMetricsCollectorResolveOrder:
         """Dependencies are evaluated before dependents in stable order."""
         registry = MetricsRegistry(
             metric_builders={
-                "turn.a": lambda: _ConstMetric(
+                "turn.a": _const_metric_class(
                     key="turn.a", scope=MetricScope.TURN, value=1
                 ),
-                "turn.b": lambda: _ConstMetric(
+                "turn.b": _const_metric_class(
                     key="turn.b", scope=MetricScope.TURN, value=2
                 ),
-                "turn.sum": lambda: _DerivedSumMetric(
+                "turn.sum": _sum_metric_class(
                     key="turn.sum",
                     scope=MetricScope.TURN,
-                    requires=("turn.a", "turn.b"),
+                    requires_keys=("turn.a", "turn.b"),
                 ),
             }
         )
@@ -173,13 +154,8 @@ class TestMetricsCollectorFailures:
         """Non-JSON values are rejected by output schema validation."""
 
         class _BadJsonMetric(Metric):
-            @property
-            def key(self) -> str:
-                return "turn.bad_json"
-
-            @property
-            def scope(self) -> MetricScope:
-                return MetricScope.TURN
+            KEY = "turn.bad_json"
+            SCOPE = MetricScope.TURN
 
             @property
             def output_adapter(self):
@@ -209,13 +185,8 @@ class TestMetricsCollectorFailures:
         """Wrong JSON shape is rejected (e.g., dict[str,int] but got str values)."""
 
         class _WrongShapeMetric(Metric):
-            @property
-            def key(self) -> str:
-                return "turn.wrong_shape"
-
-            @property
-            def scope(self) -> MetricScope:
-                return MetricScope.TURN
+            KEY = "turn.wrong_shape"
+            SCOPE = MetricScope.TURN
 
             @property
             def output_adapter(self):
