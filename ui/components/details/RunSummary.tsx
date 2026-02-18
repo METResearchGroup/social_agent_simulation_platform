@@ -1,6 +1,6 @@
 'use client';
 
-import { Run, Agent } from '@/types';
+import { Agent, Run } from '@/types';
 
 interface RunSummaryProps {
   run: Run;
@@ -75,4 +75,3 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     </div>
   );
 }
-
