@@ -1,28 +1,35 @@
 from __future__ import annotations
 
+from pydantic import TypeAdapter
+
 from simulation.core.metrics.interfaces import (
     Metric,
     MetricContext,
     MetricDeps,
+    MetricOutputAdapter,
     MetricScope,
 )
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.json_types import JsonObject, JsonValue
+from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 from simulation.core.validators import validate_run_exists
+
+TURN_ACTION_COUNTS_BY_TYPE_ADAPTER = TypeAdapter(dict[str, int])
+TURN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)
+RUN_ACTION_TOTALS_BY_TYPE_ADAPTER = TypeAdapter(dict[str, int])
+RUN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)
 
 
 class TurnActionCountsByTypeMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "turn.actions.counts_by_type"
+    KEY = "turn.actions.counts_by_type"
+    SCOPE = MetricScope.TURN
 
     @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
+    def output_adapter(self) -> MetricOutputAdapter:
+        return TURN_ACTION_COUNTS_BY_TYPE_ADAPTER
 
     def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
+        self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+    ) -> ComputedMetricResult:
         if ctx.turn_number is None:
             raise ValueError("turn_number is required for turn metrics")
 
@@ -37,25 +44,24 @@ class TurnActionCountsByTypeMetric(Metric):
 
 
 class TurnActionTotalMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "turn.actions.total"
+    KEY = "turn.actions.total"
+    SCOPE = MetricScope.TURN
 
     @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
+    def output_adapter(self) -> MetricOutputAdapter:
+        return TURN_ACTION_TOTAL_ADAPTER
 
     @property
     def requires(self) -> tuple[str, ...]:
         return ("turn.actions.counts_by_type",)
 
     def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
+        self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+    ) -> ComputedMetricResult:
         counts = prior.get("turn.actions.counts_by_type", {})
         if not isinstance(counts, dict):
             raise ValueError("turn.actions.counts_by_type must be an object")
-        counts_obj: dict[str, JsonValue] = counts
+        counts_obj: dict[str, ComputedMetricResult] = counts
         total = 0
         for key, value in counts_obj.items():
             if not isinstance(value, int):
@@ -68,17 +74,16 @@ class TurnActionTotalMetric(Metric):
 
 
 class RunActionTotalsByTypeMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "run.actions.total_by_type"
+    KEY = "run.actions.total_by_type"
+    SCOPE = MetricScope.RUN
 
     @property
-    def scope(self) -> MetricScope:
-        return MetricScope.RUN
+    def output_adapter(self) -> MetricOutputAdapter:
+        return RUN_ACTION_TOTALS_BY_TYPE_ADAPTER
 
     def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
+        self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+    ) -> ComputedMetricResult:
         run = deps.run_repo.get_run(ctx.run_id)
         validate_run_exists(run=run, run_id=ctx.run_id)
 
@@ -93,25 +98,24 @@ class RunActionTotalsByTypeMetric(Metric):
 
 
 class RunActionTotalMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "run.actions.total"
+    KEY = "run.actions.total"
+    SCOPE = MetricScope.RUN
 
     @property
-    def scope(self) -> MetricScope:
-        return MetricScope.RUN
+    def output_adapter(self) -> MetricOutputAdapter:
+        return RUN_ACTION_TOTAL_ADAPTER
 
     @property
     def requires(self) -> tuple[str, ...]:
         return ("run.actions.total_by_type",)
 
     def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
+        self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+    ) -> ComputedMetricResult:
         totals = prior.get("run.actions.total_by_type", {})
         if not isinstance(totals, dict):
             raise ValueError("run.actions.total_by_type must be an object")
-        totals_obj: dict[str, JsonValue] = totals
+        totals_obj: dict[str, ComputedMetricResult] = totals
         total = 0
         for key, value in totals_obj.items():
             if not isinstance(value, int):
