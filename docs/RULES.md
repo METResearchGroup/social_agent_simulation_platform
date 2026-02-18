@@ -7,6 +7,7 @@ Dependency Injection over concrete instantiation
 
 - Services should not instantiate concrete infra/state dependencies internally (e.g., no InMemory...() inside business methods).
 - Inject dependencies via constructor or builder functions.
+- Default “what runs” via factories: for configurable behavior (e.g. which metrics), use factory functions that accept optional overrides (e.g. metrics_collector: MetricsCollector | None = None) and, when None, build the default (e.g. default registry + default key lists). This keeps one canonical default while allowing tests and callers to inject alternatives.
 
 Keep orchestration thin
 
@@ -37,6 +38,7 @@ Prefer keyword args.
 Domain purity
 
 - Domain models (simulation.core.models) depend only on stdlib, pydantic, and same-layer models. No imports from lib, db, feeds, or ai. Time and I/O are supplied by callers (e.g. created_at parameter) or live in the application layer.
+- Prefer domain type aliases (e.g., "Metric", "MetricPayload") over Any for JSON-like values (e.g. JsonValue, JsonObject). In implementations that consume these values, validate or narrow types (e.g. isinstance(x, dict), then int checks for values) and raise clear errors so invalid data fails at a known boundary.
 
 Imports:
 
@@ -80,6 +82,7 @@ Error and failure semantics:
 
 - Use a stable error payload shape (e.g. code, message, detail) and sanitize detail; avoid exposing stack traces or internal paths.
 - Partial results on mid-run failure: return 200 with status="failed", partial data (e.g. likes_per_turn), and an error object—reserve 500 for pre-creation or infrastructure failures so clients can rely on partial results when a run exists.
+- During development, we prefer to fail fast. For critical pipelines (e.g. metrics that must be correct for a run), use fail-fast: if any step fails, fail the whole operation (e.g. run status to FAILED) rather than returning best-effort or partial results for that pipeline. Partial persisted data (e.g. completed turns) may still be returned to the client with status failed. We may choose to change this in the future, and we may choose to prioritize uptime. But right now, during development, we prioritize failing fast.
 
 API layer vs core
 
@@ -93,12 +96,14 @@ Fixed sets of values (e.g. status, type, kind):
 - Use a str-backed enum (e.g. class RunResponseStatus(str, Enum)) when the same set is used in more than one place (schemas, services, routes) or you want a single shared type and stable OpenAPI; JSON then stays string values.
 - Use a Pydantic model or discriminated union when each value has different required fields.
 - Prefer enum over Literal when the type is shared and reused; Literal is fine for a one-off field in a single schema.
+- When a feature has distinct scopes or phases (e.g. per-turn vs post-run), model them with an explicit enum (e.g. MetricScope.TURN / RUN) and enforce scope at runtime (e.g. reject a TURN-scoped implementation when running RUN-scoped) so misconfiguration fails fast.
 
 Deterministic outputs:
 
 - Principle: Functions and API responses should be deterministic and repeatable when given the same inputs and config; avoid order-dependent or undefined ordering in results.
 - When a function returns a list (or list-derived result) and input order is not guaranteed, sort by a domain-natural key (e.g. turn_number, created_at, id) before building the result.
 - For API and serialized data, treat ordering as part of the contract unless otherwise specified: document or enforce it (e.g. “ordered by turn_number ascending”) so clients get stable, repeatable results.
+- When a pipeline has dependencies between steps (e.g. metric A required by metric B), resolve and execute in a stable topological order; use deterministic tie-breaking (e.g. alphabetical by key) so runs are reproducible.
 
 Response schema consistency:
 
@@ -142,3 +147,12 @@ Package management — Use uv for Python; don’t use pip.
 Decorators
 
 - Use decorators for (1) extending generic functionality across multiple callers (e.g., adding custom retry logic) or (2) removing boilerplate code shared across multiple callers (e.g., doing input validation).
+
+Document the contract, not just the implementation
+
+- When behavior could be surprising (e.g. overwrite vs fail-on-duplicate, retry safety), document the chosen contract (inputs, outputs, exceptions, idempotency/immutability) at the interface.
+- Prefer documenting intent at the boundary over leaving semantics to be inferred from implementation details.
+
+Persistence and model boundaries
+
+- When adding computed or derived data (e.g. metrics), persist it in dedicated storage (e.g. turn_metrics / run_metrics tables and a dedicated repository) rather than overloading existing models or repositories. Keeps core models stable and avoids bloating a single repo with unrelated concerns.
