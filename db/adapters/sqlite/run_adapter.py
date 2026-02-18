@@ -8,6 +8,7 @@ from db.adapters.base import RunDatabaseAdapter
 from db.adapters.sqlite.schema_utils import required_column_names
 from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
 from db.schema import runs
+from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunNotFoundError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
@@ -169,6 +170,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 raise RunNotFoundError(run_id)
             conn.commit()
 
+    @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metadata(
         self, run_id: str, turn_number: int
     ) -> Optional[TurnMetadata]:
@@ -190,8 +192,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        validate_run_id(run_id)
-        validate_turn_number(turn_number)
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
@@ -217,6 +217,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 f"total_actions={total_actions}, created_at={row['created_at']}"
             ) from e
 
+    @validate_inputs((validate_run_id, "run_id"))
     def read_turn_metadata_for_run(self, run_id: str) -> list[TurnMetadata]:
         """Read all turn metadata rows for a run from SQLite.
 
@@ -232,8 +233,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from a database row
         """
-        validate_run_id(run_id)
-
         with get_connection() as conn:
             rows = conn.execute(
                 "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
