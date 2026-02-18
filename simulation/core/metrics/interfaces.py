@@ -3,12 +3,30 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol
 
 from simulation.core.models.json_types import JsonObject, JsonValue
 
 if TYPE_CHECKING:
     from db.repositories.interfaces import MetricsRepository, RunRepository
+
+
+class MetricOutputAdapter(Protocol):
+    """Pydantic TypeAdapter-compatible validator for a metric's output.
+
+    Metrics should typically implement this by returning a `pydantic.TypeAdapter`
+    constructed from the metric's expected output shape (e.g. `int`,
+    `dict[str, int]`).
+    """
+
+    def validate_python(
+        self,
+        __input: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any: ...
+
+    def json_schema(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class MetricScope(str, Enum):
@@ -58,6 +76,11 @@ class Metric(ABC):
     @property
     @abstractmethod
     def scope(self) -> MetricScope: ...
+
+    @property
+    @abstractmethod
+    def output_adapter(self) -> MetricOutputAdapter:
+        """Validator for this metric's output value."""
 
     @property
     def requires(self) -> tuple[str, ...]:

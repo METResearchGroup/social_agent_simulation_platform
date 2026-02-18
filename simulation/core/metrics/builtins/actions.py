@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+from pydantic import TypeAdapter
+
 from simulation.core.metrics.interfaces import (
     Metric,
     MetricContext,
     MetricDeps,
+    MetricOutputAdapter,
     MetricScope,
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.json_types import JsonObject, JsonValue
 from simulation.core.validators import validate_run_exists
+
+TURN_ACTION_COUNTS_BY_TYPE_ADAPTER = TypeAdapter(dict[str, int])
+TURN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)
+RUN_ACTION_TOTALS_BY_TYPE_ADAPTER = TypeAdapter(dict[str, int])
+RUN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)
 
 
 class TurnActionCountsByTypeMetric(Metric):
@@ -19,6 +27,10 @@ class TurnActionCountsByTypeMetric(Metric):
     @property
     def scope(self) -> MetricScope:
         return MetricScope.TURN
+
+    @property
+    def output_adapter(self) -> MetricOutputAdapter:
+        return TURN_ACTION_COUNTS_BY_TYPE_ADAPTER
 
     def compute(
         self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
@@ -44,6 +56,10 @@ class TurnActionTotalMetric(Metric):
     @property
     def scope(self) -> MetricScope:
         return MetricScope.TURN
+
+    @property
+    def output_adapter(self) -> MetricOutputAdapter:
+        return TURN_ACTION_TOTAL_ADAPTER
 
     @property
     def requires(self) -> tuple[str, ...]:
@@ -76,6 +92,10 @@ class RunActionTotalsByTypeMetric(Metric):
     def scope(self) -> MetricScope:
         return MetricScope.RUN
 
+    @property
+    def output_adapter(self) -> MetricOutputAdapter:
+        return RUN_ACTION_TOTALS_BY_TYPE_ADAPTER
+
     def compute(
         self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
     ) -> JsonValue:
@@ -100,6 +120,10 @@ class RunActionTotalMetric(Metric):
     @property
     def scope(self) -> MetricScope:
         return MetricScope.RUN
+
+    @property
+    def output_adapter(self) -> MetricOutputAdapter:
+        return RUN_ACTION_TOTAL_ADAPTER
 
     @property
     def requires(self) -> tuple[str, ...]:

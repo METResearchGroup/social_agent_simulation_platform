@@ -2,10 +2,21 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 
+from pydantic import TypeAdapter, ValidationError
+
 from simulation.core.exceptions import MetricsComputationError
 from simulation.core.metrics.interfaces import MetricContext, MetricDeps, MetricScope
 from simulation.core.metrics.registry import MetricsRegistry
 from simulation.core.models.json_types import JsonObject, JsonValue
+
+_JSON_VALUE_ADAPTER = TypeAdapter(JsonValue)
+
+
+def _truncate_repr(value: object, *, max_len: int = 500) -> str:
+    text = repr(value)
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 3] + "..."
 
 
 class MetricsCollector:
@@ -56,7 +67,53 @@ class MetricsCollector:
                     message=f"Failed to compute metric '{key}': {e}",
                     cause=e,
                 ) from e
-            results[key] = value
+
+            try:
+                adapter_validated = metric.output_adapter.validate_python(
+                    value, strict=True
+                )
+            except ValidationError as e:
+                raise MetricsComputationError(
+                    metric_key=key,
+                    run_id=ctx.run_id,
+                    turn_number=ctx.turn_number,
+                    message=(
+                        f"Metric '{key}' output failed schema validation. "
+                        f"expected_schema={metric.output_adapter.json_schema()}, "
+                        f"value_type={type(value).__name__}, value={_truncate_repr(value)}; "
+                        f"errors={e.errors()}"
+                    ),
+                    cause=e,
+                ) from e
+            except Exception as e:
+                raise MetricsComputationError(
+                    metric_key=key,
+                    run_id=ctx.run_id,
+                    turn_number=ctx.turn_number,
+                    message=(
+                        f"Metric '{key}' output validation failed unexpectedly: {e} "
+                        f"(value_type={type(value).__name__}, value={_truncate_repr(value)})"
+                    ),
+                    cause=e,
+                ) from e
+
+            try:
+                validated: JsonValue = _JSON_VALUE_ADAPTER.validate_python(
+                    adapter_validated, strict=True
+                )
+            except ValidationError as e:
+                raise MetricsComputationError(
+                    metric_key=key,
+                    run_id=ctx.run_id,
+                    turn_number=ctx.turn_number,
+                    message=(
+                        f"Metric '{key}' produced a non-JSON value after validation. "
+                        f"value_type={type(adapter_validated).__name__}, "
+                        f"value={_truncate_repr(adapter_validated)}; errors={e.errors()}"
+                    ),
+                    cause=e,
+                ) from e
+            results[key] = validated
         return results
 
     def _resolve_order(
