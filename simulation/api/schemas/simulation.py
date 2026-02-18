@@ -85,6 +85,54 @@ class RunConfigDetail(BaseModel):
     feed_algorithm: str
 
 
+class RunListItem(BaseModel):
+    """Summary item for listing simulation runs."""
+
+    run_id: str
+    created_at: str
+    total_turns: int
+    total_agents: int
+    status: RunStatus
+
+
+class AgentActionType(str, Enum):
+    """Action type in turn-level action data."""
+
+    LIKE = "like"
+    COMMENT = "comment"
+    FOLLOW = "follow"
+
+
+class FeedSchema(BaseModel):
+    """Feed metadata for one agent in a turn."""
+
+    feed_id: str
+    run_id: str
+    turn_number: int
+    agent_handle: str
+    post_uris: list[str]
+    created_at: str
+
+
+class AgentActionSchema(BaseModel):
+    """Action event performed by an agent in a turn."""
+
+    action_id: str
+    agent_handle: str
+    post_uri: str | None = None
+    user_id: str | None = None
+    type: AgentActionType
+    created_at: str
+
+
+class TurnSchema(BaseModel):
+    """Full turn payload consumed by the UI."""
+
+    turn_number: int
+    agent_feeds: dict[str, FeedSchema]
+    agent_actions: dict[str, list[AgentActionSchema]]
+
+
 class TurnActionsItem(BaseModel):
     """One turn summary with aggregate action counts."""
 

@@ -18,6 +18,8 @@ export function getTurnsForRun(
     return EMPTY_TURNS;
   }
 
+  // newRunTurns is reserved for live per-run updates; fallbackTurns is
+  // backend-fetched cached turn data keyed by run.
   return newRunTurns[runId] || fallbackTurns[runId] || EMPTY_TURNS;
 }
 

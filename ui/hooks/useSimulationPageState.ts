@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DUMMY_AGENTS,
-  DUMMY_RUNS,
-  DUMMY_TURNS,
 } from '@/lib/dummy-data';
+import {
+  getRuns,
+  getTurnsForRun,
+} from '@/lib/api/simulation';
 import {
   getAvailableTurns,
   getCompletedTurnsCount,
@@ -18,6 +20,7 @@ import { Run, RunConfig, Turn } from '@/types';
 
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
 const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
+const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
 
 interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
@@ -37,13 +40,69 @@ interface UseSimulationPageStateResult {
 }
 
 export function useSimulationPageState(): UseSimulationPageStateResult {
-  const [runs, setRuns] = useState<Run[]>(() =>
-    withComputedRunStatuses(DUMMY_RUNS),
-  );
+  const [runs, setRuns] = useState<Run[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedTurn, setSelectedTurn] = useState<number | 'summary' | null>(null);
   const [runConfigs, setRunConfigs] = useState<Record<string, RunConfig>>(EMPTY_RUN_CONFIGS);
   const [newRunTurns] = useState<Record<string, Record<string, Turn>>>(EMPTY_NEW_RUN_TURNS);
+  const [fallbackTurns, setFallbackTurns] = useState<Record<string, Record<string, Turn>>>(
+    EMPTY_FALLBACK_TURNS,
+  );
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    const loadRuns = async (): Promise<void> => {
+      try {
+        const apiRuns: Run[] = await getRuns();
+        if (isMounted) {
+          setRuns(apiRuns);
+        }
+      } catch (error) {
+        console.error('Failed to fetch runs:', error);
+      }
+    };
+
+    void loadRuns();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedRunId || fallbackTurns[selectedRunId]) {
+      return;
+    }
+
+    let isMounted: boolean = true;
+
+    const loadTurnsForRun = async (): Promise<void> => {
+      try {
+        const turnsForRun: Record<string, Turn> = await getTurnsForRun(selectedRunId);
+        if (isMounted) {
+          setFallbackTurns((previousTurns) => ({
+            ...previousTurns,
+            [selectedRunId]: turnsForRun,
+          }));
+        }
+      } catch (error) {
+        console.error(`Failed to fetch turns for ${selectedRunId}:`, error);
+        if (isMounted) {
+          setFallbackTurns((previousTurns) => ({
+            ...previousTurns,
+            [selectedRunId]: {},
+          }));
+        }
+      }
+    };
+
+    void loadTurnsForRun();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedRunId, fallbackTurns]);
 
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
@@ -56,18 +115,18 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
 
   const currentTurn: Turn | null = useMemo(
-    () => getCurrentTurn(selectedRunId, selectedTurn, newRunTurns, DUMMY_TURNS),
-    [selectedRunId, selectedTurn, newRunTurns],
+    () => getCurrentTurn(selectedRunId, selectedTurn, newRunTurns, fallbackTurns),
+    [selectedRunId, selectedTurn, newRunTurns, fallbackTurns],
   );
 
   const availableTurns: number[] = useMemo(
-    () => getAvailableTurns(selectedRunId, newRunTurns, DUMMY_TURNS),
-    [selectedRunId, newRunTurns],
+    () => getAvailableTurns(selectedRunId, newRunTurns, fallbackTurns),
+    [selectedRunId, newRunTurns, fallbackTurns],
   );
 
   const completedTurnsCount: number = useMemo(
-    () => getCompletedTurnsCount(selectedRunId, newRunTurns, DUMMY_TURNS),
-    [selectedRunId, newRunTurns],
+    () => getCompletedTurnsCount(selectedRunId, newRunTurns, fallbackTurns),
+    [selectedRunId, newRunTurns, fallbackTurns],
   );
 
   const runAgents = useMemo(
