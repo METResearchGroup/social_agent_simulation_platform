@@ -9,7 +9,6 @@ from typing import cast
 from db.adapters.base import MetricsDatabaseAdapter
 from db.adapters.sqlite.sqlite import get_connection
 from lib.validation_decorators import validate_inputs
-from simulation.core.models.json_types import JsonObject
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.validators import validate_run_id, validate_turn_number
 

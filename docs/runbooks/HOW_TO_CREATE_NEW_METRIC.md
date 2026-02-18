@@ -15,6 +15,8 @@ Your metric class must define:
 
 - `KEY = "turn.some.metric"` (or `"run.some.metric"`)
 - `SCOPE = MetricScope.TURN` (or `MetricScope.RUN`)
+- `DESCRIPTION = "..."` — a short, non-empty string describing what the metric measures (for attribution and docs).
+- `AUTHOR = "..."` — a non-empty string identifying who owns or authored the metric (e.g. `"platform"`, team name).
 - `output_adapter`: a `pydantic.TypeAdapter(...)` describing the output shape
 - `compute(...) -> ComputedMetricResult`
 
@@ -44,6 +46,8 @@ MY_METRIC_OUTPUT_ADAPTER = TypeAdapter(dict[str, int])
 class MyMetric(Metric):
     KEY = "turn.my_metric.example"
     SCOPE = MetricScope.TURN
+    DESCRIPTION = "..."
+    AUTHOR = "platform"
     DEFAULT_ENABLED = True
 
     @property
@@ -121,7 +125,7 @@ uv run --extra test pre-commit run --all-files
 
 ## Common pitfalls
 
-- **Forgetting `KEY` / `SCOPE`**: metrics must declare these class constants; missing them fails fast at import time.
+- **Forgetting `KEY` / `SCOPE` / `DESCRIPTION` / `AUTHOR`**: metrics must declare these class constants; missing or empty values fail fast at import time.
 - **Forgetting `output_adapter`**: the metric won’t satisfy the `Metric` ABC and will fail at import/instantiation time.
 - **Returning non-JSON values**: e.g. `set(...)`, custom objects, bytes → collector will reject.
 - **Implicit coercion**: collector validation uses `strict=True`, so return the right types.
