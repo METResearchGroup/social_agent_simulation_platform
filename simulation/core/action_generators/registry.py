@@ -5,13 +5,60 @@ algorithm implementations. Uses config.yaml for default algorithms when
 algorithm is omitted.
 """
 
+from collections.abc import Callable
+
 from simulation.core.action_generators.config import resolve_algorithm
 from simulation.core.action_generators.interfaces import (
     CommentGenerator,
     FollowGenerator,
     LikeGenerator,
 )
-from simulation.core.action_generators.validators import validate_algorithm
+from simulation.core.action_generators.validators import (
+    COMMENT_ALGORITHMS,
+    FOLLOW_ALGORITHMS,
+    LIKE_ALGORITHMS,
+    validate_algorithm,
+)
+
+
+def _create_deterministic_like() -> LikeGenerator:
+    from simulation.core.action_generators.like.algorithms.deterministic import (
+        DeterministicLikeGenerator,
+    )
+
+    return DeterministicLikeGenerator()
+
+
+def _create_random_simple_follow() -> FollowGenerator:
+    from simulation.core.action_generators.follow.algorithms.random_simple import (
+        RandomSimpleFollowGenerator,
+    )
+
+    return RandomSimpleFollowGenerator()
+
+
+def _create_random_simple_comment() -> CommentGenerator:
+    from simulation.core.action_generators.comment.algorithms.random_simple import (
+        RandomSimpleCommentGenerator,
+    )
+
+    return RandomSimpleCommentGenerator()
+
+
+_LIKE_ALGORITHM_FACTORIES: dict[str, Callable[[], LikeGenerator]] = {
+    "deterministic": _create_deterministic_like,
+}
+assert set(_LIKE_ALGORITHM_FACTORIES.keys()) == set(LIKE_ALGORITHMS)
+
+_FOLLOW_ALGORITHM_FACTORIES: dict[str, Callable[[], FollowGenerator]] = {
+    "random_simple": _create_random_simple_follow,
+}
+assert set(_FOLLOW_ALGORITHM_FACTORIES.keys()) == set(FOLLOW_ALGORITHMS)
+
+_COMMENT_ALGORITHM_FACTORIES: dict[str, Callable[[], CommentGenerator]] = {
+    "random_simple": _create_random_simple_comment,
+}
+assert set(_COMMENT_ALGORITHM_FACTORIES.keys()) == set(COMMENT_ALGORITHMS)
 
 _like_generator_cache: dict[str, LikeGenerator] = {}
 _follow_generator_cache: dict[str, FollowGenerator] = {}
@@ -46,30 +93,21 @@ def get_comment_generator(algorithm: str | None = None) -> CommentGenerator:
 
 
 def _create_like_generator(algorithm: str) -> LikeGenerator:
-    if algorithm == "deterministic":
-        from simulation.core.action_generators.like.algorithms.deterministic import (
-            DeterministicLikeGenerator,
-        )
-
-        return DeterministicLikeGenerator()
-    raise ValueError(f"Unsupported like algorithm: {algorithm}")
+    factory = _LIKE_ALGORITHM_FACTORIES.get(algorithm)
+    if factory is None:
+        raise ValueError(f"Unsupported like algorithm: {algorithm}")
+    return factory()
 
 
 def _create_follow_generator(algorithm: str) -> FollowGenerator:
-    if algorithm == "random_simple":
-        from simulation.core.action_generators.follow.algorithms.random_simple import (
-            RandomSimpleFollowGenerator,
-        )
-
-        return RandomSimpleFollowGenerator()
-    raise ValueError(f"Unsupported follow algorithm: {algorithm}")
+    factory = _FOLLOW_ALGORITHM_FACTORIES.get(algorithm)
+    if factory is None:
+        raise ValueError(f"Unsupported follow algorithm: {algorithm}")
+    return factory()
 
 
 def _create_comment_generator(algorithm: str) -> CommentGenerator:
-    if algorithm == "random_simple":
-        from simulation.core.action_generators.comment.algorithms.random_simple import (
-            RandomSimpleCommentGenerator,
-        )
-
-        return RandomSimpleCommentGenerator()
-    raise ValueError(f"Unsupported comment algorithm: {algorithm}")
+    factory = _COMMENT_ALGORITHM_FACTORIES.get(algorithm)
+    if factory is None:
+        raise ValueError(f"Unsupported comment algorithm: {algorithm}")
+    return factory()
