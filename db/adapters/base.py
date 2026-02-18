@@ -1,14 +1,36 @@
 """Base adapter interfaces."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from contextlib import AbstractContextManager
 from typing import Iterable, Optional
 
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
+
+
+class TransactionProvider(ABC):
+    """Abstract interface for running a database transaction.
+
+    Implementations yield a connection for the duration of the transaction;
+    callers use it and do not commit. The provider commits on normal exit
+    and rolls back on exception.
+    """
+
+    @abstractmethod
+    def run_transaction(self) -> AbstractContextManager[object]:
+        """Enter a transaction and yield a connection.
+
+        Commit on normal exit, roll back on exception. The yielded object
+        is passed to repositories as their conn parameter.
+        """
+        raise NotImplementedError
 
 
 class RunDatabaseAdapter(ABC):
@@ -29,6 +51,12 @@ class RunDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -70,7 +98,11 @@ class RunDatabaseAdapter(ABC):
 
     @abstractmethod
     def update_run_status(
-        self, run_id: str, status: str, completed_at: Optional[str] = None
+        self,
+        run_id: str,
+        status: str,
+        completed_at: Optional[str] = None,
+        conn: object | None = None,
     ) -> None:
         """Update a run's status.
 
@@ -79,6 +111,8 @@ class RunDatabaseAdapter(ABC):
             status: New status value (should be a valid RunStatus enum value as string)
             completed_at: Optional timestamp when the run was completed.
                          Should be set when status is 'completed', None otherwise.
+            conn: Optional connection. When provided, use it and do not commit;
+                  when None, use a new connection and commit.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
@@ -90,13 +124,18 @@ class RunDatabaseAdapter(ABC):
 
     @abstractmethod
     def read_turn_metadata(
-        self, run_id: str, turn_number: int
+        self,
+        run_id: str,
+        turn_number: int,
+        conn: object | None = None,
     ) -> Optional[TurnMetadata]:
         """Read turn metadata for a specific run and turn.
 
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
+            conn: Optional connection. When provided, use it and do not open/close
+                  or commit; when None, use a new connection (caller manages lifecycle).
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -136,13 +175,19 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: object | None = None,
+    ) -> None:
         """Write turn metadata to the database.
 
         Writes to the `turn_metadata` table. Uses INSERT.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection. When provided, use it and do not commit;
+                  when None, use a new connection and commit.
 
         Raises:
             DuplicateTurnMetadataError: If turn metadata already exists
@@ -150,6 +195,54 @@ class RunDatabaseAdapter(ABC):
                       the operation fails. Implementations should document the
                       specific exception types they raise.
         """
+        raise NotImplementedError
+
+
+class MetricsDatabaseAdapter(ABC):
+    """Abstract interface for computed metrics persistence."""
+
+    @abstractmethod
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write turn metrics. When conn is provided, use it and do not commit.
+
+        Note:
+            This write is idempotent: an existing row with the same (run_id,
+            turn_number) may be replaced. Callers can safely retry or recompute;
+            duplicate writes do not raise. Implementations (e.g. SQLite) may use
+            INSERT OR REPLACE (delete+insert semantics).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_turn_metrics_for_run(self, run_id: str) -> list[TurnMetrics]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write run metrics. When conn is provided, use it and do not commit.
+
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_metrics(self, run_id: str) -> RunMetrics | None:
         raise NotImplementedError
 
 
@@ -172,6 +265,12 @@ class ProfileDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same handle may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -230,6 +329,12 @@ class FeedPostDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same URI may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -244,6 +349,12 @@ class FeedPostDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            Each write is idempotent: an existing row with the same URI may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -345,6 +456,13 @@ class GeneratedFeedDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same composite
+            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            safely retry or recompute; duplicate writes do not raise.
+            Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -449,6 +567,12 @@ class GeneratedBioDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same handle may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 

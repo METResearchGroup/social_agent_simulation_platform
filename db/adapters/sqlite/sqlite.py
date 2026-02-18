@@ -6,10 +6,12 @@ This module provides SQLite-specific infrastructure functions:
 - Database path configuration
 """
 
+import contextlib
 import os
 import sqlite3
 from typing import Any
 
+from db.adapters.base import TransactionProvider
 from lib.constants import REPO_ROOT
 
 SIM_DB_PATH_ENV: str = "SIM_DB_PATH"
@@ -34,6 +36,32 @@ def get_connection() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+@contextlib.contextmanager
+def run_transaction():
+    """Context manager for a single database transaction.
+
+    Opens a connection, yields it to the block, commits on normal exit,
+    rolls back on exception, and closes the connection in a finally block.
+    SQLite starts a transaction implicitly on first statement; no explicit BEGIN.
+    """
+    conn = get_connection()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+class SqliteTransactionProvider(TransactionProvider):
+    """SQLite implementation of TransactionProvider using the default DB path."""
+
+    def run_transaction(self):
+        return run_transaction()
 
 
 def validate_required_fields(
@@ -80,7 +108,13 @@ def _has_alembic_version(conn: sqlite3.Connection) -> bool:
 
 def _has_any_app_tables(conn: sqlite3.Connection) -> bool:
     """Return True if any core app table exists (runs, generated_feeds, turn_metadata)."""
-    for name in ("runs", "generated_feeds", "turn_metadata"):
+    for name in (
+        "runs",
+        "generated_feeds",
+        "turn_metadata",
+        "turn_metrics",
+        "run_metrics",
+    ):
         if _table_exists(conn, name):
             return True
     return False

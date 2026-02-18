@@ -6,9 +6,11 @@ from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
+    MetricsRepository,
     ProfileRepository,
     RunRepository,
 )
+from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
@@ -18,13 +20,11 @@ from simulation.core.agent_action_feed_filter import (
 )
 from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.exceptions import (
-    DuplicateTurnMetadataError,
-    RunStatusUpdateError,
-    SimulationRunFailure,
-)
+from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
+from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
@@ -52,6 +52,9 @@ class SimulationCommandService:
     def __init__(
         self,
         run_repo: RunRepository,
+        metrics_repo: MetricsRepository,
+        metrics_collector: MetricsCollector,
+        simulation_persistence: SimulationPersistenceService,
         profile_repo: ProfileRepository,
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
@@ -64,6 +67,9 @@ class SimulationCommandService:
         agent_action_feed_filter: AgentActionFeedFilter,
     ):
         self.run_repo = run_repo
+        self.metrics_repo = metrics_repo
+        self.metrics_collector = metrics_collector
+        self.simulation_persistence = simulation_persistence
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
@@ -98,7 +104,15 @@ class SimulationCommandService:
                 agents=agents,
                 action_history_store=action_history_store,
             )
-            self.update_run_status(run, RunStatus.COMPLETED)
+            run_metrics_dict: ComputedMetrics = (
+                self.metrics_collector.collect_run_metrics(run_id=run.run_id)
+            )
+            run_metrics = RunMetrics(
+                run_id=run.run_id,
+                metrics=run_metrics_dict,
+                created_at=get_current_timestamp(),
+            )
+            self.simulation_persistence.write_run(run.run_id, run_metrics)
             return run
         except Exception as e:
             self.update_run_status(run, RunStatus.FAILED)
@@ -257,7 +271,11 @@ class SimulationCommandService:
                 run_id=run_id,
                 turn_number=turn_number,
             )
-            comments = agent.comment_posts(action_candidates.comment_candidates)
+            comments = agent.comment_posts(
+                action_candidates.comment_candidates,
+                run_id=run_id,
+                turn_number=turn_number,
+            )
             follows = agent.follow_users(
                 action_candidates.follow_candidates,
                 run_id=run_id,
@@ -292,23 +310,30 @@ class SimulationCommandService:
             total_actions["follows"] += len(follows)
 
         converted_actions = self._convert_action_counts_to_enum(total_actions)
+        created_at: str = get_current_timestamp()
 
         turn_metadata = TurnMetadata(
             run_id=run_id,
             turn_number=turn_number,
             total_actions=converted_actions,
-            created_at=get_current_timestamp(),
+            created_at=created_at,
         )
 
-        # TODO: DuplicateMetadataError should be caught within the write_turn_metadata,
-        # no need for try/except here.
-        try:
-            self.run_repo.write_turn_metadata(turn_metadata)
-        except DuplicateTurnMetadataError as e:
-            logger.warning(
-                f"Turn metadata already exists for run {run_id}, turn {turn_number}. "
-                f"This may indicate a retry or duplicate execution. Error: {e}"
-            )
+        computed_metrics: ComputedMetrics = self.metrics_collector.collect_turn_metrics(
+            run_id=run_id,
+            turn_number=turn_number,
+        )
+        turn_metrics = TurnMetrics(
+            run_id=run_id,
+            turn_number=turn_number,
+            metrics=computed_metrics,
+            created_at=created_at,
+        )
+
+        self.simulation_persistence.write_turn(
+            turn_metadata=turn_metadata,
+            turn_metrics=turn_metrics,
+        )
 
         return TurnResult(
             turn_number=turn_number,

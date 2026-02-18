@@ -4,14 +4,14 @@ from collections.abc import Iterable
 
 from simulation.api.schemas.simulation import (
     ErrorDetail,
-    LikesPerTurnItem,
     RunRequest,
     RunResponse,
     RunResponseStatus,
+    TurnSummaryItem,
 )
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import SimulationRunFailure
-from simulation.core.models.actions import TurnAction
+from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
+from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig
 from simulation.core.models.turns import TurnMetadata
 
@@ -38,14 +38,23 @@ def execute(
         if e.run_id is None:
             raise
         metadata_list = engine.list_turn_metadata(e.run_id)
-        likes_per_turn, total_likes = _build_likes_per_turn_from_metadata(metadata_list)
+        turn_metrics_list = engine.list_turn_metrics(e.run_id)
+        _validate_turn_data_consistency(
+            metadata_list=metadata_list,
+            turn_metrics_list=turn_metrics_list,
+        )
+        run_metrics = engine.get_run_metrics(e.run_id)
+        turns = _build_turn_summaries(
+            metadata_list=metadata_list,
+            turn_metrics_list=turn_metrics_list,
+        )
         return RunResponse(
             run_id=e.run_id,
             status=RunResponseStatus.FAILED,
             num_agents=run_config.num_agents,
             num_turns=run_config.num_turns,
-            likes_per_turn=likes_per_turn,
-            total_likes=total_likes,
+            turns=turns,
+            run_metrics=run_metrics.metrics if run_metrics else None,
             error=ErrorDetail(
                 code="SIMULATION_FAILED",
                 message=e.args[0] if e.args else "Run failed during execution",
@@ -53,16 +62,23 @@ def execute(
             ),
         )
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(run.run_id)
-    likes_per_turn: list[LikesPerTurnItem]
-    total_likes: int
-    likes_per_turn, total_likes = _build_likes_per_turn_from_metadata(metadata_list)
+    turn_metrics_list: list[TurnMetrics] = engine.list_turn_metrics(run.run_id)
+    _validate_turn_data_consistency(
+        metadata_list=metadata_list,
+        turn_metrics_list=turn_metrics_list,
+    )
+    run_metrics: RunMetrics | None = engine.get_run_metrics(run.run_id)
+    turns: list[TurnSummaryItem] = _build_turn_summaries(
+        metadata_list=metadata_list,
+        turn_metrics_list=turn_metrics_list,
+    )
     return RunResponse(
         run_id=run.run_id,
         status=RunResponseStatus.COMPLETED,
         num_agents=run.total_agents,
         num_turns=run.total_turns,
-        likes_per_turn=likes_per_turn,
-        total_likes=total_likes,
+        turns=turns,
+        run_metrics=run_metrics.metrics if run_metrics else None,
         error=None,
     )
 
@@ -78,20 +94,72 @@ def _build_run_config(request: RunRequest) -> RunConfig:
     )
 
 
-def _build_likes_per_turn_from_metadata(
+def _validate_turn_data_consistency(
+    *,
     metadata_list: Iterable[TurnMetadata],
-) -> tuple[list[LikesPerTurnItem], int]:
-    """Derive likes_per_turn and total_likes from turn metadata list.
+    turn_metrics_list: Iterable[TurnMetrics],
+) -> None:
+    """Raise if metadata and metrics have different sets of turn numbers."""
+    metadata_turn_numbers: set[int] = {m.turn_number for m in metadata_list}
+    metrics_turn_numbers: set[int] = {t.turn_number for t in turn_metrics_list}
+    _assert_turn_sets_match(
+        metadata_turns=metadata_turn_numbers,
+        metrics_turns=metrics_turn_numbers,
+    )
 
-    Sorts by turn_number so output is deterministic regardless of input order.
+
+def _build_turn_summaries(
+    *,
+    metadata_list: Iterable[TurnMetadata],
+    turn_metrics_list: Iterable[TurnMetrics],
+) -> list[TurnSummaryItem]:
+    """Build deterministic turn summaries by turn_number.
+
+    Callers must pass lists such that every turn number present in one list
+    is present in the other. The function validates and raises
+    InconsistentTurnDataError if not.
     """
-    sorted_metadata = sorted(metadata_list, key=lambda tm: tm.turn_number)
-    likes_per_turn = [
-        LikesPerTurnItem(
-            turn_number=tm.turn_number,
-            likes=tm.total_actions.get(TurnAction.LIKE, 0),
+    metadata_by_turn: dict[int, TurnMetadata] = {
+        item.turn_number: item for item in metadata_list
+    }
+    metrics_by_turn: dict[int, TurnMetrics] = {
+        item.turn_number: item for item in turn_metrics_list
+    }
+    metadata_turns: set[int] = set(metadata_by_turn.keys())
+    metrics_turns: set[int] = set(metrics_by_turn.keys())
+    _assert_turn_sets_match(
+        metadata_turns=metadata_turns,
+        metrics_turns=metrics_turns,
+    )
+    turns: list[TurnSummaryItem] = []
+    for turn_number in sorted(metadata_turns):
+        metadata = metadata_by_turn[turn_number]
+        metrics = metrics_by_turn[turn_number]
+        turns.append(
+            TurnSummaryItem(
+                turn_number=turn_number,
+                created_at=metadata.created_at,
+                total_actions={k.value: v for k, v in metadata.total_actions.items()},
+                metrics=metrics.metrics,
+            )
         )
-        for tm in sorted_metadata
-    ]
-    total_likes = sum(item.likes for item in likes_per_turn)
-    return likes_per_turn, total_likes
+    return turns
+
+
+def _assert_turn_sets_match(
+    *,
+    metadata_turns: set[int],
+    metrics_turns: set[int],
+) -> None:
+    """Raise InconsistentTurnDataError if the two turn-number sets differ."""
+    if metadata_turns != metrics_turns:
+        metadata_only = metadata_turns - metrics_turns
+        metrics_only = metrics_turns - metadata_turns
+        raise InconsistentTurnDataError(
+            (
+                "Turn metadata and turn metrics have different turn number sets: "
+                f"metadata_only={sorted(metadata_only)}, metrics_only={sorted(metrics_only)}"
+            ),
+            metadata_only=metadata_only,
+            metrics_only=metrics_only,
+        )
