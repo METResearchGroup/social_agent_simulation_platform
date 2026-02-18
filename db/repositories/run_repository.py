@@ -1,7 +1,6 @@
 """SQLite implementation of run repositories."""
 
 import uuid
-from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
 from db.repositories.interfaces import RunRepository
@@ -77,7 +76,7 @@ class SQLiteRunRepository(RunRepository):
             raise RunCreationError(run_id, str(e)) from e
 
     @validate_inputs((validate_run_id, "run_id"))
-    def get_run(self, run_id: str) -> Optional[Run]:
+    def get_run(self, run_id: str) -> Run | None:
         """Get a run from SQLite.
 
         Args:
@@ -146,9 +145,7 @@ class SQLiteRunRepository(RunRepository):
             raise RunStatusUpdateError(run_id, str(e)) from e
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
-    def get_turn_metadata(
-        self, run_id: str, turn_number: int
-    ) -> Optional[TurnMetadata]:
+    def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
         """Get turn metadata for a specific run and turn.
 
         Args:

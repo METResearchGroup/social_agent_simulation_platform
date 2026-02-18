@@ -7,7 +7,6 @@ implement these interfaces.
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from typing import Optional
 
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -27,7 +26,7 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_run(self, run_id: str) -> Optional[Run]:
+    def get_run(self, run_id: str) -> Run | None:
         """Get a run by ID."""
         raise NotImplementedError
 
@@ -55,9 +54,7 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_turn_metadata(
-        self, run_id: str, turn_number: int
-    ) -> Optional[TurnMetadata]:
+    def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
         """Get turn metadata for a specific run and turn.
 
         Args:
@@ -179,7 +176,7 @@ class ProfileRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_profile(self, handle: str) -> Optional[BlueskyProfile]:
+    def get_profile(self, handle: str) -> BlueskyProfile | None:
         """Get a profile by handle.
 
         Args:
@@ -377,7 +374,7 @@ class GeneratedBioRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_generated_bio(self, handle: str) -> Optional[GeneratedBio]:
+    def get_generated_bio(self, handle: str) -> GeneratedBio | None:
         """Get a generated bio by handle.
 
         Args:

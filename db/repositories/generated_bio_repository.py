@@ -1,7 +1,5 @@
 """SQLite implementation of generated bio repositories."""
 
-from typing import Optional
-
 from db.adapters.base import GeneratedBioDatabaseAdapter
 from db.repositories.interfaces import GeneratedBioRepository
 from simulation.core.models.generated.bio import GeneratedBio
@@ -41,7 +39,7 @@ class SQLiteGeneratedBioRepository(GeneratedBioRepository):
         self._db_adapter.write_generated_bio(bio)
         return bio
 
-    def get_generated_bio(self, handle: str) -> Optional[GeneratedBio]:
+    def get_generated_bio(self, handle: str) -> GeneratedBio | None:
         """Get a generated bio from SQLite.
 
         Args:

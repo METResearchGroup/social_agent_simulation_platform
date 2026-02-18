@@ -1,7 +1,6 @@
 """SQLite implementation of generated bio database adapter."""
 
 import sqlite3
-from typing import Optional
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
@@ -66,7 +65,7 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             conn.execute(_INSERT_AGENT_BIOS_SQL, row_values)
             conn.commit()
 
-    def read_generated_bio(self, handle: str) -> Optional[GeneratedBio]:
+    def read_generated_bio(self, handle: str) -> GeneratedBio | None:
         """Read a generated bio from SQLite.
 
         Args:

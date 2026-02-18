@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
-from typing import Iterable, Optional
+from typing import Iterable
 
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -61,7 +61,7 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_run(self, run_id: str) -> Optional[Run]:
+    def read_run(self, run_id: str) -> Run | None:
         """Read a run by ID.
 
         Args:
@@ -101,7 +101,7 @@ class RunDatabaseAdapter(ABC):
         self,
         run_id: str,
         status: str,
-        completed_at: Optional[str] = None,
+        completed_at: str | None = None,
         conn: object | None = None,
     ) -> None:
         """Update a run's status.
@@ -128,7 +128,7 @@ class RunDatabaseAdapter(ABC):
         run_id: str,
         turn_number: int,
         conn: object | None = None,
-    ) -> Optional[TurnMetadata]:
+    ) -> TurnMetadata | None:
         """Read turn metadata for a specific run and turn.
 
         Args:
@@ -275,7 +275,7 @@ class ProfileDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_profile(self, handle: str) -> Optional[BlueskyProfile]:
+    def read_profile(self, handle: str) -> BlueskyProfile | None:
         """Read a profile by handle.
 
         Args:
@@ -577,7 +577,7 @@ class GeneratedBioDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_generated_bio(self, handle: str) -> Optional[GeneratedBio]:
+    def read_generated_bio(self, handle: str) -> GeneratedBio | None:
         """Read a generated bio by handle.
 
         Args:
