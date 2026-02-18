@@ -1,15 +1,16 @@
 """Random-simple comment generation algorithm.
 
-Selects top-k posts by recency + social proof, then uses random probability
-and hardcoded text to decide whether to comment and which text to use.
+Selects top-k posts by recency + social proof, then uses deterministic
+probability (seeded by run_id, turn_number, agent_handle, post_id) and
+hardcoded text to decide whether to comment and which text to use.
+Outputs are deterministic and repeatable for the same inputs.
 """
 
 from __future__ import annotations
 
-import random
+import hashlib
 from datetime import datetime, timezone
 
-from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_generators.interfaces import CommentGenerator
 from simulation.core.models.actions import Comment
 from simulation.core.models.generated.base import GenerationMetadata
@@ -29,8 +30,10 @@ RECENCY_WEIGHT: float = 1.0
 LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
-EXPLANATION: str = "Simple: random probability and hardcoded text"
+EXPLANATION: str = "Simple: deterministic probability and hardcoded text"
 CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
+ROLL_HASH_PREFIX_HEX_LENGTH: int = 8
+ROLL_HASH_DENOMINATOR: float = float(16**ROLL_HASH_PREFIX_HEX_LENGTH)
 
 
 class RandomSimpleCommentGenerator(CommentGenerator):
@@ -96,6 +99,21 @@ def _recency_score(created_at: str) -> float:
         return 0.0
 
 
+def _deterministic_roll(
+    *,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    post_id: str,
+    suffix: str = "",
+) -> float:
+    """Generate deterministic pseudo-random roll in [0, 1) from inputs."""
+    seed = f"{run_id}:{turn_number}:{agent_handle}:{post_id}{suffix}"
+    digest: str = hashlib.sha256(seed.encode("utf-8")).hexdigest()
+    prefix: str = digest[:ROLL_HASH_PREFIX_HEX_LENGTH]
+    return int(prefix, 16) / ROLL_HASH_DENOMINATOR
+
+
 def _should_comment(
     *,
     run_id: str,
@@ -103,8 +121,15 @@ def _should_comment(
     agent_handle: str,
     post_id: str,
 ) -> bool:
-    """Return whether to comment on a post using random probability in [0, 1)."""
-    return random.random() < COMMENT_PROBABILITY
+    """Return whether to comment using deterministic probability in [0, 1)."""
+    roll: float = _deterministic_roll(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        post_id=post_id,
+        suffix=":should",
+    )
+    return roll < COMMENT_PROBABILITY
 
 
 def _pick_comment_text(
@@ -114,10 +139,27 @@ def _pick_comment_text(
     agent_handle: str,
     post_id: str,
 ) -> str:
-    """Pick a comment text from the hardcoded pool using random index."""
-    roll = random.random()  # [0.0, 1.0)
-    idx = int(roll * len(HARDCODED_COMMENT_TEXTS))
+    """Pick a comment text from the hardcoded pool using deterministic index."""
+    roll: float = _deterministic_roll(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        post_id=post_id,
+        suffix=":text",
+    )
+    idx: int = int(roll * len(HARDCODED_COMMENT_TEXTS))
     return HARDCODED_COMMENT_TEXTS[idx]
+
+
+def _derive_created_at(
+    *,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    post_id: str,
+) -> str:
+    """Derive deterministic created_at string for GeneratedComment metadata."""
+    return f"det_{run_id}_turn{turn_number}_{agent_handle}_{post_id}"
 
 
 def _build_generated_comment(
@@ -127,10 +169,15 @@ def _build_generated_comment(
     run_id: str,
     turn_number: int,
 ) -> GeneratedComment:
-    """Build a GeneratedComment with IDs and metadata."""
+    """Build a GeneratedComment with deterministic IDs and metadata."""
     post_id = post.id
     comment_id = f"comment_{run_id}_{turn_number}_{agent_handle}_{post_id}"
-    created_at = get_current_timestamp()
+    created_at = _derive_created_at(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        post_id=post_id,
+    )
     text = _pick_comment_text(
         run_id=run_id,
         turn_number=turn_number,

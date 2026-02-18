@@ -119,12 +119,10 @@ class TestRandomSimpleCommentGeneratorGenerate:
         selected_post_ids = {c.comment.post_id for c in result}
         assert selected_post_ids == expected_selected
 
-    def test_reproducible_when_random_mocked(self, monkeypatch):
-        """With random mocked to fixed values, repeated runs produce same comments."""
-        # Arrange: probability 1.0 and fixed random so behavior is reproducible
+    def test_reproducible_deterministic_output(self, monkeypatch):
+        """Repeated runs with same inputs produce identical comments."""
+        # Arrange: probability 1.0 so all selected candidates get comments
         monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
-        fake_random = type("FakeRandom", (), {"random": lambda self: 0.0})()
-        monkeypatch.setattr(mod, "random", fake_random)
         generator = RandomSimpleCommentGenerator()
         candidates = [_post("post_a", like_count=3), _post("post_b", like_count=7)]
         run_id = "run_det"
@@ -145,7 +143,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             agent_handle=agent_handle,
         )
 
-        # Assert
+        # Assert: deterministic algorithm produces identical output
         expected_post_ids = [c.comment.post_id for c in result1]
         expected_texts = [c.comment.text for c in result1]
         assert [c.comment.post_id for c in result2] == expected_post_ids
@@ -199,3 +197,6 @@ class TestRandomSimpleCommentGeneratorGenerate:
         assert comment.comment.text
         assert comment.explanation
         assert comment.metadata.generation_metadata == {"policy": "simple"}
+        assert comment.comment.created_at.startswith(
+            f"det_{expected_run_id}_turn{expected_turn}_{expected_handle}_{expected_post_id}"
+        )
