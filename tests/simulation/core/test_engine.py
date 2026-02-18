@@ -7,6 +7,7 @@ import pytest
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.interfaces import MetricsRepository
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
@@ -20,6 +21,7 @@ from simulation.core.query_service import SimulationQueryService
 def deps():
     return {
         "run_repo": Mock(spec=RunRepository),
+        "metrics_repo": Mock(spec=MetricsRepository),
         "profile_repo": Mock(spec=ProfileRepository),
         "feed_post_repo": Mock(spec=FeedPostRepository),
         "generated_bio_repo": Mock(spec=GeneratedBioRepository),
@@ -59,6 +61,7 @@ def engine(
 ):
     return SimulationEngine(
         run_repo=deps["run_repo"],
+        metrics_repo=deps["metrics_repo"],
         profile_repo=deps["profile_repo"],
         feed_post_repo=deps["feed_post_repo"],
         generated_bio_repo=deps["generated_bio_repo"],
@@ -79,6 +82,7 @@ class TestSimulationEngineCompatibility:
         action_history_store_factory,
     ):
         assert engine.run_repo is deps["run_repo"]
+        assert engine.metrics_repo is deps["metrics_repo"]
         assert engine.profile_repo is deps["profile_repo"]
         assert engine.feed_post_repo is deps["feed_post_repo"]
         assert engine.generated_bio_repo is deps["generated_bio_repo"]
@@ -93,12 +97,18 @@ class TestSimulationEngineDelegation:
         engine.list_runs()
         engine.get_turn_metadata("run_123", 0)
         engine.list_turn_metadata("run_123")
+        engine.get_turn_metrics("run_123", 0)
+        engine.list_turn_metrics("run_123")
+        engine.get_run_metrics("run_123")
         engine.get_turn_data("run_123", 0)
 
         query_service.get_run.assert_called_once_with("run_123")
         query_service.list_runs.assert_called_once()
         query_service.get_turn_metadata.assert_called_once_with("run_123", 0)
         query_service.list_turn_metadata.assert_called_once_with("run_123")
+        query_service.get_turn_metrics.assert_called_once_with("run_123", 0)
+        query_service.list_turn_metrics.assert_called_once_with("run_123")
+        query_service.get_run_metrics.assert_called_once_with("run_123")
         query_service.get_turn_data.assert_called_once_with("run_123", 0)
 
     def test_delegates_command_methods(self, engine, command_service):

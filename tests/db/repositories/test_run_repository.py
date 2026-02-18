@@ -37,14 +37,19 @@ class SQLiteRunRepository(_SQLiteRunRepository):
         ):
             return super().create_run(config)
 
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: object | None = None,
+    ) -> None:
         if self._mock_get_timestamp is None:
-            return super().update_run_status(run_id, status)
+            return super().update_run_status(run_id, status, conn=conn)
         with patch(
             "db.repositories.run_repository.get_current_timestamp",
             self._mock_get_timestamp,
         ):
-            return super().update_run_status(run_id, status)
+            return super().update_run_status(run_id, status, conn=conn)
 
 
 def make_turn_metadata(
@@ -570,7 +575,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
 
         # Assert
         mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, None
+            run_id, status.value, None, conn=None
         )
 
     def test_updates_status_to_running_without_completed_at(self):
@@ -597,7 +602,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
 
         # Assert
         mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, None
+            run_id, status.value, None, conn=None
         )
 
     def test_calls_update_run_status_with_correct_parameters_for_completed(self):
@@ -685,7 +690,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
 
         # Assert
         mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, timestamp1
+            run_id, status.value, timestamp1, conn=None
         )
 
     def test_handles_valid_transitions_from_running(self):
@@ -723,7 +728,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
                 "2024_01_01-13:00:00" if status == RunStatus.COMPLETED else None
             )
             mock_adapter.update_run_status.assert_called_once_with(
-                run_id, status.value, expected_completed_at
+                run_id, status.value, expected_completed_at, conn=None
             )
 
 
@@ -1409,7 +1414,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.write_turn_metadata(turn_metadata)
 
         # Assert
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
 
     def test_raises_run_not_found_error_when_run_does_not_exist(self):
         """Test that write_turn_metadata raises RunNotFoundError when run doesn't exist."""
@@ -1510,7 +1517,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
 
         assert exc_info.value.run_id == run_id
         assert exc_info.value.turn_number == 0
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
 
     def test_propagates_database_exceptions(self):
         """Test that write_turn_metadata propagates database exceptions from adapter."""
@@ -1547,7 +1556,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         with pytest.raises(sqlite3.OperationalError, match="Database locked"):
             repo.write_turn_metadata(turn_metadata)
 
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
 
     def test_calls_adapter_with_correct_turn_metadata(self):
         """Test that write_turn_metadata calls adapter with correct TurnMetadata object."""
@@ -1584,7 +1595,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.write_turn_metadata(turn_metadata)
 
         # Assert
-        mock_adapter.write_turn_metadata.assert_called_once_with(turn_metadata)
+        mock_adapter.write_turn_metadata.assert_called_once_with(
+            turn_metadata, conn=None
+        )
         # Verify the exact object passed
         call_args = mock_adapter.write_turn_metadata.call_args[0]
         assert len(call_args) == 1

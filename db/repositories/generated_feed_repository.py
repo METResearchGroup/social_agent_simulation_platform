@@ -2,6 +2,7 @@
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.repositories.interfaces import GeneratedFeedRepository
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.validators import (
     validate_handle_exists,
@@ -40,6 +41,10 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             sqlite3.OperationalError: If database operation fails (from adapter)
 
         Note:
+            This write is idempotent: an existing row with the same composite
+            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            safely retry or recompute; duplicate writes do not raise. The adapter
+            uses INSERT OR REPLACE (delete+insert semantics).
             turn_number is validated by Pydantic at model creation time, so it cannot be None.
             agent_handle and run_id are validated by Pydantic field validators.
         """
@@ -47,6 +52,11 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         self._db_adapter.write_generated_feed(feed)
         return feed
 
+    @validate_inputs(
+        (validate_handle_exists, "agent_handle"),
+        (validate_run_id, "run_id"),
+        (validate_turn_number, "turn_number"),
+    )
     def get_generated_feed(
         self, agent_handle: str, run_id: str, turn_number: int
     ) -> GeneratedFeed:
@@ -69,9 +79,6 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             Pydantic validators only run when creating models. Since this method accepts raw string
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
-        validate_handle_exists(handle=agent_handle)
-        validate_run_id(run_id=run_id)
-        validate_turn_number(turn_number=turn_number)
         return self._db_adapter.read_generated_feed(agent_handle, run_id, turn_number)
 
     def list_all_generated_feeds(self) -> list[GeneratedFeed]:
@@ -82,6 +89,9 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         """
         return self._db_adapter.read_all_generated_feeds()
 
+    @validate_inputs(
+        (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
+    )
     def get_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
         """Get all post URIs from generated feeds for a specific agent and run.
 
@@ -100,10 +110,9 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             Pydantic validators only run when creating models. Since this method accepts raw string
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
-        validate_handle_exists(handle=agent_handle)
-        validate_run_id(run_id=run_id)
         return self._db_adapter.read_post_uris_for_run(agent_handle, run_id)
 
+    @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
         """Read all generated feeds for a specific run and turn.
 
@@ -122,8 +131,6 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
                       Implementations should document the specific exception types
                       they raise.
         """
-        validate_run_id(run_id=run_id)
-        validate_turn_number(turn_number=turn_number)
         return self._db_adapter.read_feeds_for_turn(run_id, turn_number)
 
 

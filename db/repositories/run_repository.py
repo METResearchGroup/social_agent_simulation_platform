@@ -6,6 +6,7 @@ from typing import Optional
 from db.adapters.base import RunDatabaseAdapter
 from db.repositories.interfaces import RunRepository
 from lib.timestamp_utils import get_current_timestamp
+from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import (
     InvalidTransitionError,
     RunCreationError,
@@ -75,6 +76,7 @@ class SQLiteRunRepository(RunRepository):
         except Exception as e:
             raise RunCreationError(run_id, str(e)) from e
 
+    @validate_inputs((validate_run_id, "run_id"))
     def get_run(self, run_id: str) -> Optional[Run]:
         """Get a run from SQLite.
 
@@ -87,19 +89,25 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             ValueError: If run_id is empty or None
         """
-        validate_run_id(run_id)
         return self._db_adapter.read_run(run_id)
 
     def list_runs(self) -> list[Run]:
         """List all runs from SQLite."""
         return self._db_adapter.read_all_runs()
 
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: object | None = None,
+    ) -> None:
         """Update run status in SQLite.
 
         Args:
             run_id: Unique identifier for the run to update
             status: New RunStatus enum value
+            conn: Optional connection for transactional use; when provided,
+                  forwarded to adapter (no commit by adapter).
 
         Raises:
             ValueError: If run_id is empty or status is None
@@ -109,16 +117,16 @@ class SQLiteRunRepository(RunRepository):
         """
         try:
             # Validate input parameters
-            validate_run_id(run_id)
+            validated_run_id: str = validate_run_id(run_id)
 
             # Get current run to validate state transition
-            current_run = self.get_run(run_id)
-            validate_run_exists(run=current_run, run_id=run_id)
+            current_run = self.get_run(validated_run_id)
+            validate_run_exists(run=current_run, run_id=validated_run_id)
 
             # Validate the status transition
             current_status = current_run.status  # type: ignore
             validate_run_status_transition(
-                run_id=run_id,
+                run_id=validated_run_id,
                 current_status=current_status,
                 target_status=status,
                 valid_transitions=self.VALID_TRANSITIONS,
@@ -127,7 +135,9 @@ class SQLiteRunRepository(RunRepository):
             # Update the run status, once validated.
             ts = get_current_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
-            self._db_adapter.update_run_status(run_id, status.value, completed_at)
+            self._db_adapter.update_run_status(
+                validated_run_id, status.value, completed_at, conn=conn
+            )
 
         except (RunNotFoundError, InvalidTransitionError):
             # Re-raise domain exceptions as-is
@@ -135,6 +145,7 @@ class SQLiteRunRepository(RunRepository):
         except Exception as e:
             raise RunStatusUpdateError(run_id, str(e)) from e
 
+    @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def get_turn_metadata(
         self, run_id: str, turn_number: int
     ) -> Optional[TurnMetadata]:
@@ -153,11 +164,9 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        validate_run_id(run_id)
-        validate_turn_number(turn_number)
-
         return self._db_adapter.read_turn_metadata(run_id, turn_number)
 
+    @validate_inputs((validate_run_id, "run_id"))
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
         """List all turn metadata for a run in turn order.
 
@@ -174,14 +183,19 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        validate_run_id(run_id)
         return self._db_adapter.read_turn_metadata_for_run(run_id=run_id)
 
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: object | None = None,
+    ) -> None:
         """Write turn metadata to the database.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection for transactional use; when provided,
+                  forwarded to adapter (no commit by adapter).
 
         Raises:
             RunNotFoundError: If the run with the given run_id does not exist
@@ -211,7 +225,7 @@ class SQLiteRunRepository(RunRepository):
             max_turns=run.total_turns,  # type: ignore
         )
 
-        self._db_adapter.write_turn_metadata(turn_metadata)
+        self._db_adapter.write_turn_metadata(turn_metadata, conn=conn)
 
 
 def create_sqlite_repository() -> SQLiteRunRepository:
