@@ -24,7 +24,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
     "oxlint": "^1",
-    "react-doctor": "latest",
+    "react-doctor": "^0.0.17",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
