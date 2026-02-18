@@ -138,3 +138,7 @@ Consolidation over duplication
 - When renaming or replacing: prefer the clearer, long-term name and update call sites (e.g. timed instead of extending record_runtime with more options).
 
 Package management — Use uv for Python; don’t use pip.
+
+Decorators
+
+- Use decorators for (1) extending generic functionality across multiple callers (e.g., adding custom retry logic) or (2) removing boilerplate code shared across multiple callers (e.g., doing input validation).
