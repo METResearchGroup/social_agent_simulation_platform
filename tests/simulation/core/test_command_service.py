@@ -251,6 +251,7 @@ class TestSimulationCommandServiceExecuteRun:
                         comment_id="comment_1",
                         agent_id=agent.handle,
                         post_id="post_1",
+                        text="nice post",
                         created_at="2024_01_01-12:00:00",
                     ),
                     explanation="reason",
@@ -389,7 +390,11 @@ class TestSimulationCommandServiceExecuteRun:
             run_id=sample_run.run_id,
             turn_number=0,
         )
-        agent.comment_posts.assert_called_once_with([comment_only_post])
+        agent.comment_posts.assert_called_once_with(
+            [comment_only_post],
+            run_id=sample_run.run_id,
+            turn_number=0,
+        )
         agent.follow_users.assert_called_once_with([follow_only_post])
 
     def test_simulate_turn_produces_non_zero_likes_with_real_agent_and_filter(
