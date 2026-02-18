@@ -78,6 +78,16 @@ class TurnActionTotalMetric(Metric):
 
 
 class RunActionTotalsByTypeMetric(Metric):
+    """Aggregated action counts across all turns, by type.
+
+    Limitation (revisit later): compute() uses deps.run_repo.list_turn_metadata,
+    which loads all turn rows into memory. For large runs, consider replacing
+    with DB-side aggregation (e.g. run_repo.aggregate_action_totals(run_id)
+    returning dict[TurnAction, int], or MetricsSqlExecutor with a SQL GROUP BY
+    on turn metadata). Keep the same output shape (action.value -> count) and
+    retain validate_run_exists.
+    """
+
     KEY = "run.actions.total_by_type"
     SCOPE = MetricScope.RUN
     DESCRIPTION = "Aggregated action counts across all turns, by type."
