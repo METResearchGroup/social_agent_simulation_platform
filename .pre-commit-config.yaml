@@ -24,7 +24,7 @@ repos:
         pass_filenames: false
       - id: oxlint
         name: oxlint + React Doctor (ui)
-        entry: bash -lc "cd ui && npm install && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
+        entry: bash -lc "cd ui && (test -d node_modules || npm install) && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
         language: system
         pass_filenames: false
         files: ^ui/
