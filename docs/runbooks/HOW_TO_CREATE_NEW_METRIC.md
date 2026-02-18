@@ -42,19 +42,9 @@ MY_METRIC_OUTPUT_ADAPTER = TypeAdapter(dict[str, int])
 
 
 class MyMetric(Metric):
-<<<<<<< HEAD
-    @property
-    def key(self) -> str:
-        return "turn.my_metric.example"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
-=======
     KEY = "turn.my_metric.example"
     SCOPE = MetricScope.TURN
     DEFAULT_ENABLED = True
->>>>>>> d82ca49da22495613ec90ae580f578be6c7c67e1
 
     @property
     def output_adapter(self):
@@ -116,46 +106,9 @@ Example run metrics dict:
 
 This dict is what ends up as `RunMetrics.metrics` for the run.
 
-<<<<<<< HEAD
-## Register the metric so it runs
-
-### 1) Add it to the default registry
-
-Update `simulation/core/metrics/defaults.py`:
-
-- Add a builder mapping in `create_default_metrics_registry()`
-- Decide whether it belongs in:
-  - `DEFAULT_TURN_METRIC_KEYS`
-  - `DEFAULT_RUN_METRIC_KEYS`
-
-Rules of thumb:
-
-- If a metric should be present in all runs by default, add it to the appropriate `DEFAULT_*_METRIC_KEYS`.
-- If it’s experimental / optional, wire it into the registry mapping but don’t add to defaults until you’re ready.
-
-### 2) (Optional) Integrate with SQL-backed metrics
-
-If your metric needs SQL, prefer providing parameterized SQL and params through `deps.sql_executor` (if available).
-
-- If `deps.sql_executor` is `None`, raise a clear error (don’t silently skip).
-
-## Testing requirements
-
-At minimum:
-
-- **Unit tests** for:
-  - correct dependency ordering (if you use `requires`)
-  - schema validation failures (wrong type/shape)
-  - happy path output is JSON-serializable
-
-Suggested place:
-
-- `tests/simulation/core/test_metrics_collector.py`
-=======
 ## Register the metric (in `simulation/core/metrics/defaults.py`)
 
 Add your metric class to `BUILTIN_METRICS`.
->>>>>>> d82ca49da22495613ec90ae580f578be6c7c67e1
 
 ## Running checks locally
 
@@ -166,20 +119,9 @@ uv run pytest
 uv run --extra test pre-commit run --all-files
 ```
 
-<<<<<<< HEAD
-If you only want to run the collector tests:
-
-```bash
-uv run pytest tests/simulation/core/test_metrics_collector.py
-```
-
-## Common pitfalls
-
-=======
 ## Common pitfalls
 
 - **Forgetting `KEY` / `SCOPE`**: metrics must declare these class constants; missing them fails fast at import time.
->>>>>>> d82ca49da22495613ec90ae580f578be6c7c67e1
 - **Forgetting `output_adapter`**: the metric won’t satisfy the `Metric` ABC and will fail at import/instantiation time.
 - **Returning non-JSON values**: e.g. `set(...)`, custom objects, bytes → collector will reject.
 - **Implicit coercion**: collector validation uses `strict=True`, so return the right types.
