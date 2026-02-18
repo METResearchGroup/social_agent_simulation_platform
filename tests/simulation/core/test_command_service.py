@@ -171,12 +171,9 @@ class TestSimulationCommandServiceExecuteRun:
 
         assert result == sample_run
         assert mock_sim_turn.call_count == 2
-        # RUNNING at start; then write_run (metrics) and update_run_status(COMPLETED) separately
-        mock_repos["run_repo"].update_run_status.assert_any_call(
+        # RUNNING at start; COMPLETED is set inside write_run (persistence layer)
+        mock_repos["run_repo"].update_run_status.assert_called_once_with(
             sample_run.run_id, RunStatus.RUNNING
-        )
-        mock_repos["run_repo"].update_run_status.assert_any_call(
-            sample_run.run_id, RunStatus.COMPLETED
         )
         command_service.simulation_persistence.write_run.assert_called_once()
         call_args = command_service.simulation_persistence.write_run.call_args

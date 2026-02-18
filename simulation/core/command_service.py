@@ -113,7 +113,6 @@ class SimulationCommandService:
                 created_at=get_current_timestamp(),
             )
             self.simulation_persistence.write_run(run.run_id, run_metrics)
-            self.update_run_status(run, RunStatus.COMPLETED)
             return run
         except Exception as e:
             self.update_run_status(run, RunStatus.FAILED)

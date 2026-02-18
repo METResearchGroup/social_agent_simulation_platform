@@ -10,6 +10,7 @@ from db.services.simulation_persistence_service import (
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
+from simulation.core.models.runs import RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
@@ -158,20 +159,29 @@ class TestSimulationPersistenceServiceWriteTurn:
 
 
 class TestSimulationPersistenceServiceWriteRun:
-    def test_calls_write_run_metrics(
+    def test_calls_write_run_metrics_and_update_run_status(
         self,
         mock_run_repo,
         mock_metrics_repo,
         sample_run_metrics,
     ):
-        """When write_run is called, write_run_metrics is invoked with the run_metrics."""
+        """When write_run is called, write_run_metrics and update_run_status are invoked in one transaction."""
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
-        mock_metrics_repo.write_run_metrics.assert_called_once_with(sample_run_metrics)
-        mock_run_repo.update_run_status.assert_not_called()
+        mock_metrics_repo.write_run_metrics.assert_called_once()
+        assert mock_metrics_repo.write_run_metrics.call_args[0][0] == sample_run_metrics
+        mock_run_repo.update_run_status.assert_called_once_with(
+            "run_1",
+            RunStatus.COMPLETED,
+            conn=mock_metrics_repo.write_run_metrics.call_args[1]["conn"],
+        )
+        # Both called with same conn (transaction)
+        write_conn = mock_metrics_repo.write_run_metrics.call_args[1]["conn"]
+        status_conn = mock_run_repo.update_run_status.call_args[1]["conn"]
+        assert write_conn is status_conn
 
     def test_passes_run_id_and_run_metrics(
         self,
@@ -186,6 +196,12 @@ class TestSimulationPersistenceServiceWriteRun:
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
         assert mock_metrics_repo.write_run_metrics.call_args[0][0] == sample_run_metrics
+        assert mock_run_repo.update_run_status.call_count == 1
+        assert mock_run_repo.update_run_status.call_args[0][:2] == (
+            "run_1",
+            RunStatus.COMPLETED,
+        )
+        assert "conn" in mock_run_repo.update_run_status.call_args[1]
 
     def test_exception_from_write_run_metrics_propagates(
         self,
@@ -200,3 +216,4 @@ class TestSimulationPersistenceServiceWriteRun:
         )
         with pytest.raises(RuntimeError):
             service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
+        mock_run_repo.update_run_status.assert_not_called()
