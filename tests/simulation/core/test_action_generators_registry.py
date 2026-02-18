@@ -40,13 +40,6 @@ class TestGetLikeGenerator:
         assert default_generator is explicit_generator
 
 
-def test_get_like_generator_default_uses_config():
-    """get_like_generator() with no args uses config default."""
-    default_generator = get_like_generator()
-    deterministic_generator = get_like_generator(algorithm="deterministic")
-    assert default_generator is deterministic_generator
-
-
 def test_get_follow_generator_returns_follow_generator():
     """get_follow_generator returns a FollowGenerator instance."""
     generator = get_follow_generator(algorithm="random_simple")
