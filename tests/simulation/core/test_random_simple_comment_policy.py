@@ -104,7 +104,8 @@ class TestRandomSimpleCommentGeneratorGenerate:
             _post("post_3", like_count=3),
             _post("post_4", like_count=4),
         ]
-        expected_selected = {f"post_{i}" for i in range(5 - TOP_K_POSTS_TO_COMMENT, 5)}
+        start = max(0, len(candidates) - TOP_K_POSTS_TO_COMMENT)
+        expected_selected = {f"post_{i}" for i in range(start, len(candidates))}
 
         # Act
         result = generator.generate(
