@@ -390,7 +390,11 @@ class TestSimulationCommandServiceExecuteRun:
             turn_number=0,
         )
         agent.comment_posts.assert_called_once_with([comment_only_post])
-        agent.follow_users.assert_called_once_with([follow_only_post])
+        agent.follow_users.assert_called_once_with(
+            [follow_only_post],
+            run_id=sample_run.run_id,
+            turn_number=0,
+        )
 
     def test_simulate_turn_produces_non_zero_likes_with_real_agent_and_filter(
         self, command_service, mock_repos, sample_run

@@ -66,7 +66,22 @@ class SocialMediaAgent:
             return []
         return []
 
-    def follow_users(self, feed: list[BlueskyFeedPost]) -> list[GeneratedFollow]:
-        if len(feed) == 0:
-            print("[No-op for now] No users to follow.")
-        return []
+    def follow_users(
+        self,
+        feed: list[BlueskyFeedPost],
+        *,
+        run_id: str,
+        turn_number: int,
+    ) -> list[GeneratedFollow]:
+        """Generate follows from feed using the configured follow generator."""
+        if not feed:
+            return []
+        from simulation.core.action_generators import get_follow_generator
+
+        generator = get_follow_generator()
+        return generator.generate(
+            candidates=feed,
+            run_id=run_id,
+            turn_number=turn_number,
+            agent_handle=self.handle,
+        )
