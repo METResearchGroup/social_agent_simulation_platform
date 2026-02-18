@@ -1,12 +1,15 @@
-"""Deterministic follow generation algorithm.
+"""Random-simple follow generation algorithm.
 
-Produces reproducible follows based on recency/social-proof scoring and a
-deterministic probability gate.
+Selects top-k authors by recency + social proof, then uses random probability
+to decide whether to follow each.
 """
 
-import hashlib
+from __future__ import annotations
+
+import random
 from datetime import datetime, timezone
 
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
@@ -19,15 +22,13 @@ RECENCY_WEIGHT: float = 1.0
 LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
-EXPLANATION: str = "Deterministic: recency/social proof with probability gate"
+EXPLANATION: str = "Simple: recency/social proof with random probability"
 CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
-ROLL_HASH_PREFIX_HEX_LENGTH: int = 8
-ROLL_HASH_DENOMINATOR: float = float(16**ROLL_HASH_PREFIX_HEX_LENGTH)
-FOLLOW_POLICY: str = "deterministic"
+FOLLOW_POLICY: str = "simple"
 
 
-class DeterministicFollowGenerator(FollowGenerator):
-    """Generates follows using deterministic scoring and probability gating."""
+class RandomSimpleFollowGenerator(FollowGenerator):
+    """Generates follows using scoring (recency + social proof) and random probability."""
 
     def generate(
         self,
@@ -37,7 +38,7 @@ class DeterministicFollowGenerator(FollowGenerator):
         turn_number: int,
         agent_handle: str,
     ) -> list[GeneratedFollow]:
-        """Generate follows from candidates using deterministic scoring."""
+        """Generate follows from candidates using scoring and random probability."""
         if not candidates:
             return []
 
@@ -52,13 +53,7 @@ class DeterministicFollowGenerator(FollowGenerator):
 
         generated_follows: list[GeneratedFollow] = []
         for _, post in scored_candidates:
-            follow_roll: float = _deterministic_roll(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                user_id=post.author_handle,
-            )
-            if follow_roll >= FOLLOW_PROBABILITY:
+            if not _should_follow():
                 continue
 
             generated_follow: GeneratedFollow = _build_generated_follow(
@@ -66,8 +61,6 @@ class DeterministicFollowGenerator(FollowGenerator):
                 agent_handle=agent_handle,
                 run_id=run_id,
                 turn_number=turn_number,
-                user_index=len(generated_follows),
-                follow_roll=follow_roll,
             )
             generated_follows.append(generated_follow)
             if len(generated_follows) >= TOP_K_USERS_TO_FOLLOW:
@@ -81,7 +74,7 @@ def _collect_scored_unique_authors(
     candidates: list[BlueskyFeedPost],
     agent_handle: str,
 ) -> list[tuple[float, BlueskyFeedPost]]:
-    """Choose one best post per author and return deterministically sorted tuples."""
+    """Choose one best post per author and return sorted tuples by score."""
     best_by_author: dict[str, tuple[float, BlueskyFeedPost]] = {}
     for post in candidates:
         author_handle = post.author_handle
@@ -114,7 +107,7 @@ def _collect_scored_unique_authors(
 
 
 def _score_post(post: BlueskyFeedPost) -> float:
-    """Compute deterministic score for selecting follow candidates."""
+    """Compute score for selecting follow candidates (recency + social proof)."""
     recency_score: float = _recency_score(created_at=post.created_at)
     social_score: float = (
         post.like_count * LIKE_COUNT_WEIGHT
@@ -134,29 +127,9 @@ def _recency_score(*, created_at: str) -> float:
         return 0.0
 
 
-def _deterministic_roll(
-    *,
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-    user_id: str,
-) -> float:
-    """Generate deterministic pseudo-random roll in [0, 1)."""
-    seed = f"{run_id}:{turn_number}:{agent_handle}:{user_id}"
-    digest: str = hashlib.sha256(seed.encode("utf-8")).hexdigest()
-    prefix: str = digest[:ROLL_HASH_PREFIX_HEX_LENGTH]
-    return int(prefix, 16) / ROLL_HASH_DENOMINATOR
-
-
-def _derive_created_at(
-    *,
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-    user_index: int,
-) -> str:
-    """Derive deterministic created_at string for GeneratedFollow metadata."""
-    return f"det_{run_id}_turn{turn_number}_{agent_handle}_{user_index}"
+def _should_follow() -> bool:
+    """Return whether to follow using random probability in [0, 1)."""
+    return random.random() < FOLLOW_PROBABILITY
 
 
 def _build_generated_follow(
@@ -165,22 +138,14 @@ def _build_generated_follow(
     agent_handle: str,
     run_id: str,
     turn_number: int,
-    user_index: int,
-    follow_roll: float,
 ) -> GeneratedFollow:
-    """Build a GeneratedFollow with deterministic IDs and metadata."""
+    """Build a GeneratedFollow with IDs and metadata."""
     user_id: str = post.author_handle
     follow_id: str = f"follow_{run_id}_{turn_number}_{agent_handle}_{user_id}"
-    created_at: str = _derive_created_at(
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=agent_handle,
-        user_index=user_index,
-    )
+    created_at: str = get_current_timestamp()
     generation_metadata: dict[str, float | str] = {
         "policy": FOLLOW_POLICY,
         "follow_probability": FOLLOW_PROBABILITY,
-        "roll": follow_roll,
     }
     return GeneratedFollow(
         follow=Follow(

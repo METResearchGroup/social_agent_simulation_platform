@@ -74,11 +74,11 @@ def _create_follow_generator(mode: str) -> FollowGenerator:
         allowed_display_name=str(BEHAVIOR_MODES),
     )
     if mode == BEHAVIOR_MODE_DETERMINISTIC:
-        from simulation.core.action_generators.follow.algorithms.deterministic import (
-            DeterministicFollowGenerator,
+        from simulation.core.action_generators.follow.algorithms.random_simple import (
+            RandomSimpleFollowGenerator,
         )
 
-        return DeterministicFollowGenerator()
+        return RandomSimpleFollowGenerator()
     raise ValueError(f"Unsupported follow generator mode: {mode}")
 
 

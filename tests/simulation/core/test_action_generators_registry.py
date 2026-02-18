@@ -2,7 +2,11 @@
 
 import pytest
 
-from simulation.core.action_generators.interfaces import CommentGenerator, FollowGenerator, LikeGenerator
+from simulation.core.action_generators.interfaces import (
+    CommentGenerator,
+    FollowGenerator,
+    LikeGenerator,
+)
 from simulation.core.action_generators.registry import (
     get_comment_generator,
     get_follow_generator,

@@ -1,12 +1,17 @@
-"""Tests for simulation.core.action_generators.follow.algorithms.deterministic module."""
+"""Tests for simulation.core.action_generators.follow.algorithms.random_simple module."""
 
-import simulation.core.action_generators.follow.algorithms.deterministic as deterministic_follow
-from simulation.core.action_generators.follow.algorithms.deterministic import (
+import re
+
+import simulation.core.action_generators.follow.algorithms.random_simple as random_simple_follow
+from simulation.core.action_generators.follow.algorithms.random_simple import (
     FOLLOW_POLICY,
     TOP_K_USERS_TO_FOLLOW,
-    DeterministicFollowGenerator,
+    RandomSimpleFollowGenerator,
 )
 from simulation.core.models.posts import BlueskyFeedPost
+
+# Timestamp format used by get_current_timestamp(): YYYY_MM_DD-HH:MM:SS
+CREATED_AT_PATTERN = re.compile(r"^\d{4}_\d{2}_\d{2}-\d{2}:\d{2}:\d{2}$")
 
 
 def _post(
@@ -37,7 +42,7 @@ def _post(
 
 def test_returns_empty_when_no_candidates():
     """Empty candidates returns empty list."""
-    generator = DeterministicFollowGenerator()
+    generator = RandomSimpleFollowGenerator()
     result = generator.generate(
         candidates=[],
         run_id="run_1",
@@ -48,39 +53,10 @@ def test_returns_empty_when_no_candidates():
     assert result == expected_result
 
 
-def test_determinism_same_inputs_same_output():
-    """Repeated runs with identical inputs produce same follows."""
-    generator = DeterministicFollowGenerator()
-    candidates = [
-        _post("post_a", author_handle="author-a.bsky.social", like_count=3),
-        _post("post_b", author_handle="author-b.bsky.social", like_count=7),
-    ]
-    run_id = "run_det"
-    turn_number = 1
-    agent_handle = "agent2.bsky.social"
-
-    result1 = generator.generate(
-        candidates=candidates,
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=agent_handle,
-    )
-    result2 = generator.generate(
-        candidates=candidates,
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=agent_handle,
-    )
-
-    expected_follow_ids = [follow.follow.follow_id for follow in result1]
-    assert [follow.follow.follow_id for follow in result2] == expected_follow_ids
-    assert len(result1) == len(result2)
-
-
 def test_respects_top_k_limit_when_probability_allows(monkeypatch):
     """Never returns more than TOP_K follows."""
-    monkeypatch.setattr(deterministic_follow, "FOLLOW_PROBABILITY", 1.0)
-    generator = DeterministicFollowGenerator()
+    monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 1.0)
+    generator = RandomSimpleFollowGenerator()
     candidates = [
         _post(f"post_{index}", author_handle=f"author-{index}.bsky.social")
         for index in range(5)
@@ -95,9 +71,10 @@ def test_respects_top_k_limit_when_probability_allows(monkeypatch):
     assert len(result) == expected_count
 
 
-def test_deduplicates_author_candidates():
+def test_deduplicates_author_candidates(monkeypatch):
     """Same author can only be followed once per generation."""
-    generator = DeterministicFollowGenerator()
+    monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 1.0)
+    generator = RandomSimpleFollowGenerator()
     candidates = [
         _post("post_a1", author_handle="author-a.bsky.social", like_count=5),
         _post("post_a2", author_handle="author-a.bsky.social", like_count=10),
@@ -116,8 +93,8 @@ def test_deduplicates_author_candidates():
 
 def test_excludes_self_from_follow_candidates(monkeypatch):
     """Agent never follows itself even if self-authored posts appear in feed."""
-    monkeypatch.setattr(deterministic_follow, "FOLLOW_PROBABILITY", 1.0)
-    generator = DeterministicFollowGenerator()
+    monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 1.0)
+    generator = RandomSimpleFollowGenerator()
     agent_handle = "agent.bsky.social"
     candidates = [
         _post("self_post", author_handle=agent_handle),
@@ -136,18 +113,15 @@ def test_excludes_self_from_follow_candidates(monkeypatch):
 
 
 def test_threshold_boundary_includes_below_and_excludes_equal(monkeypatch):
-    """Roll values below threshold are included; equal-to-threshold are excluded."""
-    monkeypatch.setattr(deterministic_follow, "FOLLOW_PROBABILITY", 0.30)
+    """Random below threshold yields follow; at-or-above threshold does not."""
+    monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 0.30)
     roll_values = iter([0.29, 0.30])
 
-    def _fake_roll(
-        *, run_id: str, turn_number: int, agent_handle: str, user_id: str
-    ) -> float:
-        del run_id, turn_number, agent_handle, user_id
+    def _fake_random() -> float:
         return next(roll_values)
 
-    monkeypatch.setattr(deterministic_follow, "_deterministic_roll", _fake_roll)
-    generator = DeterministicFollowGenerator()
+    monkeypatch.setattr(random_simple_follow.random, "random", _fake_random)
+    generator = RandomSimpleFollowGenerator()
     candidates = [
         _post("post_a", author_handle="author-a.bsky.social"),
         _post("post_b", author_handle="author-b.bsky.social"),
@@ -164,14 +138,10 @@ def test_threshold_boundary_includes_below_and_excludes_equal(monkeypatch):
 
 
 def test_generated_follow_has_required_fields_and_metadata(monkeypatch):
-    """GeneratedFollow contains deterministic IDs and metadata."""
-    monkeypatch.setattr(deterministic_follow, "FOLLOW_PROBABILITY", 0.5)
-    monkeypatch.setattr(
-        deterministic_follow,
-        "_deterministic_roll",
-        lambda *, run_id, turn_number, agent_handle, user_id: 0.12345,
-    )
-    generator = DeterministicFollowGenerator()
+    """GeneratedFollow contains IDs, real created_at, and metadata (policy simple, no roll)."""
+    monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 0.5)
+    monkeypatch.setattr(random_simple_follow.random, "random", lambda: 0.1)
+    generator = RandomSimpleFollowGenerator()
     candidates = [
         _post("post_1", author_handle="target-user.bsky.social", like_count=1)
     ]
@@ -194,9 +164,14 @@ def test_generated_follow_has_required_fields_and_metadata(monkeypatch):
     assert follow.follow.agent_id == expected_handle
     assert follow.follow.user_id == expected_user_id
     assert follow.explanation
+    assert CREATED_AT_PATTERN.match(follow.follow.created_at), (
+        f"created_at should be YYYY_MM_DD-HH:MM:SS, got {follow.follow.created_at!r}"
+    )
+    assert CREATED_AT_PATTERN.match(follow.metadata.created_at), (
+        f"metadata.created_at should be YYYY_MM_DD-HH:MM:SS, got {follow.metadata.created_at!r}"
+    )
     expected_generation_metadata = {
         "policy": FOLLOW_POLICY,
         "follow_probability": 0.5,
-        "roll": 0.12345,
     }
     assert follow.metadata.generation_metadata == expected_generation_metadata
