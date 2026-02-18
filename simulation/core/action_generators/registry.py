@@ -45,18 +45,45 @@ def _create_random_simple_comment() -> CommentGenerator:
     return RandomSimpleCommentGenerator()
 
 
+def _create_naive_llm_like() -> LikeGenerator:
+    from simulation.core.action_generators.like.algorithms.naive_llm import (
+        NaiveLLMLikeGenerator,
+    )
+
+    return NaiveLLMLikeGenerator()
+
+
+def _create_naive_llm_follow() -> FollowGenerator:
+    from simulation.core.action_generators.follow.algorithms.naive_llm import (
+        NaiveLLMFollowGenerator,
+    )
+
+    return NaiveLLMFollowGenerator()
+
+
+def _create_naive_llm_comment() -> CommentGenerator:
+    from simulation.core.action_generators.comment.algorithms.naive_llm import (
+        NaiveLLMCommentGenerator,
+    )
+
+    return NaiveLLMCommentGenerator()
+
+
 _LIKE_ALGORITHM_FACTORIES: dict[str, Callable[[], LikeGenerator]] = {
     "random_simple": _create_random_simple_like,
+    "naive_llm": _create_naive_llm_like,
 }
 assert set(_LIKE_ALGORITHM_FACTORIES.keys()) == set(LIKE_ALGORITHMS)
 
 _FOLLOW_ALGORITHM_FACTORIES: dict[str, Callable[[], FollowGenerator]] = {
     "random_simple": _create_random_simple_follow,
+    "naive_llm": _create_naive_llm_follow,
 }
 assert set(_FOLLOW_ALGORITHM_FACTORIES.keys()) == set(FOLLOW_ALGORITHMS)
 
 _COMMENT_ALGORITHM_FACTORIES: dict[str, Callable[[], CommentGenerator]] = {
     "random_simple": _create_random_simple_comment,
+    "naive_llm": _create_naive_llm_comment,
 }
 assert set(_COMMENT_ALGORITHM_FACTORIES.keys()) == set(COMMENT_ALGORITHMS)
 

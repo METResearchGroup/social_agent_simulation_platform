@@ -2,9 +2,9 @@
 
 from lib.validation_utils import validate_value_in_set
 
-LIKE_ALGORITHMS: tuple[str, ...] = ("random_simple",)
-FOLLOW_ALGORITHMS: tuple[str, ...] = ("random_simple",)
-COMMENT_ALGORITHMS: tuple[str, ...] = ("random_simple",)
+LIKE_ALGORITHMS: tuple[str, ...] = ("random_simple", "naive_llm")
+FOLLOW_ALGORITHMS: tuple[str, ...] = ("random_simple", "naive_llm")
+COMMENT_ALGORITHMS: tuple[str, ...] = ("random_simple", "naive_llm")
 
 _ALGORITHMS_BY_ACTION: dict[str, tuple[str, ...]] = {
     "like": LIKE_ALGORITHMS,
