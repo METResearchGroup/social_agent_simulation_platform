@@ -1,11 +1,14 @@
 """Turn-related models for simulation results."""
 
-from typing import Any
-
 from pydantic import BaseModel, field_validator
 
 from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 from simulation.core.models.actions import TurnAction
+from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.posts import BlueskyFeedPost
 
 
 class TurnResult(BaseModel):
@@ -65,13 +68,9 @@ class TurnData(BaseModel):
     """
 
     turn_number: int
-    agents: list[Any]  # SocialMediaAgent - using Any to avoid circular import
-    feeds: dict[
-        str, list[Any]
-    ]  # dict[str, list[BlueskyFeedPost]] - contains hydrated posts
-    actions: dict[
-        str, list[Any]
-    ]  # dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]] - contains actions taken by the agents
+    agents: list[SocialMediaAgent]
+    feeds: dict[str, list[BlueskyFeedPost]]
+    actions: dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]]
 
     @field_validator("turn_number")
     @classmethod
@@ -79,4 +78,4 @@ class TurnData(BaseModel):
         """Validate that turn_number is non-negative."""
         return validate_nonnegative_value(v, "turn_number")
 
-    model_config = {"frozen": True}  # Make immutable
+    model_config = {"frozen": True, "arbitrary_types_allowed": True}

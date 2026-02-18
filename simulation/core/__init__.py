@@ -1,23 +1,23 @@
-from .exceptions import InsufficientAgentsError, SimulationError
-from .models.turns import TurnResult
+from simulation.core.exceptions import InsufficientAgentsError, SimulationError
+from simulation.core.models.turns import TurnResult
 
 
 # Lazy import to avoid circular dependency
 def __getattr__(name: str):
     if name == "SimulationEngine":
-        from .engine import SimulationEngine
+        from simulation.core.engine import SimulationEngine
 
         return SimulationEngine
     if name == "create_engine":
-        from .factories import create_engine
+        from simulation.core.factories import create_engine
 
         return create_engine
     if name == "SimulationQueryService":
-        from .query_service import SimulationQueryService
+        from simulation.core.query_service import SimulationQueryService
 
         return SimulationQueryService
     if name == "SimulationCommandService":
-        from .command_service import SimulationCommandService
+        from simulation.core.command_service import SimulationCommandService
 
         return SimulationCommandService
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

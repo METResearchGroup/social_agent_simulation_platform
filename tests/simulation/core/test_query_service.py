@@ -43,6 +43,7 @@ def sample_run():
         created_at="2024_01_01-12:00:00",
         total_turns=10,
         total_agents=5,
+        feed_algorithm="chronological",
         started_at="2024_01_01-12:00:00",
         status=RunStatus.RUNNING,
         completed_at=None,
