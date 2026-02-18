@@ -32,6 +32,12 @@ class RunDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -182,7 +188,14 @@ class MetricsDatabaseAdapter(ABC):
         turn_metrics: TurnMetrics,
         conn: object | None = None,
     ) -> None:
-        """Write turn metrics. When conn is provided, use it and do not commit."""
+        """Write turn metrics. When conn is provided, use it and do not commit.
+
+        Note:
+            This write is idempotent: an existing row with the same (run_id,
+            turn_number) may be replaced. Callers can safely retry or recompute;
+            duplicate writes do not raise. Implementations (e.g. SQLite) may use
+            INSERT OR REPLACE (delete+insert semantics).
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -199,7 +212,14 @@ class MetricsDatabaseAdapter(ABC):
         run_metrics: RunMetrics,
         conn: object | None = None,
     ) -> None:
-        """Write run metrics. When conn is provided, use it and do not commit."""
+        """Write run metrics. When conn is provided, use it and do not commit.
+
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -226,6 +246,12 @@ class ProfileDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same handle may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -284,6 +310,12 @@ class FeedPostDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same URI may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -298,6 +330,12 @@ class FeedPostDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            Each write is idempotent: an existing row with the same URI may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -399,6 +437,13 @@ class GeneratedFeedDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same composite
+            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            safely retry or recompute; duplicate writes do not raise.
+            Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -503,6 +548,12 @@ class GeneratedBioDatabaseAdapter(ABC):
             Exception: Database-specific exception if constraints are violated or
                       the operation fails. Implementations should document the
                       specific exception types they raise.
+
+        Note:
+            This write is idempotent: an existing row with the same handle may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 

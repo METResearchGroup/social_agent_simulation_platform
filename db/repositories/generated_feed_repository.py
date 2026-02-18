@@ -41,6 +41,10 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             sqlite3.OperationalError: If database operation fails (from adapter)
 
         Note:
+            This write is idempotent: an existing row with the same composite
+            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            safely retry or recompute; duplicate writes do not raise. The adapter
+            uses INSERT OR REPLACE (delete+insert semantics).
             turn_number is validated by Pydantic at model creation time, so it cannot be None.
             agent_handle and run_id are validated by Pydantic field validators.
         """

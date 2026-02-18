@@ -120,6 +120,12 @@ class MetricsRepository(ABC):
         """Write computed metrics for a specific run/turn.
 
         When conn is provided, use it and do not commit (for transactional use).
+
+        Note:
+            This write is idempotent: an existing row with the same (run_id,
+            turn_number) may be replaced. Callers can safely retry or recompute;
+            duplicate writes do not raise. Implementations (e.g. SQLite) may use
+            INSERT OR REPLACE (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -142,6 +148,12 @@ class MetricsRepository(ABC):
         """Write computed metrics for a run.
 
         When conn is provided, use it and do not commit (for transactional use).
+
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -280,6 +292,13 @@ class GeneratedFeedRepository(ABC):
 
         Returns:
             The created or updated GeneratedFeed object
+
+        Note:
+            This write is idempotent: an existing row with the same composite
+            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            safely retry or recompute; duplicate writes do not raise.
+            Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
