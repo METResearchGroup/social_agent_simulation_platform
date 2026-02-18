@@ -2,16 +2,39 @@
 
 from lib.validation_utils import validate_value_in_set
 
-BEHAVIOR_MODE_DETERMINISTIC: str = "deterministic"
-BEHAVIOR_MODES: tuple[str, ...] = (BEHAVIOR_MODE_DETERMINISTIC,)
-DEFAULT_BEHAVIOR_MODE: str = BEHAVIOR_MODE_DETERMINISTIC
+LIKE_ALGORITHMS: tuple[str, ...] = ("deterministic",)
+FOLLOW_ALGORITHMS: tuple[str, ...] = ("random_simple",)
+COMMENT_ALGORITHMS: tuple[str, ...] = ("random_simple",)
+
+_ALGORITHMS_BY_ACTION: dict[str, tuple[str, ...]] = {
+    "like": LIKE_ALGORITHMS,
+    "follow": FOLLOW_ALGORITHMS,
+    "comment": COMMENT_ALGORITHMS,
+}
 
 
-def validate_behavior_mode(mode: str) -> str:
-    """Validate that mode is a known behavior mode."""
+def validate_algorithm(action_type: str, algorithm: str) -> str:
+    """Validate that algorithm is allowed for the given action type.
+
+    Args:
+        action_type: One of 'like', 'follow', 'comment'.
+        algorithm: The algorithm name to validate.
+
+    Returns:
+        The algorithm unchanged.
+
+    Raises:
+        ValueError: When action_type is unknown or algorithm is not in the allowed set.
+    """
+    allowed: tuple[str, ...] | None = _ALGORITHMS_BY_ACTION.get(action_type)
+    if allowed is None:
+        raise ValueError(
+            f"Unknown action_type: {action_type}. "
+            f"Must be one of {tuple(_ALGORITHMS_BY_ACTION.keys())}."
+        )
     return validate_value_in_set(
-        mode,
-        "behavior_mode",
-        BEHAVIOR_MODES,
-        allowed_display_name=str(BEHAVIOR_MODES),
+        algorithm,
+        f"{action_type}_algorithm",
+        allowed,
+        allowed_display_name=str(allowed),
     )
