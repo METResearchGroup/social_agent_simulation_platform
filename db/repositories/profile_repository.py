@@ -1,7 +1,5 @@
 """SQLite implementation of profile repositories."""
 
-from typing import Optional
-
 from db.adapters.base import ProfileDatabaseAdapter
 from db.repositories.interfaces import ProfileRepository
 from simulation.core.models.profiles import BlueskyProfile
@@ -41,7 +39,7 @@ class SQLiteProfileRepository(ProfileRepository):
         self._db_adapter.write_profile(profile)
         return profile
 
-    def get_profile(self, handle: str) -> Optional[BlueskyProfile]:
+    def get_profile(self, handle: str) -> BlueskyProfile | None:
         """Get a profile from SQLite.
 
         Args:

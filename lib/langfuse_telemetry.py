@@ -1,12 +1,12 @@
 """Basic Langfuse telemetry."""
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 from langfuse import Langfuse
 
 
-def get_langfuse_client() -> Optional[Langfuse]:
+def get_langfuse_client() -> Langfuse | None:
     """Get Langfuse client if API keys are available."""
     public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
     secret_key = os.getenv("LANGFUSE_SECRET_KEY")
@@ -22,7 +22,7 @@ def get_langfuse_client() -> Optional[Langfuse]:
 
 
 def log_llm_request(
-    client: Optional[Langfuse],
+    client: Langfuse | None,
     model: str,
     input_data: dict[str, Any],
     output: str,

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Optional
 
 from db.adapters.base import RunDatabaseAdapter
 from db.adapters.sqlite.schema_utils import required_column_names
@@ -116,7 +115,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             )
             conn.commit()
 
-    def read_run(self, run_id: str) -> Optional[Run]:
+    def read_run(self, run_id: str) -> Run | None:
         """Read a run from SQLite.
 
         Raises:
@@ -153,7 +152,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         self,
         run_id: str,
         status: str,
-        completed_at: Optional[str] = None,
+        completed_at: str | None = None,
         conn: sqlite3.Connection | None = None,
     ) -> None:
         """Update run status in SQLite.
@@ -197,7 +196,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         run_id: str,
         turn_number: int,
         conn: sqlite3.Connection | None = None,
-    ) -> Optional[TurnMetadata]:
+    ) -> TurnMetadata | None:
         """Read turn metadata from SQLite.
 
         The total_actions field is stored as JSON with string keys (e.g., {"like": 5}).

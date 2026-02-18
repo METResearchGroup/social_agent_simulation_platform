@@ -1,7 +1,6 @@
 """SQLite implementation of profile database adapter."""
 
 import sqlite3
-from typing import Optional
 
 from db.adapters.base import ProfileDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
@@ -53,7 +52,7 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
         """
         validate_required_fields(row, PROFILE_REQUIRED_FIELDS)
 
-    def read_profile(self, handle: str) -> Optional[BlueskyProfile]:
+    def read_profile(self, handle: str) -> BlueskyProfile | None:
         """Read a profile from SQLite.
 
         Args:

@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 from atproto import Client
 from dotenv import load_dotenv
@@ -22,7 +21,7 @@ class BlueskyClient:
 
         self.client.login(self.handle, self.password)
 
-    def get_profile(self, actor: str) -> Optional[dict]:
+    def get_profile(self, actor: str) -> dict | None:
         try:
             profile = self.client.get_profile(actor=actor)
             return profile.dict()
