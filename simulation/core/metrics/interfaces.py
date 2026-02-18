@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
 from simulation.core.models.json_types import JsonObject, JsonValue
 
@@ -69,13 +69,40 @@ class MetricsSqlExecutor(ABC):
 
 
 class Metric(ABC):
-    @property
-    @abstractmethod
-    def key(self) -> str: ...
+    KEY: ClassVar[str]
+    SCOPE: ClassVar[MetricScope]
+    DEFAULT_ENABLED: ClassVar[bool] = True
 
     @property
-    @abstractmethod
-    def scope(self) -> MetricScope: ...
+    def key(self) -> str:
+        return self.KEY
+
+    @property
+    def scope(self) -> MetricScope:
+        return self.SCOPE
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if cls is Metric:
+            return
+
+        key = getattr(cls, "KEY", None)
+        if not isinstance(key, str) or not key.strip():
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define non-empty class var KEY"
+            )
+
+        scope = getattr(cls, "SCOPE", None)
+        if not isinstance(scope, MetricScope):
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define class var SCOPE as MetricScope"
+            )
+
+        default_enabled = getattr(cls, "DEFAULT_ENABLED", True)
+        if not isinstance(default_enabled, bool):
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} DEFAULT_ENABLED must be a bool"
+            )
 
     @property
     @abstractmethod

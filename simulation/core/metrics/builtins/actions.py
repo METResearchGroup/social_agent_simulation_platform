@@ -20,13 +20,8 @@ RUN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)
 
 
 class TurnActionCountsByTypeMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "turn.actions.counts_by_type"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
+    KEY = "turn.actions.counts_by_type"
+    SCOPE = MetricScope.TURN
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -49,13 +44,8 @@ class TurnActionCountsByTypeMetric(Metric):
 
 
 class TurnActionTotalMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "turn.actions.total"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.TURN
+    KEY = "turn.actions.total"
+    SCOPE = MetricScope.TURN
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -84,13 +74,8 @@ class TurnActionTotalMetric(Metric):
 
 
 class RunActionTotalsByTypeMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "run.actions.total_by_type"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.RUN
+    KEY = "run.actions.total_by_type"
+    SCOPE = MetricScope.RUN
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -113,13 +98,8 @@ class RunActionTotalsByTypeMetric(Metric):
 
 
 class RunActionTotalMetric(Metric):
-    @property
-    def key(self) -> str:
-        return "run.actions.total"
-
-    @property
-    def scope(self) -> MetricScope:
-        return MetricScope.RUN
+    KEY = "run.actions.total"
+    SCOPE = MetricScope.RUN
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:

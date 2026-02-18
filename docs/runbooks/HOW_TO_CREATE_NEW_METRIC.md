@@ -1,80 +1,27 @@
 # How to Create a New Metric
 
-This runbook describes how to add a new metric to the simulation metrics framework, including **where code goes**, how to **define a metric contract** via `output_adapter`, and how to **register + test** it.
+To add a new metric, you only need to touch:
 
-## Overview (what a “metric” is here)
+1. `simulation/core/metrics/builtins/<your_metric_file>.py` (create a new file or edit an existing one)
+2. `simulation/core/metrics/defaults.py` (add the metric class to `BUILTIN_METRICS`)
 
-- A metric is a small unit of computation that returns a **JSON value** (`JsonValue`) and is stored/returned in a **JSON object** (`JsonObject`) keyed by metric key.
-- Metrics are computed by `MetricsCollector`, which:
-  - computes metrics in dependency order
-  - validates each metric’s output against a per-metric Pydantic adapter
-  - stores **only validated** values
+Everything else (evaluation order, output validation, persistence) is handled by the framework.
 
-## Where to put code
+## Step-by-step
 
-- **Interface**: `simulation/core/metrics/interfaces.py`
-  - `Metric` is the abstract base class.
-  - `MetricContext` and `MetricDeps` define runtime inputs.
-- **Built-in metrics**: `simulation/core/metrics/builtins/`
-  - Example: `simulation/core/metrics/builtins/actions.py`
-- **Registry wiring / defaults**:
-  - `simulation/core/metrics/registry.py` (registry container)
-  - `simulation/core/metrics/defaults.py` (default metric keys + default registry builder)
-- **Collector**: `simulation/core/metrics/collector.py`
-  - Validates your metric output and wraps failures as `MetricsComputationError`.
-- **Tests**: `tests/simulation/core/test_metrics_collector.py` (collector behavior + schema validation)
+### 1) Implement the metric (in `simulation/core/metrics/builtins/`)
 
-## Step-by-step: implement a metric
+Your metric class must define:
 
-### 1) Choose a metric key and scope
+- `KEY = "turn.some.metric"` (or `"run.some.metric"`)
+- `SCOPE = MetricScope.TURN` (or `MetricScope.RUN`)
+- `output_adapter`: a `pydantic.TypeAdapter(...)` describing the output shape
+- `compute(...) -> JsonValue`
 
-Metric keys are strings (examples: `turn.actions.total`, `run.actions.total_by_type`).
+Optional:
 
-- Use `MetricScope.TURN` when the metric is per-turn and requires `turn_number`.
-- Use `MetricScope.RUN` when the metric is aggregated across the whole run.
-
-### 2) Define an output schema (`output_adapter`)
-
-Every metric must declare an `output_adapter` describing the metric’s output shape.
-In practice, this should be a file-level `pydantic.TypeAdapter(...)` constant.
-
-Example output shapes:
-
-- `TypeAdapter(int)`
-- `TypeAdapter(dict[str, int])`
-- `TypeAdapter(list[float])`
-
-Notes:
-
-- The collector validates with `strict=True`, so you should return the *correct* types (don’t rely on coercion).
-- The collector also enforces that the post-validation value is a valid `JsonValue` (JSON-serializable).
-
-### 3) Implement `compute(...)`
-
-Your `compute(...)` must return a `JsonValue`.
-
-Inputs:
-
-- `ctx: MetricContext`
-  - `ctx.run_id` is always set
-  - `ctx.turn_number` is only set for turn metrics (run metrics will have `None`)
-- `deps: MetricDeps`
-  - `deps.run_repo` and `deps.metrics_repo` are always available
-  - `deps.sql_executor` may be `None` (only use it when you explicitly build a collector with one)
-- `prior: JsonObject`
-  - a dict of already-computed metric outputs keyed by metric key
-  - **important**: `prior` contains *validated* outputs from dependencies
-
-### 4) Declare dependencies via `requires`
-
-If your metric depends on other metrics, declare them:
-
-- `requires` returns a tuple of metric keys
-- The collector will compute dependencies first and provide them in `prior`
-
-### 5) Use file-level constants
-
-Follow repo convention (`docs/RULES.md`): keep adapters and constants as file-level constants under imports, not inline inside methods.
+- `DEFAULT_ENABLED = False` to register the metric but keep it disabled by default.
+- `requires = ("turn.some_dependency", ...)` if it depends on other metrics.
 
 ## Example template (copy/paste)
 
@@ -95,6 +42,7 @@ MY_METRIC_OUTPUT_ADAPTER = TypeAdapter(dict[str, int])
 
 
 class MyMetric(Metric):
+<<<<<<< HEAD
     @property
     def key(self) -> str:
         return "turn.my_metric.example"
@@ -102,6 +50,11 @@ class MyMetric(Metric):
     @property
     def scope(self) -> MetricScope:
         return MetricScope.TURN
+=======
+    KEY = "turn.my_metric.example"
+    SCOPE = MetricScope.TURN
+    DEFAULT_ENABLED = True
+>>>>>>> d82ca49da22495613ec90ae580f578be6c7c67e1
 
     @property
     def output_adapter(self):
@@ -163,6 +116,7 @@ Example run metrics dict:
 
 This dict is what ends up as `RunMetrics.metrics` for the run.
 
+<<<<<<< HEAD
 ## Register the metric so it runs
 
 ### 1) Add it to the default registry
@@ -197,6 +151,11 @@ At minimum:
 Suggested place:
 
 - `tests/simulation/core/test_metrics_collector.py`
+=======
+## Register the metric (in `simulation/core/metrics/defaults.py`)
+
+Add your metric class to `BUILTIN_METRICS`.
+>>>>>>> d82ca49da22495613ec90ae580f578be6c7c67e1
 
 ## Running checks locally
 
@@ -207,6 +166,7 @@ uv run pytest
 uv run --extra test pre-commit run --all-files
 ```
 
+<<<<<<< HEAD
 If you only want to run the collector tests:
 
 ```bash
@@ -215,6 +175,11 @@ uv run pytest tests/simulation/core/test_metrics_collector.py
 
 ## Common pitfalls
 
+=======
+## Common pitfalls
+
+- **Forgetting `KEY` / `SCOPE`**: metrics must declare these class constants; missing them fails fast at import time.
+>>>>>>> d82ca49da22495613ec90ae580f578be6c7c67e1
 - **Forgetting `output_adapter`**: the metric won’t satisfy the `Metric` ABC and will fail at import/instantiation time.
 - **Returning non-JSON values**: e.g. `set(...)`, custom objects, bytes → collector will reject.
 - **Implicit coercion**: collector validation uses `strict=True`, so return the right types.
