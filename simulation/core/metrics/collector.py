@@ -7,9 +7,9 @@ from pydantic import TypeAdapter, ValidationError
 from simulation.core.exceptions import MetricsComputationError
 from simulation.core.metrics.interfaces import MetricContext, MetricDeps, MetricScope
 from simulation.core.metrics.registry import MetricsRegistry
-from simulation.core.models.json_types import JsonObject, JsonValue
+from simulation.core.models.metrics import MetricsPayload, MetricValue
 
-_JSON_VALUE_ADAPTER = TypeAdapter(JsonValue)
+_METRIC_VALUE_ADAPTER = TypeAdapter(MetricValue)
 
 
 def _truncate_repr(value: object, *, max_len: int = 500) -> str:
@@ -33,12 +33,12 @@ class MetricsCollector:
         self._run_metric_keys = list(run_metric_keys)
         self._deps = deps
 
-    def collect_turn_metrics(self, *, run_id: str, turn_number: int) -> JsonObject:
+    def collect_turn_metrics(self, *, run_id: str, turn_number: int) -> MetricsPayload:
         ctx = MetricContext(run_id=run_id, turn_number=turn_number)
         metric_keys = self._turn_metric_keys
         return self._collect(scope=MetricScope.TURN, metric_keys=metric_keys, ctx=ctx)
 
-    def collect_run_metrics(self, *, run_id: str) -> JsonObject:
+    def collect_run_metrics(self, *, run_id: str) -> MetricsPayload:
         ctx = MetricContext(run_id=run_id, turn_number=None)
         metric_keys = self._run_metric_keys
         return self._collect(scope=MetricScope.RUN, metric_keys=metric_keys, ctx=ctx)
@@ -49,14 +49,14 @@ class MetricsCollector:
         scope: MetricScope,
         metric_keys: list[str],
         ctx: MetricContext,
-    ) -> JsonObject:
+    ) -> MetricsPayload:
         ordered_keys = self._resolve_order(scope=scope, metric_keys=metric_keys)
 
-        results: JsonObject = {}
+        results: MetricsPayload = {}
         for key in ordered_keys:
             metric = self._registry.get(metric_key=key)
             try:
-                value: JsonValue = metric.compute(
+                value: MetricValue = metric.compute(
                     ctx=ctx, deps=self._deps, prior=results
                 )
             except Exception as e:
@@ -98,7 +98,7 @@ class MetricsCollector:
                 ) from e
 
             try:
-                validated: JsonValue = _JSON_VALUE_ADAPTER.validate_python(
+                validated: MetricValue = _METRIC_VALUE_ADAPTER.validate_python(
                     adapter_validated, strict=True
                 )
             except ValidationError as e:
