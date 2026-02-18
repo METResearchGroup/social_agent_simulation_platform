@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DUMMY_AGENTS,
 } from '@/lib/dummy-data';
@@ -21,6 +21,7 @@ import { Run, RunConfig, Turn } from '@/types';
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
 const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
+const TURN_FETCH_THROTTLE_MS: number = 1500;
 
 interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
@@ -48,6 +49,9 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [fallbackTurns, setFallbackTurns] = useState<Record<string, Record<string, Turn>>>(
     EMPTY_FALLBACK_TURNS,
   );
+  const turnsFetchInFlightRef = useRef<Set<string>>(new Set());
+  const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
+  const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -71,29 +75,39 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   }, []);
 
   useEffect(() => {
-    if (!selectedRunId || fallbackTurns[selectedRunId]) {
+    if (!selectedRunId || loadedTurnsRunIdsRef.current.has(selectedRunId)) {
+      return;
+    }
+
+    const nowMs: number = Date.now();
+    const lastAttemptMs: number = lastTurnsFetchAttemptAtMsRef.current.get(selectedRunId) ?? 0;
+    if (nowMs - lastAttemptMs < TURN_FETCH_THROTTLE_MS) {
+      return;
+    }
+
+    if (turnsFetchInFlightRef.current.has(selectedRunId)) {
       return;
     }
 
     let isMounted: boolean = true;
+    const runId: string = selectedRunId;
+    turnsFetchInFlightRef.current.add(runId);
+    lastTurnsFetchAttemptAtMsRef.current.set(runId, nowMs);
 
     const loadTurnsForRun = async (): Promise<void> => {
       try {
-        const turnsForRun: Record<string, Turn> = await getTurnsForRun(selectedRunId);
+        const turnsForRun: Record<string, Turn> = await getTurnsForRun(runId);
+        loadedTurnsRunIdsRef.current.add(runId);
         if (isMounted) {
           setFallbackTurns((previousTurns) => ({
             ...previousTurns,
-            [selectedRunId]: turnsForRun,
+            [runId]: turnsForRun,
           }));
         }
       } catch (error) {
-        console.error(`Failed to fetch turns for ${selectedRunId}:`, error);
-        if (isMounted) {
-          setFallbackTurns((previousTurns) => ({
-            ...previousTurns,
-            [selectedRunId]: {},
-          }));
-        }
+        console.error(`Failed to fetch turns for ${runId}:`, error);
+      } finally {
+        turnsFetchInFlightRef.current.delete(runId);
       }
     };
 
@@ -102,7 +116,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     return () => {
       isMounted = false;
     };
-  }, [selectedRunId, fallbackTurns]);
+  }, [selectedRunId]);
 
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
