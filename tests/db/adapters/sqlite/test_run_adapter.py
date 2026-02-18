@@ -433,8 +433,10 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             adapter.write_turn_metadata(turn_metadata)
 
             # Assert
-            # Verify read_turn_metadata was called to check for duplicates
-            adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+            # Verify read_turn_metadata was called to check for duplicates (conn=None when using own connection)
+            adapter.read_turn_metadata.assert_called_once_with(
+                run_id, turn_number, conn=None
+            )
             # Verify INSERT was executed
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
@@ -503,8 +505,10 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         ):
             adapter.write_turn_metadata(turn_metadata)
 
-        # Verify read_turn_metadata was called
-        adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        # Verify read_turn_metadata was called (conn=None when using own connection)
+        adapter.read_turn_metadata.assert_called_once_with(
+            run_id, turn_number, conn=None
+        )
 
     def test_raises_operational_error_on_database_error(
         self, adapter, default_test_data, mock_db_connection
@@ -646,8 +650,10 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             ):
                 adapter.write_turn_metadata(turn_metadata)
 
-            # Verify read_turn_metadata was called (pre-check)
-            adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+            # Verify read_turn_metadata was called (pre-check; conn=None when using own connection)
+            adapter.read_turn_metadata.assert_called_once_with(
+                run_id, turn_number, conn=None
+            )
             # Verify INSERT was attempted
             mock_conn.execute.assert_called_once()
             # Verify commit was NOT called (INSERT failed)
