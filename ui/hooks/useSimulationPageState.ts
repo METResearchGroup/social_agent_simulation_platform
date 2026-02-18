@@ -38,7 +38,7 @@ interface UseSimulationPageStateResult {
 
 export function useSimulationPageState(): UseSimulationPageStateResult {
   const [runs, setRuns] = useState<Run[]>(() =>
-    withComputedRunStatuses(DUMMY_RUNS, EMPTY_NEW_RUN_TURNS, DUMMY_TURNS),
+    withComputedRunStatuses(DUMMY_RUNS),
   );
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedTurn, setSelectedTurn] = useState<number | 'summary' | null>(null);
@@ -46,8 +46,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [newRunTurns] = useState<Record<string, Record<string, Turn>>>(EMPTY_NEW_RUN_TURNS);
 
   const runsWithStatus: Run[] = useMemo(
-    () => withComputedRunStatuses(runs, newRunTurns, DUMMY_TURNS),
-    [runs, newRunTurns],
+    () => withComputedRunStatuses(runs),
+    [runs],
   );
 
   const selectedRun: Run | null = useMemo(

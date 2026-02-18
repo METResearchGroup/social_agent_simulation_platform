@@ -3,6 +3,10 @@ import { Agent, Run, RunConfig, Turn } from '@/types';
 const MAX_VISIBLE_RUN_AGENTS: number = 8;
 const EMPTY_TURNS: Record<string, Turn> = {};
 
+// we set completed and failed as terminal states because we compute all actual
+// logic in the backend and the UI only needs to reflect the terminal states.
+const TERMINAL_RUN_STATUSES: ReadonlySet<Run['status']> = new Set(['completed', 'failed']);
+
 type TurnSource = Record<string, Record<string, Turn>>;
 
 export function getTurnsForRun(
@@ -82,26 +86,29 @@ export function getRunConfig(
   };
 }
 
+
+/**
+ * Returns the run status for display. Status is computed in the backend; we
+ * only check the run's status here and, if it is not terminal (e.g. completed
+ * or failed), we treat it as running.
+ */
 export function getRunStatus(
-  run: Run | null,
-  newRunTurns: TurnSource,
-  fallbackTurns: TurnSource,
+  run: Run | null
 ): 'running' | 'completed' | 'failed' {
   if (!run) {
     return 'running';
   }
 
-  const completedTurns: number = getCompletedTurnsCount(run.runId, newRunTurns, fallbackTurns);
-  return completedTurns >= run.totalTurns ? 'completed' : 'running';
+  if (TERMINAL_RUN_STATUSES.has(run.status)) {
+    return run.status;
+  }
+
+  return 'running';
 }
 
-export function withComputedRunStatuses(
-  runs: Run[],
-  newRunTurns: TurnSource,
-  fallbackTurns: TurnSource,
-): Run[] {
+export function withComputedRunStatuses(runs: Run[]): Run[] {
   return runs.map((run) => ({
     ...run,
-    status: getRunStatus(run, newRunTurns, fallbackTurns),
+    status: getRunStatus(run),
   }));
 }
