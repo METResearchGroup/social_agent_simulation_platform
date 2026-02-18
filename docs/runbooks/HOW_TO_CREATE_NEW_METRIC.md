@@ -16,7 +16,7 @@ Your metric class must define:
 - `KEY = "turn.some.metric"` (or `"run.some.metric"`)
 - `SCOPE = MetricScope.TURN` (or `MetricScope.RUN`)
 - `output_adapter`: a `pydantic.TypeAdapter(...)` describing the output shape
-- `compute(...) -> JsonValue`
+- `compute(...) -> ComputedMetricResult`
 
 Optional:
 
@@ -36,7 +36,7 @@ from simulation.core.metrics.interfaces import (
     MetricDeps,
     MetricScope,
 )
-from simulation.core.models.json_types import JsonObject, JsonValue
+from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 
 MY_METRIC_OUTPUT_ADAPTER = TypeAdapter(dict[str, int])
 
@@ -55,8 +55,8 @@ class MyMetric(Metric):
         return ("turn.some_dependency",)
 
     def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
+        self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+    ) -> ComputedMetricResult:
         if ctx.turn_number is None:
             raise ValueError("turn_number is required for turn metrics")
 
@@ -69,7 +69,7 @@ class MyMetric(Metric):
 
 ## What the output looks like (turn vs run)
 
-The collector returns a single `JsonObject` where:
+The collector returns a single `ComputedMetrics` where:
 
 - keys are **metric keys** (e.g. `"turn.my_metric.example"`)
 - values are the metric outputs (validated by `output_adapter`)
@@ -94,7 +94,7 @@ This dict is what ends up as `TurnMetrics.metrics` for that turn.
 
 ### Run metric output (once per run)
 
-Run metrics use the same shape: a `JsonObject` keyed by metric key, computed once per run.
+Run metrics use the same shape: a `ComputedMetrics` keyed by metric key, computed once per run.
 
 Example run metrics dict:
 

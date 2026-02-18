@@ -5,14 +5,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeAlias
 
-from simulation.core.models.metrics import MetricsPayload, MetricValue
+from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 
 if TYPE_CHECKING:
     from db.repositories.interfaces import MetricsRepository, RunRepository
 
 
-SqlParams: TypeAlias = dict[str, MetricValue]
-SqlRow: TypeAlias = dict[str, MetricValue]
+SqlParams: TypeAlias = dict[str, ComputedMetricResult]
+SqlRow: TypeAlias = dict[str, ComputedMetricResult]
 
 
 class MetricOutputAdapter(Protocol):
@@ -123,5 +123,5 @@ class Metric(ABC):
         *,
         ctx: MetricContext,
         deps: MetricDeps,
-        prior: MetricsPayload,
-    ) -> MetricValue: ...
+        prior: ComputedMetrics,
+    ) -> ComputedMetricResult: ...

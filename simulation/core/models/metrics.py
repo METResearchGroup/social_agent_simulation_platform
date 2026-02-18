@@ -10,8 +10,8 @@ from lib.validation_utils import (
     validate_nonnegative_value,
 )
 
-MetricValue: TypeAlias = PydanticJsonValue
-MetricsPayload: TypeAlias = dict[str, MetricValue]
+ComputedMetricResult: TypeAlias = PydanticJsonValue
+ComputedMetrics: TypeAlias = dict[str, ComputedMetricResult]
 
 
 def _field_name(info: ValidationInfo | None) -> str:
@@ -21,7 +21,7 @@ def _field_name(info: ValidationInfo | None) -> str:
 class TurnMetrics(BaseModel):
     run_id: str
     turn_number: int
-    metrics: MetricsPayload
+    metrics: ComputedMetrics
     created_at: str
 
     @field_validator("run_id", "created_at", mode="before")
@@ -39,7 +39,7 @@ class TurnMetrics(BaseModel):
 
 class RunMetrics(BaseModel):
     run_id: str
-    metrics: MetricsPayload
+    metrics: ComputedMetrics
     created_at: str
 
     @field_validator("run_id", "created_at", mode="before")

@@ -7,9 +7,9 @@ from pydantic import TypeAdapter, ValidationError
 from simulation.core.exceptions import MetricsComputationError
 from simulation.core.metrics.interfaces import MetricContext, MetricDeps, MetricScope
 from simulation.core.metrics.registry import MetricsRegistry
-from simulation.core.models.metrics import MetricsPayload, MetricValue
+from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 
-_METRIC_VALUE_ADAPTER = TypeAdapter(MetricValue)
+_COMPUTED_METRIC_RESULT_ADAPTER = TypeAdapter(ComputedMetricResult)
 
 
 def _truncate_repr(value: object, *, max_len: int = 500) -> str:
@@ -33,12 +33,12 @@ class MetricsCollector:
         self._run_metric_keys = list(run_metric_keys)
         self._deps = deps
 
-    def collect_turn_metrics(self, *, run_id: str, turn_number: int) -> MetricsPayload:
+    def collect_turn_metrics(self, *, run_id: str, turn_number: int) -> ComputedMetrics:
         ctx = MetricContext(run_id=run_id, turn_number=turn_number)
         metric_keys = self._turn_metric_keys
         return self._collect(scope=MetricScope.TURN, metric_keys=metric_keys, ctx=ctx)
 
-    def collect_run_metrics(self, *, run_id: str) -> MetricsPayload:
+    def collect_run_metrics(self, *, run_id: str) -> ComputedMetrics:
         ctx = MetricContext(run_id=run_id, turn_number=None)
         metric_keys = self._run_metric_keys
         return self._collect(scope=MetricScope.RUN, metric_keys=metric_keys, ctx=ctx)
@@ -49,14 +49,14 @@ class MetricsCollector:
         scope: MetricScope,
         metric_keys: list[str],
         ctx: MetricContext,
-    ) -> MetricsPayload:
+    ) -> ComputedMetrics:
         ordered_keys = self._resolve_order(scope=scope, metric_keys=metric_keys)
 
-        results: MetricsPayload = {}
+        results: ComputedMetrics = {}
         for key in ordered_keys:
             metric = self._registry.get(metric_key=key)
             try:
-                value: MetricValue = metric.compute(
+                value: ComputedMetricResult = metric.compute(
                     ctx=ctx, deps=self._deps, prior=results
                 )
             except Exception as e:
@@ -98,8 +98,10 @@ class MetricsCollector:
                 ) from e
 
             try:
-                validated: MetricValue = _METRIC_VALUE_ADAPTER.validate_python(
-                    adapter_validated, strict=True
+                validated: ComputedMetricResult = (
+                    _COMPUTED_METRIC_RESULT_ADAPTER.validate_python(
+                        adapter_validated, strict=True
+                    )
                 )
             except ValidationError as e:
                 raise MetricsComputationError(

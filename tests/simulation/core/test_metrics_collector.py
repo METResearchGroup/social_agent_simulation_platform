@@ -17,8 +17,11 @@ from simulation.core.metrics.interfaces import (
 )
 from simulation.core.metrics.registry import MetricsRegistry
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.json_types import JsonObject, JsonValue
-from simulation.core.models.metrics import TurnMetrics
+from simulation.core.models.metrics import (
+    ComputedMetricResult,
+    ComputedMetrics,
+    TurnMetrics,
+)
 from simulation.core.models.turns import TurnMetadata
 
 _INT_ADAPTER = TypeAdapter(int)
@@ -41,8 +44,8 @@ def _const_metric_class(
             return _INT_ADAPTER
 
         def compute(
-            self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-        ) -> JsonValue:
+            self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+        ) -> ComputedMetricResult:
             return self.VALUE
 
     return _ConstMetricImpl
@@ -68,8 +71,8 @@ def _sum_metric_class(
             return self.REQUIRES
 
         def compute(
-            self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-        ) -> JsonValue:
+            self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+        ) -> ComputedMetricResult:
             total = 0
             for k in self.REQUIRES:
                 v = prior[k]
@@ -89,8 +92,8 @@ class _BoomMetric(Metric):
         return _INT_ADAPTER
 
     def compute(
-        self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-    ) -> JsonValue:
+        self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+    ) -> ComputedMetricResult:
         raise ValueError("boom")
 
 
@@ -162,8 +165,8 @@ class TestMetricsCollectorFailures:
                 return _INT_ADAPTER
 
             def compute(
-                self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-            ) -> JsonValue:  # type: ignore[override]
+                self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+            ) -> ComputedMetricResult:  # type: ignore[override]
                 return {1}  # type: ignore[return-value]  # non-JSON value for test
 
         registry = MetricsRegistry(metric_builders={"turn.bad_json": _BadJsonMetric})
@@ -193,8 +196,8 @@ class TestMetricsCollectorFailures:
                 return _COUNTS_ADAPTER
 
             def compute(
-                self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-            ) -> JsonValue:
+                self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+            ) -> ComputedMetricResult:
                 return {"x": "y"}
 
         registry = MetricsRegistry(

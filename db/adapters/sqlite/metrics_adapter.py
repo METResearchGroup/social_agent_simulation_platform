@@ -8,8 +8,7 @@ from typing import cast
 
 from db.adapters.base import MetricsDatabaseAdapter
 from db.adapters.sqlite.sqlite import get_connection
-from simulation.core.models.json_types import JsonObject
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
+from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.validators import validate_run_id, validate_turn_number
 
 TURN_METRICS_REQUIRED_COLS: list[str] = [
@@ -29,14 +28,14 @@ def _validate_required_cols(*, row: sqlite3.Row, required_cols: list[str]) -> No
             raise ValueError(f"Unexpected NULL for required column '{col}'")
 
 
-def _parse_metrics_json(*, raw: str) -> JsonObject:
+def _parse_metrics_json(*, raw: str) -> ComputedMetrics:
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as e:
         raise ValueError(f"Could not parse metrics as JSON: {e}") from e
     if not isinstance(parsed, dict):
         raise ValueError("metrics must be a JSON object")
-    return cast(JsonObject, parsed)
+    return cast(ComputedMetrics, parsed)
 
 
 class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
