@@ -9,7 +9,7 @@
     "lint": "eslint",
     "lint:oxlint": "oxlint . --react-plugin",
     "lint:doctor": "node scripts/check-react-doctor.mjs",
-    "lint:all": "npm run lint && npm run lint:oxlint"
+    "lint:all": "npm run lint && npm run lint:oxlint && npm run lint:doctor"
   },
   "dependencies": {
     "next": "16.0.4",
