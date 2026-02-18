@@ -1,5 +1,7 @@
 """Base adapter interfaces."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Iterable, Optional
 
@@ -91,13 +93,18 @@ class RunDatabaseAdapter(ABC):
 
     @abstractmethod
     def read_turn_metadata(
-        self, run_id: str, turn_number: int
+        self,
+        run_id: str,
+        turn_number: int,
+        conn: object | None = None,
     ) -> Optional[TurnMetadata]:
         """Read turn metadata for a specific run and turn.
 
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
+            conn: Optional connection. When provided, use it and do not open/close
+                  or commit; when None, use a new connection (caller manages lifecycle).
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -137,13 +144,19 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_turn_metadata(self, turn_metadata: TurnMetadata) -> None:
+    def write_turn_metadata(
+        self,
+        turn_metadata: TurnMetadata,
+        conn: object | None = None,
+    ) -> None:
         """Write turn metadata to the database.
 
         Writes to the `turn_metadata` table. Uses INSERT.
 
         Args:
             turn_metadata: TurnMetadata model to write
+            conn: Optional connection. When provided, use it and do not commit;
+                  when None, use a new connection and commit.
 
         Raises:
             DuplicateTurnMetadataError: If turn metadata already exists
@@ -158,7 +171,12 @@ class MetricsDatabaseAdapter(ABC):
     """Abstract interface for computed metrics persistence."""
 
     @abstractmethod
-    def write_turn_metrics(self, turn_metrics: TurnMetrics) -> None:
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write turn metrics. When conn is provided, use it and do not commit."""
         raise NotImplementedError
 
     @abstractmethod

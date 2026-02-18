@@ -36,6 +36,24 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
+def run_transaction():
+    """Context manager for a single database transaction.
+
+    Opens a connection, yields it to the block, commits on normal exit,
+    rolls back on exception, and closes the connection in a finally block.
+    SQLite starts a transaction implicitly on first statement; no explicit BEGIN.
+    """
+    conn = get_connection()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def validate_required_fields(
     row: sqlite3.Row, fields: list[str], context: str | None = None
 ) -> None:

@@ -1,5 +1,7 @@
 """SQLite implementation of run database adapter."""
 
+from __future__ import annotations
+
 import json
 import sqlite3
 from typing import Optional
@@ -172,7 +174,10 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metadata(
-        self, run_id: str, turn_number: int
+        self,
+        run_id: str,
+        turn_number: int,
+        conn: sqlite3.Connection | None = None,
     ) -> Optional[TurnMetadata]:
         """Read turn metadata from SQLite.
 
@@ -182,6 +187,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
+            conn: Optional connection. When provided, use it (no commit); when None,
+                  open a new connection via get_connection().
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -192,11 +199,17 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        with get_connection() as conn:
+        if conn is not None:
             row = conn.execute(
                 "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
                 (run_id, turn_number),
             ).fetchone()
+        else:
+            with get_connection() as c:
+                row = c.execute(
+                    "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
+                    (run_id, turn_number),
+                ).fetchone()
 
         if row is None:
             return None
