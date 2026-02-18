@@ -27,8 +27,7 @@ from simulation.core.exceptions import (
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.json_types import JsonObject
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
+from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
@@ -324,7 +323,7 @@ class SimulationCommandService:
         )
 
     def _collect_and_write_run_metrics(self, run_id: str) -> None:
-        run_metrics_dict: JsonObject = self.metrics_collector.collect_run_metrics(
+        run_metrics_dict: ComputedMetrics = self.metrics_collector.collect_run_metrics(
             run_id=run_id
         )
         self.metrics_repo.write_run_metrics(
@@ -336,7 +335,7 @@ class SimulationCommandService:
         )
 
     def _collect_and_write_turn_metrics(self, run_id: str, turn_number: int) -> None:
-        computed_metrics: JsonObject = self.metrics_collector.collect_turn_metrics(
+        computed_metrics: ComputedMetrics = self.metrics_collector.collect_turn_metrics(
             run_id=run_id,
             turn_number=turn_number,
         )

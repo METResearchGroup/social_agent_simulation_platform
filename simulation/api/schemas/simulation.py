@@ -6,7 +6,7 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator, model_validator
 
-from simulation.core.models.json_types import JsonObject
+from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
 from simulation.core.validators import (
     validate_feed_algorithm,
@@ -61,7 +61,7 @@ class RunResponse(BaseModel):
     num_agents: int
     num_turns: int
     turns: list[TurnSummaryItem]
-    run_metrics: JsonObject | None = None
+    run_metrics: ComputedMetrics | None = None
     error: ErrorDetail | None = None
 
     @model_validator(mode="after")
@@ -87,7 +87,7 @@ class TurnActionsItem(BaseModel):
     turn_number: int
     created_at: str
     total_actions: dict[str, int]
-    metrics: JsonObject | None = None
+    metrics: ComputedMetrics | None = None
 
 
 class RunDetailsResponse(BaseModel):
@@ -100,7 +100,7 @@ class RunDetailsResponse(BaseModel):
     completed_at: str | None = None
     config: RunConfigDetail
     turns: list[TurnActionsItem]
-    run_metrics: JsonObject | None = None
+    run_metrics: ComputedMetrics | None = None
 
 
 class TurnSummaryItem(BaseModel):
@@ -109,4 +109,4 @@ class TurnSummaryItem(BaseModel):
     turn_number: int
     created_at: str
     total_actions: dict[str, int]
-    metrics: JsonObject
+    metrics: ComputedMetrics

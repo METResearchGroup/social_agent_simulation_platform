@@ -3,12 +3,16 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeAlias
 
-from simulation.core.models.json_types import JsonObject, JsonValue
+from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 
 if TYPE_CHECKING:
     from db.repositories.interfaces import MetricsRepository, RunRepository
+
+
+SqlParams: TypeAlias = dict[str, ComputedMetricResult]
+SqlRow: TypeAlias = dict[str, ComputedMetricResult]
 
 
 class MetricOutputAdapter(Protocol):
@@ -60,11 +64,11 @@ class MetricsSqlExecutor(ABC):
     """
 
     @abstractmethod
-    def fetch_one(self, *, sql: str, params: dict[str, JsonValue]) -> JsonObject | None:
+    def fetch_one(self, *, sql: str, params: SqlParams) -> SqlRow | None:
         raise NotImplementedError
 
     @abstractmethod
-    def fetch_all(self, *, sql: str, params: dict[str, JsonValue]) -> list[JsonObject]:
+    def fetch_all(self, *, sql: str, params: SqlParams) -> list[SqlRow]:
         raise NotImplementedError
 
 
@@ -119,5 +123,5 @@ class Metric(ABC):
         *,
         ctx: MetricContext,
         deps: MetricDeps,
-        prior: JsonObject,
-    ) -> JsonValue: ...
+        prior: ComputedMetrics,
+    ) -> ComputedMetricResult: ...

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from typing import TypeAlias
+
 from pydantic import BaseModel, ValidationInfo, field_validator
+from pydantic import JsonValue as PydanticJsonValue
 
 from lib.validation_utils import (
     validate_non_empty_string,
     validate_nonnegative_value,
 )
-from simulation.core.models.json_types import JsonObject
+
+ComputedMetricResult: TypeAlias = PydanticJsonValue
+ComputedMetrics: TypeAlias = dict[str, ComputedMetricResult]
 
 
 def _field_name(info: ValidationInfo | None) -> str:
@@ -16,7 +21,7 @@ def _field_name(info: ValidationInfo | None) -> str:
 class TurnMetrics(BaseModel):
     run_id: str
     turn_number: int
-    metrics: JsonObject
+    metrics: ComputedMetrics
     created_at: str
 
     @field_validator("run_id", "created_at", mode="before")
@@ -34,7 +39,7 @@ class TurnMetrics(BaseModel):
 
 class RunMetrics(BaseModel):
     run_id: str
-    metrics: JsonObject
+    metrics: ComputedMetrics
     created_at: str
 
     @field_validator("run_id", "created_at", mode="before")

@@ -20,7 +20,7 @@ from simulation.core.metrics.interfaces import (
     MetricDeps,
     MetricScope,
 )
-from simulation.core.models.json_types import JsonObject, JsonValue
+from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 
 _INT_ADAPTER = TypeAdapter(int)
 
@@ -46,8 +46,8 @@ def test_defaults_duplicate_key_validation_raises():
             return _INT_ADAPTER
 
         def compute(
-            self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-        ) -> JsonValue:
+            self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+        ) -> ComputedMetricResult:
             return 0
 
     class _M2(Metric):
@@ -59,8 +59,8 @@ def test_defaults_duplicate_key_validation_raises():
             return _INT_ADAPTER
 
         def compute(
-            self, *, ctx: MetricContext, deps: MetricDeps, prior: JsonObject
-        ) -> JsonValue:
+            self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+        ) -> ComputedMetricResult:
             return 0
 
     with pytest.raises(ValueError, match="Duplicate metric keys"):
