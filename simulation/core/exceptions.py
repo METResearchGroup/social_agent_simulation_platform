@@ -167,6 +167,21 @@ class SimulationRunFailure(Exception):
         super().__init__(message)
 
 
+class InconsistentTurnDataError(ValueError):
+    """Raised when metadata and metrics have different sets of turn numbers."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        metadata_only: set[int] | None = None,
+        metrics_only: set[int] | None = None,
+    ):
+        self.metadata_only = metadata_only or set()
+        self.metrics_only = metrics_only or set()
+        super().__init__(message)
+
+
 class DuplicateTurnMetadataError(Exception):
     """Raised when turn metadata already exists."""
 
@@ -181,4 +196,23 @@ class DuplicateTurnMetadataError(Exception):
         self.turn_number = turn_number
 
         message = f"Turn metadata already exists for run '{run_id}', turn {turn_number}"
+        super().__init__(message)
+
+
+class MetricsComputationError(Exception):
+    """Raised when a required metric cannot be computed."""
+
+    def __init__(
+        self,
+        *,
+        metric_key: str,
+        run_id: str,
+        turn_number: int | None,
+        message: str,
+        cause: BaseException | None = None,
+    ):
+        self.metric_key = metric_key
+        self.run_id = run_id
+        self.turn_number = turn_number
+        self.cause = cause
         super().__init__(message)

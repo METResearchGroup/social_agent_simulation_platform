@@ -40,6 +40,8 @@ def test_get_run_details_returns_sorted_turns_with_string_action_keys():
     ]
     mock_engine.get_run.return_value = run
     mock_engine.list_turn_metadata.return_value = metadata_list
+    mock_engine.list_turn_metrics.return_value = []
+    mock_engine.get_run_metrics.return_value = None
 
     result = get_run_details(run_id=run.run_id, engine=mock_engine)
 

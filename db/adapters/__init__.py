@@ -6,6 +6,7 @@ from db.adapters.base import (
     GeneratedFeedDatabaseAdapter,
     ProfileDatabaseAdapter,
     RunDatabaseAdapter,
+    TransactionProvider,
 )
 from db.adapters.sqlite import (
     SQLiteFeedPostAdapter,
@@ -21,6 +22,7 @@ __all__ = [
     "GeneratedFeedDatabaseAdapter",
     "ProfileDatabaseAdapter",
     "RunDatabaseAdapter",
+    "TransactionProvider",
     "SQLiteFeedPostAdapter",
     "SQLiteGeneratedBioAdapter",
     "SQLiteGeneratedFeedAdapter",
