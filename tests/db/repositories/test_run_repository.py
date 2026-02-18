@@ -37,14 +37,19 @@ class SQLiteRunRepository(_SQLiteRunRepository):
         ):
             return super().create_run(config)
 
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: object | None = None,
+    ) -> None:
         if self._mock_get_timestamp is None:
-            return super().update_run_status(run_id, status)
+            return super().update_run_status(run_id, status, conn=conn)
         with patch(
             "db.repositories.run_repository.get_current_timestamp",
             self._mock_get_timestamp,
         ):
-            return super().update_run_status(run_id, status)
+            return super().update_run_status(run_id, status, conn=conn)
 
 
 def make_turn_metadata(
@@ -570,7 +575,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
 
         # Assert
         mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, None
+            run_id, status.value, None, conn=None
         )
 
     def test_updates_status_to_running_without_completed_at(self):
@@ -597,7 +602,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
 
         # Assert
         mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, None
+            run_id, status.value, None, conn=None
         )
 
     def test_calls_update_run_status_with_correct_parameters_for_completed(self):
@@ -685,7 +690,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
 
         # Assert
         mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, timestamp1
+            run_id, status.value, timestamp1, conn=None
         )
 
     def test_handles_valid_transitions_from_running(self):
@@ -723,7 +728,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
                 "2024_01_01-13:00:00" if status == RunStatus.COMPLETED else None
             )
             mock_adapter.update_run_status.assert_called_once_with(
-                run_id, status.value, expected_completed_at
+                run_id, status.value, expected_completed_at, conn=None
             )
 
 

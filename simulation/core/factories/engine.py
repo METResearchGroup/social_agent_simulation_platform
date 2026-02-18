@@ -20,7 +20,9 @@ from db.repositories.interfaces import (
 from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from db.repositories.run_repository import create_sqlite_repository
-from db.services.turn_persistence_service import create_turn_persistence_service
+from db.services.simulation_persistence_service import (
+    create_simulation_persistence_service,
+)
 from simulation.core.action_history import ActionHistoryStore
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories.action_history_store import (
@@ -96,14 +98,14 @@ def create_engine(
         feed_post_repo=feed_post_repo,
         generated_feed_repo=generated_feed_repo,
     )
-    turn_persistence = create_turn_persistence_service(
+    simulation_persistence = create_simulation_persistence_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
     )
     command_service = create_command_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
-        turn_persistence=turn_persistence,
+        simulation_persistence=simulation_persistence,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         generated_bio_repo=generated_bio_repo,

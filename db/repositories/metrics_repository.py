@@ -26,8 +26,12 @@ class SQLiteMetricsRepository(MetricsRepository):
     def list_turn_metrics(self, run_id: str) -> list[TurnMetrics]:
         return self._db_adapter.read_turn_metrics_for_run(run_id)
 
-    def write_run_metrics(self, run_metrics: RunMetrics) -> None:
-        self._db_adapter.write_run_metrics(run_metrics)
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: object | None = None,
+    ) -> None:
+        self._db_adapter.write_run_metrics(run_metrics, conn=conn)
 
     def get_run_metrics(self, run_id: str) -> RunMetrics | None:
         return self._db_adapter.read_run_metrics(run_id)

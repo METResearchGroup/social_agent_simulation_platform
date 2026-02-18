@@ -37,8 +37,15 @@ class RunRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_run_status(self, run_id: str, status: RunStatus) -> None:
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: object | None = None,
+    ) -> None:
         """Update a run's status.
+
+        When conn is provided, implementation uses it and does not commit.
 
         Raises:
             RunNotFoundError: If the run with the given ID does not exist
@@ -127,8 +134,15 @@ class MetricsRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_run_metrics(self, run_metrics: RunMetrics) -> None:
-        """Write computed metrics for a run."""
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: object | None = None,
+    ) -> None:
+        """Write computed metrics for a run.
+
+        When conn is provided, use it and do not commit (for transactional use).
+        """
         raise NotImplementedError
 
     @abstractmethod
