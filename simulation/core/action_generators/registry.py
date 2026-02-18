@@ -4,7 +4,11 @@ Single source of truth for behavior mode (e.g. default, llm).
 Delegates to per-action algorithm implementations.
 """
 
-from simulation.core.action_generators.interfaces import CommentGenerator, FollowGenerator, LikeGenerator
+from simulation.core.action_generators.interfaces import (
+    CommentGenerator,
+    FollowGenerator,
+    LikeGenerator,
+)
 from simulation.core.action_generators.validators import (
     BEHAVIOR_MODE_DETERMINISTIC,
     DEFAULT_BEHAVIOR_MODE,
@@ -60,14 +64,12 @@ def _create_like_generator(mode: str) -> LikeGenerator:
 
 
 def _create_follow_generator(mode: str) -> FollowGenerator:
-def _create_comment_generator(mode: str) -> CommentGenerator:
     from lib.validation_utils import validate_value_in_set
     from simulation.core.action_generators.validators import BEHAVIOR_MODES
 
     validate_value_in_set(
         mode,
         "follow_generator_mode",
-        "comment_generator_mode",
         BEHAVIOR_MODES,
         allowed_display_name=str(BEHAVIOR_MODES),
     )
@@ -78,6 +80,19 @@ def _create_comment_generator(mode: str) -> CommentGenerator:
 
         return DeterministicFollowGenerator()
     raise ValueError(f"Unsupported follow generator mode: {mode}")
+
+
+def _create_comment_generator(mode: str) -> CommentGenerator:
+    from lib.validation_utils import validate_value_in_set
+    from simulation.core.action_generators.validators import BEHAVIOR_MODES
+
+    validate_value_in_set(
+        mode,
+        "comment_generator_mode",
+        BEHAVIOR_MODES,
+        allowed_display_name=str(BEHAVIOR_MODES),
+    )
+    if mode == BEHAVIOR_MODE_DETERMINISTIC:
         from simulation.core.action_generators.comment.algorithms.random_simple import (
             RandomSimpleCommentGenerator,
         )

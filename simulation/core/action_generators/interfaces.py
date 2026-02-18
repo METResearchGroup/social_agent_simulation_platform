@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
 
@@ -26,6 +26,7 @@ class LikeGenerator(ABC):
 
 class FollowGenerator(ABC):
     """Abstract interface for generating follows from feed candidates."""
+
     @abstractmethod
     def generate(
         self,
@@ -37,6 +38,7 @@ class FollowGenerator(ABC):
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates."""
         ...
+
 
 class CommentGenerator(ABC):
     """Abstract interface for generating comments from feed candidates."""
