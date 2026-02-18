@@ -43,7 +43,7 @@ SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 )
 async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
     """Return all simulation runs from the backend dummy source."""
-    response = await _execute_get_simulation_runs()
+    response = await _execute_get_simulation_runs(request)
     request_id = getattr(request.state, "request_id", "")
     latency_ms = getattr(request.state, "duration_ms", 0)
     if isinstance(response, list):
@@ -151,7 +151,7 @@ async def get_simulation_run_turns(
     request: Request, run_id: str
 ) -> dict[str, TurnSchema] | Response:
     """Return turn payload for a run from the backend dummy source."""
-    response = await _execute_get_simulation_run_turns(run_id=run_id)
+    response = await _execute_get_simulation_run_turns(request, run_id=run_id)
     request_id = getattr(request.state, "request_id", "")
     latency_ms = getattr(request.state, "duration_ms", 0)
     if isinstance(response, dict):
@@ -177,7 +177,9 @@ async def get_simulation_run_turns(
 
 
 @timed(attach_attr="duration_ms", log_level=None)
-async def _execute_get_simulation_runs() -> list[RunListItem] | Response:
+async def _execute_get_simulation_runs(
+    request: Request,
+) -> list[RunListItem] | Response:
     """Fetch run summaries and convert unexpected failures to HTTP responses."""
     try:
         return list_runs_dummy()
@@ -223,6 +225,7 @@ async def _execute_simulation_run(
 
 @timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_simulation_run_turns(
+    request: Request,
     run_id: str,
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
