@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 
 from simulation.api.schemas.simulation import (
     AgentActionSchema,
-    AgentActionType,
     FeedSchema,
     RunListItem,
     TurnSchema,
 )
+from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
 
 _DUMMY_AGENT_HANDLES: list[str] = [
@@ -96,7 +96,7 @@ def _create_turn(
                     action_id=f"action_{run_id}_turn{turn_number}_{agent_handle}_1",
                     agent_handle=agent_handle,
                     post_uri=post_uris[0],
-                    type=AgentActionType.LIKE,
+                    type=TurnAction.LIKE,
                     created_at=_timestamp_for_turn(
                         base_iso=run_created_at,
                         minutes=turn_number,
@@ -111,7 +111,7 @@ def _create_turn(
                     action_id=f"action_{run_id}_turn{turn_number}_{agent_handle}_2",
                     agent_handle=agent_handle,
                     user_id=selected_agents[1],
-                    type=AgentActionType.FOLLOW,
+                    type=TurnAction.FOLLOW,
                     created_at=_timestamp_for_turn(
                         base_iso=run_created_at,
                         minutes=turn_number,

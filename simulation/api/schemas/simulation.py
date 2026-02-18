@@ -6,6 +6,7 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
 from simulation.core.validators import (
@@ -91,14 +92,6 @@ class RunListItem(BaseModel):
     status: RunStatus
 
 
-class AgentActionType(str, Enum):
-    """Action type in turn-level action data."""
-
-    LIKE = "like"
-    COMMENT = "comment"
-    FOLLOW = "follow"
-
-
 class FeedSchema(BaseModel):
     """Feed metadata for one agent in a turn."""
 
@@ -117,7 +110,7 @@ class AgentActionSchema(BaseModel):
     agent_handle: str
     post_uri: str | None = None
     user_id: str | None = None
-    type: AgentActionType
+    type: TurnAction
     created_at: str
 
 
