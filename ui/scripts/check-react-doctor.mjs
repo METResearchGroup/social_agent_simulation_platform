@@ -4,7 +4,7 @@
  */
 import { diagnose } from "react-doctor/api";
 
-const minScore = Number(process.env.REACT_DOCTOR_MIN_SCORE, 10) || 70;
+const minScore = Number(process.env.REACT_DOCTOR_MIN_SCORE) || 70;
 const result = await diagnose(".", { lint: true, deadCode: true });
 
 if (result?.score?.score == null) {
