@@ -12,8 +12,10 @@ if TYPE_CHECKING:
     from db.repositories.interfaces import MetricsRepository, RunRepository
 
 
-SqlParams: TypeAlias = dict[str, ComputedMetricResult]
-SqlRow: TypeAlias = dict[str, ComputedMetricResult]
+# SQL bind parameters and row cell values (typical DB-API / driver behavior).
+SqlScalar: TypeAlias = str | int | float | bool | None
+SqlParams: TypeAlias = dict[str, SqlScalar]
+SqlRow: TypeAlias = dict[str, SqlScalar]
 
 
 class MetricOutputAdapter(Protocol):
