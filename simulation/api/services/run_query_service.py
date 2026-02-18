@@ -1,15 +1,37 @@
 """Read-side CQRS service for simulation run lookup APIs."""
 
 from lib.validation_decorators import validate_inputs
+from simulation.api.dummy_data import DUMMY_RUNS, DUMMY_TURNS
 from simulation.api.schemas.simulation import (
     RunConfigDetail,
     RunDetailsResponse,
+    RunListItem,
     TurnActionsItem,
+    TurnSchema,
 )
 from simulation.core.engine import SimulationEngine
+from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import validate_run_exists, validate_run_id
+
+
+def list_runs_dummy() -> list[RunListItem]:
+    """Return deterministic dummy run list for UI integration."""
+    return sorted(
+        DUMMY_RUNS,
+        key=lambda run: run.created_at,
+        reverse=True,
+    )
+
+
+def get_turns_for_run_dummy(*, run_id: str) -> dict[str, TurnSchema]:
+    """Return deterministic dummy turns for a run ID."""
+    validated_run_id: str = validate_run_id(run_id)
+    turns: dict[str, TurnSchema] | None = DUMMY_TURNS.get(validated_run_id)
+    if turns is None:
+        raise RunNotFoundError(validated_run_id)
+    return dict(sorted(turns.items(), key=lambda item: int(item[0])))
 
 
 @validate_inputs((validate_run_id, "run_id"))
