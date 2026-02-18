@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeAlias
 
+from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 
 if TYPE_CHECKING:
@@ -76,6 +77,8 @@ class Metric(ABC):
     KEY: ClassVar[str]
     SCOPE: ClassVar[MetricScope]
     DEFAULT_ENABLED: ClassVar[bool] = True
+    DESCRIPTION: ClassVar[str]
+    AUTHOR: ClassVar[str]
 
     @property
     def key(self) -> str:
@@ -84,6 +87,14 @@ class Metric(ABC):
     @property
     def scope(self) -> MetricScope:
         return self.SCOPE
+
+    @property
+    def description(self) -> str:
+        return self.DESCRIPTION
+
+    @property
+    def author(self) -> str:
+        return self.AUTHOR
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -107,6 +118,20 @@ class Metric(ABC):
             raise TypeError(
                 f"{cls.__module__}.{cls.__name__} DEFAULT_ENABLED must be a bool"
             )
+
+        try:
+            validate_non_empty_string(getattr(cls, "DESCRIPTION", None), "DESCRIPTION")
+        except ValueError:
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define non-empty class var DESCRIPTION"
+            ) from None
+
+        try:
+            validate_non_empty_string(getattr(cls, "AUTHOR", None), "AUTHOR")
+        except ValueError:
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define non-empty class var AUTHOR"
+            ) from None
 
     @property
     @abstractmethod

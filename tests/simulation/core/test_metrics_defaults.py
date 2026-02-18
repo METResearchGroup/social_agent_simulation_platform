@@ -40,6 +40,8 @@ def test_defaults_duplicate_key_validation_raises():
     class _M1(Metric):
         KEY = "turn.dup"
         SCOPE = MetricScope.TURN
+        DESCRIPTION = "Test metric."
+        AUTHOR = "test"
 
         @property
         def output_adapter(self):
@@ -53,6 +55,8 @@ def test_defaults_duplicate_key_validation_raises():
     class _M2(Metric):
         KEY = "turn.dup"
         SCOPE = MetricScope.TURN
+        DESCRIPTION = "Test metric."
+        AUTHOR = "test"
 
         @property
         def output_adapter(self):
