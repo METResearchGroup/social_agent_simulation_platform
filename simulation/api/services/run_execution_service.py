@@ -44,7 +44,7 @@ def execute(
             turn_metrics_list=turn_metrics_list,
         )
         run_metrics = engine.get_run_metrics(e.run_id)
-        turns: list[TurnSummaryItem] = _build_turn_summaries(
+        turns = _build_turn_summaries(
             metadata_list=metadata_list,
             turn_metrics_list=turn_metrics_list,
         )
@@ -100,19 +100,12 @@ def _validate_turn_data_consistency(
     turn_metrics_list: Iterable[TurnMetrics],
 ) -> None:
     """Raise if metadata and metrics have different sets of turn numbers."""
-    metadata_turn_numbers = {m.turn_number for m in metadata_list}
-    metrics_turn_numbers = {t.turn_number for t in turn_metrics_list}
-    if metadata_turn_numbers != metrics_turn_numbers:
-        metadata_only = metadata_turn_numbers - metrics_turn_numbers
-        metrics_only = metrics_turn_numbers - metadata_turn_numbers
-        raise InconsistentTurnDataError(
-            (
-                "Turn metadata and turn metrics have different turn number sets: "
-                f"metadata_only={sorted(metadata_only)}, metrics_only={sorted(metrics_only)}"
-            ),
-            metadata_only=metadata_only,
-            metrics_only=metrics_only,
-        )
+    metadata_turn_numbers: set[int] = {m.turn_number for m in metadata_list}
+    metrics_turn_numbers: set[int] = {t.turn_number for t in turn_metrics_list}
+    _assert_turn_sets_match(
+        metadata_turns=metadata_turn_numbers,
+        metrics_turns=metrics_turn_numbers,
+    )
 
 
 def _build_turn_summaries(
@@ -134,17 +127,10 @@ def _build_turn_summaries(
     }
     metadata_turns: set[int] = set(metadata_by_turn.keys())
     metrics_turns: set[int] = set(metrics_by_turn.keys())
-    if metadata_turns != metrics_turns:
-        metadata_only = metadata_turns - metrics_turns
-        metrics_only = metrics_turns - metadata_turns
-        raise InconsistentTurnDataError(
-            (
-                "Turn metadata and turn metrics have different turn number sets: "
-                f"metadata_only={sorted(metadata_only)}, metrics_only={sorted(metrics_only)}"
-            ),
-            metadata_only=metadata_only,
-            metrics_only=metrics_only,
-        )
+    _assert_turn_sets_match(
+        metadata_turns=metadata_turns,
+        metrics_turns=metrics_turns,
+    )
     turns: list[TurnSummaryItem] = []
     for turn_number in sorted(metadata_turns):
         metadata = metadata_by_turn[turn_number]
@@ -158,3 +144,22 @@ def _build_turn_summaries(
             )
         )
     return turns
+
+
+def _assert_turn_sets_match(
+    *,
+    metadata_turns: set[int],
+    metrics_turns: set[int],
+) -> None:
+    """Raise InconsistentTurnDataError if the two turn-number sets differ."""
+    if metadata_turns != metrics_turns:
+        metadata_only = metadata_turns - metrics_turns
+        metrics_only = metrics_turns - metadata_turns
+        raise InconsistentTurnDataError(
+            (
+                "Turn metadata and turn metrics have different turn number sets: "
+                f"metadata_only={sorted(metadata_only)}, metrics_only={sorted(metrics_only)}"
+            ),
+            metadata_only=metadata_only,
+            metrics_only=metrics_only,
+        )
