@@ -1,12 +1,12 @@
-"""Deterministic comment generation algorithm.
+"""Random-simple comment generation algorithm.
 
-Produces reproducible comments using deterministic scoring (recency + social proof)
-and a stable hash-based probability to decide whether to comment.
+Selects top-k posts by recency + social proof, then uses random probability
+and hardcoded text to decide whether to comment and which text to use.
 """
 
 from __future__ import annotations
 
-import hashlib
+import random
 from datetime import datetime, timezone
 
 from simulation.core.action_generators.interfaces import CommentGenerator
@@ -16,7 +16,7 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.posts import BlueskyFeedPost
 
 TOP_K_POSTS_TO_COMMENT: int = 3
-COMMENT_PROBABILITY_PCT: int = 30
+COMMENT_PROBABILITY: float = 0.30
 HARDCODED_COMMENT_TEXTS: tuple[str, ...] = (
     "Nice!",
     "Interesting take.",
@@ -28,12 +28,12 @@ RECENCY_WEIGHT: float = 1.0
 LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
-EXPLANATION: str = "Deterministic: hash-based probability and hardcoded text"
+EXPLANATION: str = "Simple: random probability and hardcoded text"
 CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 
 
-class DeterministicCommentGenerator(CommentGenerator):
-    """Generates comments using deterministic scoring and hash-based probability."""
+class RandomSimpleCommentGenerator(CommentGenerator):
+    """Generates comments using scoring (recency + social proof) and random probability."""
 
     def generate(
         self,
@@ -43,7 +43,7 @@ class DeterministicCommentGenerator(CommentGenerator):
         turn_number: int,
         agent_handle: str,
     ) -> list[GeneratedComment]:
-        """Generate comments from candidates using deterministic scoring."""
+        """Generate comments from candidates using scoring and random probability."""
         if not candidates:
             return []
 
@@ -75,7 +75,7 @@ class DeterministicCommentGenerator(CommentGenerator):
 
 
 def _score_post(post: BlueskyFeedPost) -> float:
-    """Compute deterministic score for a post."""
+    """Compute score for a post (recency + social proof)."""
     recency = _recency_score(post.created_at)
     social = (
         post.like_count * LIKE_COUNT_WEIGHT
@@ -95,13 +95,6 @@ def _recency_score(created_at: str) -> float:
         return 0.0
 
 
-def _stable_u64(*parts: str) -> int:
-    """Return stable u64 hash for the given string parts."""
-    payload = "|".join(parts).encode("utf-8")
-    digest = hashlib.sha256(payload).digest()
-    return int.from_bytes(digest[:8], "big", signed=False)
-
-
 def _should_comment(
     *,
     run_id: str,
@@ -109,18 +102,8 @@ def _should_comment(
     agent_handle: str,
     post_id: str,
 ) -> bool:
-    """Return deterministic decision for whether to comment on a post."""
-    roll = (
-        _stable_u64(
-            "should_comment",
-            run_id,
-            str(turn_number),
-            agent_handle,
-            post_id,
-        )
-        % 100
-    )
-    return roll < COMMENT_PROBABILITY_PCT
+    """Return whether to comment on a post using random probability in [0, 1)."""
+    return random.random() < COMMENT_PROBABILITY
 
 
 def _pick_comment_text(
@@ -130,14 +113,9 @@ def _pick_comment_text(
     agent_handle: str,
     post_id: str,
 ) -> str:
-    """Pick a deterministic comment text from the hardcoded pool."""
-    idx = _stable_u64(
-        "comment_text",
-        run_id,
-        str(turn_number),
-        agent_handle,
-        post_id,
-    ) % len(HARDCODED_COMMENT_TEXTS)
+    """Pick a comment text from the hardcoded pool using random index."""
+    roll = random.random()  # [0.0, 1.0)
+    idx = int(roll * len(HARDCODED_COMMENT_TEXTS))
     return HARDCODED_COMMENT_TEXTS[idx]
 
 
@@ -148,8 +126,8 @@ def _derive_created_at(
     agent_handle: str,
     post_id: str,
 ) -> str:
-    """Derive a deterministic created_at string for GeneratedComment metadata."""
-    return f"det_{run_id}_turn{turn_number}_{agent_handle}_comment_{post_id}"
+    """Derive a stable created_at string for GeneratedComment metadata."""
+    return f"rs_{run_id}_turn{turn_number}_{agent_handle}_comment_{post_id}"
 
 
 def _build_generated_comment(
@@ -159,7 +137,7 @@ def _build_generated_comment(
     run_id: str,
     turn_number: int,
 ) -> GeneratedComment:
-    """Build a GeneratedComment with deterministic IDs and metadata."""
+    """Build a GeneratedComment with stable IDs and metadata."""
     post_id = post.id
     comment_id = f"comment_{run_id}_{turn_number}_{agent_handle}_{post_id}"
     created_at = _derive_created_at(
@@ -185,7 +163,7 @@ def _build_generated_comment(
         explanation=EXPLANATION,
         metadata=GenerationMetadata(
             model_used=None,
-            generation_metadata={"policy": "deterministic"},
+            generation_metadata={"policy": "simple"},
             created_at=created_at,
         ),
     )

@@ -61,9 +61,9 @@ def _create_comment_generator(mode: str) -> CommentGenerator:
         allowed_display_name=str(BEHAVIOR_MODES),
     )
     if mode == BEHAVIOR_MODE_DETERMINISTIC:
-        from simulation.core.action_generators.comment.algorithms.deterministic import (
-            DeterministicCommentGenerator,
+        from simulation.core.action_generators.comment.algorithms.random_simple import (
+            RandomSimpleCommentGenerator,
         )
 
-        return DeterministicCommentGenerator()
+        return RandomSimpleCommentGenerator()
     raise ValueError(f"Unsupported comment generator mode: {mode}")

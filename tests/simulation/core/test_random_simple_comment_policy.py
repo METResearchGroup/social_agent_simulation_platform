@@ -1,9 +1,9 @@
-"""Tests for simulation.core.action_generators.comment.algorithms.deterministic module."""
+"""Tests for simulation.core.action_generators.comment.algorithms.random_simple module."""
 
-from simulation.core.action_generators.comment.algorithms import deterministic as mod
-from simulation.core.action_generators.comment.algorithms.deterministic import (
+from simulation.core.action_generators.comment.algorithms import random_simple as mod
+from simulation.core.action_generators.comment.algorithms.random_simple import (
     TOP_K_POSTS_TO_COMMENT,
-    DeterministicCommentGenerator,
+    RandomSimpleCommentGenerator,
 )
 from simulation.core.models.posts import BlueskyFeedPost
 
@@ -32,13 +32,13 @@ def _post(
     )
 
 
-class TestDeterministicCommentGeneratorGenerate:
-    """Tests for DeterministicCommentGenerator.generate."""
+class TestRandomSimpleCommentGeneratorGenerate:
+    """Tests for RandomSimpleCommentGenerator.generate."""
 
     def test_returns_empty_when_no_candidates(self):
         """Empty candidates returns empty list."""
         # Arrange
-        generator = DeterministicCommentGenerator()
+        generator = RandomSimpleCommentGenerator()
         expected_result: list = []
 
         # Act
@@ -55,8 +55,8 @@ class TestDeterministicCommentGeneratorGenerate:
     def test_returns_empty_when_probability_is_zero(self, monkeypatch):
         """Probability gate at 0% yields no comments."""
         # Arrange
-        monkeypatch.setattr(mod, "COMMENT_PROBABILITY_PCT", 0)
-        generator = DeterministicCommentGenerator()
+        monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 0.0)
+        generator = RandomSimpleCommentGenerator()
         candidates = [_post("post_1", like_count=10), _post("post_2", like_count=5)]
         expected_result: list = []
 
@@ -74,8 +74,8 @@ class TestDeterministicCommentGeneratorGenerate:
     def test_returns_comments_when_probability_is_100(self, monkeypatch):
         """Probability gate at 100% yields comments for selected candidates."""
         # Arrange
-        monkeypatch.setattr(mod, "COMMENT_PROBABILITY_PCT", 100)
-        generator = DeterministicCommentGenerator()
+        monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
+        generator = RandomSimpleCommentGenerator()
         candidates = [_post("post_1", like_count=10), _post("post_2", like_count=5)]
         expected_count = min(TOP_K_POSTS_TO_COMMENT, len(candidates))
 
@@ -95,8 +95,8 @@ class TestDeterministicCommentGeneratorGenerate:
     def test_selection_prefers_higher_social_proof(self, monkeypatch):
         """Top-k selection prefers higher like_count when recency is equal."""
         # Arrange
-        monkeypatch.setattr(mod, "COMMENT_PROBABILITY_PCT", 100)
-        generator = DeterministicCommentGenerator()
+        monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
+        generator = RandomSimpleCommentGenerator()
         candidates = [
             _post("post_0", like_count=0),
             _post("post_1", like_count=1),
@@ -118,11 +118,13 @@ class TestDeterministicCommentGeneratorGenerate:
         selected_post_ids = {c.comment.post_id for c in result}
         assert selected_post_ids == expected_selected
 
-    def test_determinism_same_inputs_same_output(self, monkeypatch):
-        """Repeated runs with identical inputs produce same comments."""
-        # Arrange
-        monkeypatch.setattr(mod, "COMMENT_PROBABILITY_PCT", 100)
-        generator = DeterministicCommentGenerator()
+    def test_reproducible_when_random_mocked(self, monkeypatch):
+        """With random mocked to fixed values, repeated runs produce same comments."""
+        # Arrange: probability 1.0 and fixed random so behavior is reproducible
+        monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
+        fake_random = type("FakeRandom", (), {"random": lambda self: 0.0})()
+        monkeypatch.setattr(mod, "random", fake_random)
+        generator = RandomSimpleCommentGenerator()
         candidates = [_post("post_a", like_count=3), _post("post_b", like_count=7)]
         run_id = "run_det"
         turn_number = 1
@@ -151,8 +153,8 @@ class TestDeterministicCommentGeneratorGenerate:
     def test_ordering_is_sorted_by_post_id(self, monkeypatch):
         """Output ordering is stable and sorted by post_id."""
         # Arrange
-        monkeypatch.setattr(mod, "COMMENT_PROBABILITY_PCT", 100)
-        generator = DeterministicCommentGenerator()
+        monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
+        generator = RandomSimpleCommentGenerator()
         candidates = [_post("b"), _post("a")]
         expected_order = ["a", "b"]
 
@@ -170,8 +172,8 @@ class TestDeterministicCommentGeneratorGenerate:
     def test_generated_comment_has_required_fields(self, monkeypatch):
         """GeneratedComment has valid ids, text, explanation, and metadata."""
         # Arrange
-        monkeypatch.setattr(mod, "COMMENT_PROBABILITY_PCT", 100)
-        generator = DeterministicCommentGenerator()
+        monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
+        generator = RandomSimpleCommentGenerator()
         candidates = [_post("post_1", like_count=1)]
         expected_run_id = "run_1"
         expected_turn = 2
@@ -195,4 +197,4 @@ class TestDeterministicCommentGeneratorGenerate:
         assert comment.comment.post_id == expected_post_id
         assert comment.comment.text
         assert comment.explanation
-        assert comment.metadata.generation_metadata == {"policy": "deterministic"}
+        assert comment.metadata.generation_metadata == {"policy": "simple"}
