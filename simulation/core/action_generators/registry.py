@@ -1,6 +1,6 @@
 """Central registry for action generators.
 
-Single source of truth for behavior mode (e.g. deterministic, llm).
+Single source of truth for behavior mode (e.g. default, llm).
 Delegates to per-action algorithm implementations.
 """
 

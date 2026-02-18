@@ -9,6 +9,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timezone
 
+from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_generators.interfaces import CommentGenerator
 from simulation.core.models.actions import Comment
 from simulation.core.models.generated.base import GenerationMetadata
@@ -119,17 +120,6 @@ def _pick_comment_text(
     return HARDCODED_COMMENT_TEXTS[idx]
 
 
-def _derive_created_at(
-    *,
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-    post_id: str,
-) -> str:
-    """Derive a stable created_at string for GeneratedComment metadata."""
-    return f"rs_{run_id}_turn{turn_number}_{agent_handle}_comment_{post_id}"
-
-
 def _build_generated_comment(
     *,
     post: BlueskyFeedPost,
@@ -137,15 +127,10 @@ def _build_generated_comment(
     run_id: str,
     turn_number: int,
 ) -> GeneratedComment:
-    """Build a GeneratedComment with stable IDs and metadata."""
+    """Build a GeneratedComment with IDs and metadata."""
     post_id = post.id
     comment_id = f"comment_{run_id}_{turn_number}_{agent_handle}_{post_id}"
-    created_at = _derive_created_at(
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=agent_handle,
-        post_id=post_id,
-    )
+    created_at = get_current_timestamp()
     text = _pick_comment_text(
         run_id=run_id,
         turn_number=turn_number,
