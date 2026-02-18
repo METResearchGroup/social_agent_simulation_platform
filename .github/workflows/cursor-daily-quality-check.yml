@@ -34,13 +34,7 @@ jobs:
       - name: Run Cursor agent
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          agent -p --force "$(cat << 'PROMPT_END'
-Please review the diffs in the last few PRs as well as anything else in the codebase.
-Review for any violations related to the docs/RULES.md or in the review-rules skill defined in https://github.com/mark-torres10/ai_tools/blob/main/skills/review-rules/SKILL.md. The associated rules are in https://github.com/mark-torres10/ai_tools/blob/main/agents/task_instructions/rules/CLEAN_CODE_PRINCIPLES.md and https://github.com/mark-torres10/ai_tools/blob/main/agents/task_instructions/rules/CODING_REPO_CONVENTIONS.md and https://github.com/mark-torres10/ai_tools/blob/main/agents/task_instructions/rules/CODING_RULES.md.
-
-Make any changes. Follow docs/RULES.md along the way.
-PROMPT_END
-)"
+          agent -p --force "Please review the diffs in the last few PRs as well as anything else in the codebase. Review for any violations related to the docs/RULES.md or in the review-rules skill defined in https://github.com/mark-torres10/ai_tools/blob/main/skills/review-rules/SKILL.md. The associated rules are in https://github.com/mark-torres10/ai_tools/blob/main/agents/task_instructions/rules/CLEAN_CODE_PRINCIPLES.md and https://github.com/mark-torres10/ai_tools/blob/main/agents/task_instructions/rules/CODING_REPO_CONVENTIONS.md and https://github.com/mark-torres10/ai_tools/blob/main/agents/task_instructions/rules/CODING_RULES.md. Make any changes. Follow docs/RULES.md along the way."
         continue-on-error: true
 
       - name: Create Pull Request
