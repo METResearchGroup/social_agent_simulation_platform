@@ -104,7 +104,7 @@ class FeedSchema(BaseModel):
 
 
 class PostSchema(BaseModel):
-    """Post content for display in agent feeds."""
+    """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts."""
 
     uri: str
     author_display_name: str

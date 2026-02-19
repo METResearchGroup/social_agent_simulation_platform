@@ -31,6 +31,7 @@ interface ApiAgentAction {
   created_at: string;
 }
 
+/** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
 interface ApiPost {
   uri: string;
   author_display_name: string;
