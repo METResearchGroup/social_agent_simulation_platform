@@ -1,4 +1,4 @@
-import { AgentAction, Feed, Post, Run, Turn } from '@/types';
+import { AgentAction, Feed, Post, Run, RunConfig, Turn } from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
@@ -29,6 +29,12 @@ interface ApiAgentAction {
   user_id?: string;
   type: AgentAction['type'];
   created_at: string;
+}
+
+/** API response shape for default config. Matches DefaultConfigSchema. */
+interface ApiDefaultConfig {
+  num_agents: number;
+  num_turns: number;
 }
 
 /** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
@@ -124,6 +130,16 @@ function mapTurn(apiTurn: ApiTurn): Turn {
     turnNumber: apiTurn.turn_number,
     agentFeeds,
     agentActions,
+  };
+}
+
+export async function getDefaultConfig(): Promise<RunConfig> {
+  const api: ApiDefaultConfig = await fetchJson<ApiDefaultConfig>(
+    buildApiUrl('/simulations/config/default'),
+  );
+  return {
+    numAgents: api.num_agents,
+    numTurns: api.num_turns,
   };
 }
 

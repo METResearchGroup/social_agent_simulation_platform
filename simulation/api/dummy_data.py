@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from simulation.api.schemas.simulation import (
     AgentActionSchema,
+    DefaultConfigSchema,
     FeedSchema,
     PostSchema,
     RunListItem,
@@ -158,6 +159,17 @@ DUMMY_POSTS: list[PostSchema] = [
         created_at="2025-01-16T10:30:00",
     ),
 ]
+
+DUMMY_DEFAULT_CONFIG: DefaultConfigSchema = DefaultConfigSchema(
+    num_agents=5,
+    num_turns=10,
+)
+
+
+def get_default_config_dummy() -> DefaultConfigSchema:
+    """Return default config for simulation start form."""
+    return DUMMY_DEFAULT_CONFIG
+
 
 _RUN_COMPLETED_TURNS: dict[str, int] = {
     "run_2025-01-15T10:30:00": 10,

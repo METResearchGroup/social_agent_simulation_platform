@@ -1,4 +1,4 @@
-import { Agent, RunConfig } from '@/types';
+import { Agent } from '@/types';
 
 export const DUMMY_AGENTS: Agent[] = [
   {
@@ -74,11 +74,6 @@ export const DUMMY_AGENTS: Agent[] = [
     postsCount: 2103,
   },
 ];
-
-export const DEFAULT_CONFIG: RunConfig = {
-  numAgents: 5,
-  numTurns: 10,
-};
 
 export function getAgentByHandle(handle: string): Agent | undefined {
   return DUMMY_AGENTS.find((a) => a.handle === handle);

@@ -74,6 +74,13 @@ class RunResponse(BaseModel):
         return self
 
 
+class DefaultConfigSchema(BaseModel):
+    """Default config for simulation start form."""
+
+    num_agents: int
+    num_turns: int
+
+
 class RunConfigDetail(BaseModel):
     """Configuration for a persisted run."""
 
