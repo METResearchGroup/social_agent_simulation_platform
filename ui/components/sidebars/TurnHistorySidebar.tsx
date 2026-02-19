@@ -3,7 +3,30 @@
 import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 
 export default function TurnHistorySidebar() {
-  const { availableTurns, selectedTurn, onSelectTurn } = useRunDetail();
+  const { availableTurns, selectedTurn, onSelectTurn, turnsLoading } =
+    useRunDetail();
+
+  const turnListContent = (): React.ReactNode => {
+    if (turnsLoading && availableTurns.length === 0) {
+      return (
+        <p className="p-4 text-center text-sm text-beige-600">Loading turns…</p>
+      );
+    }
+    return availableTurns.map((turnNumber) => (
+      <button
+        key={turnNumber}
+        type="button"
+        onClick={() => onSelectTurn(turnNumber)}
+        className={`w-full text-left p-3 border-b border-beige-200 hover:bg-beige-100 transition-colors ${
+          selectedTurn === turnNumber ? 'bg-beige-200' : ''
+        }`}
+      >
+        <div className="text-sm font-medium text-beige-900">
+          Turn {turnNumber + 1}
+        </div>
+      </button>
+    ));
+  };
 
   return (
     <div className="w-1/4 border-r border-beige-300 bg-beige-50 flex flex-col">
@@ -19,22 +42,7 @@ export default function TurnHistorySidebar() {
       >
         <div className="text-sm font-medium text-beige-900">Summary</div>
       </button>
-      <div className="flex-1 overflow-y-auto">
-        {availableTurns.map((turnNumber) => (
-          <button
-            key={turnNumber}
-            type="button"
-            onClick={() => onSelectTurn(turnNumber)}
-            className={`w-full text-left p-3 border-b border-beige-200 hover:bg-beige-100 transition-colors ${
-              selectedTurn === turnNumber ? 'bg-beige-200' : ''
-            }`}
-          >
-            <div className="text-sm font-medium text-beige-900">
-              Turn {turnNumber + 1}
-            </div>
-          </button>
-        ))}
-      </div>
+      <div className="flex-1 overflow-y-auto">{turnListContent()}</div>
     </div>
   );
 }
