@@ -1,3 +1,8 @@
+---
+description: Deploy the Next.js UI to Vercel using the Vercel CLI (link, preview, production, verify).
+tags: [ui, deployment, vercel, nextjs]
+---
+
 # UI Deployment Guide (Vercel)
 
 This runbook deploys the Next.js UI in `ui/` to Vercel using the Vercel CLI (no dashboard required).
