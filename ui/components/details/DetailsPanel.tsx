@@ -39,9 +39,10 @@ export default function DetailsPanel() {
   }
 
   if (turnsError) {
+    const turnsErrorMessage = "Cannot load turns data. Please try again.";
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-beige-800">
-        <p className="text-sm">{turnsError.message}</p>
+        <p className="text-sm">{turnsErrorMessage}</p>
         <button
           type="button"
           onClick={onRetryTurns}
