@@ -103,6 +103,21 @@ class FeedSchema(BaseModel):
     created_at: str
 
 
+class PostSchema(BaseModel):
+    """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts."""
+
+    uri: str
+    author_display_name: str
+    author_handle: str
+    text: str
+    bookmark_count: int
+    like_count: int
+    quote_count: int
+    reply_count: int
+    repost_count: int
+    created_at: str
+
+
 class AgentActionSchema(BaseModel):
     """Action event performed by an agent in a turn."""
 

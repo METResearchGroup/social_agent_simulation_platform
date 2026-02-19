@@ -1,4 +1,4 @@
-import { Run, Turn, Feed, AgentAction } from '@/types';
+import { AgentAction, Feed, Post, Run, Turn } from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
@@ -28,6 +28,20 @@ interface ApiAgentAction {
   post_uri?: string;
   user_id?: string;
   type: AgentAction['type'];
+  created_at: string;
+}
+
+/** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
+interface ApiPost {
+  uri: string;
+  author_display_name: string;
+  author_handle: string;
+  text: string;
+  bookmark_count: number;
+  like_count: number;
+  quote_count: number;
+  reply_count: number;
+  repost_count: number;
   created_at: string;
 }
 
@@ -79,6 +93,21 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
   };
 }
 
+function mapPost(apiPost: ApiPost): Post {
+  return {
+    uri: apiPost.uri,
+    authorDisplayName: apiPost.author_display_name,
+    authorHandle: apiPost.author_handle,
+    text: apiPost.text,
+    bookmarkCount: apiPost.bookmark_count,
+    likeCount: apiPost.like_count,
+    quoteCount: apiPost.quote_count,
+    replyCount: apiPost.reply_count,
+    repostCount: apiPost.repost_count,
+    createdAt: apiPost.created_at,
+  };
+}
+
 function mapTurn(apiTurn: ApiTurn): Turn {
   const agentFeeds: Record<string, Feed> = {};
   const agentActions: Record<string, AgentAction[]> = {};
@@ -123,4 +152,14 @@ export async function getTurnsForRun(runId: string): Promise<Record<string, Turn
   });
 
   return turnsById;
+}
+
+export async function getPosts(uris?: string[]): Promise<Post[]> {
+  const baseUrl: string = buildApiUrl('/simulations/posts');
+  const url: string =
+    uris != null && uris.length > 0
+      ? `${baseUrl}?${uris.map((u) => `uris=${encodeURIComponent(u)}`).join('&')}`
+      : baseUrl;
+  const apiPosts: ApiPost[] = await fetchJson<ApiPost[]>(url);
+  return apiPosts.map(mapPost);
 }
