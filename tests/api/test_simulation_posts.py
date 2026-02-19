@@ -29,10 +29,9 @@ def test_get_simulations_posts_returns_filtered_by_uris(simulation_client):
 
     assert response.status_code == 200
     data = response.json()
-    expected_result = {"count": 2, "uris": {uri1, uri2}}
-    assert len(data) == expected_result["count"]
+    assert len(data) == 2
     returned_uris = {post["uri"] for post in data}
-    assert returned_uris == expected_result["uris"]
+    assert returned_uris == {uri1, uri2}
 
 
 def test_get_simulations_posts_ordering_deterministic(simulation_client):
