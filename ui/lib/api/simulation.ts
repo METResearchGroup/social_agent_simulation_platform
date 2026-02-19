@@ -1,4 +1,4 @@
-import { Agent, Run, Turn, Feed, AgentAction } from '@/types';
+import { Agent, AgentAction, Feed, Post, Run, Turn } from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
@@ -53,6 +53,20 @@ interface ApiAgentAction {
   created_at: string;
 }
 
+/** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
+interface ApiPost {
+  uri: string;
+  author_display_name: string;
+  author_handle: string;
+  text: string;
+  bookmark_count: number;
+  like_count: number;
+  quote_count: number;
+  reply_count: number;
+  repost_count: number;
+  created_at: string;
+}
+
 interface ApiTurn {
   turn_number: number;
   agent_feeds: Record<string, ApiFeed>;
@@ -98,6 +112,21 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
     userId: apiAction.user_id,
     type: apiAction.type,
     createdAt: apiAction.created_at,
+  };
+}
+
+function mapPost(apiPost: ApiPost): Post {
+  return {
+    uri: apiPost.uri,
+    authorDisplayName: apiPost.author_display_name,
+    authorHandle: apiPost.author_handle,
+    text: apiPost.text,
+    bookmarkCount: apiPost.bookmark_count,
+    likeCount: apiPost.like_count,
+    quoteCount: apiPost.quote_count,
+    replyCount: apiPost.reply_count,
+    repostCount: apiPost.repost_count,
+    createdAt: apiPost.created_at,
   };
 }
 
@@ -152,4 +181,14 @@ export async function getAgents(): Promise<Agent[]> {
     buildApiUrl('/simulations/agents'),
   );
   return apiAgents.map(mapAgent);
+}
+
+export async function getPosts(uris?: string[]): Promise<Post[]> {
+  const baseUrl: string = buildApiUrl('/simulations/posts');
+  const url: string =
+    uris != null && uris.length > 0
+      ? `${baseUrl}?${uris.map((u) => `uris=${encodeURIComponent(u)}`).join('&')}`
+      : baseUrl;
+  const apiPosts: ApiPost[] = await fetchJson<ApiPost[]>(url);
+  return apiPosts.map(mapPost);
 }

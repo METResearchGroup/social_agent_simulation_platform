@@ -1,3 +1,8 @@
+---
+description: Project-wide coding standards, architecture guidelines, and behavioral rules for AI agents and human developers.
+tags: [rules, coding-standards, architecture, api-design, python, frontend, testing]
+---
+
 # Rules for the repo
 
 1. Interfaces live next to implementations, in a "(path to folder)/interfaces.py" (e.g., feeds/interfaces.py).

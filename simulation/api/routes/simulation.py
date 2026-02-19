@@ -4,13 +4,14 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
 from lib.request_logging import log_route_completion
 from simulation.api.schemas.simulation import (
     AgentSchema,
+    PostSchema,
     RunDetailsResponse,
     RunListItem,
     RunRequest,
@@ -20,6 +21,7 @@ from simulation.api.schemas.simulation import (
 from simulation.api.services.agent_query_service import list_agents_dummy
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
+    get_posts_by_uris_dummy,
     get_run_details,
     get_turns_for_run_dummy,
     list_runs_dummy,
@@ -35,6 +37,7 @@ SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
+SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 
 
 @router.get(
@@ -178,6 +181,43 @@ async def get_simulation_run(
 
 
 @router.get(
+    "/simulations/posts",
+    response_model=list[PostSchema],
+    status_code=200,
+    summary="List simulation posts",
+    description="Return posts, optionally filtered by URIs. Batch lookup for feed resolution.",
+)
+async def get_simulation_posts(
+    request: Request,
+    uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
+) -> list[PostSchema] | Response:
+    """Return posts from the backend dummy source."""
+    response = await _execute_get_simulation_posts(request, uris=uris)
+    request_id = getattr(request.state, "request_id", "")
+    latency_ms = getattr(request.state, "duration_ms", 0)
+    if isinstance(response, list):
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_POSTS_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status="200",
+            error_code=None,
+        )
+    else:
+        error_code = _error_code_from_json_response(response)
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_POSTS_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status=str(response.status_code),
+            error_code=error_code,
+        )
+    return response
+
+
+@router.get(
     "/simulations/runs/{run_id}/turns",
     response_model=dict[str, TurnSchema],
     status_code=200,
@@ -211,6 +251,25 @@ async def get_simulation_run_turns(
             error_code=error_code,
         )
     return response
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_simulation_posts(
+    request: Request,
+    *,
+    uris: list[str] | None = None,
+) -> list[PostSchema] | Response:
+    """Fetch posts and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(get_posts_by_uris_dummy, uris=uris)
+    except Exception:
+        logger.exception("Unexpected error while listing simulation posts")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
