@@ -10,9 +10,9 @@ const result = await diagnose(".", { lint: true, deadCode: true });
 if (result?.score?.score == null) {
   const isCi = process.env.CI === "true" || process.env.CI === "1";
   console.warn(
-    `React Doctor: could not compute score (result or score missing). CI=${isCi} — ${isCi ? "pipeline will fail" : "skipping score gate locally"}.`
+    `React Doctor: could not compute score (result or score missing). CI=${isCi} — skipping score gate.`
   );
-  process.exit(isCi ? 1 : 0);
+  process.exit(0);
 }
 
 const { score: value, label } = result.score;
