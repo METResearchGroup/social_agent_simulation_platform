@@ -8,10 +8,11 @@ const minScore = Number(process.env.REACT_DOCTOR_MIN_SCORE) || 70;
 const result = await diagnose(".", { lint: true, deadCode: true });
 
 if (result?.score?.score == null) {
+  const isCi = process.env.CI === "true" || process.env.CI === "1";
   console.warn(
-    "React Doctor: could not compute score (result or score missing). Skipping score gate."
+    `React Doctor: could not compute score (result or score missing). CI=${isCi} — ${isCi ? "pipeline will fail" : "skipping score gate locally"}.`
   );
-  process.exit(0);
+  process.exit(isCi ? 1 : 0);
 }
 
 const { score: value, label } = result.score;
