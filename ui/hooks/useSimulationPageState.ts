@@ -273,6 +273,11 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryRunsTrigger((t) => t + 1);
   };
 
+  const handleRetryAgents = (): void => {
+    setAgentsError(null);
+    setRetryAgentsTrigger((t) => t + 1);
+  };
+
   const handleRetryTurns = (runId: string): void => {
     setTurnsErrorByRunId((prev) => {
       const next: Record<string, Error | null> = { ...prev };
