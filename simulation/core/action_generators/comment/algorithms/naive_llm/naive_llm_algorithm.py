@@ -5,8 +5,6 @@ Uses a single LLM call to predict what comments the user would make.
 
 from __future__ import annotations
 
-import json
-
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService, get_llm_service
 from simulation.core.action_generators.comment.algorithms.naive_llm.prompt import (
@@ -16,6 +14,10 @@ from simulation.core.action_generators.comment.algorithms.naive_llm.response_mod
     CommentPrediction,
 )
 from simulation.core.action_generators.interfaces import CommentGenerator
+from simulation.core.action_generators.utils.llm_utils import (
+    _posts_to_minimal_json,
+    _resolve_model_used,
+)
 from simulation.core.models.actions import Comment
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
@@ -23,20 +25,6 @@ from simulation.core.models.posts import BlueskyFeedPost
 
 EXPLANATION: str = "LLM prediction (naive_llm)"
 COMMENT_POLICY: str = "naive_llm"
-
-
-def _posts_to_minimal_json(posts: list[BlueskyFeedPost]) -> str:
-    """Serialize posts to minimal JSON for the prompt."""
-    items = [
-        {
-            "id": p.id,
-            "text": p.text,
-            "author_handle": p.author_handle,
-            "like_count": p.like_count,
-        }
-        for p in posts
-    ]
-    return json.dumps(items, indent=2)
 
 
 def _build_prompt(agent_handle: str, candidates: list[BlueskyFeedPost]) -> str:
@@ -73,16 +61,6 @@ def _build_generated_comment(
             created_at=created_at,
         ),
     )
-
-
-def _resolve_model_used() -> str | None:
-    """Get the default model identifier for metadata, or None if unavailable."""
-    try:
-        from ml_tooling.llm.config.model_registry import ModelConfigRegistry
-
-        return ModelConfigRegistry.get_default_model()
-    except (ValueError, FileNotFoundError):
-        return None
 
 
 class NaiveLLMCommentGenerator(CommentGenerator):

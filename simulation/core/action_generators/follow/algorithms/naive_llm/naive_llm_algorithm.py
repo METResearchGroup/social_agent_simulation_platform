@@ -16,6 +16,7 @@ from simulation.core.action_generators.follow.algorithms.naive_llm.response_mode
     FollowPrediction,
 )
 from simulation.core.action_generators.interfaces import FollowGenerator
+from simulation.core.action_generators.utils.llm_utils import _resolve_model_used
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.follow import GeneratedFollow
@@ -92,16 +93,6 @@ def _build_generated_follow(
             created_at=created_at,
         ),
     )
-
-
-def _resolve_model_used() -> str | None:
-    """Get the default model identifier for metadata, or None if unavailable."""
-    try:
-        from ml_tooling.llm.config.model_registry import ModelConfigRegistry
-
-        return ModelConfigRegistry.get_default_model()
-    except (ValueError, FileNotFoundError):
-        return None
 
 
 class NaiveLLMFollowGenerator(FollowGenerator):
