@@ -12,6 +12,10 @@ import { DEFAULT_CONFIG } from '@/lib/dummy-data';
 export default function Home() {
   const {
     runsWithStatus,
+    runsLoading,
+    runsError,
+    turnsLoadingByRunId,
+    turnsErrorByRunId,
     selectedRunId,
     selectedTurn,
     selectedRun,
@@ -21,12 +25,12 @@ export default function Home() {
     runAgents,
     currentRunConfig,
     isStartScreen,
-    turnsError,
-    retryTurns,
     handleConfigSubmit,
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,
+    handleRetryRuns,
+    handleRetryTurns,
   } = useSimulationPageState();
 
   const runDetailContextValue = useMemo(
@@ -38,9 +42,15 @@ export default function Home() {
       currentRunConfig,
       runAgents,
       completedTurnsCount,
-      turnsError,
-      retryTurns,
+      turnsLoading: selectedRunId ? (turnsLoadingByRunId[selectedRunId] ?? false) : false,
+      turnsError: selectedRunId ? (turnsErrorByRunId[selectedRunId] ?? null) : null,
       onSelectTurn: handleSelectTurn,
+      onRetryTurns:
+        selectedRunId !== null
+          ? () => handleRetryTurns(selectedRunId)
+          : () => {
+              /* no-op when no run selected */
+            },
     }),
     [
       selectedRun,
@@ -50,9 +60,11 @@ export default function Home() {
       currentRunConfig,
       runAgents,
       completedTurnsCount,
-      turnsError,
-      retryTurns,
+      selectedRunId,
+      turnsLoadingByRunId,
+      turnsErrorByRunId,
       handleSelectTurn,
+      handleRetryTurns,
     ],
   );
 
@@ -60,6 +72,9 @@ export default function Home() {
     <SimulationLayout>
       <RunHistorySidebar
         runs={runsWithStatus}
+        runsLoading={runsLoading}
+        runsError={runsError}
+        onRetryRuns={handleRetryRuns}
         selectedRunId={selectedRunId}
         onSelectRun={handleSelectRun}
         onStartNewRun={handleStartNewRun}

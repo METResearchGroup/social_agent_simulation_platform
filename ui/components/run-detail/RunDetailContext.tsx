@@ -11,9 +11,10 @@ interface RunDetailContextValue {
   currentRunConfig: RunConfig | null;
   runAgents: Agent[];
   completedTurnsCount: number;
+  turnsLoading: boolean;
   turnsError: ApiError | null;
-  retryTurns: (runId: string) => void;
   onSelectTurn: (turn: number | 'summary') => void;
+  onRetryTurns: () => void;
 }
 
 interface RunDetailProviderProps {

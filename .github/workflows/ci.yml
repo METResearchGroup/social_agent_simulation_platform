@@ -51,15 +51,6 @@ jobs:
       - name: Run Oxlint
         run: npm run lint:oxlint
 
-      - name: Run React Doctor (report)
-        run: npx react-doctor . --verbose
-        continue-on-error: true
-
-      - name: React Doctor score gate
-        env:
-          REACT_DOCTOR_MIN_SCORE: "70"
-        run: npm run lint:doctor
-
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30

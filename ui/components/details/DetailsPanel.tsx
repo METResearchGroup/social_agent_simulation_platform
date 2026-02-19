@@ -5,6 +5,8 @@ import RunParametersBlock from '@/components/details/RunParametersBlock';
 import RunSummary from '@/components/details/RunSummary';
 import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 import { getPostByUri } from '@/lib/dummy-data';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { getTurnsErrorMessage } from '@/lib/error-messages';
 import { Agent, Post, Turn } from '@/types';
 
 export default function DetailsPanel() {
@@ -15,12 +17,40 @@ export default function DetailsPanel() {
     currentRunConfig,
     runAgents,
     completedTurnsCount,
+    turnsLoading,
+    turnsError,
+    onRetryTurns,
   } = useRunDetail();
 
   if (!selectedRun) {
     return (
       <div className="flex-1 flex items-center justify-center text-beige-600">
         Select a run to view details
+      </div>
+    );
+  }
+
+  if (turnsLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-beige-600">
+        <LoadingSpinner />
+        <span className="text-sm">Loading turns…</span>
+      </div>
+    );
+  }
+
+  if (turnsError) {
+    const turnsErrorMessage = getTurnsErrorMessage(turnsError);
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-beige-800">
+        <p className="text-sm">{turnsErrorMessage}</p>
+        <button
+          type="button"
+          onClick={onRetryTurns}
+          className="px-3 py-2 text-sm font-medium text-accent hover:text-accent-hover"
+        >
+          Retry
+        </button>
       </div>
     );
   }
