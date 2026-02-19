@@ -23,7 +23,7 @@ export default function RunHistorySidebar({
   onStartNewRun,
 }: RunHistorySidebarProps) {
   const runListContent = (): React.ReactNode => {
-    if (runsLoading) {
+    if (runsLoading && runs.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-beige-600">
           <LoadingSpinner />
