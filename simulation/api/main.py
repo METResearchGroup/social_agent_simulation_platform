@@ -5,6 +5,7 @@ Run from repository root with PYTHONPATH set to project root, e.g.:
 """
 
 import asyncio
+import os
 import uuid
 from contextlib import asynccontextmanager
 
@@ -20,6 +21,8 @@ from db.adapters.sqlite.sqlite import initialize_database
 from lib.request_logging import log_request_start
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
+
+DEFAULT_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
 
 @asynccontextmanager
@@ -51,9 +54,13 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(RequestIdMiddleware)
+_allowed_origins_raw: str = os.environ.get("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
+_allowed_origins: list[str] = [
+    origin.strip() for origin in _allowed_origins_raw.split(",") if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=_allowed_origins,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
