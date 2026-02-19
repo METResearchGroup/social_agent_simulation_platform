@@ -1,3 +1,8 @@
+---
+description: Deploy the FastAPI backend to Railway with Docker and persistent SQLite.
+tags: [deployment, railway, docker, fastapi, sqlite]
+---
+
 # Railway Deployment Guide
 
 This guide deploys the FastAPI backend to Railway with Docker and persistent SQLite.
