@@ -5,16 +5,8 @@ import RunParametersBlock from '@/components/details/RunParametersBlock';
 import RunSummary from '@/components/details/RunSummary';
 import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 import { getPostByUri } from '@/lib/dummy-data';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Agent, Post, Turn } from '@/types';
-
-function LoadingSpinner() {
-  return (
-    <div
-      className="h-5 w-5 animate-spin rounded-full border-2 border-beige-300 border-t-accent"
-      aria-hidden
-    />
-  );
-}
 
 export default function DetailsPanel() {
   const {
