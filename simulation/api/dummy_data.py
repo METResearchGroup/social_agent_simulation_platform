@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from simulation.api.schemas.simulation import (
     AgentActionSchema,
+    AgentSchema,
     FeedSchema,
     RunListItem,
     TurnSchema,
@@ -20,6 +21,81 @@ _DUMMY_AGENT_HANDLES: list[str] = [
     "@fiona.frontend",
     "@george.backend",
     "@hannah.ai",
+]
+
+DUMMY_AGENTS: list[AgentSchema] = [
+    AgentSchema(
+        handle="@alice.bsky.social",
+        name="Alice Chen",
+        bio="AI researcher and educator. Building the future of human-AI collaboration.",
+        generated_bio="Alice is a passionate AI researcher who focuses on making artificial intelligence more accessible and understandable. She regularly shares insights about machine learning, human-computer interaction, and the ethical implications of AI technology.",
+        followers=12450,
+        following=892,
+        posts_count=3421,
+    ),
+    AgentSchema(
+        handle="@bob.tech",
+        name="Bob Martinez",
+        bio="Software engineer | Open source contributor | Coffee enthusiast ☕",
+        generated_bio="Bob is an experienced software engineer with a strong focus on open-source contributions. He loves sharing technical knowledge, code reviews, and occasionally posts about his coffee adventures.",
+        followers=8765,
+        following=1203,
+        posts_count=2105,
+    ),
+    AgentSchema(
+        handle="@charlie.dev",
+        name="Charlie Kim",
+        bio="Building products that matter. Former startup founder.",
+        generated_bio="Charlie is a product-focused engineer with a background in startup entrepreneurship. He shares lessons learned, product development insights, and thoughts on building sustainable businesses.",
+        followers=15432,
+        following=567,
+        posts_count=4521,
+    ),
+    AgentSchema(
+        handle="@diana.design",
+        name="Diana Park",
+        bio="UX Designer | Accessibility advocate | Design systems enthusiast",
+        generated_bio="Diana is a UX designer passionate about creating inclusive and accessible digital experiences. She frequently shares design system patterns, accessibility best practices, and thoughts on how design impacts user behavior.",
+        followers=9876,
+        following=1456,
+        posts_count=1876,
+    ),
+    AgentSchema(
+        handle="@edward.data",
+        name="Edward Wu",
+        bio="Data scientist | ML engineer | Stats nerd 📊",
+        generated_bio="Edward is a data scientist who loves diving deep into datasets and building machine learning models. He shares analysis insights, statistical findings, and practical ML techniques with the community.",
+        followers=11234,
+        following=789,
+        posts_count=3210,
+    ),
+    AgentSchema(
+        handle="@fiona.frontend",
+        name="Fiona Lee",
+        bio="Frontend engineer | React enthusiast | CSS wizard",
+        generated_bio="Fiona is a frontend engineer specializing in React and modern CSS. She enjoys building performant web applications and sharing tips on component architecture, performance optimization, and creative CSS techniques.",
+        followers=6543,
+        following=923,
+        posts_count=1567,
+    ),
+    AgentSchema(
+        handle="@george.backend",
+        name="George Thompson",
+        bio="Backend engineer | Distributed systems | Database optimization",
+        generated_bio="George is a backend engineer with expertise in distributed systems and database design. He shares insights on system architecture, scalability challenges, and database performance tuning strategies.",
+        followers=14567,
+        following=612,
+        posts_count=2890,
+    ),
+    AgentSchema(
+        handle="@hannah.ai",
+        name="Hannah Rodriguez",
+        bio="AI product manager | ML adoption | Ethical AI",
+        generated_bio="Hannah is a product manager focused on bringing AI products to market. She writes about ML adoption strategies, ethical considerations in AI development, and bridging the gap between technical teams and business stakeholders.",
+        followers=8765,
+        following=1345,
+        posts_count=2103,
+    ),
 ]
 
 _DUMMY_POST_URIS: list[str] = [

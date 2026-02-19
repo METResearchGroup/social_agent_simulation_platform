@@ -1,9 +1,31 @@
-import { Run, Turn, Feed, AgentAction } from '@/types';
+import { Agent, Run, Turn, Feed, AgentAction } from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
   process.env.NEXT_PUBLIC_SIMULATION_API_URL || DEFAULT_SIMULATION_API_BASE_URL
 ).replace(/\/$/, '');
+
+interface ApiAgent {
+  handle: string;
+  name: string;
+  bio: string;
+  generated_bio: string;
+  followers: number;
+  following: number;
+  posts_count: number;
+}
+
+function mapAgent(apiAgent: ApiAgent): Agent {
+  return {
+    handle: apiAgent.handle,
+    name: apiAgent.name,
+    bio: apiAgent.bio,
+    generatedBio: apiAgent.generated_bio,
+    followers: apiAgent.followers,
+    following: apiAgent.following,
+    postsCount: apiAgent.posts_count,
+  };
+}
 
 interface ApiRunListItem {
   run_id: string;
@@ -123,4 +145,11 @@ export async function getTurnsForRun(runId: string): Promise<Record<string, Turn
   });
 
   return turnsById;
+}
+
+export async function getAgents(): Promise<Agent[]> {
+  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
+    buildApiUrl('/simulations/agents'),
+  );
+  return apiAgents.map(mapAgent);
 }
