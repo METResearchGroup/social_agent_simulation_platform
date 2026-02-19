@@ -86,6 +86,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const turnsFetchInFlightRef = useRef<Set<string>>(new Set());
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
+  const agentsRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -119,24 +120,23 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
 
   useEffect(() => {
     let isMounted: boolean = true;
+    agentsRequestIdRef.current += 1;
+    const requestId: number = agentsRequestIdRef.current;
     setAgentsLoading(true);
     setAgentsError(null);
 
     const loadAgents = async (): Promise<void> => {
       try {
         const apiAgents: Agent[] = await getAgents();
-        if (isMounted) {
-          setAgents(apiAgents);
-        }
+        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        setAgents(apiAgents);
       } catch (error: unknown) {
         console.error('Failed to fetch agents:', error);
-        if (isMounted) {
-          setAgentsError(error instanceof Error ? error : new Error(String(error)));
-        }
+        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        setAgentsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (isMounted) {
-          setAgentsLoading(false);
-        }
+        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        setAgentsLoading(false);
       }
     };
 
