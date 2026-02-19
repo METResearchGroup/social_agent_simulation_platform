@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AgentDetail from '@/components/details/AgentDetail';
 import RunParametersBlock from '@/components/details/RunParametersBlock';
 import RunSummary from '@/components/details/RunSummary';
@@ -126,6 +126,7 @@ function TurnDetailContent({
   const [postsByUri, setPostsByUri] = useState<Record<string, Post>>({});
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<Error | null>(null);
+  const requestIdRef = useRef(0);
 
   const loadPosts = useCallback(async () => {
     if (postUris.length === 0) {
@@ -134,20 +135,25 @@ function TurnDetailContent({
       setPostsError(null);
       return;
     }
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
     setPostsLoading(true);
     setPostsError(null);
     try {
       const posts: Post[] = await getPosts(postUris);
+      if (requestId !== requestIdRef.current) return;
       const byUri: Record<string, Post> = {};
       for (const post of posts) {
         byUri[post.uri] = post;
       }
       setPostsByUri(byUri);
     } catch (error: unknown) {
+      if (requestId !== requestIdRef.current) return;
       setPostsError(
         error instanceof Error ? error : new Error(String(error)),
       );
     } finally {
+      if (requestId !== requestIdRef.current) return;
       setPostsLoading(false);
     }
   }, [postUris]);
