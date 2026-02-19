@@ -158,3 +158,11 @@ Document the contract, not just the implementation
 Persistence and model boundaries
 
 - When adding computed or derived data (e.g. metrics), persist it in dedicated storage (e.g. turn_metrics / run_metrics tables and a dedicated repository) rather than overloading existing models or repositories. Keeps core models stable and avoids bloating a single repo with unrelated concerns.
+
+Frontend — Shared components
+
+- Extract shared UI patterns (e.g. LoadingSpinner) into common components when the same JSX/styling appears in multiple places. Reuse rather than duplicate.
+
+Frontend — Consistency across analogous components
+
+- Use the same logic patterns for similar components (e.g. RunHistorySidebar and TurnHistorySidebar). Match sentinel conditions (e.g. loading && data.length === 0) so loading, retry, and empty behavior stay consistent and existing data isn’t hidden during retries.
