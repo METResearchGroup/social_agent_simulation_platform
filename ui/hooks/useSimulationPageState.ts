@@ -243,6 +243,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       return next;
     });
     loadedTurnsRunIdsRef.current.delete(runId);
+    lastTurnsFetchAttemptAtMsRef.current.delete(runId);
     setRetryTurnsTrigger((t) => t + 1);
   };
 
