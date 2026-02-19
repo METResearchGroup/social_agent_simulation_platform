@@ -54,6 +54,7 @@ export default function RunHistorySidebar({
       <button
         key={run.runId}
         type="button"
+        data-testid={`run-${run.runId}`}
         onClick={() => onSelectRun(run.runId)}
         className={`w-full text-left p-3 border-b border-beige-200 hover:bg-beige-100 transition-colors ${
           selectedRunId === run.runId ? 'bg-beige-200' : ''

@@ -1,4 +1,4 @@
-import { Agent, Post, RunConfig } from '@/types';
+import { Agent, RunConfig } from '@/types';
 
 export const DUMMY_AGENTS: Agent[] = [
   {
@@ -75,137 +75,10 @@ export const DUMMY_AGENTS: Agent[] = [
   },
 ];
 
-export const DUMMY_POSTS: Post[] = [
-  {
-    uri: 'at://did:plc:example1/post1',
-    authorDisplayName: 'Alice Chen',
-    authorHandle: '@alice.bsky.social',
-    text: 'Just finished reading an amazing paper on transformer architectures. The attention mechanism continues to surprise me with its elegance!',
-    bookmarkCount: 23,
-    likeCount: 145,
-    quoteCount: 8,
-    replyCount: 12,
-    repostCount: 34,
-    createdAt: '2025-01-15T10:00:00',
-  },
-  {
-    uri: 'at://did:plc:example2/post2',
-    authorDisplayName: 'Bob Martinez',
-    authorHandle: '@bob.tech',
-    text: 'Found a beautiful bug today that only shows up on Tuesdays during leap years. Classic. 🐛',
-    bookmarkCount: 5,
-    likeCount: 67,
-    quoteCount: 2,
-    replyCount: 8,
-    repostCount: 12,
-    createdAt: '2025-01-15T11:30:00',
-  },
-  {
-    uri: 'at://did:plc:example3/post3',
-    authorDisplayName: 'Charlie Kim',
-    authorHandle: '@charlie.dev',
-    text: 'The best product decisions are often the ones that seem obvious in retrospect but were controversial at the time.',
-    bookmarkCount: 89,
-    likeCount: 234,
-    quoteCount: 15,
-    replyCount: 45,
-    repostCount: 78,
-    createdAt: '2025-01-15T13:00:00',
-  },
-  {
-    uri: 'at://did:plc:example4/post4',
-    authorDisplayName: 'Diana Park',
-    authorHandle: '@diana.design',
-    text: 'Accessibility isn\'t optional. Every design decision impacts real people with real needs. Let\'s build for everyone. ♿',
-    bookmarkCount: 156,
-    likeCount: 423,
-    quoteCount: 28,
-    replyCount: 67,
-    repostCount: 112,
-    createdAt: '2025-01-15T14:15:00',
-  },
-  {
-    uri: 'at://did:plc:example5/post5',
-    authorDisplayName: 'Edward Wu',
-    authorHandle: '@edward.data',
-    text: 'Just visualized a dataset with 10M rows and the patterns that emerged were fascinating. Sometimes you need to zoom out to see the forest for the trees.',
-    bookmarkCount: 34,
-    likeCount: 198,
-    quoteCount: 12,
-    replyCount: 23,
-    repostCount: 45,
-    createdAt: '2025-01-15T15:30:00',
-  },
-  {
-    uri: 'at://did:plc:example6/post6',
-    authorDisplayName: 'Fiona Lee',
-    authorHandle: '@fiona.frontend',
-    text: 'CSS Grid + Flexbox = unstoppable. Just built a responsive layout that would have taken me hours before. Modern CSS is magical.',
-    bookmarkCount: 78,
-    likeCount: 312,
-    quoteCount: 19,
-    replyCount: 34,
-    repostCount: 89,
-    createdAt: '2025-01-15T16:00:00',
-  },
-  {
-    uri: 'at://did:plc:example7/post7',
-    authorDisplayName: 'George Thompson',
-    authorHandle: '@george.backend',
-    text: 'Database indexing is like a library catalog system. Without it, you\'re searching through every book. With it, you go straight to the shelf.',
-    bookmarkCount: 112,
-    likeCount: 445,
-    quoteCount: 31,
-    replyCount: 56,
-    repostCount: 123,
-    createdAt: '2025-01-15T17:20:00',
-  },
-  {
-    uri: 'at://did:plc:example8/post8',
-    authorDisplayName: 'Hannah Rodriguez',
-    authorHandle: '@hannah.ai',
-    text: 'The hardest part of building AI products isn\'t the technology—it\'s understanding user needs and ensuring the AI actually solves real problems.',
-    bookmarkCount: 67,
-    likeCount: 289,
-    quoteCount: 22,
-    replyCount: 41,
-    repostCount: 98,
-    createdAt: '2025-01-15T18:45:00',
-  },
-  {
-    uri: 'at://did:plc:example9/post9',
-    authorDisplayName: 'Alice Chen',
-    authorHandle: '@alice.bsky.social',
-    text: 'Reading through code reviews and learning so much. The best teams learn from each other. Always ask "why?" not just "what?"',
-    bookmarkCount: 45,
-    likeCount: 178,
-    quoteCount: 9,
-    replyCount: 19,
-    repostCount: 42,
-    createdAt: '2025-01-16T09:00:00',
-  },
-  {
-    uri: 'at://did:plc:example10/post10',
-    authorDisplayName: 'Bob Martinez',
-    authorHandle: '@bob.tech',
-    text: 'Refactored a legacy component today. It\'s like archaeology—carefully removing layers to discover the original intent. Satisfying when it all clicks.',
-    bookmarkCount: 28,
-    likeCount: 134,
-    quoteCount: 6,
-    replyCount: 15,
-    repostCount: 29,
-    createdAt: '2025-01-16T10:30:00',
-  },
-];
-
 export const DEFAULT_CONFIG: RunConfig = {
   numAgents: 5,
   numTurns: 10,
 };
-
-export function getPostByUri(uri: string): Post | undefined {
-  return DUMMY_POSTS.find((p) => p.uri === uri);
-}
 
 export function getAgentByHandle(handle: string): Agent | undefined {
   return DUMMY_AGENTS.find((a) => a.handle === handle);
