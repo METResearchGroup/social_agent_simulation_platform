@@ -23,11 +23,17 @@ def _is_auth_disabled() -> bool:
 
 
 def _is_production() -> bool:
-    """True when environment indicates production (e.g. Railway, explicit ENV)."""
+    """True when environment indicates production. Conservative/fail-safe: ENV/ENVIRONMENT
+    accept "production" or "prod"; any non-empty RAILWAY_ENVIRONMENT is treated as production.
+    """
     env = os.environ.get("ENV", "").strip().lower()
     environment = os.environ.get("ENVIRONMENT", "").strip().lower()
-    railway = os.environ.get("RAILWAY_ENVIRONMENT", "").strip().lower()
-    return env == "production" or environment == "production" or railway == "production"
+    railway = os.environ.get("RAILWAY_ENVIRONMENT", "").strip()
+    return (
+        env in ("production", "prod")
+        or environment in ("production", "prod")
+        or bool(railway)
+    )
 
 
 def disallow_auth_bypass_in_production() -> None:
