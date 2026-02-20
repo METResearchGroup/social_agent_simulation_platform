@@ -1,6 +1,7 @@
 'use client';
 
 import { useRunDetail } from '@/components/run-detail/RunDetailContext';
+import { getTurnsErrorMessage } from '@/lib/error-messages';
 
 export default function TurnHistorySidebar() {
   const { availableTurns, selectedTurn, onSelectTurn, turnsLoading, turnsError, onRetryTurns } =
@@ -20,7 +21,7 @@ export default function TurnHistorySidebar() {
     if (turnsError) {
       return (
         <div className="flex flex-col gap-3 p-4 text-beige-800">
-          <p className="text-sm">{turnsError.message}</p>
+          <p className="text-sm">{getTurnsErrorMessage(turnsError)}</p>
           <button
             type="button"
             onClick={onRetryTurns}

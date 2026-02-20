@@ -7,6 +7,7 @@ import RunSummary from '@/components/details/RunSummary';
 import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 import { getPosts } from '@/lib/api/simulation';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { getTurnsErrorMessage } from '@/lib/error-messages';
 import { Agent, Post, Turn } from '@/types';
 
 export default function DetailsPanel() {
@@ -40,7 +41,7 @@ export default function DetailsPanel() {
   }
 
   if (turnsError) {
-    const turnsErrorMessage = "Cannot load turns data. Please try again.";
+    const turnsErrorMessage = getTurnsErrorMessage(turnsError);
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-beige-800">
         <p className="text-sm">{turnsErrorMessage}</p>
