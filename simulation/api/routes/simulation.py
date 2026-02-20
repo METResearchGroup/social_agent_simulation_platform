@@ -9,8 +9,10 @@ from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
 from lib.request_logging import log_route_completion
+from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
+    DefaultConfigSchema,
     PostSchema,
     RunDetailsResponse,
     RunListItem,
@@ -38,6 +40,43 @@ SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
+SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
+
+
+@router.get(
+    "/simulations/config/default",
+    response_model=DefaultConfigSchema,
+    status_code=200,
+    summary="Get default simulation config",
+    description="Return default config for simulation start form (num_agents, num_turns).",
+)
+async def get_simulation_config_default(
+    request: Request,
+) -> DefaultConfigSchema | Response:
+    """Return default config for simulation start form."""
+    response = await _execute_get_default_config(request)
+    request_id = getattr(request.state, "request_id", "")
+    latency_ms = getattr(request.state, "duration_ms", 0)
+    if isinstance(response, DefaultConfigSchema):
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_CONFIG_DEFAULT_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status="200",
+            error_code=None,
+        )
+    else:
+        error_code = _error_code_from_json_response(response)
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_CONFIG_DEFAULT_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status=str(response.status_code),
+            error_code=error_code,
+        )
+    return response
 
 
 @router.get(
@@ -251,6 +290,23 @@ async def get_simulation_run_turns(
             error_code=error_code,
         )
     return response
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_default_config(
+    request: Request,
+) -> DefaultConfigSchema | Response:
+    """Fetch default config and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(get_default_config_dummy)
+    except Exception:
+        logger.exception("Unexpected error while fetching default config")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
 
 
 @timed(attach_attr="duration_ms", log_level=None)

@@ -1,15 +1,41 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import SimulationLayout from '@/components/layout/SimulationLayout';
 import { RunDetailProvider } from '@/components/run-detail/RunDetailContext';
 import RunDetailView from '@/components/run-detail/RunDetailView';
 import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
 import StartView from '@/components/start/StartView';
 import { useSimulationPageState } from '@/hooks/useSimulationPageState';
-import { DEFAULT_CONFIG } from '@/lib/dummy-data';
+import { getDefaultConfig } from '@/lib/api/simulation';
+import type { RunConfig } from '@/types';
+
+const FALLBACK_DEFAULT_CONFIG: RunConfig = { numAgents: 5, numTurns: 10 };
 
 export default function Home() {
+  const [defaultConfig, setDefaultConfig] = useState<RunConfig | null>(null);
+  const [defaultConfigLoading, setDefaultConfigLoading] = useState<boolean>(true);
+  const [defaultConfigError, setDefaultConfigError] = useState<Error | null>(null);
+
+  const fetchDefaultConfig = useCallback(async (): Promise<void> => {
+    setDefaultConfigLoading(true);
+    setDefaultConfigError(null);
+    try {
+      const config = await getDefaultConfig();
+      setDefaultConfig(config);
+    } catch (err) {
+      setDefaultConfigError(err instanceof Error ? err : new Error(String(err)));
+      setDefaultConfig(FALLBACK_DEFAULT_CONFIG);
+    } finally {
+      setDefaultConfigLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDefaultConfig();
+  }, [fetchDefaultConfig]);
+
   const {
     runsWithStatus,
     runsLoading,
@@ -81,7 +107,32 @@ export default function Home() {
       />
 
       {isStartScreen ? (
-        <StartView onSubmit={handleConfigSubmit} defaultConfig={DEFAULT_CONFIG} />
+        defaultConfigLoading && defaultConfig === null ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-beige-600">
+            <LoadingSpinner />
+            <span className="text-sm">Loading form…</span>
+          </div>
+        ) : defaultConfigError ? (
+          <div className="flex flex-col gap-3 p-8 text-beige-800">
+            <p className="text-sm">{defaultConfigError.message}</p>
+            <button
+              type="button"
+              onClick={fetchDefaultConfig}
+              className="px-3 py-2 text-sm font-medium text-accent hover:text-accent-hover"
+            >
+              Retry
+            </button>
+            <StartView
+              onSubmit={handleConfigSubmit}
+              defaultConfig={defaultConfig ?? FALLBACK_DEFAULT_CONFIG}
+            />
+          </div>
+        ) : (
+          <StartView
+            onSubmit={handleConfigSubmit}
+            defaultConfig={defaultConfig ?? FALLBACK_DEFAULT_CONFIG}
+          />
+        )
       ) : (
         <RunDetailProvider value={runDetailContextValue}>
           <RunDetailView />
