@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
+from lib.rate_limiting import limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
@@ -92,6 +93,7 @@ async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
     summary="Run a simulation",
     description="Execute a synchronous simulation run.",
 )
+@limiter.limit("5/minute")
 @log_route_completion_decorator(
     route=SIMULATION_RUN_ROUTE,
     success_type=RunResponse,
