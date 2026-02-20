@@ -104,9 +104,61 @@ class TestGenerateFeed:
         assert result.agent_handle == sample_agent.handle
         assert len(result.post_uris) <= 20  # MAX_POSTS_PER_FEED
         # Posts should be sorted by created_at descending (newest first)
-        assert result.post_uris[0] == "at://did:plc:test3/app.bsky.feed.post/post3"
-        assert result.post_uris[1] == "at://did:plc:test2/app.bsky.feed.post/post2"
-        assert result.post_uris[2] == "at://did:plc:test1/app.bsky.feed.post/post1"
+        expected_order = [
+            "at://did:plc:test3/app.bsky.feed.post/post3",
+            "at://did:plc:test2/app.bsky.feed.post/post2",
+            "at://did:plc:test1/app.bsky.feed.post/post1",
+        ]
+        assert result.post_uris == expected_order
+
+    def test_chronological_uses_deterministic_tie_breaking_for_same_created_at(
+        self, sample_agent
+    ):
+        """Test that posts with identical created_at are ordered by uri (ascending)."""
+        same_timestamp = "2024-01-02T00:00:00Z"
+        posts_same_created_at = [
+            BlueskyFeedPost(
+                id="at://did:plc:z/app.bsky.feed.post/post_z",
+                uri="at://did:plc:z/app.bsky.feed.post/post_z",
+                author_handle="author.bsky.social",
+                author_display_name="Author",
+                text="Post Z",
+                like_count=0,
+                bookmark_count=0,
+                quote_count=0,
+                reply_count=0,
+                repost_count=0,
+                created_at=same_timestamp,
+            ),
+            BlueskyFeedPost(
+                id="at://did:plc:a/app.bsky.feed.post/post_a",
+                uri="at://did:plc:a/app.bsky.feed.post/post_a",
+                author_handle="author.bsky.social",
+                author_display_name="Author",
+                text="Post A",
+                like_count=0,
+                bookmark_count=0,
+                quote_count=0,
+                reply_count=0,
+                repost_count=0,
+                created_at=same_timestamp,
+            ),
+        ]
+
+        result = _generate_feed(
+            agent=sample_agent,
+            candidate_posts=posts_same_created_at,
+            run_id="run_123",
+            turn_number=0,
+            feed_algorithm="chronological",
+        )
+
+        # Uri "a" < "z" alphabetically, so post_a comes before post_z
+        expected_order = [
+            "at://did:plc:a/app.bsky.feed.post/post_a",
+            "at://did:plc:z/app.bsky.feed.post/post_z",
+        ]
+        assert result.post_uris == expected_order
 
     def test_raises_valueerror_for_unknown_algorithm(self, sample_agent, sample_posts):
         """Test that _generate_feed raises ValueError for unknown algorithm."""

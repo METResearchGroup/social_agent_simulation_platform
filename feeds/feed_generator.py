@@ -2,8 +2,9 @@ import logging
 
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from feeds.algorithms import get_feed_generator
+from feeds.algorithms import FeedAlgorithmResult, get_feed_generator
 from feeds.candidate_generation import load_candidate_posts
+from feeds.constants import MAX_POSTS_PER_FEED
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
@@ -168,13 +169,17 @@ def _generate_feed(
 ) -> GeneratedFeed:
     """Run the registered feed algorithm on candidate posts and return a generated feed."""
     algorithm = get_feed_generator(feed_algorithm)
-    feed_dict = algorithm(candidate_posts=candidate_posts, agent=agent)
+    result: FeedAlgorithmResult = algorithm.generate(
+        candidate_posts=candidate_posts,
+        agent=agent,
+        limit=MAX_POSTS_PER_FEED,
+    )
     return GeneratedFeed(
-        feed_id=feed_dict["feed_id"],
+        feed_id=result.feed_id,
         run_id=run_id,
         turn_number=turn_number,
-        agent_handle=feed_dict["agent_handle"],
-        post_uris=feed_dict["post_uris"],
+        agent_handle=result.agent_handle,
+        post_uris=result.post_uris,
         created_at=get_current_timestamp(),
     )
 
