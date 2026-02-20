@@ -22,7 +22,10 @@ from db.adapters.sqlite.sqlite import initialize_database
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
 from lib.security_headers import SecurityHeadersMiddleware
-from simulation.api.dependencies.auth import UnauthorizedError
+from simulation.api.dependencies.auth import (
+    UnauthorizedError,
+    disallow_auth_bypass_in_production,
+)
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
 
@@ -32,6 +35,7 @@ DEFAULT_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database and simulation engine on startup."""
+    await asyncio.to_thread(disallow_auth_bypass_in_production)
     await asyncio.to_thread(initialize_database)
     app.state.engine = await asyncio.to_thread(create_engine)
     yield

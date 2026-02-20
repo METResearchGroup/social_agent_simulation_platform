@@ -22,6 +22,23 @@ def _is_auth_disabled() -> bool:
     return val in ("1", "true", "yes")
 
 
+def _is_production() -> bool:
+    """True when environment indicates production (e.g. Railway, explicit ENV)."""
+    env = os.environ.get("ENV", "").strip().lower()
+    environment = os.environ.get("ENVIRONMENT", "").strip().lower()
+    railway = os.environ.get("RAILWAY_ENVIRONMENT", "").strip().lower()
+    return env == "production" or environment == "production" or railway == "production"
+
+
+def disallow_auth_bypass_in_production() -> None:
+    """Raise at startup if DISABLE_AUTH is set in production. Call from lifespan."""
+    if _is_auth_disabled() and _is_production():
+        raise RuntimeError(
+            f"{ENV_DISABLE_AUTH} must not be set in production. "
+            "Auth bypass is for local development only."
+        )
+
+
 def _get_jwt_secret() -> str:
     """Read JWT secret from environment. Raises if not set."""
     secret = os.environ.get(ENV_SUPABASE_JWT_SECRET)
@@ -51,10 +68,15 @@ def require_auth(
     Expects Authorization: Bearer <access_token>. Validates against SUPABASE_JWT_SECRET
     with audience="authenticated" and algorithm HS256.
 
-    When DISABLE_AUTH=1 or DISABLE_AUTH=true, skips verification and returns a mock
-    payload. Use only for local development.
+    When DISABLE_AUTH=1 or DISABLE_AUTH=true (and not in production), skips verification
+    and returns a mock payload. Use only for local development.
     """
     if _is_auth_disabled():
+        if _is_production():
+            raise RuntimeError(
+                f"{ENV_DISABLE_AUTH} must not be set in production. "
+                "Auth bypass is for local development only."
+            )
         return _DEV_MOCK_PAYLOAD
     if credentials is None:
         raise UnauthorizedError("Missing or invalid Authorization header")
