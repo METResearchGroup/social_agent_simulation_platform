@@ -74,6 +74,13 @@ class RunResponse(BaseModel):
         return self
 
 
+class DefaultConfigSchema(BaseModel):
+    """Default config for simulation start form."""
+
+    num_agents: int
+    num_turns: int
+
+
 class RunConfigDetail(BaseModel):
     """Configuration for a persisted run."""
 
@@ -90,6 +97,18 @@ class RunListItem(BaseModel):
     total_turns: int
     total_agents: int
     status: RunStatus
+
+
+class AgentSchema(BaseModel):
+    """Agent profile for the simulation UI."""
+
+    handle: str
+    name: str
+    bio: str
+    generated_bio: str
+    followers: int
+    following: int
+    posts_count: int
 
 
 class FeedSchema(BaseModel):
