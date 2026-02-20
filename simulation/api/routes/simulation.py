@@ -182,9 +182,9 @@ def _get_feed_algorithms_list() -> list[FeedAlgorithmSchema]:
     return [
         FeedAlgorithmSchema(
             id=alg_id,
-            display_name=meta.get("display_name", alg_id),
-            description=meta.get("description", ""),
-            config_schema=meta.get("config_schema"),
+            display_name=meta.display_name,
+            description=meta.description,
+            config_schema=meta.config_schema,
         )
         for alg_id, meta in get_registered_algorithms()
     ]

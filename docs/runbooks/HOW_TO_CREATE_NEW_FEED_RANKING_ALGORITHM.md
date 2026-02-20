@@ -19,10 +19,7 @@ Everything else (validation, API exposure, feed generation wiring) is handled by
 Your algorithm module must define a class that extends `FeedAlgorithm`:
 
 - `ALGORITHM_ID = "your_algorithm_id"` — the stable string ID used in `feed_algorithm` requests and config.
-- `METADATA: FeedAlgorithmMetadata` — a dict with:
-  - `display_name`: human-readable name (shown in UI).
-  - `description`: short description of what the algorithm does.
-  - `config_schema` (optional): JSON Schema for per-algorithm config; use `None` if not needed.
+- `METADATA: FeedAlgorithmMetadata` — a Pydantic model with required `display_name`, `description`, and optional `config_schema` (JSON Schema for per-algorithm config; omit or pass `None` if not needed).
 - A class extending `FeedAlgorithm` with `metadata` property and `generate()` returning `FeedAlgorithmResult`.
 
 The `generate` method must:
@@ -52,11 +49,10 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 
 ALGORITHM_ID = "my_algorithm"
-METADATA: FeedAlgorithmMetadata = {
-    "display_name": "My Algorithm",
-    "description": "Brief description for the API and UI.",
-    "config_schema": None,  # or a JSON Schema dict if configurable
-}
+METADATA: FeedAlgorithmMetadata = FeedAlgorithmMetadata(
+    display_name="My Algorithm",
+    description="Brief description for the API and UI.",
+)
 
 
 class MyFeedAlgorithm(FeedAlgorithm):
@@ -162,11 +158,10 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 
 ALGORITHM_ID = "engagement-feed-ranking"
-METADATA: FeedAlgorithmMetadata = {
-    "display_name": "Engagement",
-    "description": "Posts ranked by engagement (likes, reposts, replies). Highest-engagement first. Up to 20 posts per feed.",
-    "config_schema": None,
-}
+METADATA: FeedAlgorithmMetadata = FeedAlgorithmMetadata(
+    display_name="Engagement",
+    description="Posts ranked by engagement (likes, reposts, replies). Highest-engagement first. Up to 20 posts per feed.",
+)
 
 LIKE_WEIGHT = 1.0
 REPOST_WEIGHT = 1.5

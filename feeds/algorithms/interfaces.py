@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
@@ -12,12 +12,12 @@ if TYPE_CHECKING:
     from simulation.core.models.posts import BlueskyFeedPost
 
 
-class FeedAlgorithmMetadata(TypedDict, total=False):
+class FeedAlgorithmMetadata(BaseModel):
     """Metadata for a feed algorithm, exposed to the API and UI."""
 
     display_name: str
     description: str
-    config_schema: dict[str, Any] | None
+    config_schema: dict[str, Any] | None = None
 
 
 class FeedAlgorithmResult(BaseModel):

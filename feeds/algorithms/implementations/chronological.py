@@ -14,10 +14,10 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 
 ALGORITHM_ID = "chronological"
-METADATA: FeedAlgorithmMetadata = {
-    "display_name": "Chronological",
-    "description": "Posts sorted by creation time, newest first.",
-}
+METADATA: FeedAlgorithmMetadata = FeedAlgorithmMetadata(
+    display_name="Chronological",
+    description="Posts sorted by creation time, newest first.",
+)
 
 
 class ChronologicalFeedAlgorithm(FeedAlgorithm):
