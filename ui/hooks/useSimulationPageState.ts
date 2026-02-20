@@ -14,13 +14,13 @@ import {
   getRunConfig,
   withComputedRunStatuses,
 } from '@/lib/run-selectors';
-import { Agent, Run, RunConfig, Turn } from '@/types';
+import { ApiError, Agent, Run, RunConfig, Turn } from '@/types';
 
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
 const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_TURNS_LOADING: Record<string, boolean> = {};
-const EMPTY_TURNS_ERROR: Record<string, Error | null> = {};
+const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
 
 /**
@@ -41,7 +41,7 @@ interface UseSimulationPageStateResult {
   agentsLoading: boolean;
   agentsError: Error | null;
   turnsLoadingByRunId: Record<string, boolean>;
-  turnsErrorByRunId: Record<string, Error | null>;
+  turnsErrorByRunId: Record<string, ApiError | null>;
   selectedRunId: string | null;
   selectedTurn: number | 'summary' | null;
   selectedRun: Run | null;
@@ -71,7 +71,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [turnsLoadingByRunId, setTurnsLoadingByRunId] = useState<Record<string, boolean>>(
     EMPTY_TURNS_LOADING,
   );
-  const [turnsErrorByRunId, setTurnsErrorByRunId] = useState<Record<string, Error | null>>(
+  const [turnsErrorByRunId, setTurnsErrorByRunId] = useState<Record<string, ApiError | null>>(
     EMPTY_TURNS_ERROR,
   );
   const [retryRunsTrigger, setRetryRunsTrigger] = useState<number>(0);
@@ -118,6 +118,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
   }, [retryRunsTrigger]);
 
+  /**
+   * Loads turns for the selected run. On failure, sets turnsError (run is not marked loaded).
+   * User can retry via retryTurns(runId) or by reselecting the run after 1.5s (throttle window).
+   */
   useEffect(() => {
     let isMounted: boolean = true;
     agentsRequestIdRef.current += 1;
@@ -182,10 +186,9 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       } catch (error: unknown) {
         console.error(`Failed to fetch turns for ${runId}:`, error);
         if (isMounted) {
-          setTurnsErrorByRunId((prev) => ({
-            ...prev,
-            [runId]: error instanceof Error ? error : new Error(String(error)),
-          }));
+          const apiError: ApiError =
+            error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+          setTurnsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
         }
       } finally {
         turnsFetchInFlightRef.current.delete(runId);
@@ -280,7 +283,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
 
   const handleRetryTurns = (runId: string): void => {
     setTurnsErrorByRunId((prev) => {
-      const next: Record<string, Error | null> = { ...prev };
+      const next: Record<string, ApiError | null> = { ...prev };
       delete next[runId];
       return next;
     });
