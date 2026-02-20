@@ -58,8 +58,6 @@ METADATA: FeedAlgorithmMetadata = {
     "config_schema": None,  # or a JSON Schema dict if configurable
 }
 
-MAX_POSTS_PER_FEED = 20
-
 
 class MyFeedAlgorithm(FeedAlgorithm):
     """Feed algorithm that ranks by your custom logic."""
@@ -73,7 +71,7 @@ class MyFeedAlgorithm(FeedAlgorithm):
         *,
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
-        limit: int = MAX_POSTS_PER_FEED,
+        limit: int,  # supplied by caller; see feeds.constants.MAX_POSTS_PER_FEED
         **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Generate a feed using your ranking logic."""
@@ -171,7 +169,6 @@ METADATA: FeedAlgorithmMetadata = {
     "config_schema": None,
 }
 
-MAX_POSTS_PER_FEED = 20
 LIKE_WEIGHT = 1.0
 REPOST_WEIGHT = 1.5
 REPLY_WEIGHT = 1.2
@@ -198,7 +195,7 @@ class EngagementFeedAlgorithm(FeedAlgorithm):
         *,
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
-        limit: int = MAX_POSTS_PER_FEED,
+        limit: int,
         **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Generate a feed ranked by engagement score."""

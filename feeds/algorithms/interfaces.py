@@ -45,9 +45,11 @@ class FeedAlgorithm(ABC):
     def generate(
         self,
         *,
-        candidate_posts: list[BlueskyFeedPost],
+        candidate_posts: list[
+            BlueskyFeedPost
+        ],  # TODO: decouple from Bluesky-specific type
         agent: SocialMediaAgent,
-        limit: int = 20,
+        limit: int,
         **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Rank and select posts.

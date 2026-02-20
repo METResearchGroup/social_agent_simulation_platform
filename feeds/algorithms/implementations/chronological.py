@@ -1,6 +1,6 @@
 """Chronological feed generation algorithm.
 
-Sorts posts by creation time, newest first. Limits to MAX_POSTS_PER_FEED.
+Sorts posts by creation time, newest first. Limits to caller-supplied limit.
 Uses uri as tie-breaker when created_at is equal for deterministic output.
 """
 
@@ -18,7 +18,6 @@ METADATA: FeedAlgorithmMetadata = {
     "display_name": "Chronological",
     "description": "Posts sorted by creation time, newest first.",
 }
-MAX_POSTS_PER_FEED = 20
 
 
 class ChronologicalFeedAlgorithm(FeedAlgorithm):
@@ -33,7 +32,7 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         *,
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
-        limit: int = MAX_POSTS_PER_FEED,
+        limit: int,
         **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Generate a chronological feed (newest posts first).
@@ -42,7 +41,7 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         Args:
             candidate_posts: Posts to rank and select from.
             agent: The agent this feed is for.
-            limit: Maximum number of posts.
+            limit: Maximum number of posts (supplied by caller, e.g. feeds.constants.MAX_POSTS_PER_FEED).
 
         Returns:
             FeedAlgorithmResult with feed_id, agent_handle, post_uris in order.
