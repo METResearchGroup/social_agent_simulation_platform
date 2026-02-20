@@ -32,12 +32,14 @@ def _get_rate_limit_key(request: Request) -> str:
     """Derive the client identifier used to group requests for rate limiting.
 
     Returns the effective client IP so requests from the same client share the same
-    rate-limit bucket. Uses X-Forwarded-For when present (e.g. behind Railway proxy),
-    otherwise request.client.host, or FALLBACK_CLIENT_IP when neither is available.
+    rate-limit bucket. Uses X-Forwarded-For when present (e.g. behind Railway proxy).
+    Railway appends the real client IP as the rightmost value; the leftmost can be
+    spoofed, so we use split(",")[-1]. Falls back to request.client.host or
+    FALLBACK_CLIENT_IP when the header is absent.
     """
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     if request.client and request.client.host:
         return request.client.host
     return FALLBACK_CLIENT_IP
