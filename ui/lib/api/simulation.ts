@@ -9,6 +9,7 @@ import {
   RunConfig,
   Turn,
 } from '@/types';
+import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
@@ -268,7 +269,7 @@ export async function getDefaultConfig(): Promise<RunConfig> {
   return {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
-    feedAlgorithm: 'chronological',
+    feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
   };
 }
 
