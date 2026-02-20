@@ -50,7 +50,6 @@ class FeedAlgorithm(ABC):
         ],  # TODO: decouple from Bluesky-specific type
         agent: SocialMediaAgent,
         limit: int,
-        **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Rank and select posts.
 

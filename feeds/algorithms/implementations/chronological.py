@@ -33,7 +33,6 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
         limit: int,
-        **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Generate a chronological feed (newest posts first).
 

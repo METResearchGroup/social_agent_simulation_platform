@@ -27,7 +27,7 @@ Your algorithm module must define a class that extends `FeedAlgorithm`:
 
 The `generate` method must:
 
-- Accept `candidate_posts: list[BlueskyFeedPost]`, `agent: SocialMediaAgent`, and `**kwargs`.
+- Accept `candidate_posts: list[BlueskyFeedPost]`, `agent: SocialMediaAgent`, and `limit: int`.
 - Return `FeedAlgorithmResult` with `feed_id`, `agent_handle`, `post_uris`.
 
 ## Ordering
@@ -72,7 +72,6 @@ class MyFeedAlgorithm(FeedAlgorithm):
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
         limit: int,  # supplied by caller; see feeds.constants.MAX_POSTS_PER_FEED
-        **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Generate a feed using your ranking logic."""
         # Your ranking logic (e.g. sort, score, filter). Use uri for tie-breaking.
@@ -196,7 +195,6 @@ class EngagementFeedAlgorithm(FeedAlgorithm):
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
         limit: int,
-        **kwargs: object,
     ) -> FeedAlgorithmResult:
         """Generate a feed ranked by engagement score."""
         scored = [(_engagement_score(p), p) for p in candidate_posts]
