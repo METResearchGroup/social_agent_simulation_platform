@@ -65,7 +65,7 @@ In [simulation/api/main.py](simulation/api/main.py):
 - Store `app.state.limiter = limiter` (the limiter is created in lib/rate_limiting.py with `limiter = Limiter(key_func=_get_rate_limit_key)`)
 - Add exception handler for `RateLimitExceeded` that calls `rate_limit_exceeded_handler`; it returns a 429 `JSONResponse` matching the existing error shape: `{"error": {"code": "RATE_LIMITED", "message": "Rate limit exceeded", "detail": null}}`
 
-The key function `_get_rate_limit_key` in lib/rate_limiting.py reads `request.headers.get("x-forwarded-for")` (HTTP headers are case-insensitive), takes the first comma-separated value, then falls back to `request.client.host` or `FALLBACK_CLIENT_IP`.
+The key function `_get_rate_limit_key` in lib/rate_limiting.py reads `request.headers.get("x-forwarded-for")` (HTTP headers are case-insensitive). On Railway the **rightmost** value is trustworthy (proxy appends real client); we use `split(",")[-1]`. Otherwise falls back to `request.client.host` or `FALLBACK_CLIENT_IP`.
 
 ### 3. Apply rate limit to POST route
 
@@ -99,10 +99,11 @@ Note: slowapi resolves the limiter from `request.app.state.limiter`. Ensure the 
 
 **X-Forwarded-For** is trusted to identify the client when behind a reverse proxy (e.g. Railway). Per FASTAPI-PROXY-001, we must not blindly trust `X-Forwarded-*` from the open internet. In production:
 
-- Run Uvicorn with `--forwarded-allow-ips` so forwarded headers are only applied when the connection comes from a trusted proxy IP.
-- Configure the Railway proxy IP ranges in this allowlist.
+1. **Dockerfile** — Uvicorn is started with `--forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-*}"` so forwarded headers are applied only when the connection comes from a trusted proxy.
+2. **Railway** — Set the env var: `railway variables --set "FORWARDED_ALLOW_IPS=*"`. On Railway the container is only reachable through the proxy, so `*` is safe.
+3. **X-Forwarded-For parsing** — Railway appends the real client IP as the **rightmost** value. `_get_rate_limit_key` uses the rightmost value (`split(",")[-1]`) rather than the leftmost (which clients can spoof).
 
-The app reads `X-Forwarded-For` directly in `_get_rate_limit_key`. When Uvicorn is started with restricted `forwarded_allow_ips`, the connection to the app comes from the proxy; the proxy has already validated the client. For local development without a proxy, `request.client.host` is used instead.
+See [RAILWAY_DEPLOYMENT.md](../../runbooks/RAILWAY_DEPLOYMENT.md) for full setup.
 
 ---
 
