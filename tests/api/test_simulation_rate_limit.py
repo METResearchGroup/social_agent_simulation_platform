@@ -54,6 +54,17 @@ def _make_mock_engine():
     return mock
 
 
+def _trigger_rate_limit(client, fastapi_app, ip: str) -> list:
+    """Exceed rate limit by making 6 requests. Returns list of 6 responses."""
+    fastapi_app.state.engine = _make_mock_engine()
+    headers = {"Content-Type": "application/json", "X-Forwarded-For": ip}
+    payload = {"num_agents": 1, "num_turns": 1}
+    return [
+        client.post("/v1/simulations/run", json=payload, headers=headers)
+        for _ in range(6)
+    ]
+
+
 def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
     simulation_client,
 ):
@@ -63,18 +74,7 @@ def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
     of other tests.
     """
     client, fastapi_app = simulation_client
-    fastapi_app.state.engine = _make_mock_engine()
-
-    headers = {
-        "Content-Type": "application/json",
-        "X-Forwarded-For": "192.168.100.1",
-    }
-    payload = {"num_agents": 1, "num_turns": 1}
-
-    responses = []
-    for _ in range(6):
-        resp = client.post("/v1/simulations/run", json=payload, headers=headers)
-        responses.append(resp)
+    responses = _trigger_rate_limit(client, fastapi_app, "192.168.100.1")
 
     assert all(r.status_code == 200 for r in responses[:5]), (
         "First 5 requests should succeed"
@@ -90,16 +90,8 @@ def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
 def test_post_simulations_run_rate_limit_429_error_shape(simulation_client):
     """429 response has standard error structure matching other API errors."""
     client, fastapi_app = simulation_client
-    fastapi_app.state.engine = _make_mock_engine()
-
-    headers = {
-        "Content-Type": "application/json",
-        "X-Forwarded-For": "192.168.100.2",
-    }
-    payload = {"num_agents": 1, "num_turns": 1}
-
-    for _ in range(6):
-        response = client.post("/v1/simulations/run", json=payload, headers=headers)
+    responses = _trigger_rate_limit(client, fastapi_app, "192.168.100.2")
+    response = responses[5]
 
     assert response.status_code == 429
     data = response.json()
