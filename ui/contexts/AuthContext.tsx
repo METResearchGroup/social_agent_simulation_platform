@@ -60,13 +60,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [updateAuthState]);
 
-  const signInWithGoogle = useCallback(async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'google' });
+  const getRedirectTo = useCallback((): string => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/auth/callback`;
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: getRedirectTo() },
+    });
+  }, [getRedirectTo]);
+
   const signInWithGitHub = useCallback(async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'github' });
-  }, []);
+    await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: { redirectTo: getRedirectTo() },
+    });
+  }, [getRedirectTo]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
