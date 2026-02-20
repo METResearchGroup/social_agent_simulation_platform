@@ -92,6 +92,18 @@ class RunListItem(BaseModel):
     status: RunStatus
 
 
+class AgentSchema(BaseModel):
+    """Agent profile for the simulation UI."""
+
+    handle: str
+    name: str
+    bio: str
+    generated_bio: str
+    followers: int
+    following: int
+    posts_count: int
+
+
 class FeedSchema(BaseModel):
     """Feed metadata for one agent in a turn."""
 
