@@ -10,10 +10,10 @@ General production and deployment guidance for the simulation API.
 ## Run Command (no reload)
 
 ```bash
-PYTHONPATH=. uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port 8000
+PYTHONPATH=. uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port 8000 --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-*}"
 ```
 
-Override port via `$PORT` (e.g. on Railway).
+Override port via `$PORT` (e.g. on Railway). When behind a reverse proxy (e.g. Railway), set `FORWARDED_ALLOW_IPS=*` so forwarded headers (`X-Forwarded-For`, etc.) are trusted for client IP detection and rate limiting (FASTAPI-PROXY-001).
 
 ## Workers
 

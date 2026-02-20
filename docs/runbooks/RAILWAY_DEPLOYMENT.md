@@ -32,10 +32,11 @@ railway init
 ## Persistent SQLite Setup
 
 1. Add a volume in Railway and mount it at `/data`.
-2. Set environment variable:
+2. Set environment variables:
 
 ```bash
 railway variables --set "SIM_DB_PATH=/data/db.sqlite"
+railway variables --set "FORWARDED_ALLOW_IPS=*"
 ```
 
 Notes:
@@ -54,8 +55,10 @@ railway up
 The runtime command is configured in `Dockerfile` (`CMD`):
 
 ```bash
-uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
+uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-*}"
 ```
+
+**Proxy headers (FASTAPI-PROXY-001):** Set `FORWARDED_ALLOW_IPS=*` in Railway variables. The container is only reachable through Railway's proxy, so trusting forwarded headers from all connections is safe. This ensures `X-Forwarded-For` and other proxy headers are applied for rate limiting and client IP detection. See [plan Security section](../plans/2026-02-19_rate_limiting_post_paths_847291/plan.md#security-proxy-trust-fastapi-proxy-001).
 
 ## Verify Deployment With Railway CLI + HTTP Checks
 
