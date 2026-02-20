@@ -1,29 +1,15 @@
 import logging
-from typing import Callable
 
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from feeds.algorithms import generate_chronological_feed
+from feeds.algorithms import get_feed_generator
 from feeds.candidate_generation import load_candidate_posts
 from lib.timestamp_utils import get_current_timestamp
-from lib.validation_utils import validate_value_in_set
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
 
 logger = logging.getLogger(__name__)
-
-# Registry for feed generation algorithms.
-# Currently module-level for simplicity. Consider extracting to a separate module
-# (e.g., feeds/registry.py) if:
-# - We have 4+ algorithms
-# - Algorithms need metadata/configuration
-# - Algorithms need to be registered from multiple modules
-# - Algorithms become complex classes rather than simple functions
-_FEED_ALGORITHMS: dict[str, Callable] = {
-    "chronological": generate_chronological_feed,
-    # "rag": generate_rag_feed,  # TODO: Add in future PR
-}
 
 
 def generate_feeds(
@@ -42,13 +28,13 @@ def generate_feeds(
         turn_number: The turn number for this simulation.
         generated_feed_repo: Repository for writing generated feeds.
         feed_post_repo: Repository for reading feed posts.
-        feed_algorithm: Algorithm name to use (must be registered in _FEED_ALGORITHMS).
+        feed_algorithm: Algorithm name to use (must be registered in feeds.algorithms).
 
     Returns:
         Dictionary mapping agent handles to lists of hydrated BlueskyFeedPost objects.
 
     Raises:
-        ValueError: If feed_algorithm is not registered in _FEED_ALGORITHMS.
+        ValueError: If feed_algorithm is not registered in feeds.algorithms.
     """
     feeds = _generate_feeds(
         agents=agents,
@@ -181,13 +167,7 @@ def _generate_feed(
     feed_algorithm: str,
 ) -> GeneratedFeed:
     """Run the registered feed algorithm on candidate posts and return a generated feed."""
-    validate_value_in_set(
-        feed_algorithm,
-        "feed_algorithm",
-        _FEED_ALGORITHMS,
-        allowed_display_name="registered feed algorithms",
-    )
-    algorithm = _FEED_ALGORITHMS[feed_algorithm]
+    algorithm = get_feed_generator(feed_algorithm)
     feed_dict = algorithm(candidate_posts=candidate_posts, agent=agent)
     return GeneratedFeed(
         feed_id=feed_dict["feed_id"],

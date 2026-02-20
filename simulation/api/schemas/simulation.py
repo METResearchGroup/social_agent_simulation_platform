@@ -39,6 +39,15 @@ class RunRequest(BaseModel):
         return validate_feed_algorithm(v)
 
 
+class FeedAlgorithmSchema(BaseModel):
+    """Feed algorithm metadata for the API and UI."""
+
+    id: str
+    display_name: str
+    description: str
+    config_schema: dict | None = None
+
+
 class ErrorDetail(BaseModel):
     """Error payload included when status is failed or on server error."""
 

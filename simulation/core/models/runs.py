@@ -5,7 +5,6 @@ from pydantic import BaseModel, field_validator
 from lib.validation_utils import (
     validate_non_empty_string,
     validate_nonnegative_value,
-    validate_value_in_set,
 )
 
 DEFAULT_FEED_ALGORITHM: str = "chronological"
@@ -32,14 +31,11 @@ class RunConfig(BaseModel):
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
         """Validate that feed_algorithm is a valid feed algorithm."""
-        from feeds.feed_generator import _FEED_ALGORITHMS
+        from feeds.algorithms.validators import validate_feed_algorithm as _validate
 
-        return validate_value_in_set(
-            v,
-            "feed_algorithm",
-            _FEED_ALGORITHMS,
-            allowed_display_name="registered feed algorithms",
-        )
+        result = _validate(v)
+        assert result is not None  # v is required str, so result will be str
+        return result
 
 
 class RunStatus(str, Enum):
@@ -95,11 +91,8 @@ class Run(BaseModel):
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
         """Validate that feed_algorithm is a valid feed algorithm."""
-        from feeds.feed_generator import _FEED_ALGORITHMS
+        from feeds.algorithms.validators import validate_feed_algorithm as _validate
 
-        return validate_value_in_set(
-            v,
-            "feed_algorithm",
-            _FEED_ALGORITHMS,
-            allowed_display_name="registered feed algorithms",
-        )
+        result = _validate(v)
+        assert result is not None  # v is required str, so result will be str
+        return result
