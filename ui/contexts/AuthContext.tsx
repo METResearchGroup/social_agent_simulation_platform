@@ -31,8 +31,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(sess);
     setUser(sess?.user ?? null);
     setAuthTokenGetter(
-      sess?.access_token
-        ? () => Promise.resolve(sess.access_token)
+      sess
+        ? async () => {
+            const { data } = await supabase.auth.getSession();
+            return data.session?.access_token ?? null;
+          }
         : null,
     );
   }, []);
