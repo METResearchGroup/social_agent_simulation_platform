@@ -13,7 +13,11 @@ import { useSimulationPageState } from '@/hooks/useSimulationPageState';
 import { getDefaultConfig } from '@/lib/api/simulation';
 import type { RunConfig } from '@/types';
 
-const FALLBACK_DEFAULT_CONFIG: RunConfig = { numAgents: 5, numTurns: 10 };
+const FALLBACK_DEFAULT_CONFIG: RunConfig = {
+  numAgents: 5,
+  numTurns: 10,
+  feedAlgorithm: 'chronological',
+};
 
 function AuthenticatedApp() {
   const [defaultConfig, setDefaultConfig] = useState<RunConfig | null>(null);

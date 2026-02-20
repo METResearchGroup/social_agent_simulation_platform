@@ -1,4 +1,14 @@
-import { Agent, AgentAction, ApiError, Feed, Post, Run, RunConfig, Turn } from '@/types';
+import {
+  Agent,
+  AgentAction,
+  ApiError,
+  Feed,
+  FeedAlgorithm,
+  Post,
+  Run,
+  RunConfig,
+  Turn,
+} from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
@@ -59,6 +69,25 @@ interface ApiDefaultConfig {
   num_turns: number;
 }
 
+/** API response shape for feed algorithm. Matches FeedAlgorithmSchema. */
+interface ApiFeedAlgorithm {
+  id: string;
+  display_name: string;
+  description: string;
+  config_schema: Record<string, unknown> | null;
+}
+
+/** API response shape for POST /simulations/run. Matches RunResponse. */
+interface ApiRunResponse {
+  run_id: string;
+  status: 'completed' | 'failed';
+  num_agents: number;
+  num_turns: number;
+  turns: unknown[];
+  run_metrics?: unknown;
+  error?: { code: string; message: string; detail?: string | null };
+}
+
 /** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
 interface ApiPost {
   uri: string;
@@ -111,10 +140,38 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 /**
- * Fetches JSON from a URL. Throws ApiError on non-2xx responses.
+ * Handles non-ok response: parses error payload and throws ApiError.
+ */
+async function handleErrorResponse(response: Response): Promise<never> {
+  if (response.status === 401 && onUnauthorized) {
+    onUnauthorized();
+  }
+  const responseText: string = await response.text();
+  let code: string = 'UNKNOWN_ERROR';
+  let message: string = responseText || `Request failed (${response.status})`;
+  let detail: string | null = null;
+
+  try {
+    const data: unknown = JSON.parse(responseText);
+    const err =
+      data && typeof data === 'object' && data !== null && 'error' in data
+        ? (data as { error?: { code?: string; message?: string; detail?: string | null } }).error
+        : null;
+    if (err && typeof err === 'object' && err !== null) {
+      code = (typeof err.code === 'string' && err.code) || code;
+      message = (typeof err.message === 'string' && err.message) || message;
+      detail = typeof err.detail === 'string' ? err.detail : err.detail === null ? null : null;
+    }
+  } catch {
+    // Non-JSON body: use fallback
+  }
+
+  throw new ApiError(code, message, detail, response.status);
+}
+
+/**
+ * Fetches JSON from a URL with GET. Throws ApiError on non-2xx responses.
  * Includes Authorization Bearer token when authTokenGetter is set.
- * Backend uses { error: { code, message, detail } } for error payloads.
- * On non-JSON or missing error shape, falls back to UNKNOWN_ERROR with raw text in message.
  */
 async function fetchJson<T>(url: string): Promise<T> {
   const headers = await getAuthHeaders();
@@ -124,34 +181,28 @@ async function fetchJson<T>(url: string): Promise<T> {
   });
 
   if (!response.ok) {
-    if (response.status === 401 && onUnauthorized) {
-      onUnauthorized();
-    }
-    const responseText: string = await response.text();
-    let code: string = 'UNKNOWN_ERROR';
-    let message: string = responseText || `Request failed (${response.status})`;
-    let detail: string | null = null;
-
-    try {
-      const data: unknown = JSON.parse(responseText);
-      const err =
-        data && typeof data === 'object' && data !== null && 'error' in data
-          ? (data as { error?: { code?: string; message?: string; detail?: string | null } })
-              .error
-          : null;
-      if (err && typeof err === 'object' && err !== null) {
-        code = (typeof err.code === 'string' && err.code) || code;
-        message = (typeof err.message === 'string' && err.message) || message;
-        detail = typeof err.detail === 'string' ? err.detail : err.detail === null ? null : null;
-      }
-    } catch {
-      // Non-JSON body: use fallback
-    }
-
-    throw new ApiError(code, message, detail, response.status);
+    await handleErrorResponse(response);
   }
 
   return response.json() as Promise<T>;
+}
+
+/**
+ * POSTs JSON to a URL. Throws ApiError on non-2xx responses.
+ */
+async function fetchPost<TReq, TRes>(url: string, body: TReq): Promise<TRes> {
+  const headers = await getAuthHeaders();
+  const response: Response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  return response.json() as Promise<TRes>;
 }
 
 function mapFeed(apiFeed: ApiFeed): Feed {
@@ -217,6 +268,42 @@ export async function getDefaultConfig(): Promise<RunConfig> {
   return {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
+    feedAlgorithm: 'chronological',
+  };
+}
+
+function mapFeedAlgorithm(api: ApiFeedAlgorithm): FeedAlgorithm {
+  return {
+    id: api.id,
+    displayName: api.display_name,
+    description: api.description,
+    configSchema: api.config_schema,
+  };
+}
+
+export async function getFeedAlgorithms(): Promise<FeedAlgorithm[]> {
+  const api: ApiFeedAlgorithm[] = await fetchJson<ApiFeedAlgorithm[]>(
+    buildApiUrl('/simulations/feed-algorithms'),
+  );
+  return api.map(mapFeedAlgorithm);
+}
+
+export async function postRun(config: RunConfig): Promise<Run> {
+  const body = {
+    num_agents: config.numAgents,
+    num_turns: config.numTurns,
+    feed_algorithm: config.feedAlgorithm ?? 'chronological',
+  };
+  const api: ApiRunResponse = await fetchPost<typeof body, ApiRunResponse>(
+    buildApiUrl('/simulations/run'),
+    body,
+  );
+  return {
+    runId: api.run_id,
+    createdAt: new Date().toISOString(),
+    totalTurns: api.num_turns,
+    totalAgents: api.num_agents,
+    status: api.status,
   };
 }
 

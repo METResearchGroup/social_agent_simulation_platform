@@ -53,9 +53,17 @@ export interface Turn {
   agentActions: Record<string, AgentAction[]>;
 }
 
+export interface FeedAlgorithm {
+  id: string;
+  displayName: string;
+  description: string;
+  configSchema: Record<string, unknown> | null;
+}
+
 export interface RunConfig {
   numAgents: number;
   numTurns: number;
+  feedAlgorithm?: string;
 }
 
 /**
