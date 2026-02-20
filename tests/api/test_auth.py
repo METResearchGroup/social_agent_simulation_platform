@@ -3,6 +3,7 @@
 import time
 
 import jwt
+import pytest
 from fastapi.testclient import TestClient
 
 TEST_JWT_SECRET: str = "test-secret-for-auth-tests-only"
@@ -82,3 +83,17 @@ def test_health_route_remains_public(client_no_auth_override):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_disable_auth_in_production_raises_at_startup(monkeypatch):
+    """App fails to start when DISABLE_AUTH is set in production."""
+    monkeypatch.setenv("DISABLE_AUTH", "1")
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT", "production")
+
+    from simulation.api.main import app
+
+    with pytest.raises(
+        RuntimeError, match="DISABLE_AUTH must not be set in production"
+    ):
+        with TestClient(app=app):
+            pass

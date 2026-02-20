@@ -8,8 +8,41 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 
 ENV_SUPABASE_JWT_SECRET: str = "SUPABASE_JWT_SECRET"
+ENV_DISABLE_AUTH: str = "DISABLE_AUTH"
 JWT_AUDIENCE: str = "authenticated"
 JWT_ALGORITHMS: list[str] = ["HS256"]
+
+# Mock payload when DISABLE_AUTH is set (local dev only)
+_DEV_MOCK_PAYLOAD: dict = {"sub": "dev-user-id", "email": "dev@local"}
+
+
+def _is_auth_disabled() -> bool:
+    """True when DISABLE_AUTH=1 or DISABLE_AUTH=true (local dev bypass)."""
+    val = os.environ.get(ENV_DISABLE_AUTH, "").strip().lower()
+    return val in ("1", "true", "yes")
+
+
+def _is_production() -> bool:
+    """True when environment indicates production. Conservative/fail-safe: ENV/ENVIRONMENT
+    accept "production" or "prod"; any non-empty RAILWAY_ENVIRONMENT is treated as production.
+    """
+    env = os.environ.get("ENV", "").strip().lower()
+    environment = os.environ.get("ENVIRONMENT", "").strip().lower()
+    railway = os.environ.get("RAILWAY_ENVIRONMENT", "").strip()
+    return (
+        env in ("production", "prod")
+        or environment in ("production", "prod")
+        or bool(railway)
+    )
+
+
+def disallow_auth_bypass_in_production() -> None:
+    """Raise at startup if DISABLE_AUTH is set in production. Call from lifespan."""
+    if _is_auth_disabled() and _is_production():
+        raise RuntimeError(
+            f"{ENV_DISABLE_AUTH} must not be set in production. "
+            "Auth bypass is for local development only."
+        )
 
 
 def _get_jwt_secret() -> str:
@@ -40,7 +73,17 @@ def require_auth(
 
     Expects Authorization: Bearer <access_token>. Validates against SUPABASE_JWT_SECRET
     with audience="authenticated" and algorithm HS256.
+
+    When DISABLE_AUTH=1 or DISABLE_AUTH=true (and not in production), skips verification
+    and returns a mock payload. Use only for local development.
     """
+    if _is_auth_disabled():
+        if _is_production():
+            raise RuntimeError(
+                f"{ENV_DISABLE_AUTH} must not be set in production. "
+                "Auth bypass is for local development only."
+            )
+        return _DEV_MOCK_PAYLOAD.copy()
     if credentials is None:
         raise UnauthorizedError("Missing or invalid Authorization header")
     token = credentials.credentials
