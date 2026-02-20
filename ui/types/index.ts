@@ -53,6 +53,7 @@ export interface Turn {
   agentActions: Record<string, AgentAction[]>;
 }
 
+/** Maps to FeedAlgorithmSchema (simulation/api/schemas/simulation.py) from GET /v1/simulations/feed-algorithms */
 export interface FeedAlgorithm {
   id: string;
   displayName: string;
