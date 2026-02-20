@@ -8,11 +8,15 @@ export default function SignIn() {
   const { signInWithGoogle, signInWithGitHub, isLoading } = useAuth();
   const [googleLoading, setGoogleLoading] = useState<boolean>(false);
   const [githubLoading, setGithubLoading] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const handleGoogleClick = async (): Promise<void> => {
     setGoogleLoading(true);
+    setAuthError(null);
     try {
       await signInWithGoogle();
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Sign-in failed');
     } finally {
       setGoogleLoading(false);
     }
@@ -20,8 +24,11 @@ export default function SignIn() {
 
   const handleGitHubClick = async (): Promise<void> => {
     setGithubLoading(true);
+    setAuthError(null);
     try {
       await signInWithGitHub();
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Sign-in failed');
     } finally {
       setGithubLoading(false);
     }
@@ -45,6 +52,11 @@ export default function SignIn() {
         <p className="mb-8 text-center text-sm text-beige-700">
           Sign in to access the simulation
         </p>
+        {authError != null && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {authError}
+          </div>
+        )}
         <div className="space-y-4">
           <button
             type="button"
