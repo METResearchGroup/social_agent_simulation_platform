@@ -242,6 +242,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
 
   const handleConfigSubmit = (config: RunConfig): void => {
+    setRunsError(null); // Clear stale run errors before starting a new run.
     void postRun(config)
       .then((newRun) => {
         setRuns((previousRuns) => [newRun, ...previousRuns]);
