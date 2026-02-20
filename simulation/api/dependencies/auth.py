@@ -8,8 +8,18 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 
 ENV_SUPABASE_JWT_SECRET: str = "SUPABASE_JWT_SECRET"
+ENV_DISABLE_AUTH: str = "DISABLE_AUTH"
 JWT_AUDIENCE: str = "authenticated"
 JWT_ALGORITHMS: list[str] = ["HS256"]
+
+# Mock payload when DISABLE_AUTH is set (local dev only)
+_DEV_MOCK_PAYLOAD: dict = {"sub": "dev-user-id", "email": "dev@local"}
+
+
+def _is_auth_disabled() -> bool:
+    """True when DISABLE_AUTH=1 or DISABLE_AUTH=true (local dev bypass)."""
+    val = os.environ.get(ENV_DISABLE_AUTH, "").strip().lower()
+    return val in ("1", "true", "yes")
 
 
 def _get_jwt_secret() -> str:
@@ -40,7 +50,12 @@ def require_auth(
 
     Expects Authorization: Bearer <access_token>. Validates against SUPABASE_JWT_SECRET
     with audience="authenticated" and algorithm HS256.
+
+    When DISABLE_AUTH=1 or DISABLE_AUTH=true, skips verification and returns a mock
+    payload. Use only for local development.
     """
+    if _is_auth_disabled():
+        return _DEV_MOCK_PAYLOAD
     if credentials is None:
         raise UnauthorizedError("Missing or invalid Authorization header")
     token = credentials.credentials
