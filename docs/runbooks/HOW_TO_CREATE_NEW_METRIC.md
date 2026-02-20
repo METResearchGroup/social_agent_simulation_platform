@@ -1,3 +1,8 @@
+---
+description: Step-by-step guide to add a new metric to the simulation framework (builtins, defaults, turn vs run scope).
+tags: [metrics, development, simulation, python, builtins]
+---
+
 # How to Create a New Metric
 
 To add a new metric, you only need to touch:

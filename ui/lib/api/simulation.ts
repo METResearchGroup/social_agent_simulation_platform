@@ -1,9 +1,31 @@
-import { ApiError, Run, Turn, Feed, AgentAction } from '@/types';
+import { Agent, AgentAction, ApiError, Feed, Post, Run, RunConfig, Turn } from '@/types';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
   process.env.NEXT_PUBLIC_SIMULATION_API_URL || DEFAULT_SIMULATION_API_BASE_URL
 ).replace(/\/$/, '');
+
+interface ApiAgent {
+  handle: string;
+  name: string;
+  bio: string;
+  generated_bio: string;
+  followers: number;
+  following: number;
+  posts_count: number;
+}
+
+function mapAgent(apiAgent: ApiAgent): Agent {
+  return {
+    handle: apiAgent.handle,
+    name: apiAgent.name,
+    bio: apiAgent.bio,
+    generatedBio: apiAgent.generated_bio,
+    followers: apiAgent.followers,
+    following: apiAgent.following,
+    postsCount: apiAgent.posts_count,
+  };
+}
 
 interface ApiRunListItem {
   run_id: string;
@@ -28,6 +50,26 @@ interface ApiAgentAction {
   post_uri?: string;
   user_id?: string;
   type: AgentAction['type'];
+  created_at: string;
+}
+
+/** API response shape for default config. Matches DefaultConfigSchema. */
+interface ApiDefaultConfig {
+  num_agents: number;
+  num_turns: number;
+}
+
+/** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
+interface ApiPost {
+  uri: string;
+  author_display_name: string;
+  author_handle: string;
+  text: string;
+  bookmark_count: number;
+  like_count: number;
+  quote_count: number;
+  reply_count: number;
+  repost_count: number;
   created_at: string;
 }
 
@@ -104,6 +146,21 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
   };
 }
 
+function mapPost(apiPost: ApiPost): Post {
+  return {
+    uri: apiPost.uri,
+    authorDisplayName: apiPost.author_display_name,
+    authorHandle: apiPost.author_handle,
+    text: apiPost.text,
+    bookmarkCount: apiPost.bookmark_count,
+    likeCount: apiPost.like_count,
+    quoteCount: apiPost.quote_count,
+    replyCount: apiPost.reply_count,
+    repostCount: apiPost.repost_count,
+    createdAt: apiPost.created_at,
+  };
+}
+
 function mapTurn(apiTurn: ApiTurn): Turn {
   const agentFeeds: Record<string, Feed> = {};
   const agentActions: Record<string, AgentAction[]> = {};
@@ -120,6 +177,16 @@ function mapTurn(apiTurn: ApiTurn): Turn {
     turnNumber: apiTurn.turn_number,
     agentFeeds,
     agentActions,
+  };
+}
+
+export async function getDefaultConfig(): Promise<RunConfig> {
+  const api: ApiDefaultConfig = await fetchJson<ApiDefaultConfig>(
+    buildApiUrl('/simulations/config/default'),
+  );
+  return {
+    numAgents: api.num_agents,
+    numTurns: api.num_turns,
   };
 }
 
@@ -148,4 +215,21 @@ export async function getTurnsForRun(runId: string): Promise<Record<string, Turn
   });
 
   return turnsById;
+}
+
+export async function getAgents(): Promise<Agent[]> {
+  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
+    buildApiUrl('/simulations/agents'),
+  );
+  return apiAgents.map(mapAgent);
+}
+
+export async function getPosts(uris?: string[]): Promise<Post[]> {
+  const baseUrl: string = buildApiUrl('/simulations/posts');
+  const url: string =
+    uris != null && uris.length > 0
+      ? `${baseUrl}?${uris.map((u) => `uris=${encodeURIComponent(u)}`).join('&')}`
+      : baseUrl;
+  const apiPosts: ApiPost[] = await fetchJson<ApiPost[]>(url);
+  return apiPosts.map(mapPost);
 }

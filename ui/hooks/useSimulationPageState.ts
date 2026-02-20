@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  DUMMY_AGENTS,
-} from '@/lib/dummy-data';
-import {
+  getAgents,
   getRuns,
   getTurnsForRun,
 } from '@/lib/api/simulation';
@@ -16,7 +14,7 @@ import {
   getRunConfig,
   withComputedRunStatuses,
 } from '@/lib/run-selectors';
-import { ApiError, Run, RunConfig, Turn } from '@/types';
+import { ApiError, Agent, Run, RunConfig, Turn } from '@/types';
 
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
 const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
@@ -31,6 +29,8 @@ const TURN_FETCH_THROTTLE_MS: number = 1500;
  * Loading/error contract:
  * - runsLoading: true while getRuns() is in flight; false otherwise.
  * - runsError: set when runs fetch fails; cleared when handleRetryRuns is called.
+ * - agentsLoading: true while getAgents() is in flight; false otherwise.
+ * - agentsError: set when agents fetch fails; cleared when handleRetryAgents is called.
  * - turnsLoadingByRunId: runId -> true while turns for that run are loading.
  * - turnsErrorByRunId: runId -> Error when turns fetch fails; cleared when handleRetryTurns(runId) is called.
  */
@@ -38,6 +38,8 @@ interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
   runsLoading: boolean;
   runsError: Error | null;
+  agentsLoading: boolean;
+  agentsError: Error | null;
   turnsLoadingByRunId: Record<string, boolean>;
   turnsErrorByRunId: Record<string, ApiError | null>;
   selectedRunId: string | null;
@@ -46,7 +48,7 @@ interface UseSimulationPageStateResult {
   currentTurn: Turn | null;
   availableTurns: number[];
   completedTurnsCount: number;
-  runAgents: typeof DUMMY_AGENTS;
+  runAgents: Agent[];
   currentRunConfig: RunConfig | null;
   isStartScreen: boolean;
   handleConfigSubmit: (config: RunConfig) => void;
@@ -54,6 +56,7 @@ interface UseSimulationPageStateResult {
   handleSelectTurn: (turn: number | 'summary') => void;
   handleStartNewRun: () => void;
   handleRetryRuns: () => void;
+  handleRetryAgents: () => void;
   handleRetryTurns: (runId: string) => void;
 }
 
@@ -61,6 +64,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [runs, setRuns] = useState<Run[]>([]);
   const [runsLoading, setRunsLoading] = useState<boolean>(true);
   const [runsError, setRunsError] = useState<Error | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState<boolean>(true);
+  const [agentsError, setAgentsError] = useState<Error | null>(null);
+  const [retryAgentsTrigger, setRetryAgentsTrigger] = useState<number>(0);
   const [turnsLoadingByRunId, setTurnsLoadingByRunId] = useState<Record<string, boolean>>(
     EMPTY_TURNS_LOADING,
   );
@@ -79,6 +86,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const turnsFetchInFlightRef = useRef<Set<string>>(new Set());
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
+  const agentsRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -114,6 +122,35 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
    * Loads turns for the selected run. On failure, sets turnsError (run is not marked loaded).
    * User can retry via retryTurns(runId) or by reselecting the run after 1.5s (throttle window).
    */
+  useEffect(() => {
+    let isMounted: boolean = true;
+    agentsRequestIdRef.current += 1;
+    const requestId: number = agentsRequestIdRef.current;
+    setAgentsLoading(true);
+    setAgentsError(null);
+
+    const loadAgents = async (): Promise<void> => {
+      try {
+        const apiAgents: Agent[] = await getAgents();
+        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        setAgents(apiAgents);
+      } catch (error: unknown) {
+        console.error('Failed to fetch agents:', error);
+        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        setAgentsError(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        setAgentsLoading(false);
+      }
+    };
+
+    void loadAgents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [retryAgentsTrigger]);
+
   useEffect(() => {
     if (!selectedRunId || loadedTurnsRunIdsRef.current.has(selectedRunId)) {
       return;
@@ -194,8 +231,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
 
   const runAgents = useMemo(
-    () => getRunAgents(selectedRun, DUMMY_AGENTS),
-    [selectedRun],
+    () => getRunAgents(selectedRun, agents),
+    [selectedRun, agents],
   );
 
   const currentRunConfig: RunConfig | null = useMemo(
@@ -239,6 +276,11 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryRunsTrigger((t) => t + 1);
   };
 
+  const handleRetryAgents = (): void => {
+    setAgentsError(null);
+    setRetryAgentsTrigger((t) => t + 1);
+  };
+
   const handleRetryTurns = (runId: string): void => {
     setTurnsErrorByRunId((prev) => {
       const next: Record<string, ApiError | null> = { ...prev };
@@ -254,6 +296,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     runsWithStatus,
     runsLoading,
     runsError,
+    agentsLoading,
+    agentsError,
     turnsLoadingByRunId,
     turnsErrorByRunId,
     selectedRunId,
@@ -270,6 +314,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     handleSelectTurn,
     handleStartNewRun,
     handleRetryRuns,
+    handleRetryAgents,
     handleRetryTurns,
   };
 }

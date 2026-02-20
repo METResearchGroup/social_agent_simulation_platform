@@ -74,6 +74,13 @@ class RunResponse(BaseModel):
         return self
 
 
+class DefaultConfigSchema(BaseModel):
+    """Default config for simulation start form."""
+
+    num_agents: int
+    num_turns: int
+
+
 class RunConfigDetail(BaseModel):
     """Configuration for a persisted run."""
 
@@ -92,6 +99,18 @@ class RunListItem(BaseModel):
     status: RunStatus
 
 
+class AgentSchema(BaseModel):
+    """Agent profile for the simulation UI."""
+
+    handle: str
+    name: str
+    bio: str
+    generated_bio: str
+    followers: int
+    following: int
+    posts_count: int
+
+
 class FeedSchema(BaseModel):
     """Feed metadata for one agent in a turn."""
 
@@ -100,6 +119,21 @@ class FeedSchema(BaseModel):
     turn_number: int
     agent_handle: str
     post_uris: list[str]
+    created_at: str
+
+
+class PostSchema(BaseModel):
+    """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts."""
+
+    uri: str
+    author_display_name: str
+    author_handle: str
+    text: str
+    bookmark_count: int
+    like_count: int
+    quote_count: int
+    reply_count: int
+    repost_count: int
     created_at: str
 
 

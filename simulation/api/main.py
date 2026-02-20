@@ -14,10 +14,12 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
 from db.adapters.sqlite.sqlite import initialize_database
+from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
@@ -37,6 +39,9 @@ app = FastAPI(
     title="Agent Simulation Platform API",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # type: ignore[reportArgumentType]
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

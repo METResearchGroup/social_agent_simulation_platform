@@ -1,23 +1,29 @@
 """Simulation run API routes."""
 
 import asyncio
-import json
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
-from lib.request_logging import log_route_completion
+from lib.rate_limiting import limiter
+from lib.request_logging import RunIdSource, log_route_completion_decorator
+from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
+    AgentSchema,
+    DefaultConfigSchema,
+    PostSchema,
     RunDetailsResponse,
     RunListItem,
     RunRequest,
     RunResponse,
     TurnSchema,
 )
+from simulation.api.services.agent_query_service import list_agents_dummy
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
+    get_posts_by_uris_dummy,
     get_run_details,
     get_turns_for_run_dummy,
     list_runs_dummy,
@@ -32,6 +38,39 @@ SIMULATION_RUN_ROUTE: str = "POST /v1/simulations/run"
 SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
+SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
+SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
+SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
+
+
+@router.get(
+    "/simulations/config/default",
+    response_model=DefaultConfigSchema,
+    status_code=200,
+    summary="Get default simulation config",
+    description="Return default config for simulation start form (num_agents, num_turns).",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_CONFIG_DEFAULT_ROUTE, success_type=DefaultConfigSchema
+)
+async def get_simulation_config_default(
+    request: Request,
+) -> DefaultConfigSchema | Response:
+    """Return default config for simulation start form."""
+    return await _execute_get_default_config(request)
+
+
+@router.get(
+    "/simulations/agents",
+    response_model=list[AgentSchema],
+    status_code=200,
+    summary="List simulation agents",
+    description="Return simulation agent profiles for the UI.",
+)
+@log_route_completion_decorator(route=SIMULATION_AGENTS_ROUTE, success_type=list)
+async def get_simulation_agents(request: Request) -> list[AgentSchema] | Response:
+    """Return all simulation agents from the backend dummy source."""
+    return await _execute_get_simulation_agents(request)
 
 
 @router.get(
@@ -41,31 +80,10 @@ SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
     summary="List simulation runs",
     description="Return simulation run summaries for the UI.",
 )
+@log_route_completion_decorator(route=SIMULATION_RUNS_ROUTE, success_type=list)
 async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
     """Return all simulation runs from the backend dummy source."""
-    response = await _execute_get_simulation_runs(request)
-    request_id = getattr(request.state, "request_id", "")
-    latency_ms = getattr(request.state, "duration_ms", 0)
-    if isinstance(response, list):
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUNS_ROUTE,
-            latency_ms=latency_ms,
-            run_id=None,
-            status="200",
-            error_code=None,
-        )
-    else:
-        error_code = _error_code_from_json_response(response)
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUNS_ROUTE,
-            latency_ms=latency_ms,
-            run_id=None,
-            status=str(response.status_code),
-            error_code=error_code,
-        )
-    return response
+    return await _execute_get_simulation_runs(request)
 
 
 @router.post(
@@ -75,33 +93,17 @@ async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
     summary="Run a simulation",
     description="Execute a synchronous simulation run.",
 )
+@limiter.limit("5/minute")
+@log_route_completion_decorator(
+    route=SIMULATION_RUN_ROUTE,
+    success_type=RunResponse,
+    run_id_from=RunIdSource.RESPONSE,
+)
 async def post_simulations_run(
     request: Request, body: RunRequest
 ) -> RunResponse | Response:
     """Execute a simulation run and return completed or partial results."""
-    response = await _execute_simulation_run(request=request, body=body)
-    request_id = getattr(request.state, "request_id", "")
-    latency_ms = getattr(request.state, "duration_ms", 0)
-    if isinstance(response, RunResponse):
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUN_ROUTE,
-            latency_ms=latency_ms,
-            run_id=response.run_id,
-            status=response.status.value,
-            error_code=response.error.code if response.error else None,
-        )
-    else:
-        error_code = _error_code_from_json_response(response)
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUN_ROUTE,
-            latency_ms=latency_ms,
-            run_id=None,
-            status=str(response.status_code),
-            error_code=error_code,
-        )
-    return response
+    return await _execute_simulation_run(request=request, body=body)
 
 
 @router.get(
@@ -111,33 +113,32 @@ async def post_simulations_run(
     summary="Get simulation run details",
     description="Fetch run config and turn-by-turn action summary by run ID.",
 )
+@log_route_completion_decorator(
+    route=SIMULATION_RUN_DETAILS_ROUTE,
+    success_type=RunDetailsResponse,
+    run_id_from=RunIdSource.RESPONSE,
+)
 async def get_simulation_run(
     request: Request, run_id: str
 ) -> RunDetailsResponse | Response:
     """Return run details and turn history for a persisted run."""
-    response = await _execute_get_simulation_run(request=request, run_id=run_id)
-    request_id = getattr(request.state, "request_id", "")
-    latency_ms = getattr(request.state, "duration_ms", 0)
-    if isinstance(response, RunDetailsResponse):
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUN_DETAILS_ROUTE,
-            latency_ms=latency_ms,
-            run_id=response.run_id,
-            status=response.status.value,
-            error_code=None,
-        )
-    else:
-        error_code = _error_code_from_json_response(response)
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUN_DETAILS_ROUTE,
-            latency_ms=latency_ms,
-            run_id=run_id,
-            status=str(response.status_code),
-            error_code=error_code,
-        )
-    return response
+    return await _execute_get_simulation_run(request=request, run_id=run_id)
+
+
+@router.get(
+    "/simulations/posts",
+    response_model=list[PostSchema],
+    status_code=200,
+    summary="List simulation posts",
+    description="Return posts, optionally filtered by URIs. Batch lookup for feed resolution.",
+)
+@log_route_completion_decorator(route=SIMULATION_POSTS_ROUTE, success_type=list)
+async def get_simulation_posts(
+    request: Request,
+    uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
+) -> list[PostSchema] | Response:
+    """Return posts from the backend dummy source."""
+    return await _execute_get_simulation_posts(request, uris=uris)
 
 
 @router.get(
@@ -147,33 +148,50 @@ async def get_simulation_run(
     summary="Get simulation run turns",
     description="Return full per-turn payload for a run ID.",
 )
+@log_route_completion_decorator(
+    route=SIMULATION_RUN_TURNS_ROUTE, success_type=dict, run_id_from=RunIdSource.PATH
+)
 async def get_simulation_run_turns(
     request: Request, run_id: str
 ) -> dict[str, TurnSchema] | Response:
     """Return turn payload for a run from the backend dummy source."""
-    response = await _execute_get_simulation_run_turns(request, run_id=run_id)
-    request_id = getattr(request.state, "request_id", "")
-    latency_ms = getattr(request.state, "duration_ms", 0)
-    if isinstance(response, dict):
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUN_TURNS_ROUTE,
-            latency_ms=latency_ms,
-            run_id=run_id,
-            status="200",
-            error_code=None,
+    return await _execute_get_simulation_run_turns(request, run_id=run_id)
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_default_config(
+    request: Request,
+) -> DefaultConfigSchema | Response:
+    """Fetch default config and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(get_default_config_dummy)
+    except Exception:
+        logger.exception("Unexpected error while fetching default config")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
         )
-    else:
-        error_code = _error_code_from_json_response(response)
-        log_route_completion(
-            request_id=request_id,
-            route=SIMULATION_RUN_TURNS_ROUTE,
-            latency_ms=latency_ms,
-            run_id=run_id,
-            status=str(response.status_code),
-            error_code=error_code,
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_simulation_posts(
+    request: Request,
+    *,
+    uris: list[str] | None = None,
+) -> list[PostSchema] | Response:
+    """Fetch posts and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(get_posts_by_uris_dummy, uris=uris)
+    except Exception:
+        logger.exception("Unexpected error while listing simulation posts")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
         )
-    return response
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -186,6 +204,23 @@ async def _execute_get_simulation_runs(
         return await asyncio.to_thread(list_runs_dummy)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_simulation_agents(
+    request: Request,
+) -> list[AgentSchema] | Response:
+    """Fetch agent list and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(list_agents_dummy)
+    except Exception:
+        logger.exception("Unexpected error while listing simulation agents")
         return _error_response(
             status_code=500,
             code="INTERNAL_ERROR",
@@ -291,25 +326,6 @@ async def _execute_get_simulation_run(
             message="Internal server error",
             detail=None,
         )
-
-
-def _error_code_from_json_response(response: Response) -> str | None:
-    """Extract error code from JSONResponse content if present."""
-    content = getattr(response, "content", None)
-    if isinstance(content, dict):
-        return content.get("error", {}).get("code")
-    if hasattr(response, "body") and response.body:
-        try:
-            raw = response.body
-            if isinstance(raw, bytes):
-                raw = raw.decode()
-            else:
-                raw = bytes(raw).decode()
-            data = json.loads(raw)
-            return data.get("error", {}).get("code")
-        except (TypeError, ValueError):
-            return None
-    return None
 
 
 def _error_response(

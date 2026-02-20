@@ -37,6 +37,7 @@ export default function TurnHistorySidebar() {
       <button
         key={turnNumber}
         type="button"
+        data-testid={`turn-${turnNumber}`}
         onClick={() => onSelectTurn(turnNumber)}
         className={`w-full text-left p-3 border-b border-beige-200 hover:bg-beige-100 transition-colors ${
           selectedTurn === turnNumber ? 'bg-beige-200' : ''
