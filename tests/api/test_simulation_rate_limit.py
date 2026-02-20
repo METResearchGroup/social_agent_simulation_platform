@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -9,8 +11,9 @@ from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
-def _make_mock_engine():
-    """Create a mock engine that returns a successful run."""
+@pytest.fixture
+def mock_engine_minimal_success():
+    """Mock engine that returns a minimal successful 1-turn run. Reused across rate limit tests."""
     run = Run(
         run_id="run-rate-limit-test",
         created_at=get_current_timestamp(),
@@ -54,9 +57,10 @@ def _make_mock_engine():
     return mock
 
 
-def _trigger_rate_limit(client, fastapi_app, ip: str) -> list:
+def _trigger_rate_limit(client, fastapi_app, ip: str, mock_engine) -> list:
     """Exceed rate limit by making 6 requests. Returns list of 6 responses."""
-    fastapi_app.state.engine = _make_mock_engine()
+    fastapi_app.state.limiter.reset()
+    fastapi_app.state.engine = mock_engine
     headers = {"Content-Type": "application/json", "X-Forwarded-For": ip}
     payload = {"num_agents": 1, "num_turns": 1}
     return [
@@ -67,14 +71,17 @@ def _trigger_rate_limit(client, fastapi_app, ip: str) -> list:
 
 def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
     simulation_client,
+    mock_engine_minimal_success,
 ):
     """Sixth request within limit window returns 429 with RATE_LIMITED error shape.
 
-    Uses a unique X-Forwarded-For IP to get a fresh rate limit slot, independent
-    of other tests.
+    Resets the shared limiter storage so the six-request sequence is deterministic
+    regardless of test order.
     """
     client, fastapi_app = simulation_client
-    responses = _trigger_rate_limit(client, fastapi_app, "192.168.100.1")
+    responses = _trigger_rate_limit(
+        client, fastapi_app, "192.168.100.1", mock_engine_minimal_success
+    )
 
     assert all(r.status_code == 200 for r in responses[:5]), (
         "First 5 requests should succeed"
@@ -87,10 +94,15 @@ def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
     assert data["error"]["detail"] is None
 
 
-def test_post_simulations_run_rate_limit_429_error_shape(simulation_client):
+def test_post_simulations_run_rate_limit_429_error_shape(
+    simulation_client,
+    mock_engine_minimal_success,
+):
     """429 response has standard error structure matching other API errors."""
     client, fastapi_app = simulation_client
-    responses = _trigger_rate_limit(client, fastapi_app, "192.168.100.2")
+    responses = _trigger_rate_limit(
+        client, fastapi_app, "192.168.100.2", mock_engine_minimal_success
+    )
     response = responses[5]
 
     assert response.status_code == 429
