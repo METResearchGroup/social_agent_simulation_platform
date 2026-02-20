@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from typing import Iterable
 
+from simulation.core.models.agent import Agent
+from simulation.core.models.agent_bio import AgentBio
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -13,6 +15,7 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
 
 class TransactionProvider(ABC):
@@ -609,4 +612,71 @@ class GeneratedBioDatabaseAdapter(ABC):
                       Implementations should document the specific exception types
                       they raise.
         """
+        raise NotImplementedError
+
+
+class AgentDatabaseAdapter(ABC):
+    """Abstract interface for agent database operations."""
+
+    @abstractmethod
+    def write_agent(self, agent: Agent) -> None:
+        """Write an agent to the database.
+
+        Note:
+            Idempotent: an existing row with the same agent_id may be replaced.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent(self, agent_id: str) -> Agent | None:
+        """Read an agent by ID."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_by_handle(self, handle: str) -> Agent | None:
+        """Read an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_all_agents(self) -> list[Agent]:
+        """Read all agents. Returns empty list if none exist."""
+        raise NotImplementedError
+
+
+class AgentBioDatabaseAdapter(ABC):
+    """Abstract interface for agent persona bio database operations."""
+
+    @abstractmethod
+    def write_agent_bio(self, bio: AgentBio) -> None:
+        """Write an agent bio to the database."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_latest_agent_bio(self, agent_id: str) -> AgentBio | None:
+        """Read the latest bio for an agent by created_at DESC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_bios_by_agent_id(self, agent_id: str) -> list[AgentBio]:
+        """Read all bios for an agent, ordered by created_at DESC."""
+        raise NotImplementedError
+
+
+class UserAgentProfileMetadataDatabaseAdapter(ABC):
+    """Abstract interface for user agent profile metadata database operations."""
+
+    @abstractmethod
+    def write_user_agent_profile_metadata(
+        self, metadata: UserAgentProfileMetadata
+    ) -> None:
+        """Write user agent profile metadata.
+
+        Note:
+            Idempotent: an existing row with the same agent_id may be replaced.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
+        """Read metadata by agent_id."""
         raise NotImplementedError
