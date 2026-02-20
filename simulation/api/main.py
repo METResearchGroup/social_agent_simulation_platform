@@ -21,6 +21,7 @@ from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from db.adapters.sqlite.sqlite import initialize_database
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
+from lib.security_headers import SecurityHeadersMiddleware
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
 
@@ -58,6 +59,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestIdMiddleware)
 _allowed_origins_raw: str = os.environ.get("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
 _allowed_origins: list[str] = [
