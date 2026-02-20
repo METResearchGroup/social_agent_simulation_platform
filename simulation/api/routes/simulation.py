@@ -180,12 +180,7 @@ def _get_feed_algorithms_list() -> list[FeedAlgorithmSchema]:
     from feeds.algorithms import get_registered_algorithms
 
     return [
-        FeedAlgorithmSchema(
-            id=alg_id,
-            display_name=meta.display_name,
-            description=meta.description,
-            config_schema=meta.config_schema,
-        )
+        FeedAlgorithmSchema(id=alg_id, **meta.model_dump())
         for alg_id, meta in get_registered_algorithms()
     ]
 
