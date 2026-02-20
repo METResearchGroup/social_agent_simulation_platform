@@ -292,7 +292,7 @@ export async function postRun(config: RunConfig): Promise<Run> {
   const body = {
     num_agents: config.numAgents,
     num_turns: config.numTurns,
-    feed_algorithm: config.feedAlgorithm ?? 'chronological',
+    feed_algorithm: config.feedAlgorithm,
   };
   const api: ApiRunResponse = await fetchPost<typeof body, ApiRunResponse>(
     buildApiUrl('/simulations/run'),

@@ -12,9 +12,7 @@ interface ConfigFormProps {
 export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps) {
   const [numAgents, setNumAgents] = useState(defaultConfig.numAgents);
   const [numTurns, setNumTurns] = useState(defaultConfig.numTurns);
-  const [feedAlgorithm, setFeedAlgorithm] = useState<string>(
-    defaultConfig.feedAlgorithm ?? 'chronological',
-  );
+  const [feedAlgorithm, setFeedAlgorithm] = useState<string>(defaultConfig.feedAlgorithm);
   const [algorithms, setAlgorithms] = useState<FeedAlgorithm[]>([]);
   const algorithmsRequestIdRef = useRef<number>(0);
 

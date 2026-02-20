@@ -242,16 +242,12 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
 
   const handleConfigSubmit = (config: RunConfig): void => {
-    const effectiveConfig: RunConfig = {
-      ...config,
-      feedAlgorithm: config.feedAlgorithm ?? 'chronological',
-    };
-    void postRun(effectiveConfig)
+    void postRun(config)
       .then((newRun) => {
         setRuns((previousRuns) => [newRun, ...previousRuns]);
         setRunConfigs((previousConfigs) => ({
           ...previousConfigs,
-          [newRun.runId]: effectiveConfig,
+          [newRun.runId]: config,
         }));
         setSelectedRunId(newRun.runId);
         setSelectedTurn('summary');

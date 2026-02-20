@@ -64,7 +64,7 @@ export interface FeedAlgorithm {
 export interface RunConfig {
   numAgents: number;
   numTurns: number;
-  feedAlgorithm?: string;
+  feedAlgorithm: string;
 }
 
 /**
