@@ -5,6 +5,7 @@ import {
   getAgents,
   getRuns,
   getTurnsForRun,
+  postRun,
 } from '@/lib/api/simulation';
 import {
   getAvailableTurns,
@@ -241,20 +242,21 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
 
   const handleConfigSubmit = (config: RunConfig): void => {
-    const now: Date = new Date();
-    const newRunId: string = `run_${now.toISOString()}`;
-    const newRun: Run = {
-      runId: newRunId,
-      createdAt: now.toISOString(),
-      totalTurns: config.numTurns,
-      totalAgents: config.numAgents,
-      status: 'running',
-    };
-
-    setRuns((previousRuns) => [newRun, ...previousRuns]);
-    setRunConfigs((previousConfigs) => ({ ...previousConfigs, [newRunId]: config }));
-    setSelectedRunId(newRunId);
-    setSelectedTurn('summary');
+    setRunsError(null); // Clear stale run errors before starting a new run.
+    void postRun(config)
+      .then((newRun) => {
+        setRuns((previousRuns) => [newRun, ...previousRuns]);
+        setRunConfigs((previousConfigs) => ({
+          ...previousConfigs,
+          [newRun.runId]: config,
+        }));
+        setSelectedRunId(newRun.runId);
+        setSelectedTurn('summary');
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to start simulation:', error);
+        setRunsError(error instanceof Error ? error : new Error(String(error)));
+      });
   };
 
   const handleSelectRun = (runId: string): void => {

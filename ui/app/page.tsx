@@ -11,9 +11,8 @@ import StartView from '@/components/start/StartView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimulationPageState } from '@/hooks/useSimulationPageState';
 import { getDefaultConfig } from '@/lib/api/simulation';
+import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
 import type { RunConfig } from '@/types';
-
-const FALLBACK_DEFAULT_CONFIG: RunConfig = { numAgents: 5, numTurns: 10 };
 
 function AuthenticatedApp() {
   const [defaultConfig, setDefaultConfig] = useState<RunConfig | null>(null);

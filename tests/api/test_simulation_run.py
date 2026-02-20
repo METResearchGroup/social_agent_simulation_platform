@@ -72,6 +72,7 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
     assert data["num_turns"] == expected_result["num_turns"]
     assert data["error"] is expected_result["error"]
     assert data["run_id"] == run.run_id
+    assert data["created_at"] == run.created_at
     assert data["turns"] == [
         {
             "turn_number": 0,
@@ -135,6 +136,7 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
     )
     assert response.status_code == 200
     data = response.json()
+    assert data["created_at"] == run.created_at
     assert data["num_turns"] == 10
     assert data["status"] == "completed"
     assert len(data["turns"]) == 10
@@ -217,6 +219,16 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
             created_at="2026-01-01T00:00:00",
         )
     ]
+    failed_run = Run(
+        run_id="run-partial-1",
+        created_at="2026-01-01T00:00:00",
+        total_turns=2,
+        total_agents=2,
+        feed_algorithm="chronological",
+        started_at="2026-01-01T00:00:00",
+        status=RunStatus.FAILED,
+        completed_at=None,
+    )
     mock_engine = MagicMock()
     mock_engine.execute_run.side_effect = SimulationRunFailure(
         message="Run failed during execution",
@@ -226,6 +238,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     mock_engine.list_turn_metadata.return_value = partial_metadata
     mock_engine.list_turn_metrics.return_value = partial_turn_metrics
     mock_engine.get_run_metrics.return_value = None
+    mock_engine.get_run.return_value = failed_run
     fastapi_app.state.engine = mock_engine
     response = client.post(
         "/v1/simulations/run",
@@ -235,6 +248,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     data = response.json()
     expected_result = {
         "run_id": "run-partial-1",
+        "created_at": "2026-01-01T00:00:00",
         "status": "failed",
         "num_agents": 2,
         "num_turns": 2,
@@ -249,6 +263,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         "run_metrics": None,
     }
     assert data["run_id"] == expected_result["run_id"]
+    assert data["created_at"] == expected_result["created_at"]
     assert data["status"] == expected_result["status"]
     assert data["num_agents"] == expected_result["num_agents"]
     assert data["num_turns"] == expected_result["num_turns"]
