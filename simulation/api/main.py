@@ -22,6 +22,7 @@ from db.adapters.sqlite.sqlite import initialize_database
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
 from lib.security_headers import SecurityHeadersMiddleware
+from simulation.api.dependencies.auth import UnauthorizedError
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
 
@@ -43,6 +44,23 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # type: ignore[reportArgumentType]
+
+
+def _unauthorized_handler(request: Request, exc: UnauthorizedError) -> JSONResponse:
+    """Return 401 with standard error shape for auth failures."""
+    return JSONResponse(
+        status_code=401,
+        content={
+            "error": {
+                "code": "UNAUTHORIZED",
+                "message": exc.message,
+                "detail": None,
+            }
+        },
+    )
+
+
+app.add_exception_handler(UnauthorizedError, _unauthorized_handler)  # type: ignore[reportArgumentType]
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

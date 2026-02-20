@@ -2,18 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import SignIn from '@/components/auth/SignIn';
 import SimulationLayout from '@/components/layout/SimulationLayout';
 import { RunDetailProvider } from '@/components/run-detail/RunDetailContext';
 import RunDetailView from '@/components/run-detail/RunDetailView';
 import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
 import StartView from '@/components/start/StartView';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSimulationPageState } from '@/hooks/useSimulationPageState';
 import { getDefaultConfig } from '@/lib/api/simulation';
 import type { RunConfig } from '@/types';
 
 const FALLBACK_DEFAULT_CONFIG: RunConfig = { numAgents: 5, numTurns: 10 };
 
-export default function Home() {
+function AuthenticatedApp() {
   const [defaultConfig, setDefaultConfig] = useState<RunConfig | null>(null);
   const [defaultConfigLoading, setDefaultConfigLoading] = useState<boolean>(true);
   const [defaultConfigError, setDefaultConfigError] = useState<Error | null>(null);
@@ -138,6 +140,24 @@ export default function Home() {
           <RunDetailView />
         </RunDetailProvider>
       )}
+    </SimulationLayout>
+  );
+}
+
+export default function Home() {
+  const { user, isLoading: authLoading } = useAuth();
+
+  if (authLoading || !user) {
+    return (
+      <SimulationLayout>
+        <SignIn />
+      </SimulationLayout>
+    );
+  }
+
+  return (
+    <SimulationLayout>
+      <AuthenticatedApp />
     </SimulationLayout>
   );
 }

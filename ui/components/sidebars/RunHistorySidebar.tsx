@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Run } from '@/types';
 
@@ -22,6 +23,7 @@ export default function RunHistorySidebar({
   onSelectRun,
   onStartNewRun,
 }: RunHistorySidebarProps) {
+  const { user, signOut } = useAuth();
   const runListContent = (): React.ReactNode => {
     if (runsLoading && runs.length === 0) {
       return (
@@ -86,6 +88,20 @@ export default function RunHistorySidebar({
         </button>
       </div>
       <div className="flex-1 overflow-y-auto">{runListContent()}</div>
+      {user != null && (
+        <div className="p-3 border-t border-beige-300">
+          <p className="truncate text-xs text-beige-600 mb-2" title={user.email ?? undefined}>
+            {user.email ?? user.id}
+          </p>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="w-full px-3 py-2 text-sm font-medium text-beige-700 hover:text-beige-900 hover:bg-beige-200 rounded transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
     </div>
   );
 }

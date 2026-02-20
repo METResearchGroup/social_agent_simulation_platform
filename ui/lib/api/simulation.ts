@@ -83,20 +83,50 @@ function buildApiUrl(path: string): string {
   return `${SIMULATION_API_BASE_URL}${path}`;
 }
 
+/** Token getter for authenticated requests. Set by AuthProvider. */
+let authTokenGetter: (() => Promise<string | null>) | null = null;
+
+export function setAuthTokenGetter(
+  getter: (() => Promise<string | null>) | null,
+): void {
+  authTokenGetter = getter;
+}
+
+/** Called when a request returns 401. Set by AuthProvider to trigger signOut. */
+let onUnauthorized: (() => void) | null = null;
+
+export function setOnUnauthorized(callback: (() => void) | null): void {
+  onUnauthorized = callback;
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const token = authTokenGetter ? await authTokenGetter() : null;
+  if (token != null && token !== '') {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 /**
  * Fetches JSON from a URL. Throws ApiError on non-2xx responses.
+ * Includes Authorization Bearer token when authTokenGetter is set.
  * Backend uses { error: { code, message, detail } } for error payloads.
  * On non-JSON or missing error shape, falls back to UNKNOWN_ERROR with raw text in message.
  */
 async function fetchJson<T>(url: string): Promise<T> {
+  const headers = await getAuthHeaders();
   const response: Response = await fetch(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {
+    if (response.status === 401 && onUnauthorized) {
+      onUnauthorized();
+    }
     const responseText: string = await response.text();
     let code: string = 'UNKNOWN_ERROR';
     let message: string = responseText || `Request failed (${response.status})`;
