@@ -1,6 +1,15 @@
 """Abstract interfaces for feed generation algorithms."""
 
-from typing import Any, TypedDict
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, TypedDict
+
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from simulation.core.models.agents import SocialMediaAgent
+    from simulation.core.models.posts import BlueskyFeedPost
 
 
 class FeedAlgorithmMetadata(TypedDict, total=False):
@@ -11,6 +20,39 @@ class FeedAlgorithmMetadata(TypedDict, total=False):
     config_schema: dict[str, Any] | None
 
 
-# Feed generators are callables with signature:
-# (candidate_posts: list[BlueskyFeedPost], agent: SocialMediaAgent, **kwargs) -> dict
-# Return dict must have: feed_id, agent_handle, post_uris
+class FeedAlgorithmResult(BaseModel):
+    """Result of a feed ranking algorithm.
+
+    post_uris is ordered: first element = top of feed. Implementations must use
+    deterministic tie-breaking when scores/keys are equal.
+    """
+
+    feed_id: str
+    agent_handle: str
+    post_uris: list[str]
+
+
+class FeedAlgorithm(ABC):
+    """Abstract interface for feed ranking algorithms. Implementations must be deterministic."""
+
+    @property
+    @abstractmethod
+    def metadata(self) -> FeedAlgorithmMetadata:
+        """Algorithm metadata for API and UI exposure."""
+        ...
+
+    @abstractmethod
+    def generate(
+        self,
+        *,
+        candidate_posts: list[BlueskyFeedPost],
+        agent: SocialMediaAgent,
+        limit: int = 20,
+        **kwargs: object,
+    ) -> FeedAlgorithmResult:
+        """Rank and select posts.
+
+        Return post_uris in feed display order. Use deterministic tie-breaking
+        (e.g. uri) when primary sort keys tie.
+        """
+        ...
