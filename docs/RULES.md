@@ -171,3 +171,10 @@ Frontend — Shared components
 Frontend — Consistency across analogous components
 
 - Use the same logic patterns for similar components (e.g. RunHistorySidebar and TurnHistorySidebar). Match sentinel conditions (e.g. loading && data.length === 0) so loading, retry, and empty behavior stay consistent and existing data isn’t hidden during retries.
+
+Frontend — Async effects and race conditions
+
+- When a useEffect triggers an async fetch (e.g. getAgents, getPosts) and the effect can re-run before the previous request completes (e.g. via retry or dependency changes), use a request-id guard to prevent older responses from overwriting state.
+- Pattern: Declare a useRef<number>(0), increment it at the start of the effect, capture the current value in a local variable, and only call setState (or update derived state) after awaiting if the captured id still equals the ref. Apply this check in try, catch, and finally blocks.
+- isMounted alone is insufficient: it guards against unmount, not against out-of-order responses when retry or re-fetch triggers a new request before the previous one resolves.
+- Prefer the request-id approach over AbortController when possible—it requires no changes to fetch/API signatures and keeps the effect logic simple.

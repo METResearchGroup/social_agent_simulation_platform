@@ -11,6 +11,7 @@ from lib.decorators import timed
 from lib.request_logging import log_route_completion
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
+    AgentSchema,
     DefaultConfigSchema,
     PostSchema,
     RunDetailsResponse,
@@ -19,6 +20,7 @@ from simulation.api.schemas.simulation import (
     RunResponse,
     TurnSchema,
 )
+from simulation.api.services.agent_query_service import list_agents_dummy
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
     get_posts_by_uris_dummy,
@@ -36,6 +38,7 @@ SIMULATION_RUN_ROUTE: str = "POST /v1/simulations/run"
 SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
+SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
 
@@ -68,6 +71,40 @@ async def get_simulation_config_default(
         log_route_completion(
             request_id=request_id,
             route=SIMULATION_CONFIG_DEFAULT_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status=str(response.status_code),
+            error_code=error_code,
+        )
+    return response
+
+
+@router.get(
+    "/simulations/agents",
+    response_model=list[AgentSchema],
+    status_code=200,
+    summary="List simulation agents",
+    description="Return simulation agent profiles for the UI.",
+)
+async def get_simulation_agents(request: Request) -> list[AgentSchema] | Response:
+    """Return all simulation agents from the backend dummy source."""
+    response = await _execute_get_simulation_agents(request)
+    request_id = getattr(request.state, "request_id", "")
+    latency_ms = getattr(request.state, "duration_ms", 0)
+    if isinstance(response, list):
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_AGENTS_ROUTE,
+            latency_ms=latency_ms,
+            run_id=None,
+            status="200",
+            error_code=None,
+        )
+    else:
+        error_code = _error_code_from_json_response(response)
+        log_route_completion(
+            request_id=request_id,
+            route=SIMULATION_AGENTS_ROUTE,
             latency_ms=latency_ms,
             run_id=None,
             status=str(response.status_code),
@@ -301,6 +338,23 @@ async def _execute_get_simulation_runs(
         return await asyncio.to_thread(list_runs_dummy)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_simulation_agents(
+    request: Request,
+) -> list[AgentSchema] | Response:
+    """Fetch agent list and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(list_agents_dummy)
+    except Exception:
+        logger.exception("Unexpected error while listing simulation agents")
         return _error_response(
             status_code=500,
             code="INTERNAL_ERROR",
