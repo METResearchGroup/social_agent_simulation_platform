@@ -17,6 +17,7 @@ dependencies = [
     "langchain-openai>=1.1.0",
     "langfuse>=3.10.1",
     "openai>=2.8.1",
+    "pyjwt>=2.8.0",
     "pydantic>=2.12.4",
     "slowapi>=0.1.9",
     "sqlalchemy>=2.0.45",
