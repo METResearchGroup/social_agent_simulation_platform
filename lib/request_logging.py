@@ -98,6 +98,8 @@ def log_route_completion_decorator(
                     run_id = r if isinstance(r, str) else None
                 else:
                     run_id = None
+
+                # we default to 200 since this runs only on success
                 status_obj = getattr(result, "status", None)
                 status = getattr(status_obj, "value", None) if status_obj else "200"
                 error_obj = getattr(result, "error", None)
