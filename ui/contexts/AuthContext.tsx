@@ -13,7 +13,7 @@ import { setAuthTokenGetter, setOnUnauthorized } from '@/lib/api/simulation';
 
 /** When true, bypass OAuth and treat as authenticated. Use only for local dev. */
 const DISABLE_AUTH: boolean =
-  typeof process !== 'undefined' &&
+  process.env.NODE_ENV !== 'production' &&
   process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
 
 /** Mock user when DISABLE_AUTH is set. */
