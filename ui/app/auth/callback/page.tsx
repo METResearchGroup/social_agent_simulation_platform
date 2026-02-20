@@ -1,12 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const DEFAULT_MISSING_CODE_MESSAGE: string = 'Missing authorization code';
+
+const loadingView = (
+  <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-beige-600">
+    <LoadingSpinner />
+    <span className="text-sm">Completing sign-in…</span>
+  </div>
+);
 
 function _errorMessageFromHash(hash: string): string | null {
   // Supabase may redirect back with error info in the URL hash fragment.
@@ -21,7 +28,7 @@ function _errorMessageFromHash(hash: string): string | null {
   return null;
 }
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get('code');
@@ -69,12 +76,7 @@ export default function AuthCallbackPage() {
   }, [code, oauthError, oauthErrorDescription, router]);
 
   if (!code && error == null) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-beige-600">
-        <LoadingSpinner />
-        <span className="text-sm">Completing sign-in…</span>
-      </div>
-    );
+    return loadingView;
   }
 
   if (error) {
@@ -92,10 +94,13 @@ export default function AuthCallbackPage() {
     );
   }
 
+  return loadingView;
+}
+
+export default function AuthCallbackPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-beige-600">
-      <LoadingSpinner />
-      <span className="text-sm">Completing sign-in…</span>
-    </div>
+    <Suspense fallback={loadingView}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

@@ -27,6 +27,7 @@ class UnauthorizedError(Exception):
     """Raised when authentication fails. Use standard API error shape in handler."""
 
     def __init__(self, message: str) -> None:
+        super().__init__(message)
         self.message = message
 
 
@@ -54,5 +55,5 @@ def require_auth(
             algorithms=JWT_ALGORITHMS,
         )
     except PyJWTError:
-        raise UnauthorizedError("Invalid or expired token")
+        raise UnauthorizedError("Invalid or expired token") from None
     return payload

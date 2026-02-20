@@ -59,7 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     setOnUnauthorized(() => {
-      void supabase.auth.signOut();
+      supabase.auth.signOut().catch(() => {
+        updateAuthState(null);
+      });
     });
 
     return () => {
