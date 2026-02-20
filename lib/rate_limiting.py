@@ -35,9 +35,7 @@ def _get_rate_limit_key(request: Request) -> str:
     rate-limit bucket. Uses X-Forwarded-For when present (e.g. behind Railway proxy),
     otherwise request.client.host, or FALLBACK_CLIENT_IP when neither is available.
     """
-    forwarded = request.headers.get("x-forwarded-for") or request.headers.get(
-        "X-Forwarded-For"
-    )
+    forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
         return forwarded.split(",")[0].strip()
     if request.client and request.client.host:

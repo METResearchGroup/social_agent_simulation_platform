@@ -42,7 +42,7 @@ Add rate limiting to protect the Agent Simulation Platform API from abuse. Per S
 2. slowapi's `Limiter` checks the per-IP count for the route key. If under the limit (e.g. 5/minute for POST /simulations/run), the request proceeds to the route handler.
 3. Route handler (e.g. `post_simulations_run`) runs; [log_route_completion_decorator](lib/request_logging.py) logs completion.
 4. **If over limit:** slowapi raises `RateLimitExceeded` before the handler runs. Our custom exception handler returns a `JSONResponse` with status 429 and the standard error shape `{"error": {"code": "RATE_LIMITED", "message": "...", "detail": null}}`.
-5. slowapi uses `get_remote_address`, which respects `X-Forwarded-For` (Railway sets this), so clients behind the proxy are correctly identified by their real IP.
+5. We use a custom key function `_get_rate_limit_key` in [lib/rate_limiting.py](lib/rate_limiting.py) (via `limiter = Limiter(key_func=_get_rate_limit_key)`). It reads `X-Forwarded-For` when present (Railway sets this), otherwise falls back to `request.client.host` or `127.0.0.1`, so clients behind the proxy are correctly identified by their real IP.
 
 ---
 
@@ -60,17 +60,18 @@ In [pyproject.toml](pyproject.toml), add to `dependencies`:
 
 In [simulation/api/main.py](simulation/api/main.py):
 
-- Import: `Limiter`, `_rate_limit_exceeded_handler` (or custom), `RateLimitExceeded`, `get_remote_address`
-- Create `limiter = Limiter(key_func=get_remote_address)` with no default limits (POST-only; we apply limits per route)
-- Store `app.state.limiter = limiter`
-- Add custom exception handler for `RateLimitExceeded` that returns a 429 `JSONResponse` matching the existing error shape: `{"error": {"code": "RATE_LIMITED", "message": "Rate limit exceeded", "detail": null}}`
-- Optionally include `Retry-After` header if slowapi exposes it
+- Import `limiter` and `rate_limit_exceeded_handler` from [lib/rate_limiting](lib/rate_limiting.py)
+- Import `RateLimitExceeded` from slowapi.errors
+- Store `app.state.limiter = limiter` (the limiter is created in lib/rate_limiting.py with `limiter = Limiter(key_func=_get_rate_limit_key)`)
+- Add exception handler for `RateLimitExceeded` that calls `rate_limit_exceeded_handler`; it returns a 429 `JSONResponse` matching the existing error shape: `{"error": {"code": "RATE_LIMITED", "message": "Rate limit exceeded", "detail": null}}`
+
+The key function `_get_rate_limit_key` in lib/rate_limiting.py reads `request.headers.get("x-forwarded-for")` (HTTP headers are case-insensitive), takes the first comma-separated value, then falls back to `request.client.host` or `FALLBACK_CLIENT_IP`.
 
 ### 3. Apply rate limit to POST route
 
 In [simulation/api/routes/simulation.py](simulation/api/routes/simulation.py):
 
-- Import `limiter` from the app (or inject via `request.app.state.limiter`). slowapi requires the limiter to be on `app.state.limiter`; the decorator resolves it from the request's app.
+- Import `limiter` from [lib/rate_limiting](lib/rate_limiting.py). slowapi requires the limiter to be on `app.state.limiter`; the decorator resolves it from the request's app.
 - Add `@limiter.limit("5/minute")` to `post_simulations_run`. Decorator order (top to bottom):
   1. `@router.post(...)`
   2. `@limiter.limit("5/minute")`
@@ -88,9 +89,20 @@ Create or extend a test file under `tests/api/` to cover:
 - **Success under limit:** Send 1–2 requests; both return 200.
 - **Error shape:** Assert 429 response has the standard structure `{"error": {"code": "RATE_LIMITED", "message": "...", "detail": ...}}`.
 
-Testing approach: Use `TestClient` with the same app. The in-memory limiter keys by IP; TestClient uses a default client IP. Mock the engine to avoid running real simulations. Use a very low limit (e.g. `2/minute`) in tests so we can trigger the limit quickly, or configure the limiter in the test app with a test-specific limit.
+Testing approach: Use `TestClient` with the same app. Use `_trigger_rate_limit` helper to reset the limiter and make 6 requests; tests assert on responses. The in-memory limiter keys by IP; use `X-Forwarded-For` header to simulate different clients. Mock the engine to avoid running real simulations.
 
 Note: slowapi resolves the limiter from `request.app.state.limiter`. Ensure the test app has the limiter configured before tests run.
+
+---
+
+## Security: Proxy trust (FASTAPI-PROXY-001)
+
+**X-Forwarded-For** is trusted to identify the client when behind a reverse proxy (e.g. Railway). Per FASTAPI-PROXY-001, we must not blindly trust `X-Forwarded-*` from the open internet. In production:
+
+- Run Uvicorn with `--forwarded-allow-ips` so forwarded headers are only applied when the connection comes from a trusted proxy IP.
+- Configure the Railway proxy IP ranges in this allowlist.
+
+The app reads `X-Forwarded-For` directly in `_get_rate_limit_key`. When Uvicorn is started with restricted `forwarded_allow_ips`, the connection to the app comes from the proxy; the proxy has already validated the client. For local development without a proxy, `request.client.host` is used instead.
 
 ---
 
@@ -133,7 +145,6 @@ Note: slowapi resolves the limiter from `request.app.state.limiter`. Ensure the 
 
 ## Rule Compliance (review-rules)
 
-
 | Rule                    | Status | Notes                                                                        |
 | ----------------------- | ------ | ---------------------------------------------------------------------------- |
 | PLANNING_RULES          | pass   | Overview, Happy Flow, Manual Verification, alternatives, specificity present |
@@ -141,14 +152,13 @@ Note: slowapi resolves the limiter from `request.app.state.limiter`. Ensure the 
 | CODING_REPO_CONVENTIONS | pass   | Use uv, Ruff; pre-commit verification in Manual Verification                 |
 | CODING_RULES            | pass   | Implementation follows existing patterns (error shape, middleware)           |
 
-
 ---
 
 ## Plan Asset Storage
 
 Save this plan and any related assets (e.g. verification notes) in:
 
-```
+```text
 docs/plans/2026-02-19_rate_limiting_post_paths_847291/
 ```
 
