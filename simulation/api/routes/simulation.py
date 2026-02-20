@@ -3,12 +3,13 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
 from lib.rate_limiting import limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
+from simulation.api.dependencies.auth import require_auth
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
@@ -32,7 +33,7 @@ from simulation.core.exceptions import RunNotFoundError, SimulationRunFailure
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["simulation"])
+router = APIRouter(tags=["simulation"], dependencies=[Depends(require_auth)])
 
 SIMULATION_RUN_ROUTE: str = "POST /v1/simulations/run"
 SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
