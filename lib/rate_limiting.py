@@ -9,6 +9,8 @@ from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
+FALLBACK_CLIENT_IP: str = "127.0.0.1"
+
 
 def rate_limit_exceeded_handler(
     request: Request, exc: RateLimitExceeded
@@ -26,8 +28,13 @@ def rate_limit_exceeded_handler(
     )
 
 
-def _key_func(request: Request) -> str:
-    """Use X-Forwarded-For when present (e.g. Railway proxy), else client host."""
+def _get_rate_limit_key(request: Request) -> str:
+    """Derive the client identifier used to group requests for rate limiting.
+
+    Returns the effective client IP so requests from the same client share the same
+    rate-limit bucket. Uses X-Forwarded-For when present (e.g. behind Railway proxy),
+    otherwise request.client.host, or FALLBACK_CLIENT_IP when neither is available.
+    """
     forwarded = request.headers.get("x-forwarded-for") or request.headers.get(
         "X-Forwarded-For"
     )
@@ -35,7 +42,7 @@ def _key_func(request: Request) -> str:
         return forwarded.split(",")[0].strip()
     if request.client and request.client.host:
         return request.client.host
-    return "127.0.0.1"
+    return FALLBACK_CLIENT_IP
 
 
-limiter = Limiter(key_func=_key_func)
+limiter = Limiter(key_func=_get_rate_limit_key)
