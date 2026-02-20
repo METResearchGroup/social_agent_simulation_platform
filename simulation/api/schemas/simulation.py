@@ -6,6 +6,7 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from feeds.algorithms.interfaces import FeedAlgorithmMetadata
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
@@ -37,6 +38,12 @@ class RunRequest(BaseModel):
     @classmethod
     def _validate_feed_algorithm(cls, v: str | None) -> str | None:
         return validate_feed_algorithm(v)
+
+
+class FeedAlgorithmSchema(FeedAlgorithmMetadata):
+    """API response for GET /v1/simulations/feed-algorithms."""
+
+    id: str  # algorithm_id from registry
 
 
 class ErrorDetail(BaseModel):

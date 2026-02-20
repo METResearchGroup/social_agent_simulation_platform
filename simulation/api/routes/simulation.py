@@ -13,6 +13,7 @@ from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
     DefaultConfigSchema,
+    FeedAlgorithmSchema,
     PostSchema,
     RunDetailsResponse,
     RunListItem,
@@ -40,7 +41,25 @@ SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
+SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
 SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
+
+
+@router.get(
+    "/simulations/feed-algorithms",
+    response_model=list[FeedAlgorithmSchema],
+    status_code=200,
+    summary="List feed algorithms",
+    description="Return available feed algorithms with metadata for the UI.",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_FEED_ALGORITHMS_ROUTE, success_type=list
+)
+async def get_simulation_feed_algorithms(
+    request: Request,
+) -> list[FeedAlgorithmSchema] | Response:
+    """Return registered feed algorithms with metadata."""
+    return await _execute_get_feed_algorithms(request)
 
 
 @router.get(
@@ -156,6 +175,33 @@ async def get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Return turn payload for a run from the backend dummy source."""
     return await _execute_get_simulation_run_turns(request, run_id=run_id)
+
+
+def _get_feed_algorithms_list() -> list[FeedAlgorithmSchema]:
+    """Return feed algorithms with metadata for the API."""
+    from feeds.algorithms import get_registered_algorithms
+
+    return [
+        FeedAlgorithmSchema(id=alg_id, **meta.model_dump())
+        for alg_id, meta in get_registered_algorithms()
+    ]
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_feed_algorithms(
+    request: Request,
+) -> list[FeedAlgorithmSchema] | Response:
+    """Fetch feed algorithms and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(_get_feed_algorithms_list)
+    except Exception:
+        logger.exception("Unexpected error while listing feed algorithms")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
 
 
 @timed(attach_attr="duration_ms", log_level=None)

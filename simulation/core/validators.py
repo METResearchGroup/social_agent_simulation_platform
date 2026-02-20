@@ -6,7 +6,6 @@ from lib.validation_utils import (
     validate_nonnegative_value,
     validate_not_none,
     validate_turn_number,  # noqa: F401
-    validate_value_in_set,
 )
 from simulation.core.exceptions import (
     InsufficientAgentsError,
@@ -39,16 +38,9 @@ def validate_num_turns(num_turns: int | None) -> int | None:
 
 def validate_feed_algorithm(feed_algorithm: str | None) -> str | None:
     """Validate that feed_algorithm, when provided, is a registered algorithm."""
-    if feed_algorithm is None:
-        return None
-    from feeds.feed_generator import _FEED_ALGORITHMS
+    from feeds.algorithms.validators import validate_feed_algorithm as _validate
 
-    return validate_value_in_set(
-        feed_algorithm,
-        "feed_algorithm",
-        _FEED_ALGORITHMS,
-        allowed_display_name="registered feed algorithms",
-    )
+    return _validate(feed_algorithm)
 
 
 def validate_run_exists(run: Run | None, run_id: str) -> Run:
