@@ -77,7 +77,7 @@ def require_auth(
                 f"{ENV_DISABLE_AUTH} must not be set in production. "
                 "Auth bypass is for local development only."
             )
-        return _DEV_MOCK_PAYLOAD
+        return _DEV_MOCK_PAYLOAD.copy()
     if credentials is None:
         raise UnauthorizedError("Missing or invalid Authorization header")
     token = credentials.credentials
