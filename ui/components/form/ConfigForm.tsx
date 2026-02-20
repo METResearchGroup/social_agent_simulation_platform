@@ -25,6 +25,11 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
       try {
         const list = await getFeedAlgorithms();
         if (!isMounted || requestId !== algorithmsRequestIdRef.current) return;
+        if (list.length === 0) {
+          console.warn(
+            '[ConfigForm] Feed algorithms empty or failed to load; showing fallback. Check GET /simulations/feed-algorithms.',
+          );
+        }
         setAlgorithms(list);
       } catch (err) {
         console.error('Failed to fetch feed algorithms:', err);
@@ -64,6 +69,7 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
               onChange={(e) => setFeedAlgorithm(e.target.value)}
               className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
             >
+              {/* Fetch failures are caught in the useEffect above; check console for error/warning. TODO: switch to structured logging. */}
               {algorithms.length === 0 ? (
                 <option value="chronological">Chronological</option>
               ) : (
