@@ -7,11 +7,21 @@ route completion so logs are parseable by aggregators and future metrics.
 import json
 import logging
 from collections.abc import Callable
+from enum import Enum
 from functools import wraps
-from typing import Any, Literal, ParamSpec, cast
+from typing import Any, ParamSpec, cast
 
 from starlette.requests import Request
 from starlette.responses import Response
+
+
+class RunIdSource(str, Enum):
+    """Where to obtain run_id for completion logs."""
+
+    RESPONSE = "response"
+    PATH = "path"
+    NONE = "none"
+
 
 P = ParamSpec("P")
 
@@ -60,7 +70,7 @@ def log_route_completion_decorator(
     *,
     route: str,
     success_type: type | tuple[type, ...],
-    run_id_from: Literal["response", "path", "none"] = "none",
+    run_id_from: RunIdSource = RunIdSource.NONE,
 ) -> Callable[[Callable[P, Any]], Callable[P, Any]]:
     """Decorator that logs route completion after the handler returns.
 
@@ -81,9 +91,9 @@ def log_route_completion_decorator(
             success = isinstance(result, success_type)
             run_id: str | None
             if success:
-                if run_id_from == "response":
+                if run_id_from == RunIdSource.RESPONSE:
                     run_id = cast(str | None, getattr(result, "run_id", None))
-                elif run_id_from == "path":
+                elif run_id_from == RunIdSource.PATH:
                     r = kwargs.get("run_id")
                     run_id = r if isinstance(r, str) else None
                 else:
@@ -93,7 +103,7 @@ def log_route_completion_decorator(
                 error_obj = getattr(result, "error", None)
                 error_code = getattr(error_obj, "code", None) if error_obj else None
             else:
-                if run_id_from in ("path", "response"):
+                if run_id_from in (RunIdSource.PATH, RunIdSource.RESPONSE):
                     r = kwargs.get("run_id")
                     run_id = r if isinstance(r, str) else None
                 else:
