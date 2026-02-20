@@ -81,6 +81,7 @@ interface ApiFeedAlgorithm {
 /** API response shape for POST /simulations/run. Matches RunResponse. */
 interface ApiRunResponse {
   run_id: string;
+  created_at: string;
   status: 'completed' | 'failed';
   num_agents: number;
   num_turns: number;
@@ -301,7 +302,7 @@ export async function postRun(config: RunConfig): Promise<Run> {
   );
   return {
     runId: api.run_id,
-    createdAt: new Date().toISOString(),
+    createdAt: api.created_at,
     totalTurns: api.num_turns,
     totalAgents: api.num_agents,
     status: api.status,

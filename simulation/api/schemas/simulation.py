@@ -65,6 +65,7 @@ class RunResponse(BaseModel):
     """Response body for POST /v1/simulations/run."""
 
     run_id: str
+    created_at: str
     status: RunResponseStatus
     num_agents: int
     num_turns: int
