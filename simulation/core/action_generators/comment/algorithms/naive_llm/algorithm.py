@@ -99,9 +99,15 @@ class NaiveLLMCommentGenerator(CommentGenerator):
         model_used = _resolve_model_used()
 
         generated: list[GeneratedComment] = []
+
+        already_included_post_ids = set()
         for item in response.comments:
-            if item.post_id not in valid_ids:
+            if (
+                item.post_id in already_included_post_ids
+                or item.post_id not in valid_ids
+            ):
                 continue
+            already_included_post_ids.add(item.post_id)
             post = post_by_id[item.post_id]
             generated.append(
                 _build_generated_comment(
