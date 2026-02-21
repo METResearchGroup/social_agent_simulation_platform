@@ -3,8 +3,7 @@
 Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
-from dotenv import load_dotenv
-
+from lib.load_env_vars import EnvVarsContainer
 from simulation.core.action_generators.follow.algorithms.naive_llm import (
     NaiveLLMFollowGenerator,
 )
@@ -34,7 +33,7 @@ def _post(
 
 
 def main() -> None:
-    load_dotenv()
+    EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
     generator = NaiveLLMFollowGenerator()
     run_id = "e2e_run_1"
 
