@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { setAuthTokenGetter, setOnUnauthorized } from '@/lib/api/simulation';
 
 /** When true, bypass OAuth and treat as authenticated. Use only for local dev. */
@@ -29,6 +29,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  isAuthConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -37,6 +38,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const isAuthConfigured: boolean = DISABLE_AUTH || isSupabaseConfigured;
   const [user, setUser] = useState<User | null>(DISABLE_AUTH ? MOCK_DEV_USER : null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(!DISABLE_AUTH);
@@ -56,6 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (DISABLE_AUTH) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      updateAuthState(null);
       setIsLoading(false);
       return;
     }
@@ -96,6 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      throw new Error(
+        'Supabase OAuth is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in the deployment environment and redeploy.',
+      );
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: getRedirectTo() },
@@ -106,6 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getRedirectTo]);
 
   const signInWithGitHub = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      throw new Error(
+        'Supabase OAuth is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in the deployment environment and redeploy.',
+      );
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: { redirectTo: getRedirectTo() },
@@ -123,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     isLoading,
+    isAuthConfigured,
     signInWithGoogle,
     signInWithGitHub,
     signOut,
