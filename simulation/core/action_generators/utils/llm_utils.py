@@ -27,5 +27,5 @@ def _resolve_model_used() -> str | None:
         from ml_tooling.llm.config.model_registry import ModelConfigRegistry
 
         return ModelConfigRegistry.get_default_model()
-    except (ValueError, FileNotFoundError):
+    except (ValueError, FileNotFoundError, KeyError):
         return None
