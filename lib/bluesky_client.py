@@ -1,24 +1,13 @@
-import os
-
 from atproto import Client
-from dotenv import load_dotenv
 
-load_dotenv()
+from lib.load_env_vars import EnvVarsContainer
 
 
 class BlueskyClient:
     def __init__(self):
         self.client = Client()
-        self.handle = os.getenv("BLUESKY_HANDLE")
-        self.password = os.getenv("BLUESKY_PASSWORD")
-
-        if not self.handle or not self.password:
-            # Fallback for debugging
-            print(
-                f"Env vars - HANDLE: {self.handle}, PASS: {'*' * len(self.password) if self.password else 'None'}"
-            )
-            raise ValueError("BLUESKY_HANDLE and BLUESKY_PASSWORD must be set in .env.")
-
+        self.handle = EnvVarsContainer.get_env_var("BLUESKY_HANDLE", required=True)
+        self.password = EnvVarsContainer.get_env_var("BLUESKY_PASSWORD", required=True)
         self.client.login(self.handle, self.password)
 
     def get_profile(self, actor: str) -> dict | None:
