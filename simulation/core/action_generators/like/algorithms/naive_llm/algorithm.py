@@ -36,6 +36,27 @@ def _build_prompt(agent_handle: str, candidates: list[BlueskyFeedPost]) -> str:
     return LIKE_PROMPT.format(agent_handle=agent_handle, posts_json=posts_json)
 
 
+def _deduplicate_post_ids(candidate_post_ids: list[str]) -> list[str]:
+    """Return unique post IDs, preserving first occurrence order."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for pid in candidate_post_ids:
+        if pid in seen:
+            continue
+        seen.add(pid)
+        result.append(pid)
+    return result
+
+
+def _get_ids_to_like(
+    *,
+    response_post_ids: list[str],
+    valid_post_ids: set[str],
+) -> list[str]:
+    candidate_ids = [pid for pid in response_post_ids if pid in valid_post_ids]
+    return _deduplicate_post_ids(candidate_ids)
+
+
 def _build_generated_like(
     *,
     post: BlueskyFeedPost,
@@ -94,7 +115,10 @@ class NaiveLLMLikeGenerator(LikeGenerator):
 
         valid_ids = {p.id for p in candidates}
         post_by_id = {p.id: p for p in candidates}
-        to_like_ids = [pid for pid in response.post_ids if pid in valid_ids]
+        to_like_ids = _get_ids_to_like(
+            response_post_ids=response.post_ids,
+            valid_post_ids=valid_ids,
+        )
 
         model_used = _resolve_model_used()
         generated: list[GeneratedLike] = [
