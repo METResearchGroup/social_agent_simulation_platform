@@ -6,9 +6,45 @@ route completion so logs are parseable by aggregators and future metrics.
 
 import json
 import logging
-from typing import Any
+from collections.abc import Callable
+from enum import Enum
+from functools import wraps
+from typing import Any, ParamSpec, cast
+
+from starlette.requests import Request
+from starlette.responses import Response
+
+
+class RunIdSource(str, Enum):
+    """Where to obtain run_id for completion logs."""
+
+    RESPONSE = "response"
+    PATH = "path"
+    NONE = "none"
+
+
+P = ParamSpec("P")
 
 logger = logging.getLogger(__name__)
+
+
+def _error_code_from_json_response(response: Response) -> str | None:
+    """Extract error code from JSONResponse content if present."""
+    content = getattr(response, "content", None)
+    if isinstance(content, dict):
+        return content.get("error", {}).get("code")
+    if hasattr(response, "body") and response.body:
+        try:
+            raw = response.body
+            if isinstance(raw, bytes):
+                raw = raw.decode()
+            else:
+                raw = bytes(raw).decode()
+            data = json.loads(raw)
+            return data.get("error", {}).get("code")
+        except (TypeError, ValueError):
+            return None
+    return None
 
 
 def log_request_start(
@@ -28,6 +64,67 @@ def log_request_start(
         "path": path,
     }
     logger.info(_format_payload(payload))
+
+
+def log_route_completion_decorator(
+    *,
+    route: str,
+    success_type: type | tuple[type, ...],
+    run_id_from: RunIdSource = RunIdSource.NONE,
+) -> Callable[[Callable[P, Any]], Callable[P, Any]]:
+    """Decorator that logs route completion after the handler returns.
+
+    Wraps async route handlers. Extracts request_id and latency_ms from
+    request.state, and run_id/status/error_code from the handler's return
+    value. Use functools.wraps so FastAPI preserves the handler signature.
+    """
+
+    def decorator(func: Callable[P, Any]) -> Callable[P, Any]:
+        @wraps(func)
+        async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
+            result = await func(*args, **kwargs)
+            request = cast(Request | None, args[0] if args else kwargs.get("request"))
+            if request is None:
+                return result
+            request_id: str = getattr(request.state, "request_id", "")
+            latency_ms: int = getattr(request.state, "duration_ms", 0)
+            success = isinstance(result, success_type)
+            run_id: str | None
+            if success:
+                if run_id_from == RunIdSource.RESPONSE:
+                    run_id = cast(str | None, getattr(result, "run_id", None))
+                elif run_id_from == RunIdSource.PATH:
+                    r = kwargs.get("run_id")
+                    run_id = r if isinstance(r, str) else None
+                else:
+                    run_id = None
+
+                # we default to 200 since this runs only on success
+                status_obj = getattr(result, "status", None)
+                status = getattr(status_obj, "value", None) if status_obj else "200"
+                error_obj = getattr(result, "error", None)
+                error_code = getattr(error_obj, "code", None) if error_obj else None
+            else:
+                if run_id_from in (RunIdSource.PATH, RunIdSource.RESPONSE):
+                    r = kwargs.get("run_id")
+                    run_id = r if isinstance(r, str) else None
+                else:
+                    run_id = None
+                status = str(getattr(result, "status_code", "500"))
+                error_code = _error_code_from_json_response(cast(Response, result))
+            log_route_completion(
+                request_id=request_id,
+                route=route,
+                latency_ms=latency_ms,
+                run_id=run_id,
+                status=status,
+                error_code=error_code,
+            )
+            return result
+
+        return async_wrapper
+
+    return decorator
 
 
 def log_route_completion(

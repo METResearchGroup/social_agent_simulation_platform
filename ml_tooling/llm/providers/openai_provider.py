@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from ml_tooling.llm._env import get_env_var
+from lib.load_env_vars import EnvVarsContainer
 from ml_tooling.llm.providers.base import LLMProviderProtocol
 
 
@@ -46,7 +46,7 @@ class OpenAIProvider(LLMProviderProtocol):
 
     def initialize(self, api_key: str | None = None) -> None:
         if api_key is None:
-            api_key = get_env_var("OPENAI_API_KEY", required=True)
+            api_key = EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
         if not self._initialized:
             self._api_key = api_key
             self._initialized = True

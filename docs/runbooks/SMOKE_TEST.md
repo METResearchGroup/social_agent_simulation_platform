@@ -1,3 +1,8 @@
+---
+description: Run the simulation API smoke suite against a local or deployed server via pytest.
+tags: [smoke-test, testing, api, pytest]
+---
+
 # Smoke Test Runbook
 
 This runbook describes how to run the simulation API smoke suite against a running server (local or deployed).

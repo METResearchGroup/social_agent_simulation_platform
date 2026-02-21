@@ -1,9 +1,6 @@
 """For each profile in the database, generate an AI-generated bio
 to use for the agent, and save to the database."""
 
-import os
-
-from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -14,6 +11,7 @@ from db.repositories.generated_bio_repository import (
 )
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from lib.langfuse_telemetry import get_langfuse_client, log_llm_request
+from lib.load_env_vars import EnvVarsContainer
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.posts import BlueskyFeedPost
@@ -57,11 +55,7 @@ GENERATE_BIO_PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-load_dotenv()
-
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("OPENAI_API_KEY is not set")
+api_key = EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
 
 MAX_POSTS_SAMPLE = 20
 

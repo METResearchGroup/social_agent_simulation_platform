@@ -1,3 +1,8 @@
+---
+description: Project-wide coding standards, architecture guidelines, and behavioral rules for AI agents and human developers.
+tags: [rules, coding-standards, architecture, api-design, python, frontend, testing]
+---
+
 # Rules for the repo
 
 1. Interfaces live next to implementations, in a "(path to folder)/interfaces.py" (e.g., feeds/interfaces.py).
@@ -141,6 +146,7 @@ Consolidation over duplication
 
 - Prefer one implementation per concern. When replacing an older pattern (e.g. a decorator), migrate existing callers to the new one and remove the old; avoid keeping two near-equivalents.
 - When renaming or replacing: prefer the clearer, long-term name and update call sites (e.g. timed instead of extending record_runtime with more options).
+- When one pattern is already used in a layer (e.g. asyncio.to_thread for sync work in async routes), apply the same pattern to similar cases even if the immediate benefit is small. Consistency reduces surprises and makes future changes simpler.
 
 Package management — Use uv for Python; don’t use pip.
 
@@ -152,7 +158,23 @@ Document the contract, not just the implementation
 
 - When behavior could be surprising (e.g. overwrite vs fail-on-duplicate, retry safety), document the chosen contract (inputs, outputs, exceptions, idempotency/immutability) at the interface.
 - Prefer documenting intent at the boundary over leaving semantics to be inferred from implementation details.
+- Comment non-obvious design choices: If a choice is made for consistency, future-proofing, or maintainability rather than immediate benefit, add a short comment explaining why, so reviewers and future readers understand the intent.
 
 Persistence and model boundaries
 
 - When adding computed or derived data (e.g. metrics), persist it in dedicated storage (e.g. turn_metrics / run_metrics tables and a dedicated repository) rather than overloading existing models or repositories. Keeps core models stable and avoids bloating a single repo with unrelated concerns.
+
+Frontend — Shared components
+
+- Extract shared UI patterns (e.g. LoadingSpinner) into common components when the same JSX/styling appears in multiple places. Reuse rather than duplicate.
+
+Frontend — Consistency across analogous components
+
+- Use the same logic patterns for similar components (e.g. RunHistorySidebar and TurnHistorySidebar). Match sentinel conditions (e.g. loading && data.length === 0) so loading, retry, and empty behavior stay consistent and existing data isn’t hidden during retries.
+
+Frontend — Async effects and race conditions
+
+- When a useEffect triggers an async fetch (e.g. getAgents, getPosts) and the effect can re-run before the previous request completes (e.g. via retry or dependency changes), use a request-id guard to prevent older responses from overwriting state.
+- Pattern: Declare a useRef<number>(0), increment it at the start of the effect, capture the current value in a local variable, and only call setState (or update derived state) after awaiting if the captured id still equals the ref. Apply this check in try, catch, and finally blocks.
+- isMounted alone is insufficient: it guards against unmount, not against out-of-order responses when retry or re-fetch triggers a new request before the previous one resolves.
+- Prefer the request-id approach over AbortController when possible—it requires no changes to fetch/API signatures and keeps the effect logic simple.

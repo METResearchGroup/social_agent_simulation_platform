@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 
+from lib.timestamp_utils import get_current_timestamp
 from simulation.api.schemas.simulation import (
     ErrorDetail,
     RunRequest,
@@ -48,8 +49,13 @@ def execute(
             metadata_list=metadata_list,
             turn_metrics_list=turn_metrics_list,
         )
+        failed_run = engine.get_run(e.run_id)
+        created_at = (
+            failed_run.created_at if failed_run is not None else get_current_timestamp()
+        )
         return RunResponse(
             run_id=e.run_id,
+            created_at=created_at,
             status=RunResponseStatus.FAILED,
             num_agents=run_config.num_agents,
             num_turns=run_config.num_turns,
@@ -74,6 +80,7 @@ def execute(
     )
     return RunResponse(
         run_id=run.run_id,
+        created_at=run.created_at,
         status=RunResponseStatus.COMPLETED,
         num_agents=run.total_agents,
         num_turns=run.total_turns,

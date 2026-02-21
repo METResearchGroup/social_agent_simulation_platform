@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 from lib.timestamp_utils import get_current_timestamp
+from simulation.api.dummy_data import DUMMY_RUNS, DUMMY_TURNS
 from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -71,6 +72,7 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
     assert data["num_turns"] == expected_result["num_turns"]
     assert data["error"] is expected_result["error"]
     assert data["run_id"] == run.run_id
+    assert data["created_at"] == run.created_at
     assert data["turns"] == [
         {
             "turn_number": 0,
@@ -134,6 +136,7 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
     )
     assert response.status_code == 200
     data = response.json()
+    assert data["created_at"] == run.created_at
     assert data["num_turns"] == 10
     assert data["status"] == "completed"
     assert len(data["turns"]) == 10
@@ -216,6 +219,16 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
             created_at="2026-01-01T00:00:00",
         )
     ]
+    failed_run = Run(
+        run_id="run-partial-1",
+        created_at="2026-01-01T00:00:00",
+        total_turns=2,
+        total_agents=2,
+        feed_algorithm="chronological",
+        started_at="2026-01-01T00:00:00",
+        status=RunStatus.FAILED,
+        completed_at=None,
+    )
     mock_engine = MagicMock()
     mock_engine.execute_run.side_effect = SimulationRunFailure(
         message="Run failed during execution",
@@ -225,6 +238,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     mock_engine.list_turn_metadata.return_value = partial_metadata
     mock_engine.list_turn_metrics.return_value = partial_turn_metrics
     mock_engine.get_run_metrics.return_value = None
+    mock_engine.get_run.return_value = failed_run
     fastapi_app.state.engine = mock_engine
     response = client.post(
         "/v1/simulations/run",
@@ -234,6 +248,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     data = response.json()
     expected_result = {
         "run_id": "run-partial-1",
+        "created_at": "2026-01-01T00:00:00",
         "status": "failed",
         "num_agents": 2,
         "num_turns": 2,
@@ -248,6 +263,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         "run_metrics": None,
     }
     assert data["run_id"] == expected_result["run_id"]
+    assert data["created_at"] == expected_result["created_at"]
     assert data["status"] == expected_result["status"]
     assert data["num_agents"] == expected_result["num_agents"]
     assert data["num_turns"] == expected_result["num_turns"]
@@ -257,3 +273,62 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     assert data["error"]["code"] == "SIMULATION_FAILED"
     assert data["error"]["message"] == "Run failed during execution"
     assert data["error"]["detail"] is None
+
+
+def test_get_simulations_runs_returns_dummy_run_list(simulation_client):
+    """GET /v1/simulations/runs returns dummy run summaries from backend."""
+    client, _ = simulation_client
+    response = client.get("/v1/simulations/runs")
+
+    assert response.status_code == 200
+    data = response.json()
+    sorted_run_ids = [
+        run.run_id
+        for run in sorted(
+            DUMMY_RUNS,
+            key=lambda run: run.created_at,
+            reverse=True,
+        )
+    ]
+    expected_result = {
+        "count": len(DUMMY_RUNS),
+        "first_run_id": sorted_run_ids[0],
+    }
+    assert len(data) == expected_result["count"]
+    assert data[0]["run_id"] == expected_result["first_run_id"]
+    assert "total_turns" in data[0]
+    assert "total_agents" in data[0]
+
+
+def test_get_simulations_run_turns_returns_turn_map(simulation_client):
+    """GET /v1/simulations/runs/{run_id}/turns returns turn payload map."""
+    client, _ = simulation_client
+    run_id = DUMMY_RUNS[0].run_id
+    response = client.get(f"/v1/simulations/runs/{run_id}/turns")
+
+    assert response.status_code == 200
+    data = response.json()
+    expected_result = {
+        "turn_count": len(DUMMY_TURNS[run_id]),
+        "first_turn_key": "0",
+    }
+    assert len(data) == expected_result["turn_count"]
+    assert expected_result["first_turn_key"] in data
+    assert "turn_number" in data[expected_result["first_turn_key"]]
+    assert "agent_feeds" in data[expected_result["first_turn_key"]]
+    assert "agent_actions" in data[expected_result["first_turn_key"]]
+
+
+def test_get_simulations_run_turns_missing_run_returns_404(simulation_client):
+    """Unknown run_id for turns endpoint returns stable RUN_NOT_FOUND payload."""
+    client, _ = simulation_client
+    response = client.get("/v1/simulations/runs/missing-run-id/turns")
+
+    assert response.status_code == 404
+    data = response.json()
+    expected_result = {
+        "code": "RUN_NOT_FOUND",
+        "message": "Run not found",
+    }
+    assert data["error"]["code"] == expected_result["code"]
+    assert data["error"]["message"] == expected_result["message"]

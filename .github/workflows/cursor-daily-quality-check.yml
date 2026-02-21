@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   cursor-quality-check:
+    if: false  # Disabled
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

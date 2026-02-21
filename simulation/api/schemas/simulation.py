@@ -6,6 +6,8 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from feeds.algorithms.interfaces import FeedAlgorithmMetadata
+from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
 from simulation.core.validators import (
@@ -38,6 +40,12 @@ class RunRequest(BaseModel):
         return validate_feed_algorithm(v)
 
 
+class FeedAlgorithmSchema(FeedAlgorithmMetadata):
+    """API response for GET /v1/simulations/feed-algorithms."""
+
+    id: str  # algorithm_id from registry
+
+
 class ErrorDetail(BaseModel):
     """Error payload included when status is failed or on server error."""
 
@@ -57,6 +65,7 @@ class RunResponse(BaseModel):
     """Response body for POST /v1/simulations/run."""
 
     run_id: str
+    created_at: str
     status: RunResponseStatus
     num_agents: int
     num_turns: int
@@ -73,12 +82,86 @@ class RunResponse(BaseModel):
         return self
 
 
+class DefaultConfigSchema(BaseModel):
+    """Default config for simulation start form."""
+
+    num_agents: int
+    num_turns: int
+
+
 class RunConfigDetail(BaseModel):
     """Configuration for a persisted run."""
 
     num_agents: int
     num_turns: int
     feed_algorithm: str
+
+
+class RunListItem(BaseModel):
+    """Summary item for listing simulation runs."""
+
+    run_id: str
+    created_at: str
+    total_turns: int
+    total_agents: int
+    status: RunStatus
+
+
+class AgentSchema(BaseModel):
+    """Agent profile for the simulation UI."""
+
+    handle: str
+    name: str
+    bio: str
+    generated_bio: str
+    followers: int
+    following: int
+    posts_count: int
+
+
+class FeedSchema(BaseModel):
+    """Feed metadata for one agent in a turn."""
+
+    feed_id: str
+    run_id: str
+    turn_number: int
+    agent_handle: str
+    post_uris: list[str]
+    created_at: str
+
+
+class PostSchema(BaseModel):
+    """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts."""
+
+    uri: str
+    author_display_name: str
+    author_handle: str
+    text: str
+    bookmark_count: int
+    like_count: int
+    quote_count: int
+    reply_count: int
+    repost_count: int
+    created_at: str
+
+
+class AgentActionSchema(BaseModel):
+    """Action event performed by an agent in a turn."""
+
+    action_id: str
+    agent_handle: str
+    post_uri: str | None = None
+    user_id: str | None = None
+    type: TurnAction
+    created_at: str
+
+
+class TurnSchema(BaseModel):
+    """Full turn payload consumed by the UI."""
+
+    turn_number: int
+    agent_feeds: dict[str, FeedSchema]
+    agent_actions: dict[str, list[AgentActionSchema]]
 
 
 class TurnActionsItem(BaseModel):

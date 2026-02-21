@@ -53,8 +53,38 @@ export interface Turn {
   agentActions: Record<string, AgentAction[]>;
 }
 
+/** Maps to FeedAlgorithmSchema (simulation/api/schemas/simulation.py) from GET /v1/simulations/feed-algorithms */
+export interface FeedAlgorithm {
+  id: string;
+  displayName: string;
+  description: string;
+  configSchema: Record<string, unknown> | null;
+}
+
 export interface RunConfig {
   numAgents: number;
   numTurns: number;
+  feedAlgorithm: string;
+}
+
+/**
+ * Structured API error from backend. Backend uses { error: { code, message, detail } }.
+ * Thrown by fetchJson on non-2xx responses.
+ */
+export class ApiError extends Error {
+  readonly code: string;
+  readonly message: string;
+  readonly detail: string | null;
+  readonly status: number;
+
+  constructor(code: string, message: string, detail: string | null, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.message = message;
+    this.detail = detail;
+    this.status = status;
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
 }
 
