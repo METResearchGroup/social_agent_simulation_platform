@@ -88,27 +88,27 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
   const agentsRequestIdRef = useRef<number>(0);
+  const runsRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     let isMounted: boolean = true;
+    runsRequestIdRef.current += 1;
+    const requestId: number = runsRequestIdRef.current;
     setRunsLoading(true);
     setRunsError(null);
 
     const loadRuns = async (): Promise<void> => {
       try {
         const apiRuns: Run[] = await getRuns();
-        if (isMounted) {
-          setRuns(apiRuns);
-        }
+        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        setRuns(apiRuns);
       } catch (error: unknown) {
         console.error('Failed to fetch runs:', error);
-        if (isMounted) {
-          setRunsError(error instanceof Error ? error : new Error(String(error)));
-        }
+        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        setRunsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (isMounted) {
-          setRunsLoading(false);
-        }
+        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        setRunsLoading(false);
       }
     };
 

@@ -14,12 +14,12 @@ repos:
     hooks:
       - id: complexipy
         name: complexipy
-        entry: bash -lc "uv run complexipy . --max-complexity-allowed 999"
+        entry: bash -lc "uv run --extra test complexipy . --max-complexity-allowed 999"
         language: system
         pass_filenames: false
       - id: pyright
         name: pyright
-        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run pyright ."
+        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test pyright ."
         language: system
         pass_filenames: false
       - id: oxlint
