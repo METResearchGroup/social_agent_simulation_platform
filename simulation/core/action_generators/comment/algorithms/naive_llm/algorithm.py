@@ -5,6 +5,8 @@ Uses a single LLM call to predict what comments the user would make.
 
 from __future__ import annotations
 
+import logging
+
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService, get_llm_service
 from simulation.core.action_generators.comment.algorithms.naive_llm.prompt import (
@@ -23,6 +25,7 @@ from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.posts import BlueskyFeedPost
 
+logger = logging.getLogger(__name__)
 EXPLANATION: str = "LLM prediction (naive_llm)"
 COMMENT_POLICY: str = "naive_llm"
 
@@ -80,6 +83,9 @@ class NaiveLLMCommentGenerator(CommentGenerator):
     ) -> list[GeneratedComment]:
         """Generate comments from candidates using LLM prediction."""
         if not candidates:
+            logger.warning(
+                "naive_llm comment generator: no candidates provided (OK if expected)"
+            )
             return []
 
         prompt = _build_prompt(agent_handle=agent_handle, candidates=candidates)

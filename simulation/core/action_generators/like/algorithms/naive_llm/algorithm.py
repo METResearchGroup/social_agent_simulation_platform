@@ -5,6 +5,8 @@ Uses a single LLM call to predict which posts the user would like.
 
 from __future__ import annotations
 
+import logging
+
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService, get_llm_service
 from simulation.core.action_generators.interfaces import LikeGenerator
@@ -23,6 +25,7 @@ from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
 
+logger = logging.getLogger(__name__)
 EXPLANATION: str = "LLM prediction (naive_llm)"
 LIKE_POLICY: str = "naive_llm"
 
@@ -78,6 +81,9 @@ class NaiveLLMLikeGenerator(LikeGenerator):
     ) -> list[GeneratedLike]:
         """Generate likes from candidates using LLM prediction."""
         if not candidates:
+            logger.warning(
+                "naive_llm like generator: no candidates provided (OK if expected)"
+            )
             return []
 
         prompt = _build_prompt(agent_handle=agent_handle, candidates=candidates)

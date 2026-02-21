@@ -6,6 +6,7 @@ Uses a single LLM call to predict who the user would follow.
 from __future__ import annotations
 
 import json
+import logging
 
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService, get_llm_service
@@ -22,6 +23,7 @@ from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.posts import BlueskyFeedPost
 
+logger = logging.getLogger(__name__)
 EXPLANATION: str = "LLM prediction (naive_llm)"
 FOLLOW_POLICY: str = "naive_llm"
 
@@ -112,6 +114,9 @@ class NaiveLLMFollowGenerator(FollowGenerator):
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates using LLM prediction."""
         if not candidates:
+            logger.warning(
+                "naive_llm follow generator: no candidates provided (OK if expected)"
+            )
             return []
 
         author_to_post = _collect_unique_authors(candidates, agent_handle)
