@@ -21,4 +21,5 @@ Quick lookup table of contents for project documentation.
 | Document | Description |
 |----------|-------------|
 | [RULES.md](RULES.md) | Project rules and conventions |
+| [api-contract.md](api-contract.md) | Backend ↔ frontend schema contract and generated types |
 | [plans/](plans/) | Implementation plans and verification assets |
