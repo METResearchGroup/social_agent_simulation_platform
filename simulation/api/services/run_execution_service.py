@@ -23,6 +23,7 @@ DEFAULT_FEED_ALGORITHM: str = "chronological"
 def execute(
     request: RunRequest,
     engine: SimulationEngine,
+    created_by_app_user_id: str | None = None,
 ) -> RunResponse:
     """Execute a simulation run and return the API response.
 
@@ -34,7 +35,10 @@ def execute(
     """
     run_config: RunConfig = _build_run_config(request=request)
     try:
-        run: Run = engine.execute_run(run_config=run_config)
+        run: Run = engine.execute_run(
+            run_config=run_config,
+            created_by_app_user_id=created_by_app_user_id,
+        )
     except SimulationRunFailure as e:
         if e.run_id is None:
             raise

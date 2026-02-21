@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from typing import Iterable
 
+from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -13,6 +14,31 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
+
+
+class AppUserDatabaseAdapter(ABC):
+    """Abstract interface for app_user database operations."""
+
+    @abstractmethod
+    def read_by_auth_provider_id(self, auth_provider_id: str) -> AppUser | None:
+        """Read app_user by auth_provider_id (Supabase sub)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def insert_app_user(self, app_user: AppUser) -> None:
+        """Insert a new app_user row."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_last_seen(
+        self,
+        app_user_id: str,
+        last_seen_at: str,
+        email: str | None = None,
+        display_name: str | None = None,
+    ) -> None:
+        """Update last_seen_at and optionally email, display_name."""
+        raise NotImplementedError
 
 
 class TransactionProvider(ABC):
