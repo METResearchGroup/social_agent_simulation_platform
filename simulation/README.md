@@ -7,6 +7,7 @@ This directory contains the core simulation logic for the agent simulation platf
 ### `main.py`
 
 Runs the social media agent simulation:
+
 - Creates initial agents from the database
 - Runs 10 turns of simulation
 - Each turn, agents:
