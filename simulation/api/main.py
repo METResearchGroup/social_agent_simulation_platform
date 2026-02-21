@@ -19,6 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
 from db.adapters.sqlite.sqlite import initialize_database
+from db.repositories.app_user_repository import create_sqlite_app_user_repository
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
 from lib.security_headers import SecurityHeadersMiddleware
@@ -38,6 +39,9 @@ async def lifespan(app: FastAPI):
     await asyncio.to_thread(disallow_auth_bypass_in_production)
     await asyncio.to_thread(initialize_database)
     app.state.engine = await asyncio.to_thread(create_engine)
+    app.state.app_user_repository = await asyncio.to_thread(
+        create_sqlite_app_user_repository
+    )
     yield
 
 

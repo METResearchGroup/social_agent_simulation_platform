@@ -3,11 +3,45 @@
 from typing import cast
 
 import pytest
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
+from simulation.api.dependencies.app_user import require_current_app_user
 from simulation.api.dependencies.auth import require_auth
 from simulation.api.main import app
+
+
+def _mock_require_current_app_user(
+    request: Request, claims: dict = Depends(require_auth)
+):
+    """Bypass app_user DB upsert in tests; set request.state.current_app_user."""
+    from lib.timestamp_utils import get_current_timestamp
+    from simulation.core.models.app_user import AppUser
+
+    ts = get_current_timestamp()
+    app_user = AppUser(
+        id="test-app-user-id",
+        auth_provider_id=claims.get("sub", "test-user-id"),
+        email=claims.get("email", "test@example.com"),
+        display_name=None,
+        created_at=ts,
+        last_seen_at=ts,
+    )
+    request.state.current_app_user = app_user
+    return app_user
+
+
+@pytest.fixture
+def client_with_temp_db(tmp_path, monkeypatch):
+    """TestClient using a temp SQLite DB for Phase 2 app_user attribution tests.
+
+    Sets SIM_DB_PATH so migrations and requests use the temp DB. No auth override.
+    """
+    db_path = tmp_path / "test.sqlite"
+    monkeypatch.setenv("SIM_DB_PATH", str(db_path))
+    with TestClient(app=app) as client:
+        yield client
 
 
 def _mock_require_auth() -> dict:
@@ -24,12 +58,14 @@ def simulation_client():
     """
     original_engine = getattr(app.state, "engine", None)
     app.dependency_overrides[require_auth] = _mock_require_auth
+    app.dependency_overrides[require_current_app_user] = _mock_require_current_app_user
     try:
         with TestClient(app=app) as client:
             fastapi_app = cast(FastAPI, client.app)
             yield client, fastapi_app
     finally:
         app.dependency_overrides.pop(require_auth, None)
+        app.dependency_overrides.pop(require_current_app_user, None)
         app.state.engine = original_engine
 
 

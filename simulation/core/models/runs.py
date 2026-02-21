@@ -61,6 +61,7 @@ class RunStatus(str, Enum):
 
 class Run(BaseModel):
     run_id: str
+    app_user_id: str | None = None
     created_at: str
     total_turns: int
     total_agents: int

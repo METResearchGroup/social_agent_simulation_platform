@@ -8,6 +8,7 @@ implement these interfaces.
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -17,11 +18,28 @@ from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
+class AppUserRepository(ABC):
+    """Abstract interface for app_user repositories."""
+
+    @abstractmethod
+    def upsert_from_auth(
+        self,
+        *,
+        auth_provider_id: str,
+        email: str | None = None,
+        display_name: str | None = None,
+    ) -> AppUser:
+        """Create or update app_user from auth claims; return the app_user."""
+        raise NotImplementedError
+
+
 class RunRepository(ABC):
     """Abstract base class defining the interface for run repositories."""
 
     @abstractmethod
-    def create_run(self, config: RunConfig) -> Run:
+    def create_run(
+        self, config: RunConfig, created_by_app_user_id: str | None = None
+    ) -> Run:
         """Create a new run."""
         raise NotImplementedError
 

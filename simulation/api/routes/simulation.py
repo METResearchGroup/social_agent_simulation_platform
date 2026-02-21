@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse, Response
 from lib.decorators import timed
 from lib.rate_limiting import limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
-from simulation.api.dependencies.auth import require_auth
+from simulation.api.dependencies.app_user import require_current_app_user
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
@@ -34,7 +34,9 @@ from simulation.core.exceptions import RunNotFoundError, SimulationRunFailure
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["simulation"], dependencies=[Depends(require_auth)])
+router = APIRouter(
+    tags=["simulation"], dependencies=[Depends(require_current_app_user)]
+)
 
 SIMULATION_RUN_ROUTE: str = "POST /v1/simulations/run"
 SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
@@ -282,11 +284,14 @@ async def _execute_simulation_run(
 ) -> RunResponse | Response:
     """Run the simulation and return response; used for timing and logging."""
     engine = request.app.state.engine
+    current_app_user = getattr(request.state, "current_app_user", None)
+    created_by_app_user_id = current_app_user.id if current_app_user else None
     try:
         return await asyncio.to_thread(
             execute,
             request=body,
             engine=engine,
+            created_by_app_user_id=created_by_app_user_id,
         )
     except SimulationRunFailure as e:
         logger.exception("Simulation run failed before run creation")
