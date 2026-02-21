@@ -39,6 +39,12 @@ class TestGetLikeGenerator:
         explicit_generator = get_like_generator(algorithm="random_simple")
         assert default_generator is explicit_generator
 
+    def test_get_like_generator_naive_llm(self):
+        """get_like_generator returns NaiveLLMLikeGenerator for naive_llm."""
+        generator = get_like_generator(algorithm="naive_llm")
+        assert isinstance(generator, LikeGenerator)
+        assert generator.__class__.__name__ == "NaiveLLMLikeGenerator"
+
 
 def test_get_follow_generator_returns_follow_generator():
     """get_follow_generator returns a FollowGenerator instance."""
@@ -66,6 +72,13 @@ def test_get_follow_generator_default_uses_config():
     assert default_generator is explicit_generator
 
 
+def test_get_follow_generator_naive_llm():
+    """get_follow_generator returns NaiveLLMFollowGenerator for naive_llm."""
+    generator = get_follow_generator(algorithm="naive_llm")
+    assert isinstance(generator, FollowGenerator)
+    assert generator.__class__.__name__ == "NaiveLLMFollowGenerator"
+
+
 class TestGetCommentGenerator:
     """Tests for get_comment_generator function."""
 
@@ -90,3 +103,9 @@ class TestGetCommentGenerator:
         default_generator = get_comment_generator()
         explicit_generator = get_comment_generator(algorithm="random_simple")
         assert default_generator is explicit_generator
+
+    def test_get_comment_generator_naive_llm(self):
+        """get_comment_generator returns NaiveLLMCommentGenerator for naive_llm."""
+        generator = get_comment_generator(algorithm="naive_llm")
+        assert isinstance(generator, CommentGenerator)
+        assert generator.__class__.__name__ == "NaiveLLMCommentGenerator"
