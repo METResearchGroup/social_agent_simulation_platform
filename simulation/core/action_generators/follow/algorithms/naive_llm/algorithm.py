@@ -40,7 +40,8 @@ def _collect_unique_authors(
             continue
         if author_handle not in result:
             result[author_handle] = post
-        elif post.id < result[author_handle].id:
+        # select the most recent post for each author (newest first)
+        elif post.created_at > result[author_handle].created_at:
             result[author_handle] = post
     return result
 
