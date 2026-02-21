@@ -22,6 +22,7 @@ vercel link
 ```
 
 Notes:
+
 - This creates `ui/.vercel/` (already gitignored).
 - Node version is controlled by `ui/package.json` via `engines.node` (we pin to `20.x` for parity with CI).
 
@@ -73,4 +74,3 @@ vercel logs <deployment-url>
 
 - `ui/package-lock.json` is committed and CI uses `npm ci` to ensure deterministic installs.
 - Keep `next` on a patched version (Vercel blocks deployments of vulnerable Next.js releases).
-

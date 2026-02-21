@@ -1,0 +1,10 @@
+default: true
+
+# Reasonable defaults for mixed prose/code repositories:
+# - don't enforce line length (links and tables often exceed)
+# - allow HTML (often used for badges/callouts)
+# - don't require H1 as the first line (READMEs often start with badges)
+MD013: false
+MD060: false
+MD033: false
+MD041: false

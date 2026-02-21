@@ -18,7 +18,7 @@ DISABLE_AUTH=1 PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload --po
 
 Or add to `.env` in the project root (if your runner loads it):
 
-```
+```dotenv
 DISABLE_AUTH=1
 ```
 
@@ -26,7 +26,7 @@ DISABLE_AUTH=1
 
 Add to `ui/.env.local`:
 
-```
+```dotenv
 NEXT_PUBLIC_DISABLE_AUTH=true
 ```
 
