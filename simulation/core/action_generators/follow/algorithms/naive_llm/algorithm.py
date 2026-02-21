@@ -98,6 +98,26 @@ def _build_generated_follow(
     )
 
 
+def _deduplicate_follow_ids(candidate_follow_ids: list[str]) -> list[str]:
+    already_included_user_ids = set()
+    to_follow_ids = []
+    for uid in candidate_follow_ids:
+        if uid in already_included_user_ids:
+            continue
+        already_included_user_ids.add(uid)
+        to_follow_ids.append(uid)
+    return to_follow_ids
+
+
+def _get_ids_to_follow(
+    *,
+    response_user_ids: list[str],
+    valid_user_ids: set[str],
+) -> list[str]:
+    candidate_follow_ids = [uid for uid in response_user_ids if uid in valid_user_ids]
+    return _deduplicate_follow_ids(candidate_follow_ids)
+
+
 class NaiveLLMFollowGenerator(FollowGenerator):
     """Generates follows using LLM prediction."""
 
@@ -130,8 +150,11 @@ class NaiveLLMFollowGenerator(FollowGenerator):
             response_model=FollowPrediction,
         )
 
-        valid_ids = set(author_to_post.keys())
-        to_follow_ids = [uid for uid in response.user_ids if uid in valid_ids]
+        to_follow_ids = _get_ids_to_follow(
+            response_user_ids=response.user_ids,
+            valid_user_ids=set(author_to_post.keys()),
+        )
+
         model_used = _resolve_model_used()
 
         generated: list[GeneratedFollow] = [
