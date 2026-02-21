@@ -8,7 +8,7 @@ import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 import { getPosts } from '@/lib/api/simulation';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { getTurnsErrorMessage } from '@/lib/error-messages';
-import { Agent, Post, Turn } from '@/types';
+import { Agent, Post, RunConfig, Turn } from '@/types';
 
 export default function DetailsPanel() {
   const {
@@ -111,7 +111,7 @@ function getAllPostsForTurn(
 
 interface TurnDetailContentProps {
   currentTurn: Turn;
-  currentRunConfig: { numAgents: number; numTurns: number } | null;
+  currentRunConfig: RunConfig | null;
   runAgents: Agent[];
 }
 
