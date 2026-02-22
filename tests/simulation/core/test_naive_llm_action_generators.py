@@ -110,7 +110,8 @@ class TestNaiveLLMLikeGenerator:
             ("post_3", "agent.bsky.social"),
         ]
         assert [(g.like.post_id, g.like.agent_id) for g in result] == expected_result
-        assert result[0].explanation == "LLM prediction (naive_llm)"
+        expected_result = "LLM prediction (naive_llm)"
+        assert result[0].explanation == expected_result
         mock_llm.structured_completion.assert_called_once()
 
     def test_filters_invalid_ids(
@@ -132,8 +133,10 @@ class TestNaiveLLMLikeGenerator:
         )
 
         post_ids = [g.like.post_id for g in result]
-        assert post_ids == ["post_1", "post_2"]
-        assert "nonexistent" not in post_ids
+        expected_result = ["post_1", "post_2"]
+        assert post_ids == expected_result
+        expected_result = "nonexistent"
+        assert expected_result not in post_ids
 
     def test_ordering_is_sorted_by_post_id(
         self,
@@ -153,8 +156,8 @@ class TestNaiveLLMLikeGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        expected_order = ["post_1", "post_3"]
-        assert [g.like.post_id for g in result] == expected_order
+        expected_result = ["post_1", "post_3"]
+        assert [g.like.post_id for g in result] == expected_result
 
 
 class TestNaiveLLMCommentGenerator:
@@ -204,7 +207,8 @@ class TestNaiveLLMCommentGenerator:
             ("post_2", "Interesting."),
         ]
         assert [(g.comment.post_id, g.comment.text) for g in result] == expected_result
-        assert result[0].explanation == "LLM prediction (naive_llm)"
+        expected_result = "LLM prediction (naive_llm)"
+        assert result[0].explanation == expected_result
         mock_llm.structured_completion.assert_called_once()
 
     def test_filters_invalid_post_ids(
@@ -228,9 +232,12 @@ class TestNaiveLLMCommentGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        assert len(result) == 1
-        assert result[0].comment.post_id == "post_1"
-        assert result[0].comment.text == "Ok"
+        expected_result = 1
+        assert len(result) == expected_result
+        expected_result = "post_1"
+        assert result[0].comment.post_id == expected_result
+        expected_result = "Ok"
+        assert result[0].comment.text == expected_result
 
     def test_ordering_is_sorted_by_post_id(
         self,
@@ -253,8 +260,8 @@ class TestNaiveLLMCommentGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        expected_order = ["post_1", "post_3"]
-        assert [g.comment.post_id for g in result] == expected_order
+        expected_result = ["post_1", "post_3"]
+        assert [g.comment.post_id for g in result] == expected_result
 
 
 class TestNaiveLLMFollowGenerator:
@@ -291,7 +298,8 @@ class TestNaiveLLMFollowGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        assert result == []
+        expected_result: list = []
+        assert result == expected_result
         mock_llm.structured_completion.assert_not_called()
 
     def test_returns_follows_when_mock_returns_valid_ids(
@@ -314,7 +322,8 @@ class TestNaiveLLMFollowGenerator:
 
         expected_result = ["alice.bsky.social", "carol.bsky.social"]
         assert [g.follow.user_id for g in result] == expected_result
-        assert result[0].explanation == "LLM prediction (naive_llm)"
+        expected_result = "LLM prediction (naive_llm)"
+        assert result[0].explanation == expected_result
         mock_llm.structured_completion.assert_called_once()
 
     def test_filters_invalid_user_ids(
@@ -335,8 +344,10 @@ class TestNaiveLLMFollowGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        assert len(result) == 1
-        assert result[0].follow.user_id == "alice.bsky.social"
+        expected_result = 1
+        assert len(result) == expected_result
+        expected_result = "alice.bsky.social"
+        assert result[0].follow.user_id == expected_result
 
     def test_ordering_is_sorted_by_user_id(
         self,
@@ -356,5 +367,5 @@ class TestNaiveLLMFollowGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        expected_order = ["alice.bsky.social", "carol.bsky.social"]
-        assert [g.follow.user_id for g in result] == expected_order
+        expected_result = ["alice.bsky.social", "carol.bsky.social"]
+        assert [g.follow.user_id for g in result] == expected_result
