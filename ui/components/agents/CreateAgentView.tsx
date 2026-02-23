@@ -9,6 +9,7 @@ interface CreateAgentViewProps {
   agents: Agent[];
   agentsLoading: boolean;
   agentsError: Error | null;
+  onRetryAgents?: () => void;
 }
 
 interface CommentEntry {
@@ -20,6 +21,7 @@ export default function CreateAgentView({
   agents,
   agentsLoading,
   agentsError,
+  onRetryAgents,
 }: CreateAgentViewProps) {
   const [handle, setHandle] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -194,7 +196,18 @@ export default function CreateAgentView({
                   <span className="text-sm">Loading agents…</span>
                 </div>
               ) : agentsError ? (
-                <p className="text-sm text-beige-800">{agentsError.message}</p>
+                <div className="flex flex-col gap-3 text-beige-800">
+                  <p className="text-sm">{agentsError.message}</p>
+                  {onRetryAgents != null && (
+                    <button
+                      type="button"
+                      onClick={onRetryAgents}
+                      className="px-3 py-2 text-sm font-medium text-accent hover:text-accent-hover w-fit"
+                    >
+                      Retry
+                    </button>
+                  )}
+                </div>
               ) : agents.length === 0 ? (
                 <p className="text-sm text-beige-600">No agents available</p>
               ) : (

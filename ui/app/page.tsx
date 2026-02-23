@@ -129,6 +129,7 @@ function AuthenticatedApp() {
           agents={agents}
           agentsLoading={agentsLoading}
           agentsError={agentsError}
+          onRetryAgents={handleRetryAgents}
         />
       ) : viewMode === 'agents' ? (
         <AgentsView
