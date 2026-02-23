@@ -1,6 +1,6 @@
 'use client';
 
-import { Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, SetStateAction, useMemo, useState } from 'react';
 import { Agent, AgentAction, Post } from '@/types';
 import PostCard from '@/components/posts/PostCard';
 import CollapsibleSection from '@/components/details/CollapsibleSection';
@@ -32,7 +32,15 @@ export default function AgentDetail({
     comments: false,
   });
 
-  const likedPosts: Post[] = getLikedPosts(actions, allPosts);
+  const postsByUri: Record<string, Post> = useMemo(() => {
+    const byUri: Record<string, Post> = {};
+    for (const post of allPosts) {
+      byUri[post.uri] = post;
+    }
+    return byUri;
+  }, [allPosts]);
+
+  const likedPosts: Post[] = getLikedPosts(actions, postsByUri);
   const comments: AgentAction[] = getCommentActions(actions);
 
   return (
@@ -114,9 +122,25 @@ export default function AgentDetail({
             comments.map((action) => (
               <div
                 key={action.actionId}
-                className="p-3 bg-beige-50 rounded text-sm text-beige-900"
+                className="p-3 bg-beige-50 rounded space-y-2"
               >
-                Comment on post: {action.postUri}
+                <div className="text-sm text-beige-900">
+                  Comment on post{' '}
+                  {action.postUri ? (
+                    <span className="text-xs text-beige-600 font-mono break-all">
+                      {action.postUri}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-beige-600">Unknown post</span>
+                  )}
+                </div>
+                {action.postUri && postsByUri[action.postUri] ? (
+                  <PostCard post={postsByUri[action.postUri]} />
+                ) : (
+                  <div className="p-3 text-sm text-beige-600 bg-white border border-beige-200 rounded">
+                    Post preview unavailable
+                  </div>
+                )}
               </div>
             ))
           ) : (
@@ -130,10 +154,10 @@ export default function AgentDetail({
   );
 }
 
-function getLikedPosts(actions: AgentAction[], allPosts: Post[]): Post[] {
+function getLikedPosts(actions: AgentAction[], postsByUri: Record<string, Post>): Post[] {
   return actions
     .filter((action) => action.type === 'like' && Boolean(action.postUri))
-    .map((action) => allPosts.find((post) => post.uri === action.postUri))
+    .map((action) => postsByUri[action.postUri ?? ''])
     .filter((post): post is Post => post !== undefined);
 }
 
