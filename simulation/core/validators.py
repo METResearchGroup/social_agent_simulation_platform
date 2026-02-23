@@ -24,6 +24,11 @@ def validate_run_id(run_id: str) -> str:
     return validate_non_empty_string(run_id, "run_id")
 
 
+def validate_agent_id(agent_id: str) -> str:
+    """Validate that agent_id is a non-empty string. Returns stripped value."""
+    return validate_non_empty_string(agent_id, "agent_id")
+
+
 def validate_num_agents(num_agents: int) -> int:
     """Validate that num_agents is a positive integer."""
     return validate_nonnegative_value(num_agents, "num_agents", ok_equals_zero=False)

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const DEFAULT_MISSING_CODE_MESSAGE: string = 'Missing authorization code';
@@ -38,6 +38,13 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const run = async (): Promise<void> => {
+      if (!isSupabaseConfigured) {
+        setError(
+          'Supabase OAuth is not configured for this deployment. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY and redeploy.',
+        );
+        return;
+      }
+
       // Some providers (or user cancel) return errors as query params.
       if (oauthErrorDescription || oauthError) {
         setError(oauthErrorDescription ?? `OAuth error: ${oauthError}`);

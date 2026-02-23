@@ -13,9 +13,16 @@ from __future__ import annotations
 import os
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Final
 
 from dotenv import load_dotenv
+
+ENV_VAR_TYPES: Final[dict[str, type[str]]] = {
+    "OPENAI_API_KEY": str,
+    "BLUESKY_HANDLE": str,
+    "BLUESKY_PASSWORD": str,
+    "OPIK_WORKSPACE": str,
+}
 
 
 class EnvVarsContainer:
@@ -26,17 +33,12 @@ class EnvVarsContainer:
 
     def __init__(self) -> None:
         self._initialized = False
-        self._env_vars: dict[str, Any] = {}
-        self._env_var_types: dict[str, type] = {
-            "OPENAI_API_KEY": str,
-            "BLUESKY_HANDLE": str,
-            "BLUESKY_PASSWORD": str,
-            "OPIK_WORKSPACE": str,
-        }
+        self._env_vars: dict[str, str | None] = {}
+        self._env_var_types: dict[str, type[str]] = ENV_VAR_TYPES
         self._init_lock = threading.Lock()
 
     @classmethod
-    def get_env_var(cls, name: str, required: bool = False) -> Any:
+    def get_env_var(cls, name: str, required: bool = False) -> str:
         """Get an environment variable after container initialization.
 
         Args:
@@ -44,11 +46,10 @@ class EnvVarsContainer:
             required: If True, raises ValueError when missing or empty.
 
         Returns:
-            Value (cast per _env_var_types) or default ("" for str, None for unknown).
+            Value (cast per _env_var_types) or default ("" when missing).
         """
-        instance = cls._get_instance()
-        expected_type = instance._env_var_types.get(name)
-        raw = instance._env_vars.get(name, None)
+        instance: EnvVarsContainer = cls._get_instance()
+        raw: str | None = instance._env_vars.get(name)
 
         if required:
             if raw is None:
@@ -56,20 +57,15 @@ class EnvVarsContainer:
                     f"{name} is required but is missing. "
                     f"Please set the {name} environment variable."
                 )
-            if expected_type is str and isinstance(raw, str) and not raw.strip():
+            if isinstance(raw, str) and not raw.strip():
                 raise ValueError(
                     f"{name} is required but is empty. "
                     f"Please set the {name} environment variable to a non-empty value."
                 )
 
         if raw is None:
-            if expected_type is str:
-                return ""
-            return None
-
-        if expected_type is str:
-            return str(raw)
-        return raw
+            return ""
+        return str(raw)
 
     @classmethod
     def _get_instance(cls) -> EnvVarsContainer:
@@ -90,7 +86,7 @@ class EnvVarsContainer:
             self._initialized = True
 
     def _initialize_env_vars(self) -> None:
-        env_path = (Path(__file__).resolve().parent / ".." / ".env").resolve()
+        env_path: Path = (Path(__file__).resolve().parent / ".." / ".env").resolve()
         load_dotenv(env_path)
         for key in self._env_var_types:
             self._env_vars[key] = os.getenv(key)

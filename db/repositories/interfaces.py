@@ -8,6 +8,8 @@ implement these interfaces.
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from simulation.core.models.agent import Agent
+from simulation.core.models.agent_bio import AgentBio
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -15,6 +17,66 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+
+
+class AgentRepository(ABC):
+    """Abstract base class defining the interface for agent repositories."""
+
+    @abstractmethod
+    def create_or_update_agent(self, agent: Agent) -> Agent:
+        """Create or update an agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agent(self, agent_id: str) -> Agent | None:
+        """Get an agent by ID."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agent_by_handle(self, handle: str) -> Agent | None:
+        """Get an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_all_agents(self) -> list[Agent]:
+        """List all agents, ordered by handle for deterministic output."""
+        raise NotImplementedError
+
+
+class AgentBioRepository(ABC):
+    """Abstract base class defining the interface for agent bio repositories."""
+
+    @abstractmethod
+    def create_agent_bio(self, bio: AgentBio) -> AgentBio:
+        """Create an agent bio."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_agent_bio(self, agent_id: str) -> AgentBio | None:
+        """Get the latest bio for an agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_agent_bios(self, agent_id: str) -> list[AgentBio]:
+        """List all bios for an agent, ordered by created_at DESC."""
+        raise NotImplementedError
+
+
+class UserAgentProfileMetadataRepository(ABC):
+    """Abstract base class defining the interface for user agent profile metadata repositories."""
+
+    @abstractmethod
+    def create_or_update_metadata(
+        self, metadata: UserAgentProfileMetadata
+    ) -> UserAgentProfileMetadata:
+        """Create or update user agent profile metadata."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
+        """Get metadata by agent_id."""
+        raise NotImplementedError
 
 
 class RunRepository(ABC):

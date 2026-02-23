@@ -6,27 +6,13 @@ import pytest
 
 from db.adapters.sqlite.profile_adapter import SQLiteProfileAdapter
 from simulation.core.models.profiles import BlueskyProfile
-from tests.db.adapters.sqlite.conftest import create_mock_db_connection, create_mock_row
+from tests.db.adapters.sqlite.conftest import create_mock_row
 
 
 @pytest.fixture
 def adapter():
     """Create a SQLiteProfileAdapter instance."""
     return SQLiteProfileAdapter()
-
-
-@pytest.fixture
-def mock_db_connection():
-    """Fixture that provides a context manager for mocking database connections.
-
-    Usage:
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_cursor.fetchone.return_value = some_row
-            # test code here
-    """
-    return create_mock_db_connection(
-        "db.adapters.sqlite.profile_adapter.get_connection"
-    )
 
 
 class TestSQLiteProfileAdapterWriteProfile:

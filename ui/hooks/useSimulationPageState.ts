@@ -35,14 +35,19 @@ const TURN_FETCH_THROTTLE_MS: number = 1500;
  * - turnsLoadingByRunId: runId -> true while turns for that run are loading.
  * - turnsErrorByRunId: runId -> Error when turns fetch fails; cleared when handleRetryTurns(runId) is called.
  */
+export type ViewMode = 'runs' | 'agents' | 'create-agent';
+
 interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
   runsLoading: boolean;
   runsError: Error | null;
+  agents: Agent[];
   agentsLoading: boolean;
   agentsError: Error | null;
   turnsLoadingByRunId: Record<string, boolean>;
   turnsErrorByRunId: Record<string, ApiError | null>;
+  viewMode: ViewMode;
+  selectedAgentHandle: string | null;
   selectedRunId: string | null;
   selectedTurn: number | 'summary' | null;
   selectedRun: Run | null;
@@ -53,6 +58,8 @@ interface UseSimulationPageStateResult {
   currentRunConfig: RunConfig | null;
   isStartScreen: boolean;
   handleConfigSubmit: (config: RunConfig) => void;
+  handleSetViewMode: (mode: ViewMode) => void;
+  handleSelectAgent: (handle: string | null) => void;
   handleSelectRun: (runId: string) => void;
   handleSelectTurn: (turn: number | 'summary') => void;
   handleStartNewRun: () => void;
@@ -77,6 +84,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
   const [retryRunsTrigger, setRetryRunsTrigger] = useState<number>(0);
   const [retryTurnsTrigger, setRetryTurnsTrigger] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('runs');
+  const [selectedAgentHandle, setSelectedAgentHandle] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedTurn, setSelectedTurn] = useState<number | 'summary' | null>(null);
   const [runConfigs, setRunConfigs] = useState<Record<string, RunConfig>>(EMPTY_RUN_CONFIGS);
@@ -88,27 +97,27 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
   const agentsRequestIdRef = useRef<number>(0);
+  const runsRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     let isMounted: boolean = true;
+    runsRequestIdRef.current += 1;
+    const requestId: number = runsRequestIdRef.current;
     setRunsLoading(true);
     setRunsError(null);
 
     const loadRuns = async (): Promise<void> => {
       try {
         const apiRuns: Run[] = await getRuns();
-        if (isMounted) {
-          setRuns(apiRuns);
-        }
+        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        setRuns(apiRuns);
       } catch (error: unknown) {
         console.error('Failed to fetch runs:', error);
-        if (isMounted) {
-          setRunsError(error instanceof Error ? error : new Error(String(error)));
-        }
+        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        setRunsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (isMounted) {
-          setRunsLoading(false);
-        }
+        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        setRunsLoading(false);
       }
     };
 
@@ -294,14 +303,28 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryTurnsTrigger((t) => t + 1);
   };
 
+  const handleSetViewMode = (mode: ViewMode): void => {
+    setViewMode(mode);
+    if (mode === 'create-agent') {
+      setSelectedAgentHandle(null);
+    }
+  };
+
+  const handleSelectAgent = (handle: string | null): void => {
+    setSelectedAgentHandle(handle);
+  };
+
   return {
     runsWithStatus,
     runsLoading,
     runsError,
+    agents,
     agentsLoading,
     agentsError,
     turnsLoadingByRunId,
     turnsErrorByRunId,
+    viewMode,
+    selectedAgentHandle,
     selectedRunId,
     selectedTurn,
     selectedRun,
@@ -312,6 +335,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     currentRunConfig,
     isStartScreen: selectedRunId === null,
     handleConfigSubmit,
+    handleSetViewMode,
+    handleSelectAgent,
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,

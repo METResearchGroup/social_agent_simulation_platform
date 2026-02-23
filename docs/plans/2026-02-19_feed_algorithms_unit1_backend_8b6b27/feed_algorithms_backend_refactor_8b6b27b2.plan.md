@@ -129,7 +129,7 @@ Prefer: keep `simulation.core.validators.validate_feed_algorithm` as the public 
 - Run feed generator tests: `uv run pytest tests/feeds/test_feed_generator.py -v` — all pass.
 - Run validators tests: `uv run pytest tests/simulation/core/test_action_generators_validators.py -v` (if any feed-specific validators exist) and simulation run tests: `uv run pytest tests/api/test_simulation_run.py -v` — pass.
 - Run full test suite: `uv run pytest -v` — no regressions.
-- Start server: `uv run uvicorn simulation.main:app --reload`
+- Start server: `PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload`
 - Call `GET /v1/simulations/feed-algorithms`: `curl -s http://localhost:8000/v1/simulations/feed-algorithms` — returns 200 with `[{"id":"chronological","display_name":"Chronological","description":"...","config_schema":null}]`.
 - Call `POST /v1/simulations/run` with `{"num_agents": 1, "num_turns": 1, "feed_algorithm": "chronological"}` — returns 200.
 - Call `POST /v1/simulations/run` with `{"num_agents": 1, "feed_algorithm": "invalid"}` — returns 422.

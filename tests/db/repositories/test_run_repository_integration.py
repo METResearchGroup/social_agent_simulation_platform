@@ -3,13 +3,11 @@
 These tests use a real SQLite database to test end-to-end functionality.
 """
 
-import os
-import tempfile
 import time
 
 import pytest
 
-from db.adapters.sqlite.sqlite import DB_PATH, get_connection, initialize_database
+from db.adapters.sqlite.sqlite import get_connection
 from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
@@ -17,32 +15,6 @@ from simulation.core.exceptions import (
     RunNotFoundError,
 )
 from simulation.core.models.runs import Run, RunConfig, RunStatus
-
-
-@pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    # Save original DB path
-    original_path = DB_PATH
-
-    # Create temporary database
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
-    os.close(fd)
-
-    # Monkey-patch DB_PATH
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    sqlite_module.DB_PATH = temp_path
-
-    # Initialize the database
-    initialize_database()
-
-    yield temp_path
-
-    # Cleanup
-    sqlite_module.DB_PATH = original_path
-    if os.path.exists(temp_path):
-        os.unlink(temp_path)
 
 
 class TestSQLiteRunRepositoryIntegration:

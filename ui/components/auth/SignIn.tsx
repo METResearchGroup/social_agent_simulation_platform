@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function SignIn() {
-  const { signInWithGoogle, signInWithGitHub, isLoading } = useAuth();
+  const { signInWithGoogle, signInWithGitHub, isLoading, isAuthConfigured } = useAuth();
   const [googleLoading, setGoogleLoading] = useState<boolean>(false);
   const [githubLoading, setGithubLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -52,6 +52,19 @@ export default function SignIn() {
         <p className="mb-8 text-center text-sm text-beige-700">
           Sign in to access the simulation
         </p>
+        {!isAuthConfigured && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Supabase is not configured for this deployment. Set
+            {' '}
+            <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code>
+            {' '}
+            and
+            {' '}
+            <code className="font-mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
+            {' '}
+            in Vercel, then redeploy.
+          </div>
+        )}
         {authError != null && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {authError}
@@ -61,7 +74,7 @@ export default function SignIn() {
           <button
             type="button"
             onClick={handleGoogleClick}
-            disabled={googleLoading || githubLoading}
+            disabled={!isAuthConfigured || googleLoading || githubLoading}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-beige-300 bg-white px-6 py-3 font-medium text-beige-900 transition-colors hover:bg-beige-100 disabled:opacity-50"
           >
             {googleLoading ? (
@@ -76,7 +89,7 @@ export default function SignIn() {
           <button
             type="button"
             onClick={handleGitHubClick}
-            disabled={googleLoading || githubLoading}
+            disabled={!isAuthConfigured || googleLoading || githubLoading}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-beige-300 bg-white px-6 py-3 font-medium text-beige-900 transition-colors hover:bg-beige-100 disabled:opacity-50"
           >
             {githubLoading ? (
