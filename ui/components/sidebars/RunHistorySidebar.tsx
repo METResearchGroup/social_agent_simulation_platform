@@ -146,7 +146,7 @@ export default function RunHistorySidebar({
           <button
             type="button"
             onClick={() => onSetViewMode('runs')}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded transition-colors ${
+            className={`flex-1 px-2 py-2 text-xs font-medium rounded transition-colors ${
               viewMode === 'runs'
                 ? 'bg-beige-200 text-beige-900'
                 : 'text-beige-600 hover:bg-beige-100'
@@ -157,7 +157,7 @@ export default function RunHistorySidebar({
           <button
             type="button"
             onClick={() => onSetViewMode('agents')}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded transition-colors ${
+            className={`flex-1 px-2 py-2 text-xs font-medium rounded transition-colors ${
               viewMode === 'agents'
                 ? 'bg-beige-200 text-beige-900'
                 : 'text-beige-600 hover:bg-beige-100'
@@ -165,9 +165,24 @@ export default function RunHistorySidebar({
           >
             View agents
           </button>
+          <button
+            type="button"
+            onClick={() => onSetViewMode('create-agent')}
+            className={`flex-1 px-2 py-2 text-xs font-medium rounded transition-colors ${
+              viewMode === 'create-agent'
+                ? 'bg-beige-200 text-beige-900'
+                : 'text-beige-600 hover:bg-beige-100'
+            }`}
+          >
+            Create agent
+          </button>
         </div>
         <h2 className="text-sm font-medium text-beige-900 mb-3">
-          {viewMode === 'runs' ? 'Run History' : 'Agents'}
+          {viewMode === 'runs'
+            ? 'Run History'
+            : viewMode === 'create-agent'
+              ? 'Create New Agent'
+              : 'Agents'}
         </h2>
         {viewMode === 'runs' && (
           <button
