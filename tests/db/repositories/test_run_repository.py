@@ -607,6 +607,8 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
         assert call_args[2] == expected_timestamp
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
+        assert call_kwargs["conn"] is not None  # repo opened transaction
 
     def test_updates_status_to_failed_without_completed_at(self):
         """Test that update_run_status sets completed_at to None for FAILED status."""

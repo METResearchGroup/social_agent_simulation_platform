@@ -656,8 +656,6 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             adapter.read_turn_metadata.assert_called_once_with(
                 run_id, turn_number, conn=mock_conn
             )
-            # Verify INSERT was attempted
-            mock_conn.execute.assert_called_once()
             # Verify INSERT was attempted (commit not used when conn provided)
             mock_conn.execute.assert_called_once()
 
