@@ -4,7 +4,7 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator
 
-from lib.validation_utils import validate_non_empty_string, validate_value_in_set
+from lib.validation_utils import validate_non_empty_string
 
 
 class PersonaSource(str, Enum):
@@ -36,14 +36,9 @@ class Agent(BaseModel):
 
     @field_validator("persona_source", mode="before")
     @classmethod
-    def validate_persona_source(cls, v: str | PersonaSource) -> PersonaSource:
-        if isinstance(v, PersonaSource):
-            return v
-        validated = validate_non_empty_string(str(v), "persona_source")
-        validate_value_in_set(
-            validated,
-            "persona_source",
-            {ps.value for ps in PersonaSource},
-            allowed_display_name="user_generated, sync_bluesky",
-        )
-        return PersonaSource(validated)
+    def validate_persona_source(cls, v: object) -> PersonaSource:
+        if not isinstance(v, PersonaSource):
+            raise ValueError(
+                f"persona_source must be a PersonaSource enum, got {type(v).__name__}"
+            )
+        return v
