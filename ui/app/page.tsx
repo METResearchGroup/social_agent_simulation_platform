@@ -6,6 +6,7 @@ import SignIn from '@/components/auth/SignIn';
 import SimulationLayout from '@/components/layout/SimulationLayout';
 import { RunDetailProvider } from '@/components/run-detail/RunDetailContext';
 import RunDetailView from '@/components/run-detail/RunDetailView';
+import AgentsView from '@/components/agents/AgentsView';
 import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
 import StartView from '@/components/start/StartView';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,8 +42,13 @@ function AuthenticatedApp() {
     runsWithStatus,
     runsLoading,
     runsError,
+    agents,
+    agentsLoading,
+    agentsError,
     turnsLoadingByRunId,
     turnsErrorByRunId,
+    viewMode,
+    selectedAgentHandle,
     selectedRunId,
     selectedTurn,
     selectedRun,
@@ -53,10 +59,13 @@ function AuthenticatedApp() {
     currentRunConfig,
     isStartScreen,
     handleConfigSubmit,
+    handleSetViewMode,
+    handleSelectAgent,
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,
     handleRetryRuns,
+    handleRetryAgents,
     handleRetryTurns,
   } = useSimulationPageState();
 
@@ -105,9 +114,25 @@ function AuthenticatedApp() {
         selectedRunId={selectedRunId}
         onSelectRun={handleSelectRun}
         onStartNewRun={handleStartNewRun}
+        viewMode={viewMode}
+        onSetViewMode={handleSetViewMode}
+        agents={agents}
+        agentsLoading={agentsLoading}
+        agentsError={agentsError}
+        onRetryAgents={handleRetryAgents}
+        selectedAgentHandle={selectedAgentHandle}
+        onSelectAgent={handleSelectAgent}
       />
 
-      {isStartScreen ? (
+      {viewMode === 'agents' ? (
+        <AgentsView
+          agents={agents}
+          selectedAgentHandle={selectedAgentHandle}
+          agentsLoading={agentsLoading}
+          agentsError={agentsError}
+          onRetryAgents={handleRetryAgents}
+        />
+      ) : isStartScreen ? (
         defaultConfigLoading && defaultConfig === null ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-beige-600">
             <LoadingSpinner />
