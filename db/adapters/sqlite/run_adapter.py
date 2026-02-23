@@ -157,38 +157,27 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     ) -> None:
         """Update run status in SQLite.
 
-        When conn is provided, use it and do not commit; when None, use a new
-        connection and commit.
+        conn is required; repository must provide it (from its transaction or
+        a standalone transaction).
 
         Raises:
+            ValueError: If conn is None
             RunNotFoundError: If no run exists with the given run_id
             sqlite3.OperationalError: If database operation fails
             sqlite3.IntegrityError: If status value violates CHECK constraints
         """
-        if conn is not None:
-            cursor = conn.execute(
-                """
-                UPDATE runs 
-                SET status = ?, completed_at = ?
-                WHERE run_id = ?
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        cursor = conn.execute(
+            """
+            UPDATE runs
+            SET status = ?, completed_at = ?
+            WHERE run_id = ?
             """,
-                (status, completed_at, run_id),
-            )
-            if cursor.rowcount == 0:
-                raise RunNotFoundError(run_id)
-            return
-        with get_connection() as c:
-            cursor = c.execute(
-                """
-                UPDATE runs 
-                SET status = ?, completed_at = ?
-                WHERE run_id = ?
-            """,
-                (status, completed_at, run_id),
-            )
-            if cursor.rowcount == 0:
-                raise RunNotFoundError(run_id)
-            c.commit()
+            (status, completed_at, run_id),
+        )
+        if cursor.rowcount == 0:
+            raise RunNotFoundError(run_id)
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metadata(
@@ -300,16 +289,20 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         """Write turn metadata to SQLite.
 
         Writes to the `turn_metadata` table. Uses INSERT.
+        conn is required; repository must provide it.
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
+            conn: Connection. Repository must provide it (from its transaction
+                  or a standalone transaction).
 
         Raises:
+            ValueError: If conn is None
             sqlite3.OperationalError: If database operation fails
             DuplicateTurnMetadataError: If turn metadata already exists
         """
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
         existing_turn_metadata = self.read_turn_metadata(
             turn_metadata.run_id,
             turn_metadata.turn_number,
@@ -325,36 +318,17 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             {k.value: v for k, v in turn_metadata.total_actions.items()}
         )
 
-        if conn is not None:
-            try:
-                conn.execute(
-                    "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
-                    (
-                        turn_metadata.run_id,
-                        turn_metadata.turn_number,
-                        total_actions_json,
-                        turn_metadata.created_at,
-                    ),
-                )
-            except sqlite3.IntegrityError:
-                raise DuplicateTurnMetadataError(
-                    turn_metadata.run_id, turn_metadata.turn_number
-                )
-            return
-
-        with get_connection() as c:
-            try:
-                c.execute(
-                    "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
-                    (
-                        turn_metadata.run_id,
-                        turn_metadata.turn_number,
-                        total_actions_json,
-                        turn_metadata.created_at,
-                    ),
-                )
-                c.commit()
-            except sqlite3.IntegrityError:
-                raise DuplicateTurnMetadataError(
-                    turn_metadata.run_id, turn_metadata.turn_number
-                )
+        try:
+            conn.execute(
+                "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
+                (
+                    turn_metadata.run_id,
+                    turn_metadata.turn_number,
+                    total_actions_json,
+                    turn_metadata.created_at,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            raise DuplicateTurnMetadataError(
+                turn_metadata.run_id, turn_metadata.turn_number
+            )

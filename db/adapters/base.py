@@ -114,8 +114,9 @@ class RunDatabaseAdapter(ABC):
             status: New status value (should be a valid RunStatus enum value as string)
             completed_at: Optional timestamp when the run was completed.
                          Should be set when status is 'completed', None otherwise.
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
+            conn: Connection. Repository must provide it (from its transaction or
+                  a standalone transaction). Adapter executes against it; does not
+                  commit.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
@@ -137,8 +138,8 @@ class RunDatabaseAdapter(ABC):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Optional connection. When provided, use it and do not open/close
-                  or commit; when None, use a new connection (caller manages lifecycle).
+            conn: Optional connection. When provided, use it (no open/close/commit).
+                  When None, use a new connection for standalone reads.
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -189,8 +190,9 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
+            conn: Connection. Repository must provide it (from its transaction or
+                  a standalone transaction). Adapter executes against it; does not
+                  commit.
 
         Raises:
             DuplicateTurnMetadataError: If turn metadata already exists
@@ -210,7 +212,10 @@ class MetricsDatabaseAdapter(ABC):
         turn_metrics: TurnMetrics,
         conn: object | None = None,
     ) -> None:
-        """Write turn metrics. When conn is provided, use it and do not commit.
+        """Write turn metrics.
+
+        conn: Connection. Repository must provide it (from its transaction or a
+              standalone transaction). Adapter executes against it; does not commit.
 
         Note:
             This write is idempotent: an existing row with the same (run_id,
@@ -234,7 +239,10 @@ class MetricsDatabaseAdapter(ABC):
         run_metrics: RunMetrics,
         conn: object | None = None,
     ) -> None:
-        """Write run metrics. When conn is provided, use it and do not commit.
+        """Write run metrics.
+
+        conn: Connection. Repository must provide it (from its transaction or a
+              standalone transaction). Adapter executes against it; does not commit.
 
         Note:
             This write is idempotent: an existing row with the same run_id may be

@@ -76,11 +76,17 @@ def create_engine(
         ...     agent_factory=my_custom_factory,
         ... )
     """
+    # Create transaction_provider first (needed by run_repo and metrics_repo)
+    if transaction_provider is None:
+        transaction_provider = SqliteTransactionProvider()
+
     # Create default repositories if not provided
     if run_repo is None:
-        run_repo = create_sqlite_repository()
+        run_repo = create_sqlite_repository(transaction_provider=transaction_provider)
     if metrics_repo is None:
-        metrics_repo = create_sqlite_metrics_repository()
+        metrics_repo = create_sqlite_metrics_repository(
+            transaction_provider=transaction_provider
+        )
     if profile_repo is None:
         profile_repo = create_sqlite_profile_repository()
     if feed_post_repo is None:
@@ -95,8 +101,6 @@ def create_engine(
         agent_factory = create_default_agent_factory()
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
-    if transaction_provider is None:
-        transaction_provider = SqliteTransactionProvider()
 
     query_service = create_query_service(
         run_repo=run_repo,

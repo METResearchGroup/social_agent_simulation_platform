@@ -418,14 +418,14 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
             # Act
-            adapter.write_turn_metadata(turn_metadata)
+            adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
             # Assert
-            # Verify read_turn_metadata was called to check for duplicates (conn=None when using own connection)
+            # Verify read_turn_metadata was called to check for duplicates
             adapter.read_turn_metadata.assert_called_once_with(
-                run_id, turn_number, conn=None
+                run_id, turn_number, conn=mock_conn
             )
-            # Verify INSERT was executed
+            # Verify INSERT was executed (conn provided, no commit)
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
             assert "INSERT INTO turn_metadata" in str(call_args[0][0])
@@ -436,8 +436,21 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             # Parse JSON and compare dict to avoid key ordering issues
             assert json.loads(params[2]) == {"like": 5, "comment": 2, "follow": 1}
             assert params[3] == "2024_01_01-12:00:00"
-            # Verify commit was called
-            mock_conn.commit.assert_called_once()
+
+    def test_write_turn_metadata_raises_value_error_when_conn_is_none(
+        self, adapter, default_test_data
+    ):
+        """When conn is None, write_turn_metadata raises ValueError."""
+        run_id = default_test_data["run_id"]
+        turn_number = default_test_data["turn_number"]
+        turn_metadata = TurnMetadata(
+            run_id=run_id,
+            turn_number=turn_number,
+            total_actions={TurnAction.LIKE: 1},
+            created_at="2024_01_01-12:00:00",
+        )
+        with pytest.raises(ValueError, match="conn is required"):
+            adapter.write_turn_metadata(turn_metadata)
 
     def test_write_turn_metadata_with_conn_does_not_commit(
         self, adapter, default_test_data
@@ -485,17 +498,18 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             created_at="2024_01_01-11:00:00",
         )
         adapter.read_turn_metadata = Mock(return_value=existing_metadata)
+        mock_conn = Mock()
 
         # Act & Assert
         with pytest.raises(
             DuplicateTurnMetadataError,
             match=f"Turn metadata already exists for run '{run_id}', turn {turn_number}",
         ):
-            adapter.write_turn_metadata(turn_metadata)
+            adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
-        # Verify read_turn_metadata was called (conn=None when using own connection)
+        # Verify read_turn_metadata was called
         adapter.read_turn_metadata.assert_called_once_with(
-            run_id, turn_number, conn=None
+            run_id, turn_number, conn=mock_conn
         )
 
     def test_raises_operational_error_on_database_error(
@@ -522,7 +536,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
             # Act & Assert
             with pytest.raises(sqlite3.OperationalError):
-                adapter.write_turn_metadata(turn_metadata)
+                adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
     def test_serializes_total_actions_to_json_correctly(
         self, adapter, default_test_data, mock_db_connection
@@ -548,7 +562,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
             # Act
-            adapter.write_turn_metadata(turn_metadata)
+            adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
             # Assert
             call_args = mock_conn.execute.call_args
@@ -578,7 +592,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
         with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
             # Act
-            adapter.write_turn_metadata(turn_metadata)
+            adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
             # Assert
             mock_conn.execute.assert_called_once()
@@ -636,16 +650,16 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
                 DuplicateTurnMetadataError,
                 match=f"Turn metadata already exists for run '{run_id}', turn {turn_number}",
             ):
-                adapter.write_turn_metadata(turn_metadata)
+                adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
-            # Verify read_turn_metadata was called (pre-check; conn=None when using own connection)
+            # Verify read_turn_metadata was called (pre-check)
             adapter.read_turn_metadata.assert_called_once_with(
-                run_id, turn_number, conn=None
+                run_id, turn_number, conn=mock_conn
             )
             # Verify INSERT was attempted
             mock_conn.execute.assert_called_once()
-            # Verify commit was NOT called (INSERT failed)
-            mock_conn.commit.assert_not_called()
+            # Verify INSERT was attempted (commit not used when conn provided)
+            mock_conn.execute.assert_called_once()
 
     def test_does_not_commit_on_integrity_error(
         self, adapter, default_test_data, mock_db_connection
@@ -671,14 +685,23 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
             # Act & Assert
             with pytest.raises(DuplicateTurnMetadataError):
-                adapter.write_turn_metadata(turn_metadata)
+                adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
-            # Verify commit was never called
+            # Verify commit was never called (conn provided, adapter does not commit)
             mock_conn.commit.assert_not_called()
 
 
 class TestSQLiteRunAdapterUpdateRunStatus:
     """Tests for SQLiteRunAdapter.update_run_status method."""
+
+    def test_update_run_status_raises_value_error_when_conn_is_none(self, adapter):
+        """When conn is None, update_run_status raises ValueError."""
+        with pytest.raises(ValueError, match="conn is required"):
+            adapter.update_run_status(
+                run_id="run_123",
+                status="completed",
+                completed_at="2026-01-01T00:00:00",
+            )
 
     def test_update_run_status_with_conn_does_not_commit(self, adapter):
         """When conn is passed, update_run_status uses it and does not call commit."""

@@ -1,5 +1,6 @@
 """Integration tests for db.repositories.metrics_repository module."""
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.run_repository import create_sqlite_repository
 from lib.timestamp_utils import get_current_timestamp
@@ -12,8 +13,11 @@ class TestSQLiteMetricsRepositoryIntegration:
 
     def test_write_and_read_turn_metrics(self, temp_db):
         """write_turn_metrics then get_turn_metrics round-trips."""
-        run_repo = create_sqlite_repository()
-        metrics_repo = create_sqlite_metrics_repository()
+        tx_provider = SqliteTransactionProvider()
+        run_repo = create_sqlite_repository(transaction_provider=tx_provider)
+        metrics_repo = create_sqlite_metrics_repository(
+            transaction_provider=tx_provider
+        )
 
         run = run_repo.create_run(
             RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
@@ -38,8 +42,11 @@ class TestSQLiteMetricsRepositoryIntegration:
 
     def test_list_turn_metrics_is_ordered_by_turn_number(self, temp_db):
         """list_turn_metrics returns items ordered by turn_number ascending."""
-        run_repo = create_sqlite_repository()
-        metrics_repo = create_sqlite_metrics_repository()
+        tx_provider = SqliteTransactionProvider()
+        run_repo = create_sqlite_repository(transaction_provider=tx_provider)
+        metrics_repo = create_sqlite_metrics_repository(
+            transaction_provider=tx_provider
+        )
 
         run = run_repo.create_run(
             RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
@@ -77,8 +84,11 @@ class TestSQLiteMetricsRepositoryIntegration:
 
     def test_write_and_read_run_metrics(self, temp_db):
         """write_run_metrics then get_run_metrics round-trips."""
-        run_repo = create_sqlite_repository()
-        metrics_repo = create_sqlite_metrics_repository()
+        tx_provider = SqliteTransactionProvider()
+        run_repo = create_sqlite_repository(transaction_provider=tx_provider)
+        metrics_repo = create_sqlite_metrics_repository(
+            transaction_provider=tx_provider
+        )
 
         run = run_repo.create_run(
             RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")

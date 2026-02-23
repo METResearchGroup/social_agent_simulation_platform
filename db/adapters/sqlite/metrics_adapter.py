@@ -45,37 +45,22 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
         turn_metrics: TurnMetrics,
         conn: sqlite3.Connection | None = None,
     ) -> None:
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
         metrics_json = json.dumps(turn_metrics.metrics)
-        if conn is not None:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO turn_metrics
-                (run_id, turn_number, metrics, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    turn_metrics.run_id,
-                    turn_metrics.turn_number,
-                    metrics_json,
-                    turn_metrics.created_at,
-                ),
-            )
-            return
-        with get_connection() as c:
-            c.execute(
-                """
-                INSERT OR REPLACE INTO turn_metrics
-                (run_id, turn_number, metrics, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    turn_metrics.run_id,
-                    turn_metrics.turn_number,
-                    metrics_json,
-                    turn_metrics.created_at,
-                ),
-            )
-            c.commit()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO turn_metrics
+            (run_id, turn_number, metrics, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                turn_metrics.run_id,
+                turn_metrics.turn_number,
+                metrics_json,
+                turn_metrics.created_at,
+            ),
+        )
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
@@ -124,27 +109,17 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
         run_metrics: RunMetrics,
         conn: sqlite3.Connection | None = None,
     ) -> None:
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
         metrics_json = json.dumps(run_metrics.metrics)
-        if conn is not None:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO run_metrics
-                (run_id, metrics, created_at)
-                VALUES (?, ?, ?)
-                """,
-                (run_metrics.run_id, metrics_json, run_metrics.created_at),
-            )
-            return
-        with get_connection() as c:
-            c.execute(
-                """
-                INSERT OR REPLACE INTO run_metrics
-                (run_id, metrics, created_at)
-                VALUES (?, ?, ?)
-                """,
-                (run_metrics.run_id, metrics_json, run_metrics.created_at),
-            )
-            c.commit()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO run_metrics
+            (run_id, metrics, created_at)
+            VALUES (?, ?, ?)
+            """,
+            (run_metrics.run_id, metrics_json, run_metrics.created_at),
+        )
 
     @validate_inputs((validate_run_id, "run_id"))
     def read_run_metrics(self, run_id: str) -> RunMetrics | None:

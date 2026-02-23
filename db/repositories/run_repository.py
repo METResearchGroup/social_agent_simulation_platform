@@ -2,7 +2,7 @@
 
 import uuid
 
-from db.adapters.base import RunDatabaseAdapter
+from db.adapters.base import RunDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import RunRepository
 from lib.timestamp_utils import get_current_timestamp
 from lib.validation_decorators import validate_inputs
@@ -36,13 +36,20 @@ class SQLiteRunRepository(RunRepository):
         RunStatus.FAILED: set(),  # Terminal state
     }
 
-    def __init__(self, db_adapter: RunDatabaseAdapter):
+    def __init__(
+        self,
+        *,
+        db_adapter: RunDatabaseAdapter,
+        transaction_provider: TransactionProvider,
+    ):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for run operations
+            transaction_provider: Provider for transactions when conn is not passed
         """
         self._db_adapter = db_adapter
+        self._transaction_provider = transaction_provider
 
     def create_run(self, config: RunConfig) -> Run:
         """Create a new run in SQLite.
@@ -134,9 +141,15 @@ class SQLiteRunRepository(RunRepository):
             # Update the run status, once validated.
             ts = get_current_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
-            self._db_adapter.update_run_status(
-                validated_run_id, status.value, completed_at, conn=conn
-            )
+            if conn is not None:
+                self._db_adapter.update_run_status(
+                    validated_run_id, status.value, completed_at, conn=conn
+                )
+            else:
+                with self._transaction_provider.run_transaction() as c:
+                    self._db_adapter.update_run_status(
+                        validated_run_id, status.value, completed_at, conn=c
+                    )
 
         except (RunNotFoundError, InvalidTransitionError):
             # Re-raise domain exceptions as-is
@@ -222,10 +235,17 @@ class SQLiteRunRepository(RunRepository):
             max_turns=run.total_turns,  # type: ignore
         )
 
-        self._db_adapter.write_turn_metadata(turn_metadata, conn=conn)
+        if conn is not None:
+            self._db_adapter.write_turn_metadata(turn_metadata, conn=conn)
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.write_turn_metadata(turn_metadata, conn=c)
 
 
-def create_sqlite_repository() -> SQLiteRunRepository:
+def create_sqlite_repository(
+    *,
+    transaction_provider: TransactionProvider,
+) -> SQLiteRunRepository:
     """Factory function to create a SQLiteRunRepository with default dependencies.
 
     Returns:
@@ -233,4 +253,7 @@ def create_sqlite_repository() -> SQLiteRunRepository:
     """
     from db.adapters.sqlite import SQLiteRunAdapter
 
-    return SQLiteRunRepository(db_adapter=SQLiteRunAdapter())
+    return SQLiteRunRepository(
+        db_adapter=SQLiteRunAdapter(),
+        transaction_provider=transaction_provider,
+    )
