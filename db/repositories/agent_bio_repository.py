@@ -2,8 +2,9 @@
 
 from db.adapters.base import AgentBioDatabaseAdapter
 from db.repositories.interfaces import AgentBioRepository
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.validators import validate_agent_id
 
 
 class SQLiteAgentBioRepository(AgentBioRepository):
@@ -18,14 +19,14 @@ class SQLiteAgentBioRepository(AgentBioRepository):
         self._db_adapter.write_agent_bio(bio)
         return bio
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def get_latest_agent_bio(self, agent_id: str) -> AgentBio | None:
         """Get the latest bio for an agent."""
-        validate_non_empty_string(agent_id, "agent_id")
         return self._db_adapter.read_latest_agent_bio(agent_id)
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def list_agent_bios(self, agent_id: str) -> list[AgentBio]:
         """List all bios for an agent, ordered by created_at DESC."""
-        validate_non_empty_string(agent_id, "agent_id")
         return self._db_adapter.read_agent_bios_by_agent_id(agent_id)
 
 

@@ -2,8 +2,9 @@
 
 from db.adapters.base import AgentDatabaseAdapter
 from db.repositories.interfaces import AgentRepository
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent import Agent
+from simulation.core.validators import validate_agent_id, validate_handle_exists
 
 
 class SQLiteAgentRepository(AgentRepository):
@@ -18,14 +19,14 @@ class SQLiteAgentRepository(AgentRepository):
         self._db_adapter.write_agent(agent)
         return agent
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def get_agent(self, agent_id: str) -> Agent | None:
         """Get an agent by ID."""
-        validate_non_empty_string(agent_id, "agent_id")
         return self._db_adapter.read_agent(agent_id)
 
+    @validate_inputs((validate_handle_exists, "handle"))
     def get_agent_by_handle(self, handle: str) -> Agent | None:
         """Get an agent by handle."""
-        validate_non_empty_string(handle, "handle")
         return self._db_adapter.read_agent_by_handle(handle)
 
     def list_all_agents(self) -> list[Agent]:
