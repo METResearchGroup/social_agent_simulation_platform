@@ -1,36 +1,10 @@
 """Integration tests for db.repositories.metrics_repository module."""
 
-import os
-import tempfile
-
-import pytest
-
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
 from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.run_repository import create_sqlite_repository
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import RunConfig
-
-
-@pytest.fixture
-def temp_db():
-    """Create a temporary database for integration tests."""
-    original_path = DB_PATH
-
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
-    os.close(fd)
-
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    sqlite_module.DB_PATH = temp_path
-    initialize_database()
-
-    yield temp_path
-
-    sqlite_module.DB_PATH = original_path
-    if os.path.exists(temp_path):
-        os.unlink(temp_path)
 
 
 class TestSQLiteMetricsRepositoryIntegration:

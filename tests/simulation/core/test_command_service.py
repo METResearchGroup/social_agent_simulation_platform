@@ -4,12 +4,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import InMemoryActionHistoryStore
@@ -29,20 +23,8 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.models.runs import Run, RunStatus
+from simulation.core.models.runs import RunStatus
 from simulation.core.models.turns import TurnResult
-
-
-@pytest.fixture
-def mock_repos():
-    return {
-        "run_repo": Mock(spec=RunRepository),
-        "metrics_repo": Mock(spec=MetricsRepository),
-        "profile_repo": Mock(spec=ProfileRepository),
-        "feed_post_repo": Mock(spec=FeedPostRepository),
-        "generated_bio_repo": Mock(spec=GeneratedBioRepository),
-        "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
-    }
 
 
 @pytest.fixture
@@ -103,19 +85,6 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         agent_action_rules_validator=agent_action_rules_validator,
         agent_action_history_recorder=agent_action_history_recorder,
         agent_action_feed_filter=agent_action_feed_filter,
-    )
-
-
-@pytest.fixture
-def sample_run():
-    return Run(
-        run_id="run_123",
-        created_at="2024_01_01-12:00:00",
-        total_turns=2,
-        total_agents=2,
-        started_at="2024_01_01-12:00:00",
-        status=RunStatus.RUNNING,
-        completed_at=None,
     )
 
 
