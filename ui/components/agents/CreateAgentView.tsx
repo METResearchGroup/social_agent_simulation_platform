@@ -13,8 +13,17 @@ interface CreateAgentViewProps {
 }
 
 interface CommentEntry {
+  id: string;
   text: string;
   postUri: string;
+}
+
+function createCommentEntry(): CommentEntry {
+  return {
+    id: crypto.randomUUID(),
+    text: '',
+    postUri: '',
+  };
 }
 
 export default function CreateAgentView({
@@ -26,23 +35,23 @@ export default function CreateAgentView({
   const [handle, setHandle] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
-  const [comments, setComments] = useState<CommentEntry[]>([{ text: '', postUri: '' }]);
+  const [comments, setComments] = useState<CommentEntry[]>(() => [createCommentEntry()]);
   const [likedPostUris, setLikedPostUris] = useState('');
   const [linkedAgentHandles, setLinkedAgentHandles] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
 
   const handleAddComment = (): void => {
-    setComments((prev) => [...prev, { text: '', postUri: '' }]);
+    setComments((prev) => [...prev, createCommentEntry()]);
   };
 
-  const handleRemoveComment = (index: number): void => {
-    setComments((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveComment = (id: string): void => {
+    setComments((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const handleCommentChange = (index: number, field: keyof CommentEntry, value: string): void => {
+  const handleCommentChange = (id: string, field: keyof Omit<CommentEntry, 'id'>, value: string): void => {
     setComments((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
+      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
     );
   };
 
@@ -133,25 +142,25 @@ export default function CreateAgentView({
               <div>
                 <span className="text-sm font-medium text-beige-800">Comments</span>
                 <div className="space-y-2 mt-2">
-                  {comments.map((comment, index) => (
-                    <div key={index} className="flex gap-2 items-start">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-2 items-start">
                       <input
                         type="text"
                         value={comment.text}
-                        onChange={(e) => handleCommentChange(index, 'text', e.target.value)}
+                        onChange={(e) => handleCommentChange(comment.id, 'text', e.target.value)}
                         className={`${inputClasses} flex-1`}
                         placeholder="Comment text"
                       />
                       <input
                         type="text"
                         value={comment.postUri}
-                        onChange={(e) => handleCommentChange(index, 'postUri', e.target.value)}
+                        onChange={(e) => handleCommentChange(comment.id, 'postUri', e.target.value)}
                         className={`${inputClasses} flex-1`}
                         placeholder="Post URI (optional)"
                       />
                       <button
                         type="button"
-                        onClick={() => handleRemoveComment(index)}
+                        onClick={() => handleRemoveComment(comment.id)}
                         className="px-3 py-2 text-sm text-beige-600 hover:text-beige-900"
                       >
                         Remove
