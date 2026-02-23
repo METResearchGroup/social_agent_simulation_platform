@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from db.adapters.sqlite.sqlite import get_connection, SqliteTransactionProvider
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider, get_connection
 from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
@@ -752,7 +752,9 @@ class TestTurnMetadataIntegration:
         assert result.total_actions[TurnAction.COMMENT] == 0
         assert result.total_actions[TurnAction.FOLLOW] == 0
 
-    def test_write_turn_metadata_different_runs_using_repository(self, temp_db):
+    def test_write_turn_metadata_different_runs_using_repository(
+        self, temp_db, run_repo
+    ):
         """Test that turn metadata is correctly isolated per run using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
@@ -852,7 +854,7 @@ class TestTurnMetadataIntegration:
         assert exc_info.value.run_id == "nonexistent_run"
 
     def test_write_turn_metadata_raises_error_when_turn_number_out_of_bounds(
-        self, temp_db
+        self, temp_db, run_repo
     ):
         """Test that writing turn metadata with out-of-bounds turn_number raises ValueError."""
         from lib.timestamp_utils import get_current_timestamp
