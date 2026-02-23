@@ -35,7 +35,7 @@ const TURN_FETCH_THROTTLE_MS: number = 1500;
  * - turnsLoadingByRunId: runId -> true while turns for that run are loading.
  * - turnsErrorByRunId: runId -> Error when turns fetch fails; cleared when handleRetryTurns(runId) is called.
  */
-export type ViewMode = 'runs' | 'agents';
+export type ViewMode = 'runs' | 'agents' | 'create-agent';
 
 interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
@@ -305,6 +305,9 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
 
   const handleSetViewMode = (mode: ViewMode): void => {
     setViewMode(mode);
+    if (mode === 'create-agent') {
+      setSelectedAgentHandle(null);
+    }
   };
 
   const handleSelectAgent = (handle: string | null): void => {

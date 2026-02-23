@@ -6,6 +6,7 @@ import SimulationLayout from '@/components/layout/SimulationLayout';
 import { RunDetailProvider } from '@/components/run-detail/RunDetailContext';
 import RunDetailView from '@/components/run-detail/RunDetailView';
 import AgentsView from '@/components/agents/AgentsView';
+import CreateAgentView from '@/components/agents/CreateAgentView';
 import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
 import StartScreenView from '@/components/start/StartScreenView';
 import { useAuth } from '@/contexts/AuthContext';
@@ -123,7 +124,14 @@ function AuthenticatedApp() {
         onSelectAgent={handleSelectAgent}
       />
 
-      {viewMode === 'agents' ? (
+      {viewMode === 'create-agent' ? (
+        <CreateAgentView
+          agents={agents}
+          agentsLoading={agentsLoading}
+          agentsError={agentsError}
+          onRetryAgents={handleRetryAgents}
+        />
+      ) : viewMode === 'agents' ? (
         <AgentsView
           agents={agents}
           selectedAgentHandle={selectedAgentHandle}
