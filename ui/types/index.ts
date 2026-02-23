@@ -65,6 +65,8 @@ export interface RunConfig {
   numAgents: number;
   numTurns: number;
   feedAlgorithm: string;
+  /** Algorithm-specific config values (derived from FeedAlgorithm.configSchema). */
+  feedAlgorithmConfig: Record<string, unknown>;
 }
 
 /**
@@ -87,4 +89,3 @@ export class ApiError extends Error {
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
-

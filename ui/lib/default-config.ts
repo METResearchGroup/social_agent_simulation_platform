@@ -5,4 +5,5 @@ export const FALLBACK_DEFAULT_CONFIG: RunConfig = {
   numAgents: 5,
   numTurns: 10,
   feedAlgorithm: 'chronological',
+  feedAlgorithmConfig: {},
 };
