@@ -35,8 +35,13 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
             updated_at=row["updated_at"],
         )
 
-    def write_agent_bio(self, bio: AgentBio) -> None:
+    def write_agent_bio(
+        self, bio: AgentBio, conn: sqlite3.Connection | None = None
+    ) -> None:
         """Write an agent bio to SQLite.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
 
         Raises:
             sqlite3.IntegrityError: If constraints are violated
@@ -48,9 +53,12 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
             else getattr(bio, col)
             for col in AGENT_BIO_COLUMNS
         )
-        with get_connection() as conn:
+        if conn is not None:
             conn.execute(_INSERT_AGENT_BIO_SQL, row_values)
-            conn.commit()
+        else:
+            with get_connection() as c:
+                c.execute(_INSERT_AGENT_BIO_SQL, row_values)
+                c.commit()
 
     def read_latest_agent_bio(self, agent_id: str) -> AgentBio | None:
         """Read the latest bio for an agent by created_at DESC."""

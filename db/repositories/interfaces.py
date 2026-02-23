@@ -24,8 +24,8 @@ class AgentRepository(ABC):
     """Abstract base class defining the interface for agent repositories."""
 
     @abstractmethod
-    def create_or_update_agent(self, agent: Agent) -> Agent:
-        """Create or update an agent."""
+    def create_or_update_agent(self, agent: Agent, conn: object | None = None) -> Agent:
+        """Create or update an agent. When conn is provided, use it for transactional writes."""
         raise NotImplementedError
 
     @abstractmethod
@@ -48,8 +48,8 @@ class AgentBioRepository(ABC):
     """Abstract base class defining the interface for agent bio repositories."""
 
     @abstractmethod
-    def create_agent_bio(self, bio: AgentBio) -> AgentBio:
-        """Create an agent bio."""
+    def create_agent_bio(self, bio: AgentBio, conn: object | None = None) -> AgentBio:
+        """Create an agent bio. When conn is provided, use it for transactional writes."""
         raise NotImplementedError
 
     @abstractmethod
@@ -68,9 +68,9 @@ class UserAgentProfileMetadataRepository(ABC):
 
     @abstractmethod
     def create_or_update_metadata(
-        self, metadata: UserAgentProfileMetadata
+        self, metadata: UserAgentProfileMetadata, conn: object | None = None
     ) -> UserAgentProfileMetadata:
-        """Create or update user agent profile metadata."""
+        """Create or update user agent profile metadata. When conn is provided, use it for transactional writes."""
         raise NotImplementedError
 
     @abstractmethod

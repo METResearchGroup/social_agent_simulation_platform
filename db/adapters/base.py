@@ -619,8 +619,11 @@ class AgentDatabaseAdapter(ABC):
     """Abstract interface for agent database operations."""
 
     @abstractmethod
-    def write_agent(self, agent: Agent) -> None:
+    def write_agent(self, agent: Agent, conn: object | None = None) -> None:
         """Write an agent to the database.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
 
         Note:
             Idempotent: an existing row with the same agent_id may be replaced.
@@ -647,8 +650,12 @@ class AgentBioDatabaseAdapter(ABC):
     """Abstract interface for agent persona bio database operations."""
 
     @abstractmethod
-    def write_agent_bio(self, bio: AgentBio) -> None:
-        """Write an agent bio to the database."""
+    def write_agent_bio(self, bio: AgentBio, conn: object | None = None) -> None:
+        """Write an agent bio to the database.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -667,9 +674,12 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
 
     @abstractmethod
     def write_user_agent_profile_metadata(
-        self, metadata: UserAgentProfileMetadata
+        self, metadata: UserAgentProfileMetadata, conn: object | None = None
     ) -> None:
         """Write user agent profile metadata.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
 
         Note:
             Idempotent: an existing row with the same agent_id may be replaced.

@@ -14,9 +14,9 @@ class SQLiteAgentRepository(AgentRepository):
         """Initialize repository with injected dependencies."""
         self._db_adapter = db_adapter
 
-    def create_or_update_agent(self, agent: Agent) -> Agent:
+    def create_or_update_agent(self, agent: Agent, conn: object | None = None) -> Agent:
         """Create or update an agent in SQLite."""
-        self._db_adapter.write_agent(agent)
+        self._db_adapter.write_agent(agent, conn=conn)
         return agent
 
     @validate_inputs((validate_agent_id, "agent_id"))

@@ -35,8 +35,11 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             updated_at=row["updated_at"],
         )
 
-    def write_agent(self, agent: Agent) -> None:
+    def write_agent(self, agent: Agent, conn: sqlite3.Connection | None = None) -> None:
         """Write an agent to SQLite.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
 
         Raises:
             sqlite3.IntegrityError: If constraints are violated
@@ -48,9 +51,12 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             else getattr(agent, col)
             for col in AGENT_COLUMNS
         )
-        with get_connection() as conn:
+        if conn is not None:
             conn.execute(_INSERT_AGENT_SQL, row_values)
-            conn.commit()
+        else:
+            with get_connection() as c:
+                c.execute(_INSERT_AGENT_SQL, row_values)
+                c.commit()
 
     def read_agent(self, agent_id: str) -> Agent | None:
         """Read an agent by ID."""

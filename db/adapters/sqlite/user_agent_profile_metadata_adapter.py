@@ -37,18 +37,26 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
         )
 
     def write_user_agent_profile_metadata(
-        self, metadata: UserAgentProfileMetadata
+        self,
+        metadata: UserAgentProfileMetadata,
+        conn: sqlite3.Connection | None = None,
     ) -> None:
         """Write user agent profile metadata to SQLite.
+
+        When conn is provided, use it and do not commit; when None, use a new
+        connection and commit.
 
         Raises:
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails
         """
         row_values = tuple(getattr(metadata, col) for col in METADATA_COLUMNS)
-        with get_connection() as conn:
+        if conn is not None:
             conn.execute(_INSERT_METADATA_SQL, row_values)
-            conn.commit()
+        else:
+            with get_connection() as c:
+                c.execute(_INSERT_METADATA_SQL, row_values)
+                c.commit()
 
     def read_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
         """Read metadata by agent_id."""

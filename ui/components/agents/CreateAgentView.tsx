@@ -10,6 +10,11 @@ interface CreateAgentViewProps {
   agentsLoading: boolean;
   agentsError: Error | null;
   onRetryAgents?: () => void;
+  onSubmit: (payload: {
+    handle: string;
+    displayName: string;
+    bio: string;
+  }) => Promise<void>;
 }
 
 interface CommentEntry {
@@ -31,6 +36,7 @@ export default function CreateAgentView({
   agentsLoading,
   agentsError,
   onRetryAgents,
+  onSubmit,
 }: CreateAgentViewProps) {
   const [handle, setHandle] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -40,6 +46,8 @@ export default function CreateAgentView({
   const [linkedAgentHandles, setLinkedAgentHandles] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<Error | null>(null);
 
   const handleAddComment = (): void => {
     setComments((prev) => [...prev, createCommentEntry()]);
@@ -65,18 +73,15 @@ export default function CreateAgentView({
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
-    const likedUris = likedPostUris
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    console.log({
-      handle,
-      displayName,
-      bio,
-      comments,
-      likedPostUris: likedUris,
-      linkedAgentHandles,
-    });
+    setSubmitError(null);
+    setSubmitLoading(true);
+    void onSubmit({ handle: handle.trim(), displayName: displayName.trim(), bio: bio.trim() })
+      .catch((err: unknown) => {
+        setSubmitError(err instanceof Error ? err : new Error(String(err)));
+      })
+      .finally(() => {
+        setSubmitLoading(false);
+      });
   };
 
   const inputClasses =
@@ -240,6 +245,12 @@ export default function CreateAgentView({
             </div>
           </CollapsibleSection>
 
+          {submitError != null && (
+            <div className="p-3 rounded-lg bg-red-50 text-red-800 text-sm">
+              {submitError.message}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => {}}
@@ -250,9 +261,10 @@ export default function CreateAgentView({
 
           <button
             type="submit"
-            className="w-full px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors"
+            disabled={submitLoading}
+            className="w-full px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Submit
+            {submitLoading ? 'Creating…' : 'Submit'}
           </button>
         </form>
       </div>

@@ -14,9 +14,9 @@ class SQLiteAgentBioRepository(AgentBioRepository):
         """Initialize repository with injected dependencies."""
         self._db_adapter = db_adapter
 
-    def create_agent_bio(self, bio: AgentBio) -> AgentBio:
+    def create_agent_bio(self, bio: AgentBio, conn: object | None = None) -> AgentBio:
         """Create an agent bio in SQLite."""
-        self._db_adapter.write_agent_bio(bio)
+        self._db_adapter.write_agent_bio(bio, conn=conn)
         return bio
 
     @validate_inputs((validate_agent_id, "agent_id"))

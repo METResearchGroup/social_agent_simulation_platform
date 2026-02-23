@@ -15,10 +15,10 @@ class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepositor
         self._db_adapter = db_adapter
 
     def create_or_update_metadata(
-        self, metadata: UserAgentProfileMetadata
+        self, metadata: UserAgentProfileMetadata, conn: object | None = None
     ) -> UserAgentProfileMetadata:
         """Create or update user agent profile metadata in SQLite."""
-        self._db_adapter.write_user_agent_profile_metadata(metadata)
+        self._db_adapter.write_user_agent_profile_metadata(metadata, conn=conn)
         return metadata
 
     @validate_inputs((validate_agent_id, "agent_id"))
