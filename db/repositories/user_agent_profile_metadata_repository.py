@@ -2,8 +2,9 @@
 
 from db.adapters.base import UserAgentProfileMetadataDatabaseAdapter
 from db.repositories.interfaces import UserAgentProfileMetadataRepository
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+from simulation.core.validators import validate_agent_id
 
 
 class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepository):
@@ -20,9 +21,9 @@ class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepositor
         self._db_adapter.write_user_agent_profile_metadata(metadata)
         return metadata
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def get_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
         """Get metadata by agent_id."""
-        validate_non_empty_string(agent_id, "agent_id")
         return self._db_adapter.read_by_agent_id(agent_id)
 
 
