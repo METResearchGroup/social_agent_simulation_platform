@@ -7,27 +7,13 @@ import pytest
 from db.adapters.sqlite.generated_bio_adapter import SQLiteGeneratedBioAdapter
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
-from tests.db.adapters.sqlite.conftest import create_mock_db_connection, create_mock_row
+from tests.db.adapters.sqlite.conftest import create_mock_row
 
 
 @pytest.fixture
 def adapter():
     """Create a SQLiteGeneratedBioAdapter instance."""
     return SQLiteGeneratedBioAdapter()
-
-
-@pytest.fixture
-def mock_db_connection():
-    """Fixture that provides a context manager for mocking database connections.
-
-    Usage:
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_cursor.fetchone.return_value = some_row
-            # test code here
-    """
-    return create_mock_db_connection(
-        "db.adapters.sqlite.generated_bio_adapter.get_connection"
-    )
 
 
 class TestSQLiteGeneratedBioAdapterWriteGeneratedBio:

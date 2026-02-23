@@ -1,7 +1,10 @@
 """Shared pytest fixtures and utilities for SQLite adapter tests."""
 
+import os
 from contextlib import contextmanager
 from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 
 def create_mock_row(row_data: dict) -> MagicMock:
@@ -43,3 +46,23 @@ def create_mock_db_connection(patch_target: str):
             yield mock_get_conn, mock_conn, mock_cursor
 
     return _mock_db_connection
+
+
+@pytest.fixture
+def mock_db_connection(request: pytest.FixtureRequest):
+    """Return a context-manager factory that patches the adapter's get_connection().
+
+    The patch target is inferred from the test module filename:
+    `tests/db/adapters/sqlite/test_<name>_adapter.py` -> `db.adapters.sqlite.<name>_adapter.get_connection`
+    """
+    override = getattr(request.module, "MOCK_DB_PATCH_TARGET", None)
+    if override:
+        return create_mock_db_connection(override)
+
+    basename = os.path.basename(str(request.path))
+    if not basename.startswith("test_") or not basename.endswith(".py"):
+        raise ValueError(f"Cannot infer adapter patch target from {basename!r}")
+
+    module_name = basename.removeprefix("test_").removesuffix(".py")
+    patch_target = f"db.adapters.sqlite.{module_name}.get_connection"
+    return create_mock_db_connection(patch_target)

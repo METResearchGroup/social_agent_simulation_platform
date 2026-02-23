@@ -4,29 +4,11 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.query_service import SimulationQueryService
-
-
-@pytest.fixture
-def deps():
-    return {
-        "run_repo": Mock(spec=RunRepository),
-        "metrics_repo": Mock(spec=MetricsRepository),
-        "profile_repo": Mock(spec=ProfileRepository),
-        "feed_post_repo": Mock(spec=FeedPostRepository),
-        "generated_bio_repo": Mock(spec=GeneratedBioRepository),
-        "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
-    }
 
 
 @pytest.fixture

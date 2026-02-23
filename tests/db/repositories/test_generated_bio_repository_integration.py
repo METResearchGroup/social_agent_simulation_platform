@@ -3,43 +3,14 @@
 These tests use a real SQLite database to test end-to-end functionality.
 """
 
-import os
-import tempfile
-
 import pytest
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
 )
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
-
-
-@pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    # Save original DB path
-    original_path = DB_PATH
-
-    # Create temporary database
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
-    os.close(fd)
-
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    sqlite_module.DB_PATH = temp_path
-
-    # Initialize the database
-    initialize_database()
-
-    yield temp_path
-
-    # Cleanup
-    sqlite_module.DB_PATH = original_path
-    if os.path.exists(temp_path):
-        os.unlink(temp_path)
 
 
 class TestSQLiteGeneratedBioRepositoryIntegration:

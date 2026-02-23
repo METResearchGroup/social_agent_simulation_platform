@@ -1,29 +1,14 @@
 """Tests for simulation.core.query_service module."""
 
-from unittest.mock import Mock
-
 import pytest
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
-from db.repositories.run_repository import RunRepository
 from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
 
-
-@pytest.fixture
-def mock_repos():
-    return {
-        "run_repo": Mock(spec=RunRepository),
-        "metrics_repo": Mock(spec=MetricsRepository),
-        "feed_post_repo": Mock(spec=FeedPostRepository),
-        "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
-    }
+SAMPLE_RUN_OVERRIDES = {"total_turns": 10, "total_agents": 5}
 
 
 @pytest.fixture
@@ -33,19 +18,6 @@ def query_service(mock_repos):
         metrics_repo=mock_repos["metrics_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
-    )
-
-
-@pytest.fixture
-def sample_run():
-    return Run(
-        run_id="run_123",
-        created_at="2024_01_01-12:00:00",
-        total_turns=10,
-        total_agents=5,
-        started_at="2024_01_01-12:00:00",
-        status=RunStatus.RUNNING,
-        completed_at=None,
     )
 
 
