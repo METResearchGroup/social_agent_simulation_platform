@@ -35,14 +35,19 @@ const TURN_FETCH_THROTTLE_MS: number = 1500;
  * - turnsLoadingByRunId: runId -> true while turns for that run are loading.
  * - turnsErrorByRunId: runId -> Error when turns fetch fails; cleared when handleRetryTurns(runId) is called.
  */
+export type ViewMode = 'runs' | 'agents';
+
 interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
   runsLoading: boolean;
   runsError: Error | null;
+  agents: Agent[];
   agentsLoading: boolean;
   agentsError: Error | null;
   turnsLoadingByRunId: Record<string, boolean>;
   turnsErrorByRunId: Record<string, ApiError | null>;
+  viewMode: ViewMode;
+  selectedAgentHandle: string | null;
   selectedRunId: string | null;
   selectedTurn: number | 'summary' | null;
   selectedRun: Run | null;
@@ -53,6 +58,8 @@ interface UseSimulationPageStateResult {
   currentRunConfig: RunConfig | null;
   isStartScreen: boolean;
   handleConfigSubmit: (config: RunConfig) => void;
+  handleSetViewMode: (mode: ViewMode) => void;
+  handleSelectAgent: (handle: string | null) => void;
   handleSelectRun: (runId: string) => void;
   handleSelectTurn: (turn: number | 'summary') => void;
   handleStartNewRun: () => void;
@@ -77,6 +84,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
   const [retryRunsTrigger, setRetryRunsTrigger] = useState<number>(0);
   const [retryTurnsTrigger, setRetryTurnsTrigger] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('runs');
+  const [selectedAgentHandle, setSelectedAgentHandle] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedTurn, setSelectedTurn] = useState<number | 'summary' | null>(null);
   const [runConfigs, setRunConfigs] = useState<Record<string, RunConfig>>(EMPTY_RUN_CONFIGS);
@@ -294,14 +303,25 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryTurnsTrigger((t) => t + 1);
   };
 
+  const handleSetViewMode = (mode: ViewMode): void => {
+    setViewMode(mode);
+  };
+
+  const handleSelectAgent = (handle: string | null): void => {
+    setSelectedAgentHandle(handle);
+  };
+
   return {
     runsWithStatus,
     runsLoading,
     runsError,
+    agents,
     agentsLoading,
     agentsError,
     turnsLoadingByRunId,
     turnsErrorByRunId,
+    viewMode,
+    selectedAgentHandle,
     selectedRunId,
     selectedTurn,
     selectedRun,
@@ -312,6 +332,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     currentRunConfig,
     isStartScreen: selectedRunId === null,
     handleConfigSubmit,
+    handleSetViewMode,
+    handleSelectAgent,
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,
