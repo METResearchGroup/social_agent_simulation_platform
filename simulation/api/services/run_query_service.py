@@ -80,6 +80,7 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
             num_agents=run.total_agents,
             num_turns=run.total_turns,
             feed_algorithm=run.feed_algorithm,
+            metric_keys=run.metric_keys,
         ),
         turns=turns,
         run_metrics=run_metrics.metrics if run_metrics else None,

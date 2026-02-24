@@ -121,6 +121,12 @@ class TestRunStatusEnumSerialization:
             total_turns=5,
             total_agents=3,
             feed_algorithm="chronological",
+            metric_keys=[
+                "run.actions.total",
+                "run.actions.total_by_type",
+                "turn.actions.counts_by_type",
+                "turn.actions.total",
+            ],
             started_at="2024_01_01-12:00:00",
             status=RunStatus.RUNNING,
             completed_at=None,

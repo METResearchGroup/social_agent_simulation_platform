@@ -40,6 +40,13 @@ def sample_run(request):
         created_at="2024_01_01-12:00:00",
         total_turns=overrides.get("total_turns", 2),
         total_agents=overrides.get("total_agents", 2),
+        feed_algorithm="chronological",
+        metric_keys=[
+            "run.actions.total",
+            "run.actions.total_by_type",
+            "turn.actions.counts_by_type",
+            "turn.actions.total",
+        ],
         started_at="2024_01_01-12:00:00",
         status=RunStatus.RUNNING,
         completed_at=None,

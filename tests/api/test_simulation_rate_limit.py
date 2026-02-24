@@ -20,6 +20,12 @@ def mock_engine_minimal_success():
         total_turns=1,
         total_agents=1,
         feed_algorithm="chronological",
+        metric_keys=[
+            "run.actions.total",
+            "run.actions.total_by_type",
+            "turn.actions.counts_by_type",
+            "turn.actions.total",
+        ],
         started_at=get_current_timestamp(),
         status=RunStatus.COMPLETED,
         completed_at=get_current_timestamp(),

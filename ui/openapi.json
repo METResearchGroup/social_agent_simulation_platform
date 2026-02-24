@@ -362,6 +362,13 @@
             "title": "Feed Algorithm",
             "type": "string"
           },
+          "metric_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Metric Keys",
+            "type": "array"
+          },
           "num_agents": {
             "title": "Num Agents",
             "type": "integer"
@@ -374,7 +381,8 @@
         "required": [
           "num_agents",
           "num_turns",
-          "feed_algorithm"
+          "feed_algorithm",
+          "metric_keys"
         ],
         "title": "RunConfigDetail",
         "type": "object"
@@ -504,6 +512,20 @@
               }
             ],
             "title": "Feed Algorithm Config"
+          },
+          "metric_keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric Keys"
           },
           "num_agents": {
             "title": "Num Agents",

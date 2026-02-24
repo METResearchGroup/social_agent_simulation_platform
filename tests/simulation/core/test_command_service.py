@@ -16,6 +16,7 @@ from simulation.core.agent_action_rules_validator import AgentActionRulesValidat
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
+from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.base import GenerationMetadata
@@ -117,6 +118,12 @@ class TestSimulationCommandServiceExecuteRun:
                 "num_agents": 2,
                 "num_turns": turns,
                 "feed_algorithm_config": None,
+                "metric_keys": [
+                    "run.actions.total",
+                    "run.actions.total_by_type",
+                    "turn.actions.counts_by_type",
+                    "turn.actions.total",
+                ],
             },
         )()
 
@@ -278,6 +285,7 @@ class TestSimulationCommandServiceExecuteRun:
             agents=[agent],
             feed_algorithm="chronological",
             action_history_store=action_history_store,
+            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
         )
 
         assert result.total_actions[TurnAction.LIKE] == 1
@@ -363,6 +371,7 @@ class TestSimulationCommandServiceExecuteRun:
             agents=[agent],
             feed_algorithm="chronological",
             action_history_store=action_history_store,
+            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
         )
 
         expected_total_actions = {
@@ -438,6 +447,7 @@ class TestSimulationCommandServiceExecuteRun:
             agents=[agent],
             feed_algorithm="chronological",
             action_history_store=action_history_store,
+            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
         )
 
         expected_min_likes = 1

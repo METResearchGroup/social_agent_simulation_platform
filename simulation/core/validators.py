@@ -48,6 +48,35 @@ def validate_feed_algorithm(feed_algorithm: str | None) -> str | None:
     return _validate(feed_algorithm)
 
 
+def validate_metric_keys(metric_keys: list[str] | None) -> list[str] | None:
+    """Validate that metric_keys, when provided, contains only registered keys.
+
+    Args:
+        metric_keys: List of metric keys to validate.
+
+    Returns:
+        The list unchanged if valid; None if None or empty.
+
+    Raises:
+        ValueError: If any key is not in the metrics registry.
+    """
+    if metric_keys is None:
+        return None
+    if len(metric_keys) == 0:
+        raise ValueError(
+            "metric_keys cannot be empty. Please omit the field if you don't want to collect any metrics."
+        )
+    from simulation.core.metrics.defaults import REGISTERED_METRIC_KEYS
+
+    for key in metric_keys:
+        if key not in REGISTERED_METRIC_KEYS:
+            raise ValueError(
+                f"metric_keys contains unknown key '{key}'; "
+                f"registered keys: {sorted(REGISTERED_METRIC_KEYS)}"
+            )
+    return metric_keys
+
+
 def validate_run_exists(run: Run | None, run_id: str) -> Run:
     if run is None:
         raise RunNotFoundError(run_id)

@@ -402,6 +402,8 @@ export interface components {
         RunConfigDetail: {
             /** Feed Algorithm */
             feed_algorithm: string;
+            /** Metric Keys */
+            metric_keys: string[];
             /** Num Agents */
             num_agents: number;
             /** Num Turns */
@@ -455,6 +457,8 @@ export interface components {
             feed_algorithm_config?: {
                 [key: string]: components["schemas"]["JsonValue"];
             } | null;
+            /** Metric Keys */
+            metric_keys?: string[] | null;
             /** Num Agents */
             num_agents: number;
             /** Num Turns */

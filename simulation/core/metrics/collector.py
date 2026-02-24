@@ -33,15 +33,28 @@ class MetricsCollector:
         self._run_metric_keys = list(run_metric_keys)
         self._deps = deps
 
-    def collect_turn_metrics(self, *, run_id: str, turn_number: int) -> ComputedMetrics:
+    def collect_turn_metrics(
+        self,
+        *,
+        run_id: str,
+        turn_number: int,
+        turn_metric_keys: list[str],
+    ) -> ComputedMetrics:
         ctx = MetricContext(run_id=run_id, turn_number=turn_number)
-        metric_keys = self._turn_metric_keys
-        return self._collect(scope=MetricScope.TURN, metric_keys=metric_keys, ctx=ctx)
+        return self._collect(
+            scope=MetricScope.TURN, metric_keys=turn_metric_keys, ctx=ctx
+        )
 
-    def collect_run_metrics(self, *, run_id: str) -> ComputedMetrics:
+    def collect_run_metrics(
+        self,
+        *,
+        run_id: str,
+        run_metric_keys: list[str],
+    ) -> ComputedMetrics:
         ctx = MetricContext(run_id=run_id, turn_number=None)
-        metric_keys = self._run_metric_keys
-        return self._collect(scope=MetricScope.RUN, metric_keys=metric_keys, ctx=ctx)
+        return self._collect(
+            scope=MetricScope.RUN, metric_keys=run_metric_keys, ctx=ctx
+        )
 
     def _collect(
         self,
