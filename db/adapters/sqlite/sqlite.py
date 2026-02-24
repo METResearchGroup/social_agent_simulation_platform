@@ -7,19 +7,42 @@ This module provides SQLite-specific infrastructure functions:
 """
 
 import contextlib
+import logging
 import os
 import sqlite3
 from typing import Any
 
 from db.adapters.base import TransactionProvider
 from lib.constants import REPO_ROOT
+from lib.env_utils import is_local_mode
 
 SIM_DB_PATH_ENV: str = "SIM_DB_PATH"
 DB_PATH = os.path.join(REPO_ROOT, "db", "db.sqlite")
+LOCAL_DEV_DB_FILENAME: str = "dev_dummy_data_db.sqlite"
+LOCAL_DEV_DB_PATH: str = os.path.join(REPO_ROOT, "db", LOCAL_DEV_DB_FILENAME)
+
+logger = logging.getLogger(__name__)
 
 
 def get_db_path() -> str:
-    """Return the runtime SQLite path, preferring SIM_DB_PATH when set."""
+    """Return the runtime SQLite path.
+
+    Precedence:
+    - When LOCAL=true, always force the clearly-named dummy DB at db/dev_dummy_data_db.sqlite.
+      This disallows overrides to avoid confusion about which DB is in use.
+    - Otherwise, prefer SIM_DB_PATH when set.
+    - Otherwise, use the repo default db/db.sqlite.
+    """
+    if is_local_mode():
+        configured_path = os.environ.get(SIM_DB_PATH_ENV)
+        if configured_path:
+            logger.warning(
+                "LOCAL=true overrides %s=%s; using %s",
+                SIM_DB_PATH_ENV,
+                configured_path,
+                LOCAL_DEV_DB_PATH,
+            )
+        return LOCAL_DEV_DB_PATH
     configured_path = os.environ.get(SIM_DB_PATH_ENV)
     if configured_path:
         return configured_path
@@ -171,7 +194,15 @@ def initialize_database() -> None:
 
     old_sim_db_path = os.environ.get("SIM_DB_PATH")
     old_sim_db_url = os.environ.get("SIM_DATABASE_URL")
-    if old_sim_db_url is None and old_sim_db_path is None:
+    if is_local_mode():
+        if old_sim_db_url or old_sim_db_path:
+            logger.warning(
+                "LOCAL=true forces migrations to target %s (overriding SIM_DB_PATH/SIM_DATABASE_URL)",
+                db_path,
+            )
+        os.environ["SIM_DB_PATH"] = db_path
+        os.environ.pop("SIM_DATABASE_URL", None)
+    elif old_sim_db_url is None and old_sim_db_path is None:
         os.environ["SIM_DB_PATH"] = db_path
     try:
         _apply_migrations(cfg, has_version, has_tables)

@@ -28,10 +28,10 @@ from simulation.api.services.agent_command_service import create_agent
 from simulation.api.services.agent_query_service import list_agents, list_agents_dummy
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
-    get_posts_by_uris_dummy,
+    get_posts_by_uris_db,
     get_run_details,
-    get_turns_for_run_dummy,
-    list_runs_dummy,
+    get_turns_for_run_db,
+    list_runs_db,
 )
 from simulation.core.exceptions import (
     HandleAlreadyExistsError,
@@ -320,7 +320,7 @@ async def _execute_get_simulation_posts(
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_posts_by_uris_dummy, uris=uris)
+        return await asyncio.to_thread(get_posts_by_uris_db, uris=uris)
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")
         return _error_response(
@@ -335,10 +335,11 @@ async def _execute_get_simulation_posts(
 async def _execute_get_simulation_runs(
     request: Request,
 ) -> list[RunListItem] | Response:
-    """Fetch run summaries and convert unexpected failures to HTTP responses."""
+    """Fetch run summaries from the database and convert failures to HTTP responses."""
     try:
+        engine = request.app.state.engine
         # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(list_runs_dummy)
+        return await asyncio.to_thread(list_runs_db, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
         return _error_response(
@@ -452,7 +453,7 @@ async def _execute_get_simulation_run_turns(
     """Fetch run turns and convert known failures to HTTP responses."""
     try:
         # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(get_turns_for_run_dummy, run_id=run_id)
+        return await asyncio.to_thread(get_turns_for_run_db, run_id=run_id)
     except RunNotFoundError as e:
         return _error_response(
             status_code=404,
