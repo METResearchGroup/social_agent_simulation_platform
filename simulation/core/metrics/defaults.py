@@ -53,6 +53,11 @@ DEFAULT_RUN_METRIC_KEYS: list[str] = [
 ]
 
 
+def get_default_metric_keys() -> list[str]:
+    """Return sorted unique union of default turn and run metric keys."""
+    return sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+
+
 def resolve_metric_keys_by_scope(
     metric_keys: list[str],
 ) -> tuple[list[str], list[str]]:

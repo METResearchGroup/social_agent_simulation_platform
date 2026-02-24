@@ -13,8 +13,7 @@ from simulation.core.action_history import (
 )
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.metrics.defaults import (
-    DEFAULT_RUN_METRIC_KEYS,
-    DEFAULT_TURN_METRIC_KEYS,
+    get_default_metric_keys,
     resolve_metric_keys_by_scope,
 )
 from simulation.core.models.agents import SocialMediaAgent
@@ -92,7 +91,7 @@ class SimulationEngine:
         metric_keys: list[str] = (
             config_metric_keys
             if config_metric_keys and len(config_metric_keys) > 0
-            else sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+            else get_default_metric_keys()
         )
         turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
         self.command_service.simulate_turn(
@@ -115,7 +114,7 @@ class SimulationEngine:
         metric_keys: list[str] = (
             config_metric_keys
             if config_metric_keys and len(config_metric_keys) > 0
-            else sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+            else get_default_metric_keys()
         )
         turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
         self.command_service.simulate_turns(

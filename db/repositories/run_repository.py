@@ -12,10 +12,7 @@ from simulation.core.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from simulation.core.metrics.defaults import (
-    DEFAULT_RUN_METRIC_KEYS,
-    DEFAULT_TURN_METRIC_KEYS,
-)
+from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import (
@@ -74,9 +71,7 @@ class SQLiteRunRepository(RunRepository):
 
             metric_keys: list[str]
             if config.metric_keys is None or len(config.metric_keys) == 0:
-                metric_keys = sorted(
-                    set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
-                )
+                metric_keys = get_default_metric_keys()
             else:
                 metric_keys = config.metric_keys
 
