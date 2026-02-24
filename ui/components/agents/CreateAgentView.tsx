@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import CollapsibleSection from '@/components/details/CollapsibleSection';
 import { Agent } from '@/types';
@@ -48,6 +48,7 @@ export default function CreateAgentView({
   const [linkOpen, setLinkOpen] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<Error | null>(null);
+  const isSubmittingRef = useRef(false);
 
   const handleAddComment = (): void => {
     setComments((prev) => [...prev, createCommentEntry()]);
@@ -73,6 +74,8 @@ export default function CreateAgentView({
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setSubmitError(null);
     setSubmitLoading(true);
     void onSubmit({ handle: handle.trim(), displayName: displayName.trim(), bio: bio.trim() })
@@ -81,6 +84,7 @@ export default function CreateAgentView({
       })
       .finally(() => {
         setSubmitLoading(false);
+        isSubmittingRef.current = false;
       });
   };
 
