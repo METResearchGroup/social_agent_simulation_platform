@@ -179,9 +179,9 @@ class SimulationCommandService:
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
+                action_history_store,
+                turn_metric_keys,
                 feed_algorithm_config=feed_algorithm_config,
-                action_history_store=action_history_store,
-                turn_metric_keys=turn_metric_keys,
             )
         except Exception as e:
             logger.error(
@@ -243,8 +243,8 @@ class SimulationCommandService:
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
         action_history_store: ActionHistoryStore,
+        turn_metric_keys: list[str],
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-        turn_metric_keys: list[str] | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
