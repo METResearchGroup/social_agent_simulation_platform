@@ -17,6 +17,9 @@ down_revision: Union[str, Sequence[str], None] = "d0a1b2c3d4e5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+# we add this here as a snapshot of the default metric keys;
+# the actual default metric keys will change in the future, but this is
+# what they are at the moment.
 DEFAULT_METRIC_KEYS_JSON: str = (
     '["run.actions.total","run.actions.total_by_type",'
     '"turn.actions.counts_by_type","turn.actions.total"]'
