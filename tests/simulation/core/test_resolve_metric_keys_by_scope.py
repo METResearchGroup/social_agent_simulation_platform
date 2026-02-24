@@ -40,6 +40,22 @@ def test_resolve_metric_keys_by_scope_run_only():
     assert run_keys == ["run.actions.total", "run.actions.total_by_type"]
 
 
+def test_resolve_metric_keys_by_scope_duplicate_keys_raises():
+    """Duplicate metric keys raise ValueError before scope validation."""
+    metric_keys = [
+        "turn.actions.total",
+        "run.actions.total",
+        "turn.actions.total",
+    ]
+
+    with pytest.raises(ValueError) as exc_info:
+        resolve_metric_keys_by_scope(metric_keys)
+
+    msg = str(exc_info.value)
+    assert "duplicate keys" in msg.lower()
+    assert "turn.actions.total" in msg
+
+
 def test_resolve_metric_keys_by_scope_unknown_key_raises():
     """Unknown metric key raises ValueError."""
     metric_keys = ["turn.actions.counts_by_type", "unknown.metric.key"]

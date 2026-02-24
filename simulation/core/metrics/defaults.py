@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 
 from simulation.core.metrics.builtins.actions import (
@@ -74,9 +75,16 @@ def resolve_metric_keys_by_scope(
         (turn_keys, run_keys) both sorted for determinism.
 
     Raises:
-        ValueError: If any key is not in REGISTERED_METRIC_KEYS, or if a key's
-            scope is not TURN or RUN (e.g. unknown MetricScope from BUILTIN_METRICS).
+        ValueError: If metric_keys contains duplicate keys; if any key is not in
+            REGISTERED_METRIC_KEYS; or if a key's scope is not TURN or RUN
+            (e.g. unknown MetricScope from BUILTIN_METRICS).
     """
+    counts = Counter(metric_keys)
+    duplicate_keys = [k for k, c in counts.items() if c > 1]
+    if duplicate_keys:
+        raise ValueError(
+            f"metric_keys contains duplicate keys: {sorted(duplicate_keys)}"
+        )
     turn_keys: list[str] = []
     run_keys: list[str] = []
     for key in metric_keys:
