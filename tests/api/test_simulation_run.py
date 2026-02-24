@@ -142,6 +142,66 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
     assert len(data["turns"]) == 10
 
 
+def test_post_simulations_run_passes_feed_algorithm_config_to_engine(simulation_client):
+    """Request with feed_algorithm_config passes config into RunConfig used by engine."""
+    client, fastapi_app = simulation_client
+    run = Run(
+        run_id="run-config-1",
+        created_at=get_current_timestamp(),
+        total_turns=10,
+        total_agents=1,
+        feed_algorithm="chronological",
+        started_at=get_current_timestamp(),
+        status=RunStatus.COMPLETED,
+        completed_at=get_current_timestamp(),
+    )
+    metadata_list = [
+        TurnMetadata(
+            run_id=run.run_id,
+            turn_number=i,
+            total_actions={
+                TurnAction.LIKE: 0,
+                TurnAction.COMMENT: 0,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at=run.created_at,
+        )
+        for i in range(10)
+    ]
+    turn_metrics_list = [
+        TurnMetrics(
+            run_id=run.run_id,
+            turn_number=i,
+            metrics={"turn.actions.total": 0},
+            created_at=run.created_at,
+        )
+        for i in range(10)
+    ]
+    run_metrics = RunMetrics(
+        run_id=run.run_id,
+        metrics={"run.actions.total": 0},
+        created_at=run.created_at,
+    )
+    mock_engine = MagicMock()
+    mock_engine.execute_run.return_value = run
+    mock_engine.list_turn_metadata.return_value = metadata_list
+    mock_engine.list_turn_metrics.return_value = turn_metrics_list
+    mock_engine.get_run_metrics.return_value = run_metrics
+    fastapi_app.state.engine = mock_engine
+
+    feed_algorithm_config = {"order": "oldest_first"}
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 1, "feed_algorithm_config": feed_algorithm_config},
+    )
+    assert response.status_code == 200
+
+    _, kwargs = mock_engine.execute_run.call_args
+    run_config = kwargs["run_config"]
+    assert run_config.feed_algorithm == "chronological"
+    assert run_config.feed_algorithm_config == feed_algorithm_config
+
+
 def test_post_simulations_run_validation_num_agents_zero(simulation_client):
     """Invalid num_agents returns 422."""
     client, _ = simulation_client

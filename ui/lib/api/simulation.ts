@@ -271,6 +271,7 @@ export async function getDefaultConfig(): Promise<RunConfig> {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
+    feedAlgorithmConfig: null,
   };
 }
 
@@ -295,6 +296,7 @@ export async function postRun(config: RunConfig): Promise<Run> {
     num_agents: config.numAgents,
     num_turns: config.numTurns,
     feed_algorithm: config.feedAlgorithm,
+    feed_algorithm_config: config.feedAlgorithmConfig,
   };
   const api: ApiRunResponse = await fetchPost<typeof body, ApiRunResponse>(
     buildApiUrl('/simulations/run'),

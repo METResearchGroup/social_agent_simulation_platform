@@ -65,6 +65,7 @@ export interface RunConfig {
   numAgents: number;
   numTurns: number;
   feedAlgorithm: string;
+  feedAlgorithmConfig: Record<string, unknown> | null;
 }
 
 /**
@@ -87,4 +88,3 @@ export class ApiError extends Error {
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
-

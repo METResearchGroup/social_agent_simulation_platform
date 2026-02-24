@@ -1,4 +1,7 @@
 import logging
+from collections.abc import Mapping
+
+from pydantic import JsonValue
 
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
@@ -20,6 +23,7 @@ def generate_feeds(
     generated_feed_repo: GeneratedFeedRepository,
     feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
+    feed_algorithm_config: Mapping[str, JsonValue] | None = None,
 ) -> dict[str, list[BlueskyFeedPost]]:
     """Generate feeds for all the agents.
 
@@ -42,6 +46,7 @@ def generate_feeds(
         run_id=run_id,
         turn_number=turn_number,
         feed_algorithm=feed_algorithm,
+        feed_algorithm_config=feed_algorithm_config,
     )
     _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
     return _hydrate_generated_feeds(
@@ -57,6 +62,7 @@ def _generate_feeds(
     run_id: str,
     turn_number: int,
     feed_algorithm: str,
+    feed_algorithm_config: Mapping[str, JsonValue] | None,
 ) -> dict[str, GeneratedFeed]:
     """Generate a feed per agent via the feed algorithm; no persistence."""
     feeds: dict[str, GeneratedFeed] = {}
@@ -68,6 +74,7 @@ def _generate_feeds(
             run_id=run_id,
             turn_number=turn_number,
             feed_algorithm=feed_algorithm,
+            feed_algorithm_config=feed_algorithm_config,
         )
         feeds[agent.handle] = feed
     return feeds
@@ -166,6 +173,7 @@ def _generate_feed(
     run_id: str,
     turn_number: int,
     feed_algorithm: str,
+    feed_algorithm_config: Mapping[str, JsonValue] | None,
 ) -> GeneratedFeed:
     """Run the registered feed algorithm on candidate posts and return a generated feed."""
     algorithm = get_feed_generator(feed_algorithm)
@@ -173,6 +181,7 @@ def _generate_feed(
         candidate_posts=candidate_posts,
         agent=agent,
         limit=MAX_POSTS_PER_FEED,
+        config=feed_algorithm_config,
     )
     return GeneratedFeed(
         feed_id=result.feed_id,
@@ -189,6 +198,7 @@ def _generate_single_agent_feed(
     run_id: str,
     turn_number: int,
     feed_algorithm: str,
+    feed_algorithm_config: Mapping[str, JsonValue] | None,
 ) -> GeneratedFeed:
     """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
     candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
@@ -200,4 +210,5 @@ def _generate_single_agent_feed(
         run_id=run_id,
         turn_number=turn_number,
         feed_algorithm=feed_algorithm,
+        feed_algorithm_config=feed_algorithm_config,
     )
