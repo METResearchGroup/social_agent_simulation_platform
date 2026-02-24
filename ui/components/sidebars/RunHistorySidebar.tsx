@@ -17,8 +17,11 @@ interface RunHistorySidebarProps {
   onSetViewMode: (mode: ViewMode) => void;
   agents: Agent[];
   agentsLoading: boolean;
+  agentsLoadingMore: boolean;
+  agentsHasMore: boolean;
   agentsError: Error | null;
   onRetryAgents: () => void;
+  onLoadMoreAgents: () => void;
   selectedAgentHandle: string | null;
   onSelectAgent: (handle: string | null) => void;
 }
@@ -35,8 +38,11 @@ export default function RunHistorySidebar({
   onSetViewMode,
   agents,
   agentsLoading,
+  agentsLoadingMore,
+  agentsHasMore,
   agentsError,
   onRetryAgents,
+  onLoadMoreAgents,
   selectedAgentHandle,
   onSelectAgent,
 }: RunHistorySidebarProps) {
@@ -70,22 +76,38 @@ export default function RunHistorySidebar({
         <p className="py-8 text-center text-sm text-beige-600">No agents</p>
       );
     }
-    return agents.map((agent) => (
-      <button
-        key={agent.handle}
-        type="button"
-        data-testid={`agent-${agent.handle}`}
-        onClick={() => onSelectAgent(agent.handle)}
-        className={`w-full text-left p-3 border-b border-beige-200 hover:bg-beige-100 transition-colors ${
-          selectedAgentHandle === agent.handle ? 'bg-beige-200' : ''
-        }`}
-      >
-        <div className="text-sm font-medium text-beige-900 truncate">
-          {agent.name}
-        </div>
-        <div className="text-xs text-beige-600 mt-1">{agent.handle}</div>
-      </button>
-    ));
+    return (
+      <>
+        {agents.map((agent) => (
+          <button
+            key={agent.handle}
+            type="button"
+            data-testid={`agent-${agent.handle}`}
+            onClick={() => onSelectAgent(agent.handle)}
+            className={`w-full text-left p-3 border-b border-beige-200 hover:bg-beige-100 transition-colors ${
+              selectedAgentHandle === agent.handle ? 'bg-beige-200' : ''
+            }`}
+          >
+            <div className="text-sm font-medium text-beige-900 truncate">
+              {agent.name}
+            </div>
+            <div className="text-xs text-beige-600 mt-1">{agent.handle}</div>
+          </button>
+        ))}
+        {agentsHasMore ? (
+          <div className="p-3">
+            <button
+              type="button"
+              onClick={onLoadMoreAgents}
+              disabled={agentsLoadingMore}
+              className="w-full px-3 py-2 text-sm font-medium text-accent hover:text-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {agentsLoadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          </div>
+        ) : null}
+      </>
+    );
   };
 
   const runListContent = (): React.ReactNode => {

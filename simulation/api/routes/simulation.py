@@ -146,9 +146,22 @@ async def post_simulation_agents(
     description="Return simulation agent profiles from DB for View agents and Create form.",
 )
 @log_route_completion_decorator(route=SIMULATION_AGENTS_ROUTE, success_type=list)
-async def get_simulation_agents(request: Request) -> list[AgentSchema] | Response:
+async def get_simulation_agents(
+    request: Request,
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum number of agents to return (ordered by handle).",
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        description="Number of agents to skip before returning results (ordered by handle).",
+    ),
+) -> list[AgentSchema] | Response:
     """Return all simulation agents from the database."""
-    return await _execute_get_simulation_agents(request)
+    return await _execute_get_simulation_agents(request, limit=limit, offset=offset)
 
 
 @router.get(
@@ -400,10 +413,13 @@ async def _execute_post_simulation_agents(
 @timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_simulation_agents(
     request: Request,
+    *,
+    limit: int,
+    offset: int,
 ) -> list[AgentSchema] | Response:
     """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(list_agents)
+        return await asyncio.to_thread(list_agents, limit=limit, offset=offset)
     except Exception:
         logger.exception("Unexpected error while listing simulation agents")
         return _error_response(

@@ -275,10 +275,24 @@ export async function getTurnsForRun(runId: string): Promise<Record<string, Turn
   return turnsById;
 }
 
-export async function getAgents(): Promise<Agent[]> {
-  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
-    buildApiUrl('/simulations/agents'),
-  );
+export async function getAgents(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<Agent[]> {
+  const limit: number | undefined = params?.limit;
+  const offset: number | undefined = params?.offset;
+
+  const baseUrl: string = buildApiUrl('/simulations/agents');
+  const parts: string[] = [];
+  if (limit != null) {
+    parts.push(`limit=${encodeURIComponent(String(limit))}`);
+  }
+  if (offset != null) {
+    parts.push(`offset=${encodeURIComponent(String(offset))}`);
+  }
+  const url: string = parts.length > 0 ? `${baseUrl}?${parts.join('&')}` : baseUrl;
+
+  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(url);
   return apiAgents.map(mapAgent);
 }
 

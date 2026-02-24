@@ -23,6 +23,8 @@ def list_agents(
     agent_repo: AgentRepository | None = None,
     bio_repo: AgentBioRepository | None = None,
     metadata_repo: UserAgentProfileMetadataRepository | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[AgentSchema]:
     """Return agents from DB, mapped to AgentSchema, ordered by handle."""
     if agent_repo is None or bio_repo is None or metadata_repo is None:
@@ -39,14 +41,28 @@ def list_agents(
             )
         )
 
-    agents = agent_repo.list_all_agents()
+    agents: list[Agent]
+    if limit is None:
+        agents = agent_repo.list_all_agents()
+    else:
+        agents = agent_repo.list_agents_page(limit=limit, offset=offset)
+
+    return _hydrate_agents(
+        agents=agents, bio_repo=bio_repo, metadata_repo=metadata_repo
+    )
+
+
+def _hydrate_agents(
+    *,
+    agents: list[Agent],
+    bio_repo: AgentBioRepository,
+    metadata_repo: UserAgentProfileMetadataRepository,
+) -> list[AgentSchema]:
+    """Hydrate agents with latest bio + metadata (batch) and map to AgentSchema."""
     if not agents:
         return []
 
     agent_ids = [a.agent_id for a in agents]
-    # Batch-fetch bios and metadata to avoid N+1 queries.
-    # EXTENSION: Caching or read-replica routing could wrap these fetches;
-    # consider a hydrate_agents helper if logic grows (e.g. pagination).
     bio_map = bio_repo.get_latest_bios_by_agent_ids(agent_ids)
     metadata_map = metadata_repo.get_metadata_by_agent_ids(agent_ids)
 
