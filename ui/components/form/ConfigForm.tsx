@@ -190,6 +190,7 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
   const [numTurns, setNumTurns] = useState(defaultConfig.numTurns);
   const [feedAlgorithm, setFeedAlgorithm] = useState<string>(defaultConfig.feedAlgorithm);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [showAlgorithmSettings, setShowAlgorithmSettings] = useState(false);
   const [feedAlgorithmConfigByAlgId, setFeedAlgorithmConfigByAlgId] = useState<
     Record<string, JsonObject>
   >(() => (defaultConfig.feedAlgorithmConfig ? { [defaultConfig.feedAlgorithm]: defaultConfig.feedAlgorithmConfig } : {}));
@@ -230,11 +231,15 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
     () => normalizeConfigSchema(selectedAlg?.configSchema ?? null),
     [selectedAlg?.configSchema],
   );
-  const schemaFields = normalizedSchema?.fields ?? [];
+  const schemaFields = useMemo(() => normalizedSchema?.fields ?? [], [normalizedSchema]);
   const configErrors = useMemo(
     () => validateConfig(schemaFields, feedAlgorithmConfig),
     [schemaFields, feedAlgorithmConfig],
   );
+
+  useEffect(() => {
+    setShowAlgorithmSettings(schemaFields.length > 0);
+  }, [schemaFields.length]);
 
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -323,149 +328,197 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
             {selectedAlg?.description && (
               <p className="mt-1 text-sm text-beige-600">{selectedAlg.description}</p>
             )}
-          </div>
 
-          {schemaFields.length > 0 && (
-            <div className="border-t border-beige-200 pt-4">
-              <h2 className="text-sm font-medium text-beige-800 mb-3">Algorithm Settings</h2>
-              <div className="space-y-4">
-                {schemaFields.map((field) => {
-                  const error = submitAttempted ? configErrors[field.key] : null;
-                  if (field.kind === 'unsupported') {
-                    return (
-                      <div key={field.key} className="text-sm text-beige-700">
-                        <div className="font-medium">{field.label}</div>
-                        {field.description && (
-                          <div className="text-beige-600">{field.description}</div>
-                        )}
-                        <div className="mt-1 text-xs text-red-600">
-                          Unsupported config field schema for &quot;{field.key}&quot;.
-                        </div>
-                        {error && <div className="mt-1 text-xs text-red-600">{error}</div>}
-                      </div>
-                    );
-                  }
+            {schemaFields.length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    aria-expanded={showAlgorithmSettings}
+                    onClick={() => setShowAlgorithmSettings((v) => !v)}
+                    className="text-sm font-medium text-beige-800 hover:text-beige-900 transition-colors"
+                  >
+                    {showAlgorithmSettings ? '▾' : '▸'} Algorithm settings
+                  </button>
+                  {Object.keys(configErrors).length > 0 && (
+                    <span className="text-xs text-red-600">Fix required fields</span>
+                  )}
+                </div>
 
-                  if (field.kind === 'boolean') {
-                    const checked = Boolean(feedAlgorithmConfig[field.key]);
-                    return (
-                      <div key={field.key}>
-                        <label className="flex items-center gap-2 text-sm text-beige-800">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => setConfigValue(field.key, e.currentTarget.checked)}
-                            className="h-4 w-4 accent-accent"
-                          />
-                          <span className="font-medium">{field.label}</span>
-                        </label>
-                        {field.description && (
-                          <p className="mt-1 text-sm text-beige-600">{field.description}</p>
-                        )}
-                        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-                      </div>
-                    );
-                  }
+                {showAlgorithmSettings && (
+                  <div className="mt-3 ml-3 pl-4 border-l border-beige-200">
+                    <div className="space-y-4">
+                      {schemaFields.map((field) => {
+                        const error = submitAttempted ? configErrors[field.key] : null;
+                        if (field.kind === 'unsupported') {
+                          return (
+                            <div key={field.key} className="text-sm text-beige-700">
+                              <div className="font-medium">{field.label}</div>
+                              {field.description && (
+                                <div className="text-beige-600">{field.description}</div>
+                              )}
+                              <div className="mt-1 text-xs text-red-600">
+                                Unsupported config field schema for &quot;{field.key}&quot;.
+                              </div>
+                              {error && (
+                                <div className="mt-1 text-xs text-red-600">{error}</div>
+                              )}
+                            </div>
+                          );
+                        }
 
-                  if (field.kind === 'string_enum') {
-                    const value = typeof feedAlgorithmConfig[field.key] === 'string' ? (feedAlgorithmConfig[field.key] as string) : '';
-                    return (
-                      <div key={field.key}>
-                        <label className="block text-sm font-medium text-beige-800 mb-2">
-                          {field.label}
-                        </label>
-                        <select
-                          value={value}
-                          onChange={(e) =>
-                            setConfigValue(field.key, e.target.value ? e.target.value : undefined)
-                          }
-                          className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                        >
-                          <option value="">Select…</option>
-                          {(field.enumValues || []).map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                        {field.description && (
-                          <p className="mt-1 text-sm text-beige-600">{field.description}</p>
-                        )}
-                        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-                      </div>
-                    );
-                  }
+                        if (field.kind === 'boolean') {
+                          const checked = Boolean(feedAlgorithmConfig[field.key]);
+                          return (
+                            <div key={field.key}>
+                              <label className="flex items-center gap-2 text-sm text-beige-800">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) =>
+                                    setConfigValue(field.key, e.currentTarget.checked)
+                                  }
+                                  className="h-4 w-4 accent-accent"
+                                />
+                                <span className="font-medium">{field.label}</span>
+                              </label>
+                              {field.description && (
+                                <p className="mt-1 text-sm text-beige-600">
+                                  {field.description}
+                                </p>
+                              )}
+                              {error && (
+                                <p className="mt-1 text-xs text-red-600">{error}</p>
+                              )}
+                            </div>
+                          );
+                        }
 
-                  if (field.kind === 'string') {
-                    const value = typeof feedAlgorithmConfig[field.key] === 'string' ? (feedAlgorithmConfig[field.key] as string) : '';
-                    return (
-                      <div key={field.key}>
-                        <label className="block text-sm font-medium text-beige-800 mb-2">
-                          {field.label}
-                        </label>
-                        <input
-                          type="text"
-                          value={value}
-                          onChange={(e) =>
-                            setConfigValue(field.key, e.currentTarget.value || undefined)
-                          }
-                          className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                        />
-                        {field.description && (
-                          <p className="mt-1 text-sm text-beige-600">{field.description}</p>
-                        )}
-                        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-                      </div>
-                    );
-                  }
+                        if (field.kind === 'string_enum') {
+                          const value =
+                            typeof feedAlgorithmConfig[field.key] === 'string'
+                              ? (feedAlgorithmConfig[field.key] as string)
+                              : '';
+                          return (
+                            <div key={field.key}>
+                              <label className="block text-sm font-medium text-beige-800 mb-2">
+                                {field.label}
+                              </label>
+                              <select
+                                value={value}
+                                onChange={(e) =>
+                                  setConfigValue(
+                                    field.key,
+                                    e.target.value ? e.target.value : undefined,
+                                  )
+                                }
+                                className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                              >
+                                <option value="">Select…</option>
+                                {(field.enumValues || []).map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                              {field.description && (
+                                <p className="mt-1 text-sm text-beige-600">
+                                  {field.description}
+                                </p>
+                              )}
+                              {error && (
+                                <p className="mt-1 text-xs text-red-600">{error}</p>
+                              )}
+                            </div>
+                          );
+                        }
 
-                  if (field.kind === 'integer' || field.kind === 'number') {
-                    const rawValue = feedAlgorithmConfig[field.key];
-                    const value = typeof rawValue === 'number' ? String(rawValue) : '';
-                    const step = field.kind === 'integer' ? 1 : 'any';
-                    return (
-                      <div key={field.key}>
-                        <label className="block text-sm font-medium text-beige-800 mb-2">
-                          {field.label}
-                        </label>
-                        <input
-                          type="number"
-                          value={value}
-                          min={field.minimum}
-                          max={field.maximum}
-                          step={step}
-                          onChange={(e) => {
-                            const nextValue = Number(e.currentTarget.value);
-                            if (Number.isNaN(nextValue)) {
-                              setConfigValue(field.key, undefined);
-                              return;
-                            }
-                            setConfigValue(
-                              field.key,
-                              field.kind === 'integer' ? Math.trunc(nextValue) : nextValue,
-                            );
-                          }}
-                          className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                        />
-                        {field.description && (
-                          <p className="mt-1 text-sm text-beige-600">{field.description}</p>
-                        )}
-                        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-                      </div>
-                    );
-                  }
+                        if (field.kind === 'string') {
+                          const value =
+                            typeof feedAlgorithmConfig[field.key] === 'string'
+                              ? (feedAlgorithmConfig[field.key] as string)
+                              : '';
+                          return (
+                            <div key={field.key}>
+                              <label className="block text-sm font-medium text-beige-800 mb-2">
+                                {field.label}
+                              </label>
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(e) =>
+                                  setConfigValue(field.key, e.currentTarget.value || undefined)
+                                }
+                                className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                              />
+                              {field.description && (
+                                <p className="mt-1 text-sm text-beige-600">
+                                  {field.description}
+                                </p>
+                              )}
+                              {error && (
+                                <p className="mt-1 text-xs text-red-600">{error}</p>
+                              )}
+                            </div>
+                          );
+                        }
 
-                  return null;
-                })}
+                        if (field.kind === 'integer' || field.kind === 'number') {
+                          const rawValue = feedAlgorithmConfig[field.key];
+                          const value = typeof rawValue === 'number' ? String(rawValue) : '';
+                          const step = field.kind === 'integer' ? 1 : 'any';
+                          return (
+                            <div key={field.key}>
+                              <label className="block text-sm font-medium text-beige-800 mb-2">
+                                {field.label}
+                              </label>
+                              <input
+                                type="number"
+                                value={value}
+                                min={field.minimum}
+                                max={field.maximum}
+                                step={step}
+                                onChange={(e) => {
+                                  const nextValue = Number(e.currentTarget.value);
+                                  if (Number.isNaN(nextValue)) {
+                                    setConfigValue(field.key, undefined);
+                                    return;
+                                  }
+                                  setConfigValue(
+                                    field.key,
+                                    field.kind === 'integer'
+                                      ? Math.trunc(nextValue)
+                                      : nextValue,
+                                  );
+                                }}
+                                className="w-full px-4 py-2 border border-beige-300 rounded-lg bg-white text-beige-900 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                              />
+                              {field.description && (
+                                <p className="mt-1 text-sm text-beige-600">
+                                  {field.description}
+                                </p>
+                              )}
+                              {error && (
+                                <p className="mt-1 text-xs text-red-600">{error}</p>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })}
+                    </div>
+
+                    {Object.keys(configErrors).length > 0 && (
+                      <p className="mt-3 text-xs text-red-600">
+                        Fix the highlighted algorithm settings to start the simulation.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-
-              {Object.keys(configErrors).length > 0 && (
-                <p className="mt-3 text-xs text-red-600">
-                  Fix the highlighted algorithm settings to start the simulation.
-                </p>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           <div>
             <label
