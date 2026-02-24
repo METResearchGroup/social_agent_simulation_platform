@@ -104,16 +104,7 @@ class SimulationCommandService:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
             action_history_store = self.action_history_store_factory()
 
-            metric_keys_for_run: list[str]
-            config_metric_keys = getattr(run_config, "metric_keys", None)
-            if config_metric_keys and len(config_metric_keys) > 0:
-                metric_keys_for_run = config_metric_keys
-            else:
-                metric_keys_for_run = sorted(
-                    set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
-                )
-            turn_keys, run_keys = resolve_metric_keys_by_scope(metric_keys_for_run)
-
+            turn_keys, run_keys = resolve_metric_keys_by_scope(run.metric_keys)
             self.simulate_turns(
                 total_turns=run.total_turns,
                 run=run,
