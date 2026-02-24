@@ -6,6 +6,7 @@ from lib.timestamp_utils import get_current_timestamp
 from simulation.core.metrics.defaults import (
     DEFAULT_RUN_METRIC_KEYS,
     DEFAULT_TURN_METRIC_KEYS,
+    get_default_metric_keys,
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -99,7 +100,7 @@ def test_post_run_with_metric_keys_returns_details_with_keys(simulation_client):
 def test_post_run_without_metric_keys_uses_defaults(simulation_client):
     """POST without metric_keys uses default built-in keys."""
     client, fastapi_app = simulation_client
-    default_keys = sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+    default_keys = get_default_metric_keys()
     fastapi_app.state.engine = _make_mock_engine_with_metric_keys(
         run_metric_keys=default_keys
     )

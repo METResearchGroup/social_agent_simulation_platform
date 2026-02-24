@@ -11,10 +11,7 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import runs
 from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunNotFoundError
-from simulation.core.metrics.defaults import (
-    DEFAULT_RUN_METRIC_KEYS,
-    DEFAULT_TURN_METRIC_KEYS,
-)
+from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
@@ -88,9 +85,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         if raw_metric_keys is None or (
             isinstance(raw_metric_keys, str) and not raw_metric_keys.strip()
         ):
-            metric_keys = sorted(
-                set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
-            )
+            metric_keys = get_default_metric_keys()
         else:
             parsed = json.loads(raw_metric_keys)
             if not isinstance(parsed, list):
