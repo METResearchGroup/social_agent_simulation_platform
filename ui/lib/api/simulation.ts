@@ -234,6 +234,7 @@ type ApiMetric = components['schemas']['MetricSchema'];
 function mapMetric(api: ApiMetric): Metric {
   return {
     key: api.key,
+    displayName: api.display_name,
     description: api.description,
     scope: api.scope,
     author: api.author,

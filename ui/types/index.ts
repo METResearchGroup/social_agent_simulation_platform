@@ -64,6 +64,7 @@ export interface FeedAlgorithm {
 /** Maps to MetricSchema from GET /v1/simulations/metrics. */
 export interface Metric {
   key: string;
+  displayName: string;
   description: string;
   scope: 'turn' | 'run';
   author: string;

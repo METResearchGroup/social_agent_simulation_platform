@@ -360,6 +360,8 @@ export interface components {
             author: string;
             /** Description */
             description: string;
+            /** Display Name */
+            display_name: string;
             /** Key */
             key: string;
             scope: components["schemas"]["MetricScope"];

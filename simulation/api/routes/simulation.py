@@ -253,11 +253,12 @@ def _get_metrics_list() -> list[MetricSchema]:
     return [
         MetricSchema(
             key=key,
+            display_name=display_name,
             description=description,
             scope=scope,
             author=author,
         )
-        for key, description, scope, author in get_registered_metrics_metadata()
+        for key, display_name, description, scope, author in get_registered_metrics_metadata()
     ]
 
 
