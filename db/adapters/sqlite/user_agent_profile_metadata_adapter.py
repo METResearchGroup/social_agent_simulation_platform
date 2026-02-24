@@ -47,8 +47,6 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row_values = tuple(getattr(metadata, col) for col in METADATA_COLUMNS)
         conn.execute(_INSERT_METADATA_SQL, row_values)
 
@@ -57,8 +55,6 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
     ) -> UserAgentProfileMetadata | None:
         """Read metadata by agent_id."""
         validate_non_empty_string(agent_id, "agent_id")
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM user_agent_profile_metadata WHERE agent_id = ?",
             (agent_id,),

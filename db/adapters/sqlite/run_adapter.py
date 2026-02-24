@@ -97,8 +97,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.IntegrityError: If run_id violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         conn.execute(
             """
             INSERT OR REPLACE INTO runs 
@@ -125,8 +123,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
 
         if row is None:
@@ -142,8 +138,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
 
         return [self._row_to_run(row) for row in rows]
@@ -162,13 +156,10 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         a standalone transaction).
 
         Raises:
-            ValueError: If conn is None
             RunNotFoundError: If no run exists with the given run_id
             sqlite3.OperationalError: If database operation fails
             sqlite3.IntegrityError: If status value violates CHECK constraints
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         cursor = conn.execute(
             """
             UPDATE runs
@@ -209,8 +200,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
             (run_id, turn_number),
@@ -256,8 +245,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from a database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute(
             "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
             (run_id,),
@@ -302,12 +289,9 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                   or a standalone transaction).
 
         Raises:
-            ValueError: If conn is None
             sqlite3.OperationalError: If database operation fails
             DuplicateTurnMetadataError: If turn metadata already exists
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         existing_turn_metadata = self.read_turn_metadata(
             turn_metadata.run_id,
             turn_metadata.turn_number,

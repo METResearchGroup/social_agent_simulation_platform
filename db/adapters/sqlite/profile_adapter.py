@@ -39,8 +39,6 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             sqlite3.IntegrityError: If handle violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         conn.execute(
             _INSERT_PROFILE_SQL,
             tuple(getattr(profile, col) for col in PROFILE_COLUMNS),
@@ -78,8 +76,6 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             KeyError: If required columns are missing from the database row
         """
         validate_handle_exists(handle)
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM bluesky_profiles WHERE handle = ?", (handle,)
         ).fetchone()
@@ -112,8 +108,6 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute("SELECT * FROM bluesky_profiles").fetchall()
 
         profiles = []

@@ -440,21 +440,6 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             assert json.loads(params[2]) == {"like": 5, "comment": 2, "follow": 1}
             assert params[3] == "2024_01_01-12:00:00"
 
-    def test_write_turn_metadata_raises_value_error_when_conn_is_none(
-        self, adapter, default_test_data
-    ):
-        """When conn is None, write_turn_metadata raises ValueError."""
-        run_id = default_test_data["run_id"]
-        turn_number = default_test_data["turn_number"]
-        turn_metadata = TurnMetadata(
-            run_id=run_id,
-            turn_number=turn_number,
-            total_actions={TurnAction.LIKE: 1},
-            created_at="2024_01_01-12:00:00",
-        )
-        with pytest.raises(ValueError, match="conn is required"):
-            adapter.write_turn_metadata(turn_metadata, conn=None)
-
     def test_write_turn_metadata_with_conn_does_not_commit(
         self, adapter, default_test_data
     ):
@@ -694,16 +679,6 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
 class TestSQLiteRunAdapterUpdateRunStatus:
     """Tests for SQLiteRunAdapter.update_run_status method."""
-
-    def test_update_run_status_raises_value_error_when_conn_is_none(self, adapter):
-        """When conn is None, update_run_status raises ValueError."""
-        with pytest.raises(ValueError, match="conn is required"):
-            adapter.update_run_status(
-                run_id="run_123",
-                status="completed",
-                completed_at="2026-01-01T00:00:00",
-                conn=None,
-            )
 
     def test_update_run_status_with_conn_does_not_commit(self, adapter):
         """When conn is passed, update_run_status uses it and does not call commit."""

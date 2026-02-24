@@ -65,8 +65,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.IntegrityError: If composite key violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row_values = tuple(
             json.dumps(feed.post_uris) if col == "post_uris" else getattr(feed, col)
             for col in GENERATED_FEED_COLUMNS
@@ -100,8 +98,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM generated_feeds WHERE agent_handle = ? AND run_id = ? AND turn_number = ?",
             (agent_handle, run_id, turn_number),
@@ -152,8 +148,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute("SELECT * FROM generated_feeds").fetchall()
         feeds = []
         for row in rows:
@@ -186,8 +180,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ValueError: If agent_handle or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute(
             """
             SELECT post_uris
@@ -221,8 +213,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             KeyError: If required columns are missing from the database row
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute(
             "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?",
             (run_id, turn_number),

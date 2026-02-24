@@ -44,8 +44,6 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row_values = tuple(
             bio.persona_bio_source.value
             if col == "persona_bio_source"
@@ -59,8 +57,6 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
     ) -> AgentBio | None:
         """Read the latest bio for an agent by created_at DESC."""
         validate_non_empty_string(agent_id, "agent_id")
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM agent_persona_bios WHERE agent_id = ? "
             "ORDER BY created_at DESC LIMIT 1",
@@ -76,8 +72,6 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
     ) -> list[AgentBio]:
         """Read all bios for an agent, ordered by created_at DESC."""
         validate_non_empty_string(agent_id, "agent_id")
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute(
             "SELECT * FROM agent_persona_bios WHERE agent_id = ? "
             "ORDER BY created_at DESC",

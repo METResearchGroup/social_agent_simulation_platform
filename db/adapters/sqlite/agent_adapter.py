@@ -44,8 +44,6 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row_values = tuple(
             agent.persona_source.value
             if col == "persona_source"
@@ -57,8 +55,6 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
     def read_agent(self, agent_id: str, *, conn: sqlite3.Connection) -> Agent | None:
         """Read an agent by ID."""
         validate_non_empty_string(agent_id, "agent_id")
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM agent WHERE agent_id = ?", (agent_id,)
         ).fetchone()
@@ -72,8 +68,6 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
     ) -> Agent | None:
         """Read an agent by handle."""
         validate_non_empty_string(handle, "handle")
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute("SELECT * FROM agent WHERE handle = ?", (handle,)).fetchone()
         if row is None:
             return None
@@ -82,8 +76,6 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
 
     def read_all_agents(self, *, conn: sqlite3.Connection) -> list[Agent]:
         """Read all agents, ordered by handle for deterministic output."""
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute("SELECT * FROM agent ORDER BY handle").fetchall()
         result: list[Agent] = []
         for row in rows:

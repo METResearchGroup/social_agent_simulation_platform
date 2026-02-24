@@ -45,8 +45,6 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
         *,
         conn: sqlite3.Connection,
     ) -> None:
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         metrics_json = json.dumps(turn_metrics.metrics)
         conn.execute(
             """
@@ -66,8 +64,6 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
     def read_turn_metrics(
         self, run_id: str, turn_number: int, *, conn: sqlite3.Connection
     ) -> TurnMetrics | None:
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM turn_metrics WHERE run_id = ? AND turn_number = ?",
             (run_id, turn_number),
@@ -89,8 +85,6 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
     def read_turn_metrics_for_run(
         self, run_id: str, *, conn: sqlite3.Connection
     ) -> list[TurnMetrics]:
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute(
             "SELECT * FROM turn_metrics WHERE run_id = ? ORDER BY turn_number ASC",
             (run_id,),
@@ -116,8 +110,6 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
         *,
         conn: sqlite3.Connection,
     ) -> None:
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         metrics_json = json.dumps(run_metrics.metrics)
         conn.execute(
             """
@@ -132,8 +124,6 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
     def read_run_metrics(
         self, run_id: str, *, conn: sqlite3.Connection
     ) -> RunMetrics | None:
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM run_metrics WHERE run_id = ?",
             (run_id,),

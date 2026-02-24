@@ -61,8 +61,6 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.IntegrityError: If handle violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         created_at = bio.metadata.created_at or get_current_timestamp()
         row_values = tuple(
             created_at if col == "created_at" else getattr(bio, col)
@@ -91,8 +89,6 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             KeyError: If required columns are missing from the database row
         """
         validate_handle_exists(handle)
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM agent_bios WHERE handle = ?", (handle,)
         ).fetchone()
@@ -129,8 +125,6 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute("SELECT * FROM agent_bios").fetchall()
 
         bios = []

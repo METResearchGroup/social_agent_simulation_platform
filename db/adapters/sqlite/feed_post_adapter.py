@@ -88,8 +88,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.IntegrityError: If uri violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         conn.execute(
             _INSERT_FEED_POST_SQL,
             tuple(getattr(post, col) for col in FEED_POST_COLUMNS),
@@ -113,8 +111,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         if not posts:
             return
 
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         conn.executemany(
             _INSERT_FEED_POST_SQL,
             [tuple(getattr(post, col) for col in FEED_POST_COLUMNS) for post in posts],
@@ -140,8 +136,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         """
         validate_uri_exists(uri=uri)
 
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         row = conn.execute(
             "SELECT * FROM bluesky_feed_posts WHERE uri = ?", (uri,)
         ).fetchone()
@@ -176,8 +170,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             KeyError: If required columns are missing from any database row
         """
         validate_handle_exists(author_handle)
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute(
             "SELECT * FROM bluesky_feed_posts WHERE author_handle = ?",
             (author_handle,),
@@ -212,8 +204,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = conn.execute("SELECT * FROM bluesky_feed_posts").fetchall()
 
         posts = []
@@ -269,7 +259,5 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             KeyError: If required columns are missing from the database row
             sqlite3.OperationalError: If database operation fails
         """
-        if conn is None:
-            raise ValueError("conn is required; repository must provide it")
         rows = self._fetch_and_validate_rows_by_uris(conn, uris)
         return [self._row_to_feed_post(row) for row in rows]
