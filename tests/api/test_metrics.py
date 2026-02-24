@@ -36,10 +36,14 @@ def test_get_metrics_returns_list(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/metrics")
 
-    assert response.status_code == 200
+    expected_result = {
+        "status_code": 200,
+        "min_items": 4,
+    }
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) >= 4
+    assert len(data) >= expected_result["min_items"]
 
 
 def test_get_metrics_includes_builtins(simulation_client):
@@ -47,17 +51,18 @@ def test_get_metrics_includes_builtins(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/metrics")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     by_key = {m["key"]: m for m in data}
 
     for key in BUILTIN_METRIC_KEYS:
         assert key in by_key, f"Missing metric: {key}"
         metric = by_key[key]
-        expected = EXPECTED_METRICS[key]
-        assert metric["description"] == expected["description"]
-        assert metric["scope"] == expected["scope"]
-        assert metric["author"] == expected["author"]
+        expected_result = EXPECTED_METRICS[key]
+        assert metric["description"] == expected_result["description"]
+        assert metric["scope"] == expected_result["scope"]
+        assert metric["author"] == expected_result["author"]
 
 
 def test_get_metrics_ordering_deterministic(simulation_client):
@@ -65,10 +70,12 @@ def test_get_metrics_ordering_deterministic(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/metrics")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     keys = [m["key"] for m in data]
-    assert keys == sorted(keys)
+    expected_result = sorted(keys)
+    assert keys == expected_result
 
 
 def test_get_metrics_schema_shape(simulation_client):
@@ -76,17 +83,19 @@ def test_get_metrics_schema_shape(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/metrics")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
-    valid_scopes: set[str] = {"turn", "run"}
+    expected_result = {
+        "required_fields": {"key", "description", "scope", "author"},
+        "valid_scopes": {"turn", "run"},
+    }
 
     for item in data:
-        assert "key" in item
-        assert "description" in item
-        assert "scope" in item
-        assert "author" in item
+        for field in expected_result["required_fields"]:
+            assert field in item
         assert isinstance(item["key"], str)
         assert isinstance(item["description"], str)
         assert isinstance(item["scope"], str)
         assert isinstance(item["author"], str)
-        assert item["scope"] in valid_scopes
+        assert item["scope"] in expected_result["valid_scopes"]

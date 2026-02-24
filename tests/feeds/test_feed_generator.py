@@ -206,7 +206,8 @@ class TestGenerateFeed:
             )
 
         _, kwargs = mock_algorithm.generate.call_args
-        assert kwargs["config"] == feed_algorithm_config
+        expected_result = feed_algorithm_config
+        assert kwargs["config"] == expected_result
 
     def test_chronological_respects_oldest_first_config(
         self, sample_agent, sample_posts
@@ -219,12 +220,12 @@ class TestGenerateFeed:
             limit=20,
             config={"order": "oldest_first"},
         )
-        expected_order = [
+        expected_result = [
             "at://did:plc:test1/app.bsky.feed.post/post1",
             "at://did:plc:test2/app.bsky.feed.post/post2",
             "at://did:plc:test3/app.bsky.feed.post/post3",
         ]
-        assert result.post_uris == expected_order
+        assert result.post_uris == expected_result
 
 
 class TestGenerateFeeds:
