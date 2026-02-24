@@ -23,6 +23,18 @@ from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
 
 
+def _get_turn_keys(run_config: RunConfig) -> list[str]:
+    """Resolve metric keys from run config and return turn-scoped keys."""
+    config_metric_keys = getattr(run_config, "metric_keys", None)
+    metric_keys: list[str] = (
+        config_metric_keys
+        if config_metric_keys and len(config_metric_keys) > 0
+        else get_default_metric_keys()
+    )
+    turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
+    return turn_keys
+
+
 class SimulationEngine:
     """Central orchestration layer for simulation execution."""
 
@@ -87,13 +99,7 @@ class SimulationEngine:
         turn_number: int,
         agents: list[SocialMediaAgent],
     ) -> None:
-        config_metric_keys = getattr(run_config, "metric_keys", None)
-        metric_keys: list[str] = (
-            config_metric_keys
-            if config_metric_keys and len(config_metric_keys) > 0
-            else get_default_metric_keys()
-        )
-        turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
+        turn_keys = _get_turn_keys(run_config)
         self.command_service.simulate_turn(
             run,
             run_config,
@@ -110,13 +116,7 @@ class SimulationEngine:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
     ) -> None:
-        config_metric_keys = getattr(run_config, "metric_keys", None)
-        metric_keys: list[str] = (
-            config_metric_keys
-            if config_metric_keys and len(config_metric_keys) > 0
-            else get_default_metric_keys()
-        )
-        turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
+        turn_keys = _get_turn_keys(run_config)
         self.command_service.simulate_turns(
             total_turns,
             run,

@@ -3,6 +3,7 @@ from enum import Enum
 from pydantic import BaseModel, JsonValue, field_validator
 
 from lib.validation_utils import (
+    validate_non_empty_iterable,
     validate_non_empty_string,
     validate_nonnegative_value,
 )
@@ -86,8 +87,7 @@ class Run(BaseModel):
         """Validate that metric_keys is non-empty and contains only registered keys."""
         from simulation.core.validators import validate_metric_keys
 
-        if not v:
-            raise ValueError("metric_keys cannot be empty")
+        validate_non_empty_iterable(v, "metric_keys")
         result = validate_metric_keys(v)
         assert result is not None  # v is non-empty, so result will be the list
         return result
