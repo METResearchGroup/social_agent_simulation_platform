@@ -2,7 +2,7 @@
 # Ruff hooks mirror CI (.github/workflows/ci.yml): ruff check + ruff format --check
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+    rev: v0.15.2
     hooks:
       # Same as CI: uv run ruff check .
       - id: ruff-check
