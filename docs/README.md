@@ -8,6 +8,7 @@ Quick lookup table of contents for project documentation.
 |---------|-------------|
 | [runbooks/LOCAL_DEVELOPMENT.md](runbooks/LOCAL_DEVELOPMENT.md) | Setup and running the API locally |
 | [runbooks/API_REFERENCE.md](runbooks/API_REFERENCE.md) | Endpoints, error codes, curl examples |
+| [runbooks/UPDATE_SCHEMAS.md](runbooks/UPDATE_SCHEMAS.md) | Regenerate OpenAPI + UI types after contract changes |
 | [runbooks/PRODUCTION_DEPLOYMENT.md](runbooks/PRODUCTION_DEPLOYMENT.md) | General production and deployment guidance |
 | [runbooks/RAILWAY_DEPLOYMENT.md](runbooks/RAILWAY_DEPLOYMENT.md) | Deploy backend to Railway with Docker |
 | [runbooks/UI_DEPLOYMENT.md](runbooks/UI_DEPLOYMENT.md) | Deploy Next.js UI to Vercel |
@@ -21,4 +22,5 @@ Quick lookup table of contents for project documentation.
 | Document | Description |
 |----------|-------------|
 | [RULES.md](RULES.md) | Project rules and conventions |
+| [api-contract.md](api-contract.md) | Backend ↔ frontend schema contract and generated types |
 | [plans/](plans/) | Implementation plans and verification assets |
