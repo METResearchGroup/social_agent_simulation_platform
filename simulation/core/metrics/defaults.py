@@ -40,6 +40,10 @@ REGISTERED_METRIC_KEYS: frozenset[str] = frozenset(
     metric_cls.KEY for metric_cls in BUILTIN_METRICS
 )
 
+KEY_TO_SCOPE: dict[str, MetricScope] = {
+    metric_cls.KEY: metric_cls.SCOPE for metric_cls in BUILTIN_METRICS
+}
+
 DEFAULT_TURN_METRIC_KEYS: list[str] = [
     metric_cls.KEY
     for metric_cls in BUILTIN_METRICS
@@ -68,12 +72,11 @@ def resolve_metric_keys_by_scope(
 
     Returns:
         (turn_keys, run_keys) both sorted for determinism.
+
     Raises:
-        ValueError: If any key is not in REGISTERED_METRIC_KEYS.
+        ValueError: If any key is not in REGISTERED_METRIC_KEYS, or if a key's
+            scope is not TURN or RUN (e.g. unknown MetricScope from BUILTIN_METRICS).
     """
-    key_to_scope: dict[str, MetricScope] = {
-        metric_cls.KEY: metric_cls.SCOPE for metric_cls in BUILTIN_METRICS
-    }
     turn_keys: list[str] = []
     run_keys: list[str] = []
     for key in metric_keys:
@@ -82,11 +85,16 @@ def resolve_metric_keys_by_scope(
                 f"metric_keys contains unknown key '{key}'; "
                 f"registered keys: {sorted(REGISTERED_METRIC_KEYS)}"
             )
-        scope = key_to_scope[key]
+        scope = KEY_TO_SCOPE[key]
         if scope == MetricScope.TURN:
             turn_keys.append(key)
-        else:
+        elif scope == MetricScope.RUN:
             run_keys.append(key)
+        else:
+            raise ValueError(
+                f"metric key '{key}' has unknown MetricScope {scope!r}; "
+                "only TURN and RUN are supported"
+            )
     return (sorted(turn_keys), sorted(run_keys))
 
 
