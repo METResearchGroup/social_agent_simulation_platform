@@ -190,8 +190,9 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
         if (!isMounted || requestId !== mockAgentsRequestIdRef.current) return;
         setMockAgentsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (!isMounted || requestId !== mockAgentsRequestIdRef.current) return;
-        setMockAgentsLoading(false);
+        if (isMounted && requestId === mockAgentsRequestIdRef.current) {
+          setMockAgentsLoading(false);
+        }
       }
     };
 
