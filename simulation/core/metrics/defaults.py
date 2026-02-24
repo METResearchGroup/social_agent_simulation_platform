@@ -68,9 +68,8 @@ def resolve_metric_keys_by_scope(
 
     Returns:
         (turn_keys, run_keys) both sorted for determinism.
-
     Raises:
-        ValueError: If any key is not in BUILTIN_METRICS.
+        ValueError: If any key is not in REGISTERED_METRIC_KEYS.
     """
     key_to_scope: dict[str, MetricScope] = {
         metric_cls.KEY: metric_cls.SCOPE for metric_cls in BUILTIN_METRICS
