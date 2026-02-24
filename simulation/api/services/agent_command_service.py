@@ -27,6 +27,9 @@ def create_agent(req: CreateAgentRequest) -> AgentSchema:
     bio_repo = create_sqlite_agent_bio_repository()
     metadata_repo = create_sqlite_user_agent_profile_metadata_repository()
 
+    # NOTE that this can cause a slight race condition if we do this check
+    # before the below context manager for writing the agent to the database.
+    # This is a known issue, and we'll revisit this in the future.
     if agent_repo.get_agent_by_handle(handle) is not None:
         raise HandleAlreadyExistsError(handle)
 
