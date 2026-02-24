@@ -97,7 +97,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 raise ValueError(
                     f"metric_keys must be a JSON array, got {type(parsed).__name__}"
                 )
-            metric_keys = sorted(str(k) for k in parsed)
+            for i, k in enumerate(parsed):
+                if not isinstance(k, str):
+                    raise ValueError(
+                        f"metric_keys[{i}] must be a string, got {type(k).__name__}: {k!r}"
+                    )
+            metric_keys = sorted(parsed)
 
         return Run(
             run_id=row["run_id"],
