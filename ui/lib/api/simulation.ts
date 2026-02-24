@@ -44,6 +44,10 @@ type ApiFeedAlgorithm = components['schemas']['FeedAlgorithmSchema'];
 
 type ApiRunResponse = components['schemas']['RunResponse'];
 
+type ApiRunConfigDetail = components['schemas']['RunConfigDetail'];
+
+type ApiRunDetailsResponse = components['schemas']['RunDetailsResponse'];
+
 type ApiPost = components['schemas']['PostSchema'];
 
 type ApiTurn = components['schemas']['TurnSchema'];
@@ -205,11 +209,13 @@ export async function getDefaultConfig(): Promise<RunConfig> {
   const api: ApiDefaultConfig = await fetchJson<ApiDefaultConfig>(
     buildApiUrl('/simulations/config/default'),
   );
+  const apiWithMetrics = api as ApiDefaultConfig & { metric_keys?: string[] };
   return {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
     feedAlgorithmConfig: null,
+    metricKeys: apiWithMetrics.metric_keys,
   };
 }
 
@@ -274,6 +280,29 @@ export async function postRun(config: RunConfig): Promise<Run> {
     totalTurns: api.num_turns,
     totalAgents: api.num_agents,
     status: api.status,
+  };
+}
+
+function mapRunDetailsConfig(apiConfig: ApiRunConfigDetail): RunConfig {
+  return {
+    numAgents: apiConfig.num_agents,
+    numTurns: apiConfig.num_turns,
+    feedAlgorithm: apiConfig.feed_algorithm,
+    feedAlgorithmConfig: null,
+    metricKeys: apiConfig.metric_keys,
+  };
+}
+
+export async function getRunDetails(runId: string): Promise<{
+  runId: string;
+  config: RunConfig;
+}> {
+  const api: ApiRunDetailsResponse = await fetchJson<ApiRunDetailsResponse>(
+    buildApiUrl(`/simulations/runs/${encodeURIComponent(runId)}`),
+  );
+  return {
+    runId: api.run_id,
+    config: mapRunDetailsConfig(api.config),
   };
 }
 

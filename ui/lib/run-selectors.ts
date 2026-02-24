@@ -88,6 +88,7 @@ export function getRunConfig(
     numTurns: run.totalTurns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
     feedAlgorithmConfig: null,
+    metricKeys: undefined,
   };
 }
 

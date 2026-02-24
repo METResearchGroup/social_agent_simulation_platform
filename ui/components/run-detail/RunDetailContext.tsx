@@ -13,8 +13,11 @@ interface RunDetailContextValue {
   completedTurnsCount: number;
   turnsLoading: boolean;
   turnsError: ApiError | null;
+  runDetailsLoading: boolean;
+  runDetailsError: ApiError | null;
   onSelectTurn: (turn: number | 'summary') => void;
   onRetryTurns: () => void;
+  onRetryRunDetails: () => void;
 }
 
 interface RunDetailProviderProps {
