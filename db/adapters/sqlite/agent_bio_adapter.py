@@ -1,7 +1,7 @@
 """SQLite implementation of agent persona bio database adapter.
 
-EXTENSION: For caching or async, consider a caching layer around
-get_latest_bios_by_agent_ids or an async batch loader (e.g. DataLoader).
+TODO: For caching or async, consider a caching layer around
+read_latest_bios_by_agent_ids or an async batch loader (e.g. DataLoader).
 """
 
 import sqlite3
