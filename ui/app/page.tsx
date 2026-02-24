@@ -74,11 +74,20 @@ function AuthenticatedApp() {
       handle: string;
       displayName: string;
       bio: string;
+      comments: { text: string; postUri: string }[];
+      likedPostUris: string[];
+      linkedAgentHandles: string[];
     }): Promise<void> => {
       const created = await postAgent({
         handle: payload.handle,
         display_name: payload.displayName,
         bio: payload.bio,
+        comments: payload.comments.map((c) => ({
+          text: c.text,
+          post_uri: c.postUri,
+        })),
+        liked_post_uris: payload.likedPostUris,
+        linked_agent_handles: payload.linkedAgentHandles,
       });
       handleRetryAgents();
       handleSetViewMode('agents');

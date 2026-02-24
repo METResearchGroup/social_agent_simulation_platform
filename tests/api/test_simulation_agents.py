@@ -147,3 +147,105 @@ def test_post_simulations_agents_then_get_includes_new_agent(
     agents = get_resp.json()
     handles = [a["handle"] for a in agents]
     assert created["handle"] in handles
+
+
+def test_post_simulations_agents_with_comments_likes_linked(simulation_client, temp_db):
+    """POST with comments, liked_post_uris, linked_agent_handles persists and GET returns them."""
+    client, _ = simulation_client
+    base_handle = f"base-{uuid.uuid4().hex[:8]}.bsky.social"
+    linkee_handle = f"linkee-{uuid.uuid4().hex[:8]}.bsky.social"
+
+    base_resp = client.post(
+        "/v1/simulations/agents",
+        json={"handle": base_handle, "display_name": "Base", "bio": ""},
+    )
+    assert base_resp.status_code == 201
+
+    linkee_resp = client.post(
+        "/v1/simulations/agents",
+        json={"handle": linkee_handle, "display_name": "Linkee", "bio": ""},
+    )
+    assert linkee_resp.status_code == 201
+    linkee_created = linkee_resp.json()
+    linkee_normalized = linkee_created["handle"]
+
+    creator_handle = f"creator-{uuid.uuid4().hex[:8]}.bsky.social"
+    body = {
+        "handle": creator_handle,
+        "display_name": "Creator",
+        "bio": "Has history",
+        "comments": [
+            {
+                "text": "Great post",
+                "post_uri": "at://did:plc:xyz/app.bsky.feed.post/abc",
+            },
+            {"text": "Another", "post_uri": "at://did:plc:xyz/app.bsky.feed.post/def"},
+        ],
+        "liked_post_uris": [
+            "at://did:plc:xyz/app.bsky.feed.post/ghi",
+            "at://did:plc:xyz/app.bsky.feed.post/jkl",
+        ],
+        "linked_agent_handles": [linkee_normalized],
+    }
+
+    post_resp = client.post("/v1/simulations/agents", json=body)
+    assert post_resp.status_code == 201
+    created = post_resp.json()
+    assert created["handle"] == f"@{creator_handle.lstrip('@').lower()}"
+    assert len(created.get("comments", [])) == 2
+    assert len(created.get("liked_post_uris", [])) == 2
+    assert created.get("linked_agent_handles", []) == [linkee_normalized]
+
+    get_resp = client.get("/v1/simulations/agents")
+    assert get_resp.status_code == 200
+    agents = get_resp.json()
+    agent_by_handle = {a["handle"]: a for a in agents}
+    assert created["handle"] in agent_by_handle
+    agent = agent_by_handle[created["handle"]]
+    assert len(agent.get("comments", [])) == 2
+    assert len(agent.get("liked_post_uris", [])) == 2
+    assert len(agent.get("linked_agent_handles", [])) == 1
+
+
+def test_post_simulations_agents_invalid_linked_handle_returns_422(
+    simulation_client, temp_db
+):
+    """POST with non-existent linked_agent_handle returns 422."""
+    client, _ = simulation_client
+    handle = f"test-{uuid.uuid4().hex[:8]}.bsky.social"
+    body = {
+        "handle": handle,
+        "display_name": "Test",
+        "bio": "",
+        "linked_agent_handles": ["@nonexistent.agent.bsky.social"],
+    }
+
+    response = client.post("/v1/simulations/agents", json=body)
+    assert response.status_code == 422
+    err = response.json()
+    assert "error" in err
+    assert err["error"]["code"] == "LINKED_AGENT_NOT_FOUND"
+
+
+def test_post_simulations_agents_empty_comments_likes_succeeds(
+    simulation_client, temp_db
+):
+    """POST with empty comments and liked_post_uris succeeds; no extra rows."""
+    client, _ = simulation_client
+    handle = f"empty-{uuid.uuid4().hex[:8]}.bsky.social"
+    body = {
+        "handle": handle,
+        "display_name": "Empty History",
+        "bio": "",
+        "comments": [{"text": "", "post_uri": ""}],
+        "liked_post_uris": ["", "  ", "\n"],
+        "linked_agent_handles": [],
+    }
+
+    response = client.post("/v1/simulations/agents", json=body)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["handle"] == f"@{handle.lstrip('@').lower()}"
+    assert data.get("comments", []) == []
+    assert data.get("liked_post_uris", []) == []
+    assert data.get("linked_agent_handles", []) == []

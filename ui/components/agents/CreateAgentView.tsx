@@ -14,6 +14,9 @@ interface CreateAgentViewProps {
     handle: string;
     displayName: string;
     bio: string;
+    comments: { text: string; postUri: string }[];
+    likedPostUris: string[];
+    linkedAgentHandles: string[];
   }) => Promise<void>;
 }
 
@@ -78,12 +81,19 @@ export default function CreateAgentView({
     isSubmittingRef.current = true;
     setSubmitError(null);
     setSubmitLoading(true);
+    const likedUris = likedPostUris
+      .split('\n')
+      .map((u) => u.trim())
+      .filter(Boolean);
     void Promise.resolve()
       .then(() =>
         onSubmit({
           handle: handle.trim(),
           displayName: displayName.trim(),
           bio: bio.trim(),
+          comments: comments.map((c) => ({ text: c.text, postUri: c.postUri })),
+          likedPostUris: likedUris,
+          linkedAgentHandles: [...linkedAgentHandles],
         }),
       )
       .catch((err: unknown) => {

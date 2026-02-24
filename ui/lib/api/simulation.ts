@@ -290,12 +290,17 @@ export async function getMockAgents(): Promise<Agent[]> {
   return apiAgents.map(mapAgent);
 }
 
-export async function postAgent(body: {
+export interface PostAgentBody {
   handle: string;
   display_name: string;
   bio?: string;
-}): Promise<Agent> {
-  const api: ApiAgent = await fetchPost<typeof body, ApiAgent>(
+  comments?: { text: string; post_uri: string }[];
+  liked_post_uris?: string[];
+  linked_agent_handles?: string[];
+}
+
+export async function postAgent(body: PostAgentBody): Promise<Agent> {
+  const api: ApiAgent = await fetchPost<PostAgentBody, ApiAgent>(
     buildApiUrl('/simulations/agents'),
     body,
   );
