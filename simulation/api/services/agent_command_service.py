@@ -30,47 +30,77 @@ def create_agent(req: CreateAgentRequest) -> AgentSchema:
     if agent_repo.get_agent_by_handle(handle) is not None:
         raise HandleAlreadyExistsError(handle)
 
-    agent_id = uuid.uuid4().hex
+    agent_id = _generate_agent_id()
     now = get_current_timestamp()
 
-    agent = Agent(
-        agent_id=agent_id,
-        handle=handle,
-        persona_source=PersonaSource.USER_GENERATED,
-        display_name=display_name,
-        created_at=now,
-        updated_at=now,
-    )
-    agent_bio = AgentBio(
-        id=uuid.uuid4().hex,
-        agent_id=agent_id,
-        persona_bio=bio_text,
-        persona_bio_source=PersonaBioSource.USER_PROVIDED,
-        created_at=now,
-        updated_at=now,
-    )
-    metadata = UserAgentProfileMetadata(
-        id=uuid.uuid4().hex,
-        agent_id=agent_id,
-        followers_count=0,
-        follows_count=0,
-        posts_count=0,
-        created_at=now,
-        updated_at=now,
-    )
+    agent = _generate_agent(agent_id, handle, display_name, now)
+    agent_bio = _generate_agent_bio(agent_id, bio_text, now)
+    metadata = _generate_user_agent_profile_metadata(agent_id, now)
 
     provider = SqliteTransactionProvider()
+
     with provider.run_transaction() as conn:
         agent_repo.create_or_update_agent(agent, conn=conn)
         bio_repo.create_agent_bio(agent_bio, conn=conn)
         metadata_repo.create_or_update_metadata(metadata, conn=conn)
 
+    return _build_agent_schema(agent.handle, agent.display_name, bio_text)
+
+
+def _build_agent_schema(handle: str, display_name: str, bio_text: str) -> AgentSchema:
+    """Build AgentSchema for a newly created agent (zero counts)."""
     return AgentSchema(
-        handle=agent.handle,
-        name=agent.display_name,
+        handle=handle,
+        name=display_name,
         bio=bio_text,
         generated_bio="",
         followers=0,
         following=0,
         posts_count=0,
+    )
+
+
+def _generate_agent_id() -> str:
+    """Generate a new unique agent ID."""
+    return uuid.uuid4().hex
+
+
+def _generate_agent(
+    agent_id: str, handle: str, display_name: str, timestamp: str
+) -> Agent:
+    """Build an Agent model for user-generated creation."""
+    return Agent(
+        agent_id=agent_id,
+        handle=handle,
+        persona_source=PersonaSource.USER_GENERATED,
+        display_name=display_name,
+        created_at=timestamp,
+        updated_at=timestamp,
+    )
+
+
+def _generate_agent_bio(agent_id: str, bio_text: str, timestamp: str) -> AgentBio:
+    """Build an AgentBio model for user-provided creation."""
+    return AgentBio(
+        id=uuid.uuid4().hex,
+        agent_id=agent_id,
+        persona_bio=bio_text,
+        persona_bio_source=PersonaBioSource.USER_PROVIDED,
+        created_at=timestamp,
+        updated_at=timestamp,
+    )
+
+
+def _generate_user_agent_profile_metadata(
+    agent_id: str, timestamp: str
+) -> UserAgentProfileMetadata:
+    """Build UserAgentProfileMetadata with zero counts for new agents."""
+    return UserAgentProfileMetadata(
+        id=uuid.uuid4().hex,
+        agent_id=agent_id,
+        followers_count=0,
+        follows_count=0,
+        posts_count=0,
+        created_at=timestamp,
+        updated_at=timestamp,
     )
