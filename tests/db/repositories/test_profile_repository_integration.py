@@ -3,49 +3,18 @@
 These tests use a real SQLite database to test end-to-end functionality.
 """
 
-import os
-import tempfile
-
 import pytest
 from pydantic import ValidationError
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
-from db.repositories.profile_repository import create_sqlite_profile_repository
 from simulation.core.models.profiles import BlueskyProfile
-
-
-@pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    # Save original DB path
-    original_path = DB_PATH
-
-    # Create temporary database
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
-    os.close(fd)
-
-    # Monkey-patch DB_PATH
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    sqlite_module.DB_PATH = temp_path
-
-    # Initialize the database
-    initialize_database()
-
-    yield temp_path
-
-    # Cleanup
-    sqlite_module.DB_PATH = original_path
-    if os.path.exists(temp_path):
-        os.unlink(temp_path)
 
 
 class TestSQLiteProfileRepositoryIntegration:
     """Integration tests using a real database."""
 
-    def test_create_and_read_profile(self, temp_db):
+    def test_create_and_read_profile(self, profile_repo):
         """Test creating a profile and reading it back from the database."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
         profile = BlueskyProfile(
             handle="test.bsky.social",
             did="did:plc:test123",
@@ -73,9 +42,9 @@ class TestSQLiteProfileRepositoryIntegration:
         assert retrieved_profile.follows_count == created_profile.follows_count
         assert retrieved_profile.posts_count == created_profile.posts_count
 
-    def test_create_or_update_profile_updates_existing_profile(self, temp_db):
+    def test_create_or_update_profile_updates_existing_profile(self, profile_repo):
         """Test that create_or_update_profile updates an existing profile."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         # Create initial profile
         initial_profile = BlueskyProfile(
@@ -111,24 +80,24 @@ class TestSQLiteProfileRepositoryIntegration:
         assert retrieved_profile.follows_count == 200
         assert retrieved_profile.posts_count == 150
 
-    def test_get_profile_returns_none_for_nonexistent_handle(self, temp_db):
+    def test_get_profile_returns_none_for_nonexistent_handle(self, profile_repo):
         """Test that get_profile returns None for a non-existent handle."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         result = repo.get_profile("nonexistent.bsky.social")
         assert result is None
 
-    def test_list_profiles_returns_empty_list_when_no_profiles(self, temp_db):
+    def test_list_profiles_returns_empty_list_when_no_profiles(self, profile_repo):
         """Test that list_profiles returns an empty list when no profiles exist."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         profiles = repo.list_profiles()
         assert profiles == []
         assert isinstance(profiles, list)
 
-    def test_list_profiles_returns_all_profiles(self, temp_db):
+    def test_list_profiles_returns_all_profiles(self, profile_repo):
         """Test that list_profiles returns all profiles from the database."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         # Create multiple profiles
         profile1 = BlueskyProfile(
@@ -181,7 +150,9 @@ class TestSQLiteProfileRepositoryIntegration:
         assert profile_dict["user2.bsky.social"].followers_count == 200
         assert profile_dict["user3.bsky.social"].posts_count == 75
 
-    def test_create_or_update_profile_with_empty_handle_raises_error(self, temp_db):
+    def test_create_or_update_profile_with_empty_handle_raises_error(
+        self, profile_repo
+    ):
         """Test that creating BlueskyProfile with empty handle raises ValidationError from Pydantic."""
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
@@ -197,16 +168,16 @@ class TestSQLiteProfileRepositoryIntegration:
 
         assert "handle cannot be empty" in str(exc_info.value)
 
-    def test_get_profile_with_empty_handle_raises_error(self, temp_db):
+    def test_get_profile_with_empty_handle_raises_error(self, profile_repo):
         """Test that get_profile raises ValueError when handle is empty."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_profile("")
 
-    def test_multiple_profiles_with_different_handles(self, temp_db):
+    def test_multiple_profiles_with_different_handles(self, profile_repo):
         """Test that multiple profiles with different handles can coexist."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         profile1 = BlueskyProfile(
             handle="alice.bsky.social",
@@ -243,9 +214,9 @@ class TestSQLiteProfileRepositoryIntegration:
         assert alice.followers_count == 1000
         assert bob.followers_count == 2000
 
-    def test_profile_with_long_bio(self, temp_db):
+    def test_profile_with_long_bio(self, profile_repo):
         """Test that profiles with long bios are handled correctly."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         long_bio = "This is a very long bio. " * 50  # 1000+ characters
         profile = BlueskyProfile(
@@ -265,9 +236,9 @@ class TestSQLiteProfileRepositoryIntegration:
         assert retrieved.bio == long_bio
         assert len(retrieved.bio) > 1000
 
-    def test_profile_with_special_characters_in_handle(self, temp_db):
+    def test_profile_with_special_characters_in_handle(self, profile_repo):
         """Test that profiles with special characters in handle work correctly."""
-        repo = create_sqlite_profile_repository()
+        repo = profile_repo
 
         # Note: Bluesky handles typically don't have special chars, but test edge cases
         profile = BlueskyProfile(

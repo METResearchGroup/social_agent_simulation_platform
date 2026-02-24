@@ -1,5 +1,9 @@
 """Adapter that implements FeedGenerator by delegating to the existing generate_feeds function."""
 
+from collections.abc import Mapping
+
+from pydantic import JsonValue
+
 from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
 from feeds.interfaces import FeedGenerator
@@ -25,6 +29,7 @@ class FeedGeneratorAdapter(FeedGenerator):
         run_id: str,
         turn_number: int,
         feed_algorithm: str,
+        feed_algorithm_config: Mapping[str, JsonValue] | None = None,
     ) -> dict[str, list[BlueskyFeedPost]]:
         return generate_feeds_impl(
             agents=agents,
@@ -33,4 +38,5 @@ class FeedGeneratorAdapter(FeedGenerator):
             generated_feed_repo=self._generated_feed_repo,
             feed_post_repo=self._feed_post_repo,
             feed_algorithm=feed_algorithm,
+            feed_algorithm_config=feed_algorithm_config,
         )

@@ -199,6 +199,19 @@ class DuplicateTurnMetadataError(Exception):
         super().__init__(message)
 
 
+class HandleAlreadyExistsError(Exception):
+    """Raised when creating an agent with a handle that already exists."""
+
+    def __init__(self, handle: str):
+        """Initialize HandleAlreadyExistsError.
+
+        Args:
+            handle: The handle that already exists.
+        """
+        self.handle = handle
+        super().__init__(f"Agent with handle '{handle}' already exists")
+
+
 class MetricsComputationError(Exception):
     """Raised when a required metric cannot be computed."""
 

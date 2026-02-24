@@ -66,7 +66,7 @@ uv run pytest --tb=no
 
 Tests follow the structure of the source code:
 
-```
+```text
 tests/
 ├── db/
 │   └── repositories/

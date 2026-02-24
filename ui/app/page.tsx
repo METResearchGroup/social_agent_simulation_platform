@@ -1,16 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import SignIn from '@/components/auth/SignIn';
 import SimulationLayout from '@/components/layout/SimulationLayout';
 import { RunDetailProvider } from '@/components/run-detail/RunDetailContext';
 import RunDetailView from '@/components/run-detail/RunDetailView';
+import AgentsView from '@/components/agents/AgentsView';
+import CreateAgentView from '@/components/agents/CreateAgentView';
 import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
-import StartView from '@/components/start/StartView';
+import StartScreenView from '@/components/start/StartScreenView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimulationPageState } from '@/hooks/useSimulationPageState';
-import { getDefaultConfig } from '@/lib/api/simulation';
+import { getDefaultConfig, postAgent } from '@/lib/api/simulation';
 import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
 import type { RunConfig } from '@/types';
 
@@ -41,8 +42,13 @@ function AuthenticatedApp() {
     runsWithStatus,
     runsLoading,
     runsError,
+    agents,
+    agentsLoading,
+    agentsError,
     turnsLoadingByRunId,
     turnsErrorByRunId,
+    viewMode,
+    selectedAgentHandle,
     selectedRunId,
     selectedTurn,
     selectedRun,
@@ -53,12 +59,33 @@ function AuthenticatedApp() {
     currentRunConfig,
     isStartScreen,
     handleConfigSubmit,
+    handleSetViewMode,
+    handleSelectAgent,
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,
     handleRetryRuns,
+    handleRetryAgents,
     handleRetryTurns,
   } = useSimulationPageState();
+
+  const handleCreateAgent = useCallback(
+    async (payload: {
+      handle: string;
+      displayName: string;
+      bio: string;
+    }): Promise<void> => {
+      const created = await postAgent({
+        handle: payload.handle,
+        display_name: payload.displayName,
+        bio: payload.bio,
+      });
+      handleRetryAgents();
+      handleSetViewMode('agents');
+      handleSelectAgent(created.handle);
+    },
+    [handleRetryAgents, handleSetViewMode, handleSelectAgent],
+  );
 
   const runDetailContextValue = useMemo(
     () => ({
@@ -105,35 +132,40 @@ function AuthenticatedApp() {
         selectedRunId={selectedRunId}
         onSelectRun={handleSelectRun}
         onStartNewRun={handleStartNewRun}
+        viewMode={viewMode}
+        onSetViewMode={handleSetViewMode}
+        agents={agents}
+        agentsLoading={agentsLoading}
+        agentsError={agentsError}
+        onRetryAgents={handleRetryAgents}
+        selectedAgentHandle={selectedAgentHandle}
+        onSelectAgent={handleSelectAgent}
       />
 
-      {isStartScreen ? (
-        defaultConfigLoading && defaultConfig === null ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-beige-600">
-            <LoadingSpinner />
-            <span className="text-sm">Loading form…</span>
-          </div>
-        ) : defaultConfigError ? (
-          <div className="flex flex-col gap-3 p-8 text-beige-800">
-            <p className="text-sm">{defaultConfigError.message}</p>
-            <button
-              type="button"
-              onClick={fetchDefaultConfig}
-              className="px-3 py-2 text-sm font-medium text-accent hover:text-accent-hover"
-            >
-              Retry
-            </button>
-            <StartView
-              onSubmit={handleConfigSubmit}
-              defaultConfig={defaultConfig ?? FALLBACK_DEFAULT_CONFIG}
-            />
-          </div>
-        ) : (
-          <StartView
-            onSubmit={handleConfigSubmit}
-            defaultConfig={defaultConfig ?? FALLBACK_DEFAULT_CONFIG}
-          />
-        )
+      {viewMode === 'create-agent' ? (
+        <CreateAgentView
+          agents={agents}
+          agentsLoading={agentsLoading}
+          agentsError={agentsError}
+          onRetryAgents={handleRetryAgents}
+          onSubmit={handleCreateAgent}
+        />
+      ) : viewMode === 'agents' ? (
+        <AgentsView
+          agents={agents}
+          selectedAgentHandle={selectedAgentHandle}
+          agentsLoading={agentsLoading}
+          agentsError={agentsError}
+          onRetryAgents={handleRetryAgents}
+        />
+      ) : isStartScreen ? (
+        <StartScreenView
+          defaultConfig={defaultConfig}
+          defaultConfigLoading={defaultConfigLoading}
+          defaultConfigError={defaultConfigError}
+          onRetryConfig={fetchDefaultConfig}
+          onSubmit={handleConfigSubmit}
+        />
       ) : (
         <RunDetailProvider value={runDetailContextValue}>
           <RunDetailView />

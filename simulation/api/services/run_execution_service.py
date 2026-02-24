@@ -98,6 +98,7 @@ def _build_run_config(request: RunRequest) -> RunConfig:
         if request.num_turns is not None
         else DEFAULT_NUM_TURNS,
         feed_algorithm=request.feed_algorithm or DEFAULT_FEED_ALGORITHM,
+        feed_algorithm_config=request.feed_algorithm_config,
     )
 
 

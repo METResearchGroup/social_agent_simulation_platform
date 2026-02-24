@@ -9,6 +9,8 @@ from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
+# Per-route limits. Adjust these to change rate-limit behavior.
+RATE_LIMIT_AGENTS_CREATE: str = "25/minute"
 FALLBACK_CLIENT_IP: str = "127.0.0.1"
 
 

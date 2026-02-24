@@ -4,12 +4,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import InMemoryActionHistoryStore
@@ -29,20 +23,8 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.models.runs import Run, RunStatus
+from simulation.core.models.runs import RunStatus
 from simulation.core.models.turns import TurnResult
-
-
-@pytest.fixture
-def mock_repos():
-    return {
-        "run_repo": Mock(spec=RunRepository),
-        "metrics_repo": Mock(spec=MetricsRepository),
-        "profile_repo": Mock(spec=ProfileRepository),
-        "feed_post_repo": Mock(spec=FeedPostRepository),
-        "generated_bio_repo": Mock(spec=GeneratedBioRepository),
-        "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
-    }
 
 
 @pytest.fixture
@@ -59,7 +41,7 @@ def mock_feed_generator():
     """Feed generator mock that returns one empty feed per agent (satisfies validate_agents_without_feeds)."""
     mock = Mock(spec=FeedGenerator)
     mock.generate_feeds.side_effect = (
-        lambda agents, run_id, turn_number, feed_algorithm: {
+        lambda agents, run_id, turn_number, feed_algorithm, feed_algorithm_config=None: {
             a.handle: [] for a in agents
         }
     )
@@ -106,19 +88,6 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
     )
 
 
-@pytest.fixture
-def sample_run():
-    return Run(
-        run_id="run_123",
-        created_at="2024_01_01-12:00:00",
-        total_turns=2,
-        total_agents=2,
-        started_at="2024_01_01-12:00:00",
-        status=RunStatus.RUNNING,
-        completed_at=None,
-    )
-
-
 class TestSimulationCommandServiceUpdateRunStatus:
     def test_updates_status_successfully(self, command_service, mock_repos, sample_run):
         command_service.update_run_status(sample_run, RunStatus.COMPLETED)
@@ -147,6 +116,7 @@ class TestSimulationCommandServiceExecuteRun:
                 "feed_algorithm": "chronological",
                 "num_agents": 2,
                 "num_turns": turns,
+                "feed_algorithm_config": None,
             },
         )()
 

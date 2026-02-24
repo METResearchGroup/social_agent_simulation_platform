@@ -7,7 +7,6 @@ import sqlite3
 from typing import cast
 
 from db.adapters.base import MetricsDatabaseAdapter
-from db.adapters.sqlite.sqlite import get_connection
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.validators import validate_run_id, validate_turn_number
@@ -43,47 +42,32 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
     def write_turn_metrics(
         self,
         turn_metrics: TurnMetrics,
-        conn: sqlite3.Connection | None = None,
+        *,
+        conn: sqlite3.Connection,
     ) -> None:
         metrics_json = json.dumps(turn_metrics.metrics)
-        if conn is not None:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO turn_metrics
-                (run_id, turn_number, metrics, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    turn_metrics.run_id,
-                    turn_metrics.turn_number,
-                    metrics_json,
-                    turn_metrics.created_at,
-                ),
-            )
-            return
-        with get_connection() as c:
-            c.execute(
-                """
-                INSERT OR REPLACE INTO turn_metrics
-                (run_id, turn_number, metrics, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    turn_metrics.run_id,
-                    turn_metrics.turn_number,
-                    metrics_json,
-                    turn_metrics.created_at,
-                ),
-            )
-            c.commit()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO turn_metrics
+            (run_id, turn_number, metrics, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                turn_metrics.run_id,
+                turn_metrics.turn_number,
+                metrics_json,
+                turn_metrics.created_at,
+            ),
+        )
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
-    def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM turn_metrics WHERE run_id = ? AND turn_number = ?",
-                (run_id, turn_number),
-            ).fetchone()
+    def read_turn_metrics(
+        self, run_id: str, turn_number: int, *, conn: sqlite3.Connection
+    ) -> TurnMetrics | None:
+        row = conn.execute(
+            "SELECT * FROM turn_metrics WHERE run_id = ? AND turn_number = ?",
+            (run_id, turn_number),
+        ).fetchone()
 
         if row is None:
             return None
@@ -98,12 +82,13 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
         )
 
     @validate_inputs((validate_run_id, "run_id"))
-    def read_turn_metrics_for_run(self, run_id: str) -> list[TurnMetrics]:
-        with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM turn_metrics WHERE run_id = ? ORDER BY turn_number ASC",
-                (run_id,),
-            ).fetchall()
+    def read_turn_metrics_for_run(
+        self, run_id: str, *, conn: sqlite3.Connection
+    ) -> list[TurnMetrics]:
+        rows = conn.execute(
+            "SELECT * FROM turn_metrics WHERE run_id = ? ORDER BY turn_number ASC",
+            (run_id,),
+        ).fetchall()
 
         result: list[TurnMetrics] = []
         for row in rows:
@@ -122,37 +107,27 @@ class SQLiteMetricsAdapter(MetricsDatabaseAdapter):
     def write_run_metrics(
         self,
         run_metrics: RunMetrics,
-        conn: sqlite3.Connection | None = None,
+        *,
+        conn: sqlite3.Connection,
     ) -> None:
         metrics_json = json.dumps(run_metrics.metrics)
-        if conn is not None:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO run_metrics
-                (run_id, metrics, created_at)
-                VALUES (?, ?, ?)
-                """,
-                (run_metrics.run_id, metrics_json, run_metrics.created_at),
-            )
-            return
-        with get_connection() as c:
-            c.execute(
-                """
-                INSERT OR REPLACE INTO run_metrics
-                (run_id, metrics, created_at)
-                VALUES (?, ?, ?)
-                """,
-                (run_metrics.run_id, metrics_json, run_metrics.created_at),
-            )
-            c.commit()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO run_metrics
+            (run_id, metrics, created_at)
+            VALUES (?, ?, ?)
+            """,
+            (run_metrics.run_id, metrics_json, run_metrics.created_at),
+        )
 
     @validate_inputs((validate_run_id, "run_id"))
-    def read_run_metrics(self, run_id: str) -> RunMetrics | None:
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM run_metrics WHERE run_id = ?",
-                (run_id,),
-            ).fetchone()
+    def read_run_metrics(
+        self, run_id: str, *, conn: sqlite3.Connection
+    ) -> RunMetrics | None:
+        row = conn.execute(
+            "SELECT * FROM run_metrics WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()
 
         if row is None:
             return None

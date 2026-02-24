@@ -1,6 +1,8 @@
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+
+from pydantic import JsonValue
 
 from db.repositories.interfaces import (
     FeedPostRepository,
@@ -160,11 +162,15 @@ class SimulationCommandService:
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
+            feed_algorithm_config: Mapping[str, JsonValue] | None = (
+                run_config.feed_algorithm_config
+            )
             self._simulate_turn(
                 run.run_id,
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
+                feed_algorithm_config=feed_algorithm_config,
                 action_history_store=action_history_store,
             )
         except Exception as e:
@@ -225,6 +231,7 @@ class SimulationCommandService:
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
         action_history_store: ActionHistoryStore,
+        feed_algorithm_config: Mapping[str, JsonValue] | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
@@ -237,6 +244,7 @@ class SimulationCommandService:
                 run_id=run_id,
                 turn_number=turn_number,
                 feed_algorithm=feed_algorithm,
+                feed_algorithm_config=feed_algorithm_config,
             )
         )
 

@@ -1,5 +1,6 @@
 """Simple script to view all generated bios in the database."""
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
 )
@@ -10,7 +11,8 @@ def main():
     print("GENERATED BIOS VIEWER")
     print("=" * 80)
 
-    generated_bio_repo = create_sqlite_generated_bio_repository()
+    tx = SqliteTransactionProvider()
+    generated_bio_repo = create_sqlite_generated_bio_repository(transaction_provider=tx)
     generated_bios = generated_bio_repo.list_all_generated_bios()
 
     num_handles = len(set(bio.handle for bio in generated_bios))

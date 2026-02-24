@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from typing import Iterable
 
+from simulation.core.models.agent import Agent
+from simulation.core.models.agent_bio import AgentBio
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -13,6 +15,7 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
 
 class TransactionProvider(ABC):
@@ -27,8 +30,7 @@ class TransactionProvider(ABC):
     def run_transaction(self) -> AbstractContextManager[object]:
         """Enter a transaction and yield a connection.
 
-        Commit on normal exit, roll back on exception. The yielded object
-        is passed to repositories as their conn parameter.
+        Commit on normal exit, roll back on exception.
         """
         raise NotImplementedError
 
@@ -41,11 +43,12 @@ class RunDatabaseAdapter(ABC):
     """
 
     @abstractmethod
-    def write_run(self, run: Run) -> None:
+    def write_run(self, run: Run, *, conn: object) -> None:
         """Write a run to the database.
 
         Args:
             run: Run model to write
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -61,11 +64,12 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_run(self, run_id: str) -> Run | None:
+    def read_run(self, run_id: str, *, conn: object) -> Run | None:
         """Read a run by ID.
 
         Args:
             run_id: Unique identifier for the run
+            conn: Connection.
 
         Returns:
             Run model if found, None otherwise
@@ -80,8 +84,11 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_all_runs(self) -> list[Run]:
+    def read_all_runs(self, *, conn: object) -> list[Run]:
         """Read all runs.
+
+        Args:
+            conn: Connection.
 
         Returns:
             List of Run models, ordered by created_at descending (newest first).
@@ -101,8 +108,9 @@ class RunDatabaseAdapter(ABC):
         self,
         run_id: str,
         status: str,
+        *,
         completed_at: str | None = None,
-        conn: object | None = None,
+        conn: object,
     ) -> None:
         """Update a run's status.
 
@@ -111,8 +119,7 @@ class RunDatabaseAdapter(ABC):
             status: New status value (should be a valid RunStatus enum value as string)
             completed_at: Optional timestamp when the run was completed.
                          Should be set when status is 'completed', None otherwise.
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
+            conn: Connection.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
@@ -127,15 +134,15 @@ class RunDatabaseAdapter(ABC):
         self,
         run_id: str,
         turn_number: int,
-        conn: object | None = None,
+        *,
+        conn: object,
     ) -> TurnMetadata | None:
         """Read turn metadata for a specific run and turn.
 
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Optional connection. When provided, use it and do not open/close
-                  or commit; when None, use a new connection (caller manages lifecycle).
+            conn: Connection.
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -155,11 +162,14 @@ class RunDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_turn_metadata_for_run(self, run_id: str) -> list[TurnMetadata]:
+    def read_turn_metadata_for_run(
+        self, run_id: str, *, conn: object
+    ) -> list[TurnMetadata]:
         """Read all turn metadata for a specific run.
 
         Args:
             run_id: The ID of the run
+            conn: Connection.
 
         Returns:
             List of TurnMetadata ordered by turn_number ascending.
@@ -178,7 +188,8 @@ class RunDatabaseAdapter(ABC):
     def write_turn_metadata(
         self,
         turn_metadata: TurnMetadata,
-        conn: object | None = None,
+        *,
+        conn: object,
     ) -> None:
         """Write turn metadata to the database.
 
@@ -186,8 +197,7 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
+            conn: Connection.
 
         Raises:
             DuplicateTurnMetadataError: If turn metadata already exists
@@ -205,9 +215,12 @@ class MetricsDatabaseAdapter(ABC):
     def write_turn_metrics(
         self,
         turn_metrics: TurnMetrics,
-        conn: object | None = None,
+        *,
+        conn: object,
     ) -> None:
-        """Write turn metrics. When conn is provided, use it and do not commit.
+        """Write turn metrics.
+
+        conn: Connection.
 
         Note:
             This write is idempotent: an existing row with the same (run_id,
@@ -218,20 +231,27 @@ class MetricsDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+    def read_turn_metrics(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> TurnMetrics | None:
         raise NotImplementedError
 
     @abstractmethod
-    def read_turn_metrics_for_run(self, run_id: str) -> list[TurnMetrics]:
+    def read_turn_metrics_for_run(
+        self, run_id: str, *, conn: object
+    ) -> list[TurnMetrics]:
         raise NotImplementedError
 
     @abstractmethod
     def write_run_metrics(
         self,
         run_metrics: RunMetrics,
-        conn: object | None = None,
+        *,
+        conn: object,
     ) -> None:
-        """Write run metrics. When conn is provided, use it and do not commit.
+        """Write run metrics.
+
+        conn: Connection.
 
         Note:
             This write is idempotent: an existing row with the same run_id may be
@@ -242,7 +262,7 @@ class MetricsDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_run_metrics(self, run_id: str) -> RunMetrics | None:
+    def read_run_metrics(self, run_id: str, *, conn: object) -> RunMetrics | None:
         raise NotImplementedError
 
 
@@ -255,11 +275,12 @@ class ProfileDatabaseAdapter(ABC):
     """
 
     @abstractmethod
-    def write_profile(self, profile: BlueskyProfile) -> None:
+    def write_profile(self, profile: BlueskyProfile, *, conn: object) -> None:
         """Write a profile to the database.
 
         Args:
             profile: BlueskyProfile model to write
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -275,11 +296,12 @@ class ProfileDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_profile(self, handle: str) -> BlueskyProfile | None:
+    def read_profile(self, handle: str, *, conn: object) -> BlueskyProfile | None:
         """Read a profile by handle.
 
         Args:
             handle: Profile handle to look up
+            conn: Connection.
 
         Returns:
             BlueskyProfile model if found, None otherwise.
@@ -294,8 +316,11 @@ class ProfileDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_all_profiles(self) -> list[BlueskyProfile]:
+    def read_all_profiles(self, *, conn: object) -> list[BlueskyProfile]:
         """Read all profiles.
+
+        Args:
+            conn: Connection.
 
         Returns:
             List of BlueskyProfile models. Returns empty list if no profiles exist.
@@ -319,11 +344,12 @@ class FeedPostDatabaseAdapter(ABC):
     """
 
     @abstractmethod
-    def write_feed_post(self, post: BlueskyFeedPost) -> None:
+    def write_feed_post(self, post: BlueskyFeedPost, *, conn: object) -> None:
         """Write a feed post to the database.
 
         Args:
             post: BlueskyFeedPost model to write
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -339,11 +365,12 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_feed_posts(self, posts: list[BlueskyFeedPost]) -> None:
+    def write_feed_posts(self, posts: list[BlueskyFeedPost], *, conn: object) -> None:
         """Write multiple feed posts to the database (batch operation).
 
         Args:
             posts: List of BlueskyFeedPost models to write
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -359,11 +386,12 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_post(self, uri: str) -> BlueskyFeedPost:
+    def read_feed_post(self, uri: str, *, conn: object) -> BlueskyFeedPost:
         """Read a feed post by URI.
 
         Args:
             uri: Post URI to look up
+            conn: Connection.
 
         Returns:
             BlueskyFeedPost model if found.
@@ -379,11 +407,14 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
+    def read_feed_posts_by_author(
+        self, author_handle: str, *, conn: object
+    ) -> list[BlueskyFeedPost]:
         """Read all feed posts by a specific author.
 
         Args:
             author_handle: Author handle to filter by
+            conn: Connection.
 
         Returns:
             List of BlueskyFeedPost models for the author.
@@ -398,8 +429,11 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_all_feed_posts(self) -> list[BlueskyFeedPost]:
+    def read_all_feed_posts(self, *, conn: object) -> list[BlueskyFeedPost]:
         """Read all feed posts.
+
+        Args:
+            conn: Connection.
 
         Returns:
             List of all BlueskyFeedPost models. Returns empty list if no posts exist.
@@ -414,11 +448,14 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
+    def read_feed_posts_by_uris(
+        self, uris: Iterable[str], *, conn: object
+    ) -> list[BlueskyFeedPost]:
         """Read feed posts by URIs.
 
         Args:
             uris: Iterable of post URIs to look up
+            conn: Connection.
 
         Returns:
             List of BlueskyFeedPost models for the given URIs.
@@ -446,11 +483,12 @@ class GeneratedFeedDatabaseAdapter(ABC):
     """
 
     @abstractmethod
-    def write_generated_feed(self, feed: GeneratedFeed) -> None:
+    def write_generated_feed(self, feed: GeneratedFeed, *, conn: object) -> None:
         """Write a generated feed to the database.
 
         Args:
             feed: GeneratedFeed model to write
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -468,7 +506,12 @@ class GeneratedFeedDatabaseAdapter(ABC):
 
     @abstractmethod
     def read_generated_feed(
-        self, agent_handle: str, run_id: str, turn_number: int
+        self,
+        agent_handle: str,
+        run_id: str,
+        turn_number: int,
+        *,
+        conn: object,
     ) -> GeneratedFeed:
         """Read a generated feed by composite key.
 
@@ -476,6 +519,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
             agent_handle: Agent handle to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
+            conn: Connection.
 
         Returns:
             GeneratedFeed model for the specified agent, run, and turn.
@@ -491,8 +535,11 @@ class GeneratedFeedDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_all_generated_feeds(self) -> list[GeneratedFeed]:
+    def read_all_generated_feeds(self, *, conn: object) -> list[GeneratedFeed]:
         """Read all generated feeds.
+
+        Args:
+            conn: Connection.
 
         Returns:
             List of all GeneratedFeed models. Returns empty list if no feeds exist.
@@ -507,12 +554,15 @@ class GeneratedFeedDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
+    def read_post_uris_for_run(
+        self, agent_handle: str, run_id: str, *, conn: object
+    ) -> set[str]:
         """Read all post URIs from generated feeds for a specific agent and run.
 
         Args:
             agent_handle: Agent handle to filter by
             run_id: Run ID to filter by
+            conn: Connection.
 
         Returns:
             Set of post URIs from all generated feeds matching the agent and run.
@@ -527,12 +577,15 @@ class GeneratedFeedDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
+    def read_feeds_for_turn(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> list[GeneratedFeed]:
         """Read all generated feeds for a specific run and turn.
 
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
+            conn: Connection.
 
         Returns:
             List of GeneratedFeed models for the specified run and turn.
@@ -557,11 +610,12 @@ class GeneratedBioDatabaseAdapter(ABC):
     """
 
     @abstractmethod
-    def write_generated_bio(self, bio: GeneratedBio) -> None:
+    def write_generated_bio(self, bio: GeneratedBio, *, conn: object) -> None:
         """Write a generated bio to the database.
 
         Args:
             bio: GeneratedBio model to write
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -577,11 +631,12 @@ class GeneratedBioDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_generated_bio(self, handle: str) -> GeneratedBio | None:
+    def read_generated_bio(self, handle: str, *, conn: object) -> GeneratedBio | None:
         """Read a generated bio by handle.
 
         Args:
             handle: Profile handle to look up
+            conn: Connection.
 
         Returns:
             GeneratedBio model if found, None otherwise.
@@ -596,8 +651,11 @@ class GeneratedBioDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_all_generated_bios(self) -> list[GeneratedBio]:
+    def read_all_generated_bios(self, *, conn: object) -> list[GeneratedBio]:
         """Read all generated bios.
+
+        Args:
+            conn: Connection.
 
         Returns:
             List of all GeneratedBio models. Returns empty list if no bios exist.
@@ -608,5 +666,102 @@ class GeneratedBioDatabaseAdapter(ABC):
             Exception: Database-specific exception if the operation fails.
                       Implementations should document the specific exception types
                       they raise.
+        """
+        raise NotImplementedError
+
+
+class AgentDatabaseAdapter(ABC):
+    """Abstract interface for agent database operations."""
+
+    @abstractmethod
+    def write_agent(self, agent: Agent, *, conn: object) -> None:
+        """Write an agent to the database.
+
+        Args:
+            conn: Connection.
+
+        Note:
+            Idempotent: an existing row with the same agent_id may be replaced.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent(self, agent_id: str, *, conn: object) -> Agent | None:
+        """Read an agent by ID."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_by_handle(self, handle: str, *, conn: object) -> Agent | None:
+        """Read an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_all_agents(self, *, conn: object) -> list[Agent]:
+        """Read all agents. Returns empty list if none exist."""
+        raise NotImplementedError
+
+
+class AgentBioDatabaseAdapter(ABC):
+    """Abstract interface for agent persona bio database operations."""
+
+    @abstractmethod
+    def write_agent_bio(self, bio: AgentBio, *, conn: object) -> None:
+        """Write an agent bio to the database."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_latest_agent_bio(self, agent_id: str, *, conn: object) -> AgentBio | None:
+        """Read the latest bio for an agent by created_at DESC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_bios_by_agent_id(
+        self, agent_id: str, *, conn: object
+    ) -> list[AgentBio]:
+        """Read all bios for an agent, ordered by created_at DESC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_latest_agent_bios_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, AgentBio | None]:
+        """Read the latest bio per agent_id for the given agent IDs.
+
+        Returns dict mapping agent_id -> AgentBio | None.
+        """
+        raise NotImplementedError
+
+
+class UserAgentProfileMetadataDatabaseAdapter(ABC):
+    """Abstract interface for user agent profile metadata database operations."""
+
+    @abstractmethod
+    def write_user_agent_profile_metadata(
+        self, metadata: UserAgentProfileMetadata, *, conn: object
+    ) -> None:
+        """Write user agent profile metadata.
+
+        Args:
+            conn: Connection.
+
+        Note:
+            Idempotent: an existing row with the same agent_id may be replaced.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_by_agent_id(
+        self, agent_id: str, *, conn: object
+    ) -> UserAgentProfileMetadata | None:
+        """Read metadata by agent_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Read metadata for the given agent IDs.
+
+        Returns dict mapping agent_id -> metadata | None.
         """
         raise NotImplementedError

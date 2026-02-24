@@ -10,6 +10,20 @@ on:
     branches: [ main, master, develop ]
 
 jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run markdownlint-cli2
+        run: npx -y markdownlint-cli2 "**/*.md" "#node_modules" "#ui/node_modules" "#.venv" "#docs/plans"
+
   hadolint:
     runs-on: ubuntu-latest
     steps:

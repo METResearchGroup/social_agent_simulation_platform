@@ -7,7 +7,7 @@ import sqlite3
 
 from db.adapters.base import RunDatabaseAdapter
 from db.adapters.sqlite.schema_utils import required_column_names
-from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import runs
 from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunNotFoundError
@@ -88,34 +88,32 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             completed_at=row["completed_at"],
         )
 
-    def write_run(self, run: Run) -> None:
+    def write_run(self, run: Run, *, conn: sqlite3.Connection) -> None:
         """Write a run to SQLite.
 
         Raises:
             sqlite3.IntegrityError: If run_id violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        with get_connection() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO runs 
-                (run_id, created_at, total_turns, total_agents, feed_algorithm, started_at, status, completed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    run.run_id,
-                    run.created_at,
-                    run.total_turns,
-                    run.total_agents,
-                    run.feed_algorithm,
-                    run.started_at,
-                    run.status.value,  # Convert enum to string explicitly
-                    run.completed_at,
-                ),
-            )
-            conn.commit()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO runs 
+            (run_id, created_at, total_turns, total_agents, feed_algorithm, started_at, status, completed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                run.run_id,
+                run.created_at,
+                run.total_turns,
+                run.total_agents,
+                run.feed_algorithm,
+                run.started_at,
+                run.status.value,  # Convert enum to string explicitly
+                run.completed_at,
+            ),
+        )
 
-    def read_run(self, run_id: str) -> Run | None:
+    def read_run(self, run_id: str, *, conn: sqlite3.Connection) -> Run | None:
         """Read a run from SQLite.
 
         Raises:
@@ -123,17 +121,14 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
-            ).fetchone()
+        row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
 
-            if row is None:
-                return None
+        if row is None:
+            return None
 
-            return self._row_to_run(row)
+        return self._row_to_run(row)
 
-    def read_all_runs(self) -> list[Run]:
+    def read_all_runs(self, *, conn: sqlite3.Connection) -> list[Run]:
         """Read all runs from SQLite.
 
         Raises:
@@ -141,61 +136,43 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM runs ORDER BY created_at DESC"
-            ).fetchall()
+        rows = conn.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
 
-            return [self._row_to_run(row) for row in rows]
+        return [self._row_to_run(row) for row in rows]
 
     def update_run_status(
         self,
         run_id: str,
         status: str,
+        *,
         completed_at: str | None = None,
-        conn: sqlite3.Connection | None = None,
+        conn: sqlite3.Connection,
     ) -> None:
         """Update run status in SQLite.
-
-        When conn is provided, use it and do not commit; when None, use a new
-        connection and commit.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
             sqlite3.OperationalError: If database operation fails
             sqlite3.IntegrityError: If status value violates CHECK constraints
         """
-        if conn is not None:
-            cursor = conn.execute(
-                """
-                UPDATE runs 
-                SET status = ?, completed_at = ?
-                WHERE run_id = ?
+        cursor = conn.execute(
+            """
+            UPDATE runs
+            SET status = ?, completed_at = ?
+            WHERE run_id = ?
             """,
-                (status, completed_at, run_id),
-            )
-            if cursor.rowcount == 0:
-                raise RunNotFoundError(run_id)
-            return
-        with get_connection() as c:
-            cursor = c.execute(
-                """
-                UPDATE runs 
-                SET status = ?, completed_at = ?
-                WHERE run_id = ?
-            """,
-                (status, completed_at, run_id),
-            )
-            if cursor.rowcount == 0:
-                raise RunNotFoundError(run_id)
-            c.commit()
+            (status, completed_at, run_id),
+        )
+        if cursor.rowcount == 0:
+            raise RunNotFoundError(run_id)
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_turn_metadata(
         self,
         run_id: str,
         turn_number: int,
-        conn: sqlite3.Connection | None = None,
+        *,
+        conn: sqlite3.Connection,
     ) -> TurnMetadata | None:
         """Read turn metadata from SQLite.
 
@@ -205,8 +182,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Optional connection. When provided, use it (no commit); when None,
-                  open a new connection via get_connection().
+            conn: Connection.
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -217,17 +193,10 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if conn is not None:
-            row = conn.execute(
-                "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
-                (run_id, turn_number),
-            ).fetchone()
-        else:
-            with get_connection() as c:
-                row = c.execute(
-                    "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
-                    (run_id, turn_number),
-                ).fetchone()
+        row = conn.execute(
+            "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
+            (run_id, turn_number),
+        ).fetchone()
 
         if row is None:
             return None
@@ -249,11 +218,14 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             ) from e
 
     @validate_inputs((validate_run_id, "run_id"))
-    def read_turn_metadata_for_run(self, run_id: str) -> list[TurnMetadata]:
+    def read_turn_metadata_for_run(
+        self, run_id: str, *, conn: sqlite3.Connection
+    ) -> list[TurnMetadata]:
         """Read all turn metadata rows for a run from SQLite.
 
         Args:
             run_id: The ID of the run
+            conn: Connection.
 
         Returns:
             List of TurnMetadata ordered by turn_number ascending.
@@ -264,11 +236,10 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from a database row
         """
-        with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
-                (run_id,),
-            ).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
+            (run_id,),
+        ).fetchall()
 
         turn_metadata_list: list[TurnMetadata] = []
         for row in rows:
@@ -295,7 +266,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     def write_turn_metadata(
         self,
         turn_metadata: TurnMetadata,
-        conn: sqlite3.Connection | None = None,
+        *,
+        conn: sqlite3.Connection,
     ) -> None:
         """Write turn metadata to SQLite.
 
@@ -303,8 +275,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
+            conn: Connection.
 
         Raises:
             sqlite3.OperationalError: If database operation fails
@@ -325,36 +296,17 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             {k.value: v for k, v in turn_metadata.total_actions.items()}
         )
 
-        if conn is not None:
-            try:
-                conn.execute(
-                    "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
-                    (
-                        turn_metadata.run_id,
-                        turn_metadata.turn_number,
-                        total_actions_json,
-                        turn_metadata.created_at,
-                    ),
-                )
-            except sqlite3.IntegrityError:
-                raise DuplicateTurnMetadataError(
-                    turn_metadata.run_id, turn_metadata.turn_number
-                )
-            return
-
-        with get_connection() as c:
-            try:
-                c.execute(
-                    "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
-                    (
-                        turn_metadata.run_id,
-                        turn_metadata.turn_number,
-                        total_actions_json,
-                        turn_metadata.created_at,
-                    ),
-                )
-                c.commit()
-            except sqlite3.IntegrityError:
-                raise DuplicateTurnMetadataError(
-                    turn_metadata.run_id, turn_metadata.turn_number
-                )
+        try:
+            conn.execute(
+                "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
+                (
+                    turn_metadata.run_id,
+                    turn_metadata.turn_number,
+                    total_actions_json,
+                    turn_metadata.created_at,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            raise DuplicateTurnMetadataError(
+                turn_metadata.run_id, turn_metadata.turn_number
+            )

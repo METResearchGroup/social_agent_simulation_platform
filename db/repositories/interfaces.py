@@ -8,6 +8,8 @@ implement these interfaces.
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from simulation.core.models.agent import Agent
+from simulation.core.models.agent_bio import AgentBio
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -15,6 +17,87 @@ from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+
+
+class AgentRepository(ABC):
+    """Abstract base class defining the interface for agent repositories."""
+
+    @abstractmethod
+    def create_or_update_agent(self, agent: Agent, conn: object | None = None) -> Agent:
+        """Create or update an agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agent(self, agent_id: str) -> Agent | None:
+        """Get an agent by ID."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agent_by_handle(self, handle: str) -> Agent | None:
+        """Get an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_all_agents(self) -> list[Agent]:
+        """List all agents, ordered by handle for deterministic output."""
+        raise NotImplementedError
+
+
+class AgentBioRepository(ABC):
+    """Abstract base class defining the interface for agent bio repositories."""
+
+    @abstractmethod
+    def create_agent_bio(self, bio: AgentBio, conn: object | None = None) -> AgentBio:
+        """Create an agent bio."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_agent_bio(self, agent_id: str) -> AgentBio | None:
+        """Get the latest bio for an agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_agent_bios(self, agent_id: str) -> list[AgentBio]:
+        """List all bios for an agent, ordered by created_at DESC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_bios_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, AgentBio | None]:
+        """Return the latest bio per agent_id for the given agent IDs.
+
+        Keys are agent_ids; value is the latest AgentBio or None if none exists.
+        Every input agent_id is guaranteed to appear as a key.
+        """
+        raise NotImplementedError
+
+
+class UserAgentProfileMetadataRepository(ABC):
+    """Abstract base class defining the interface for user agent profile metadata repositories."""
+
+    @abstractmethod
+    def create_or_update_metadata(
+        self, metadata: UserAgentProfileMetadata, conn: object | None = None
+    ) -> UserAgentProfileMetadata:
+        """Create or update user agent profile metadata."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
+        """Get metadata by agent_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Return metadata per agent_id for the given agent IDs.
+
+        Keys are agent_ids; value is metadata or None if none exists.
+        """
+        raise NotImplementedError
 
 
 class RunRepository(ABC):
@@ -43,8 +126,6 @@ class RunRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Update a run's status.
-
-        When conn is provided, implementation uses it and does not commit.
 
         Raises:
             RunNotFoundError: If the run with the given ID does not exist
@@ -95,8 +176,6 @@ class RunRepository(ABC):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection for transactional use; when provided,
-                  implementation uses it and does not commit.
 
         Raises:
             ValueError: If turn_metadata is invalid
@@ -115,8 +194,6 @@ class MetricsRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Write computed metrics for a specific run/turn.
-
-        When conn is provided, use it and do not commit (for transactional use).
 
         Note:
             This write is idempotent: an existing row with the same (run_id,
@@ -143,8 +220,6 @@ class MetricsRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Write computed metrics for a run.
-
-        When conn is provided, use it and do not commit (for transactional use).
 
         Note:
             This write is idempotent: an existing row with the same run_id may be

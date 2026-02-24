@@ -208,6 +208,7 @@ export async function getDefaultConfig(): Promise<RunConfig> {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
+    feedAlgorithmConfig: null,
   };
 }
 
@@ -232,6 +233,7 @@ export async function postRun(config: RunConfig): Promise<Run> {
     num_agents: config.numAgents,
     num_turns: config.numTurns,
     feed_algorithm: config.feedAlgorithm,
+    feed_algorithm_config: config.feedAlgorithmConfig,
   };
   const api: ApiRunResponse = await fetchPost<typeof body, ApiRunResponse>(
     buildApiUrl('/simulations/run'),
@@ -278,6 +280,26 @@ export async function getAgents(): Promise<Agent[]> {
     buildApiUrl('/simulations/agents'),
   );
   return apiAgents.map(mapAgent);
+}
+
+/** Returns mock agents for run-detail context (dummy runs). */
+export async function getMockAgents(): Promise<Agent[]> {
+  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
+    buildApiUrl('/simulations/agents/mock'),
+  );
+  return apiAgents.map(mapAgent);
+}
+
+export async function postAgent(body: {
+  handle: string;
+  display_name: string;
+  bio?: string;
+}): Promise<Agent> {
+  const api: ApiAgent = await fetchPost<typeof body, ApiAgent>(
+    buildApiUrl('/simulations/agents'),
+    body,
+  );
+  return mapAgent(api);
 }
 
 export async function getPosts(uris?: string[]): Promise<Post[]> {
