@@ -118,6 +118,34 @@ class RunListItem(BaseModel):
     status: RunStatus
 
 
+class CreateAgentRequest(BaseModel):
+    """Request body for POST /v1/simulations/agents.
+
+    Fast-follows (not yet supported):
+    - comments: list of {text, postUri}
+    - likedPostUris: list of post URIs
+    - linkedAgentHandles: list of agent handles to link
+    """
+
+    handle: str
+    display_name: str
+    bio: str = ""
+
+    @field_validator("handle")
+    @classmethod
+    def _validate_handle(cls, v: str) -> str:
+        from lib.validation_utils import validate_non_empty_string
+
+        return validate_non_empty_string(v.strip(), "handle")
+
+    @field_validator("display_name")
+    @classmethod
+    def _validate_display_name(cls, v: str) -> str:
+        from lib.validation_utils import validate_non_empty_string
+
+        return validate_non_empty_string(v.strip(), "display_name")
+
+
 class AgentSchema(BaseModel):
     """Agent profile for the simulation UI."""
 

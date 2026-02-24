@@ -1,6 +1,11 @@
-"""SQLite implementation of user agent profile metadata database adapter."""
+"""SQLite implementation of user agent profile metadata database adapter.
+
+EXTENSION: For caching or async, consider a caching layer around
+get_metadata_by_agent_ids or an async batch loader (e.g. DataLoader).
+"""
 
 import sqlite3
+from collections.abc import Iterable
 
 from db.adapters.base import UserAgentProfileMetadataDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
@@ -61,3 +66,21 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
             return None
         self._validate_metadata_row(row)
         return self._row_to_metadata(row)
+
+    def read_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: sqlite3.Connection
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Read metadata for the given agent IDs."""
+        agent_ids_list = list(agent_ids)
+        if not agent_ids_list:
+            return {}
+        q_marks = ",".join("?" for _ in agent_ids_list)
+        sql = f"SELECT * FROM user_agent_profile_metadata WHERE agent_id IN ({q_marks})"
+        rows = conn.execute(sql, tuple(agent_ids_list)).fetchall()
+        result: dict[str, UserAgentProfileMetadata | None] = {
+            aid: None for aid in agent_ids_list
+        }
+        for row in rows:
+            self._validate_metadata_row(row)
+            result[row["agent_id"]] = self._row_to_metadata(row)
+        return result

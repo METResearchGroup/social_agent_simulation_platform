@@ -20,10 +20,13 @@ class SQLiteAgentRepository(AgentRepository):
         self._db_adapter = db_adapter
         self._transaction_provider = transaction_provider
 
-    def create_or_update_agent(self, agent: Agent) -> Agent:
+    def create_or_update_agent(self, agent: Agent, conn: object | None = None) -> Agent:
         """Create or update an agent in SQLite."""
-        with self._transaction_provider.run_transaction() as c:
-            self._db_adapter.write_agent(agent, conn=c)
+        if conn is not None:
+            self._db_adapter.write_agent(agent, conn=conn)
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.write_agent(agent, conn=c)
         return agent
 
     @validate_inputs((validate_agent_id, "agent_id"))
