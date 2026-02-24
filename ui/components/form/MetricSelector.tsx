@@ -127,7 +127,9 @@ function ScopeSection({
 
   const selectAll = (): void => {
     const next = new Set(selectedKeys);
-    scopeKeys.forEach((k) => next.add(k));
+    scopeKeys.forEach((k) => {
+      next.add(k);
+    });
     onSelectionChange([...next].sort());
   };
 
