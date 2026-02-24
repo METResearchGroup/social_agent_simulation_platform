@@ -116,6 +116,7 @@ class TestSimulationCommandServiceExecuteRun:
                 "feed_algorithm": "chronological",
                 "num_agents": 2,
                 "num_turns": turns,
+                "feed_algorithm_config": None,
             },
         )()
 

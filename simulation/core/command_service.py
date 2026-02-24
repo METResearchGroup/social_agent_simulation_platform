@@ -162,8 +162,8 @@ class SimulationCommandService:
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
-            feed_algorithm_config: Mapping[str, JsonValue] | None = getattr(
-                run_config, "feed_algorithm_config", None
+            feed_algorithm_config: Mapping[str, JsonValue] | None = (
+                run_config.feed_algorithm_config
             )
             self._simulate_turn(
                 run.run_id,
