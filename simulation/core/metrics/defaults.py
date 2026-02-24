@@ -49,6 +49,15 @@ DEFAULT_RUN_METRIC_KEYS: list[str] = [
 ]
 
 
+def get_registered_metrics_metadata() -> list[tuple[str, str, MetricScope, str]]:
+    """Return (key, description, scope, author) for all builtin metrics, sorted by key."""
+    result: list[tuple[str, str, MetricScope, str]] = [
+        (metric_cls.KEY, metric_cls.DESCRIPTION, metric_cls.SCOPE, metric_cls.AUTHOR)
+        for metric_cls in BUILTIN_METRICS
+    ]
+    return sorted(result, key=lambda t: t[0])
+
+
 def create_default_metrics_registry() -> MetricsRegistry:
     metric_builders: dict[str, Callable[[], Metric]] = {
         metric_cls.KEY: metric_cls for metric_cls in BUILTIN_METRICS

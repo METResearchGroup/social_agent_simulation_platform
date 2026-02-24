@@ -15,6 +15,7 @@ from simulation.api.schemas.simulation import (
     AgentSchema,
     DefaultConfigSchema,
     FeedAlgorithmSchema,
+    MetricSchema,
     PostSchema,
     RunDetailsResponse,
     RunListItem,
@@ -43,6 +44,7 @@ SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
+SIMULATION_METRICS_ROUTE: str = "GET /v1/simulations/metrics"
 SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
 
 
@@ -61,6 +63,21 @@ async def get_simulation_feed_algorithms(
 ) -> list[FeedAlgorithmSchema] | Response:
     """Return registered feed algorithms with metadata."""
     return await _execute_get_feed_algorithms(request)
+
+
+@router.get(
+    "/simulations/metrics",
+    response_model=list[MetricSchema],
+    status_code=200,
+    summary="List metrics",
+    description="Return available metrics with metadata for the UI.",
+)
+@log_route_completion_decorator(route=SIMULATION_METRICS_ROUTE, success_type=list)
+async def get_simulation_metrics(
+    request: Request,
+) -> list[MetricSchema] | Response:
+    """Return registered metrics with metadata."""
+    return await _execute_get_metrics(request)
 
 
 @router.get(
@@ -186,6 +203,38 @@ def _get_feed_algorithms_list() -> list[FeedAlgorithmSchema]:
         FeedAlgorithmSchema(id=alg_id, **meta.model_dump())
         for alg_id, meta in get_registered_algorithms()
     ]
+
+
+def _get_metrics_list() -> list[MetricSchema]:
+    """Return metrics with metadata for the API."""
+    from simulation.core.metrics.defaults import get_registered_metrics_metadata
+
+    return [
+        MetricSchema(
+            key=key,
+            description=description,
+            scope=scope.value,
+            author=author,
+        )
+        for key, description, scope, author in get_registered_metrics_metadata()
+    ]
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_metrics(
+    request: Request,
+) -> list[MetricSchema] | Response:
+    """Fetch metrics and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(_get_metrics_list)
+    except Exception:
+        logger.exception("Unexpected error while listing metrics")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
