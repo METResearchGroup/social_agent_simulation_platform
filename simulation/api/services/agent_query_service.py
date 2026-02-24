@@ -3,6 +3,11 @@
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
+from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
+    UserAgentProfileMetadataRepository,
+)
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
@@ -13,14 +18,26 @@ from simulation.core.models.agent_bio import AgentBio
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
 
-def list_agents() -> list[AgentSchema]:
+def list_agents(
+    *,
+    agent_repo: AgentRepository | None = None,
+    bio_repo: AgentBioRepository | None = None,
+    metadata_repo: UserAgentProfileMetadataRepository | None = None,
+) -> list[AgentSchema]:
     """Return agents from DB, mapped to AgentSchema, ordered by handle."""
-    provider = SqliteTransactionProvider()
-    agent_repo = create_sqlite_agent_repository(transaction_provider=provider)
-    bio_repo = create_sqlite_agent_bio_repository(transaction_provider=provider)
-    metadata_repo = create_sqlite_user_agent_profile_metadata_repository(
-        transaction_provider=provider
-    )
+    if agent_repo is None or bio_repo is None or metadata_repo is None:
+        provider = SqliteTransactionProvider()
+        agent_repo = agent_repo or create_sqlite_agent_repository(
+            transaction_provider=provider
+        )
+        bio_repo = bio_repo or create_sqlite_agent_bio_repository(
+            transaction_provider=provider
+        )
+        metadata_repo = metadata_repo or (
+            create_sqlite_user_agent_profile_metadata_repository(
+                transaction_provider=provider
+            )
+        )
 
     agents = agent_repo.list_all_agents()
     if not agents:
