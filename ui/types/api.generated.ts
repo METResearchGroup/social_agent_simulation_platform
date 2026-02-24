@@ -33,9 +33,33 @@ export interface paths {
         };
         /**
          * List simulation agents
-         * @description Return simulation agent profiles for the UI.
+         * @description Return simulation agent profiles from DB for View agents and Create form.
          */
         get: operations["get_simulation_agents_v1_simulations_agents_get"];
+        put?: never;
+        /**
+         * Create simulation agent
+         * @description Create a user-generated agent.
+         */
+        post: operations["post_simulation_agents_v1_simulations_agents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/simulations/agents/mock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List mock simulation agents
+         * @description Return dummy agent list for run-detail context (mock runs).
+         */
+        get: operations["get_simulation_agents_mock_v1_simulations_agents_mock_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -76,6 +100,26 @@ export interface paths {
          * @description Return available feed algorithms with metadata for the UI.
          */
         get: operations["get_simulation_feed_algorithms_v1_simulations_feed_algorithms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/simulations/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List metrics
+         * @description Return available metrics with metadata for the UI.
+         */
+        get: operations["get_simulation_metrics_v1_simulations_metrics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -226,6 +270,26 @@ export interface components {
             posts_count: number;
         };
         /**
+         * CreateAgentRequest
+         * @description Request body for POST /v1/simulations/agents.
+         *
+         *     Fast-follows (not yet supported):
+         *     - comments: list of {text, postUri}
+         *     - likedPostUris: list of post URIs
+         *     - linkedAgentHandles: list of agent handles to link
+         */
+        CreateAgentRequest: {
+            /**
+             * Bio
+             * @default
+             */
+            bio: string;
+            /** Display Name */
+            display_name: string;
+            /** Handle */
+            handle: string;
+        };
+        /**
          * DefaultConfigSchema
          * @description Default config for simulation start form.
          */
@@ -287,6 +351,24 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         JsonValue: unknown;
+        /**
+         * MetricSchema
+         * @description API response for GET /v1/simulations/metrics.
+         */
+        MetricSchema: {
+            /** Author */
+            author: string;
+            /** Description */
+            description: string;
+            /** Key */
+            key: string;
+            scope: components["schemas"]["MetricScope"];
+        };
+        /**
+         * MetricScope
+         * @enum {string}
+         */
+        MetricScope: "turn" | "run";
         /**
          * PostSchema
          * @description Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.
@@ -369,6 +451,10 @@ export interface components {
         RunRequest: {
             /** Feed Algorithm */
             feed_algorithm?: string | null;
+            /** Feed Algorithm Config */
+            feed_algorithm_config?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
             /** Num Agents */
             num_agents: number;
             /** Num Turns */
@@ -539,6 +625,59 @@ export interface operations {
             };
         };
     };
+    post_simulation_agents_v1_simulations_agents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_simulation_agents_mock_v1_simulations_agents_mock_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSchema"][];
+                };
+            };
+        };
+    };
     get_simulation_config_default_v1_simulations_config_default_get: {
         parameters: {
             query?: never;
@@ -575,6 +714,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeedAlgorithmSchema"][];
+                };
+            };
+        };
+    };
+    get_simulation_metrics_v1_simulations_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricSchema"][];
                 };
             };
         };

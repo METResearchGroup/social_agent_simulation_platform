@@ -86,4 +86,3 @@ Prefer using these in `ui/lib/api/*` instead of re-declaring API response interf
 - Python import errors while generating OpenAPI
   - Run `uv sync` at repo root to install backend dependencies, then rerun
     `cd ui && npm run generate:api`.
-

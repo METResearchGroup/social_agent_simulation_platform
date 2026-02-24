@@ -38,4 +38,3 @@ interfaces, e.g.:
 - `components['schemas']['RunResponse']`
 - `components['schemas']['TurnSchema']`
 - `components['schemas']['PostSchema']`
-

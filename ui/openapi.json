@@ -95,6 +95,30 @@
         "title": "AgentSchema",
         "type": "object"
       },
+      "CreateAgentRequest": {
+        "description": "Request body for POST /v1/simulations/agents.\n\nFast-follows (not yet supported):\n- comments: list of {text, postUri}\n- likedPostUris: list of post URIs\n- linkedAgentHandles: list of agent handles to link",
+        "properties": {
+          "bio": {
+            "default": "",
+            "title": "Bio",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "handle": {
+            "title": "Handle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "display_name"
+        ],
+        "title": "CreateAgentRequest",
+        "type": "object"
+      },
       "DefaultConfigSchema": {
         "description": "Default config for simulation start form.",
         "properties": {
@@ -236,6 +260,42 @@
         "type": "object"
       },
       "JsonValue": {},
+      "MetricSchema": {
+        "description": "API response for GET /v1/simulations/metrics.",
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/MetricScope"
+          }
+        },
+        "required": [
+          "key",
+          "description",
+          "scope",
+          "author"
+        ],
+        "title": "MetricSchema",
+        "type": "object"
+      },
+      "MetricScope": {
+        "enum": [
+          "turn",
+          "run"
+        ],
+        "title": "MetricScope",
+        "type": "string"
+      },
       "PostSchema": {
         "description": "Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.",
         "properties": {
@@ -430,6 +490,20 @@
               }
             ],
             "title": "Feed Algorithm"
+          },
+          "feed_algorithm_config": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feed Algorithm Config"
           },
           "num_agents": {
             "title": "Num Agents",
@@ -730,7 +804,7 @@
     },
     "/v1/simulations/agents": {
       "get": {
-        "description": "Return simulation agent profiles for the UI.",
+        "description": "Return simulation agent profiles from DB for View agents and Create form.",
         "operationId": "get_simulation_agents_v1_simulations_agents_get",
         "responses": {
           "200": {
@@ -754,6 +828,82 @@
           }
         ],
         "summary": "List simulation agents",
+        "tags": [
+          "simulation"
+        ]
+      },
+      "post": {
+        "description": "Create a user-generated agent.",
+        "operationId": "post_simulation_agents_v1_simulations_agents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSchema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create simulation agent",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/agents/mock": {
+      "get": {
+        "description": "Return dummy agent list for run-detail context (mock runs).",
+        "operationId": "get_simulation_agents_mock_v1_simulations_agents_mock_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentSchema"
+                  },
+                  "title": "Response Get Simulation Agents Mock V1 Simulations Agents Mock Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List mock simulation agents",
         "tags": [
           "simulation"
         ]
@@ -812,6 +962,37 @@
           }
         ],
         "summary": "List feed algorithms",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/metrics": {
+      "get": {
+        "description": "Return available metrics with metadata for the UI.",
+        "operationId": "get_simulation_metrics_v1_simulations_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MetricSchema"
+                  },
+                  "title": "Response Get Simulation Metrics V1 Simulations Metrics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List metrics",
         "tags": [
           "simulation"
         ]
