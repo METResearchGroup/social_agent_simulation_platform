@@ -9,7 +9,7 @@ interface AgentDetailProps {
   agent: Agent;
   feed: Post[];
   actions: AgentAction[];
-  allPosts: Post[];
+  postsByUri: Record<string, Post>;
 }
 
 interface ExpandedSectionsState {
@@ -23,7 +23,7 @@ export default function AgentDetail({
   agent,
   feed,
   actions,
-  allPosts,
+  postsByUri,
 }: AgentDetailProps) {
   const [expandedSections, setExpandedSections] = useState<ExpandedSectionsState>({
     metadata: false,
@@ -32,7 +32,7 @@ export default function AgentDetail({
     comments: false,
   });
 
-  const likedPosts: Post[] = getLikedPosts(actions, allPosts);
+  const likedPosts: Post[] = getLikedPosts(actions, postsByUri);
   const comments: AgentAction[] = getCommentActions(actions);
 
   return (
@@ -112,12 +112,11 @@ export default function AgentDetail({
         <div className="space-y-2">
           {comments.length > 0 ? (
             comments.map((action) => (
-              <div
+              <CommentActionCard
                 key={action.actionId}
-                className="p-3 bg-beige-50 rounded text-sm text-beige-900"
-              >
-                Comment on post: {action.postUri}
-              </div>
+                action={action}
+                postsByUri={postsByUri}
+              />
             ))
           ) : (
             <div className="p-3 text-sm text-beige-600 bg-beige-50 rounded">
@@ -130,15 +129,39 @@ export default function AgentDetail({
   );
 }
 
-function getLikedPosts(actions: AgentAction[], allPosts: Post[]): Post[] {
+function getLikedPosts(actions: AgentAction[], postsByUri: Record<string, Post>): Post[] {
   return actions
     .filter((action) => action.type === 'like' && Boolean(action.postUri))
-    .map((action) => allPosts.find((post) => post.uri === action.postUri))
+    .map((action) => (action.postUri ? postsByUri[action.postUri] : undefined))
     .filter((post): post is Post => post !== undefined);
 }
 
 function getCommentActions(actions: AgentAction[]): AgentAction[] {
   return actions.filter((action) => action.type === 'comment');
+}
+
+interface CommentActionCardProps {
+  action: AgentAction;
+  postsByUri: Record<string, Post>;
+}
+
+function CommentActionCard({ action, postsByUri }: CommentActionCardProps) {
+  const post: Post | undefined = action.postUri ? postsByUri[action.postUri] : undefined;
+
+  if (!post) {
+    return (
+      <div className="p-3 bg-beige-50 rounded text-sm text-beige-900">
+        Comment on post: {action.postUri ?? '(missing postUri)'}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 bg-beige-50 rounded space-y-2">
+      <div className="text-xs font-medium text-beige-700">Commented on</div>
+      <PostCard post={post} />
+    </div>
+  );
 }
 
 function toggleSection(

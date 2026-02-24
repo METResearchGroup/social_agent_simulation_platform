@@ -69,7 +69,7 @@ export default function AgentsView({
             agent={agent}
             feed={[]}
             actions={[]}
-            allPosts={[]}
+            postsByUri={{}}
           />
         </div>
       </div>
