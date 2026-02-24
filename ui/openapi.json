@@ -828,6 +828,35 @@
       "get": {
         "description": "Return simulation agent profiles from DB for View agents and Create form.",
         "operationId": "get_simulation_agents_v1_simulations_agents_get",
+        "parameters": [
+          {
+            "description": "Maximum number of agents to return (ordered by handle).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Maximum number of agents to return (ordered by handle).",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of agents to skip before returning results (ordered by handle).",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of agents to skip before returning results (ordered by handle).",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -842,6 +871,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [

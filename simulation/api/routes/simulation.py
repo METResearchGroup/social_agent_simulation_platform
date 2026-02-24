@@ -9,6 +9,11 @@ from fastapi.responses import JSONResponse, Response
 from lib.decorators import timed
 from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
+from simulation.api.constants import (
+    DEFAULT_AGENT_LIST_LIMIT,
+    DEFAULT_AGENT_LIST_OFFSET,
+    MAX_AGENT_LIST_LIMIT,
+)
 from simulation.api.dependencies.auth import require_auth
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
@@ -146,9 +151,22 @@ async def post_simulation_agents(
     description="Return simulation agent profiles from DB for View agents and Create form.",
 )
 @log_route_completion_decorator(route=SIMULATION_AGENTS_ROUTE, success_type=list)
-async def get_simulation_agents(request: Request) -> list[AgentSchema] | Response:
+async def get_simulation_agents(
+    request: Request,
+    limit: int = Query(
+        default=DEFAULT_AGENT_LIST_LIMIT,
+        ge=1,
+        le=MAX_AGENT_LIST_LIMIT,
+        description="Maximum number of agents to return (ordered by handle).",
+    ),
+    offset: int = Query(
+        default=DEFAULT_AGENT_LIST_OFFSET,
+        ge=0,
+        description="Number of agents to skip before returning results (ordered by handle).",
+    ),
+) -> list[AgentSchema] | Response:
     """Return all simulation agents from the database."""
-    return await _execute_get_simulation_agents(request)
+    return await _execute_get_simulation_agents(request, limit=limit, offset=offset)
 
 
 @router.get(
@@ -400,10 +418,13 @@ async def _execute_post_simulation_agents(
 @timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_simulation_agents(
     request: Request,
+    *,
+    limit: int,
+    offset: int,
 ) -> list[AgentSchema] | Response:
     """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(list_agents)
+        return await asyncio.to_thread(list_agents, limit=limit, offset=offset)
     except Exception:
         logger.exception("Unexpected error while listing simulation agents")
         return _error_response(

@@ -43,6 +43,11 @@ class AgentRepository(ABC):
         """List all agents, ordered by handle for deterministic output."""
         raise NotImplementedError
 
+    @abstractmethod
+    def list_agents_page(self, *, limit: int, offset: int) -> list[Agent]:
+        """List a page of agents, ordered by handle for deterministic output."""
+        raise NotImplementedError
+
 
 class AgentBioRepository(ABC):
     """Abstract base class defining the interface for agent bio repositories."""

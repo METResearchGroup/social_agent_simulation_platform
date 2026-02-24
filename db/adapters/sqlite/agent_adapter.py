@@ -80,3 +80,16 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             self._validate_agent_row(row)
             result.append(self._row_to_agent(row))
         return result
+
+    def read_agents_page(
+        self, *, limit: int, offset: int, conn: sqlite3.Connection
+    ) -> list[Agent]:
+        """Read a page of agents, ordered by handle for deterministic output."""
+        rows = conn.execute(
+            "SELECT * FROM agent ORDER BY handle LIMIT ? OFFSET ?", (limit, offset)
+        ).fetchall()
+        result: list[Agent] = []
+        for row in rows:
+            self._validate_agent_row(row)
+            result.append(self._row_to_agent(row))
+        return result
