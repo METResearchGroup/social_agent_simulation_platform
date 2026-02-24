@@ -62,6 +62,17 @@ class AgentBioRepository(ABC):
         """List all bios for an agent, ordered by created_at DESC."""
         raise NotImplementedError
 
+    @abstractmethod
+    def get_latest_bios_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, AgentBio | None]:
+        """Return the latest bio per agent_id for the given agent IDs.
+
+        Keys are agent_ids; value is the latest AgentBio or None if none exists.
+        Every input agent_id is guaranteed to appear as a key.
+        """
+        raise NotImplementedError
+
 
 class UserAgentProfileMetadataRepository(ABC):
     """Abstract base class defining the interface for user agent profile metadata repositories."""
@@ -76,6 +87,16 @@ class UserAgentProfileMetadataRepository(ABC):
     @abstractmethod
     def get_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
         """Get metadata by agent_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Return metadata per agent_id for the given agent IDs.
+
+        Keys are agent_ids; value is metadata or None if none exists.
+        """
         raise NotImplementedError
 
 

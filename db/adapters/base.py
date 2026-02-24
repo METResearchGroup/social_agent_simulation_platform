@@ -114,21 +114,18 @@ class RunDatabaseAdapter(ABC):
     ) -> None:
         """Update a run's status.
 
-                Args:
-                    run_id: Unique identifier for the run to update
-                    status: New status value (should be a valid RunStatus enum value as string)
-                    completed_at: Optional timestamp when the run was completed.
-                                 Should be set when status is 'completed', None otherwise.
-        <<<<<<< HEAD
-        =======
-                    conn: Connection.
-        >>>>>>> origin/main
+        Args:
+            run_id: Unique identifier for the run to update
+            status: New status value (should be a valid RunStatus enum value as string)
+            completed_at: Optional timestamp when the run was completed.
+                         Should be set when status is 'completed', None otherwise.
+            conn: Connection.
 
-                Raises:
-                    RunNotFoundError: If no run exists with the given run_id
-                    Exception: Database-specific exception if constraints are violated or
-                              the operation fails. Implementations should document the
-                              specific exception types they raise.
+        Raises:
+            RunNotFoundError: If no run exists with the given run_id
+            Exception: Database-specific exception if constraints are violated or
+                      the operation fails. Implementations should document the
+                      specific exception types they raise.
         """
         raise NotImplementedError
 
@@ -142,28 +139,25 @@ class RunDatabaseAdapter(ABC):
     ) -> TurnMetadata | None:
         """Read turn metadata for a specific run and turn.
 
-                Args:
-                    run_id: The ID of the run
-                    turn_number: The turn number (0-indexed)
-        <<<<<<< HEAD
-        =======
-                    conn: Connection.
-        >>>>>>> origin/main
+        Args:
+            run_id: The ID of the run
+            turn_number: The turn number (0-indexed)
+            conn: Connection.
 
-                Returns:
-                    TurnMetadata if found, None otherwise
+        Returns:
+            TurnMetadata if found, None otherwise
 
-                Raises:
-                    ValueError: If the turn metadata data is invalid (NULL fields, invalid action types)
-                    KeyError: If required columns are missing from the database row
-                    Exception: Database-specific exception if the operation fails.
-                              Implementations should document the specific exception types
-                              they raise.
+        Raises:
+            ValueError: If the turn metadata data is invalid (NULL fields, invalid action types)
+            KeyError: If required columns are missing from the database row
+            Exception: Database-specific exception if the operation fails.
+                      Implementations should document the specific exception types
+                      they raise.
 
-                Note:
-                    The total_actions field is stored in the database as JSON with string keys
-                    (e.g., {"like": 5, "comment": 2}). Implementations should convert these
-                    string keys to TurnAction enum keys when constructing the TurnMetadata object.
+        Note:
+            The total_actions field is stored in the database as JSON with string keys
+            (e.g., {"like": 5, "comment": 2}). Implementations should convert these
+            string keys to TurnAction enum keys when constructing the TurnMetadata object.
         """
         raise NotImplementedError
 
@@ -199,20 +193,17 @@ class RunDatabaseAdapter(ABC):
     ) -> None:
         """Write turn metadata to the database.
 
-                Writes to the `turn_metadata` table. Uses INSERT.
+        Writes to the `turn_metadata` table. Uses INSERT.
 
-                Args:
-                    turn_metadata: TurnMetadata model to write
-        <<<<<<< HEAD
-        =======
-                    conn: Connection.
-        >>>>>>> origin/main
+        Args:
+            turn_metadata: TurnMetadata model to write
+            conn: Connection.
 
-                Raises:
-                    DuplicateTurnMetadataError: If turn metadata already exists
-                    Exception: Database-specific exception if constraints are violated or
-                              the operation fails. Implementations should document the
-                              specific exception types they raise.
+        Raises:
+            DuplicateTurnMetadataError: If turn metadata already exists
+            Exception: Database-specific exception if constraints are violated or
+                      the operation fails. Implementations should document the
+                      specific exception types they raise.
         """
         raise NotImplementedError
 
@@ -228,17 +219,14 @@ class MetricsDatabaseAdapter(ABC):
         conn: object,
     ) -> None:
         """Write turn metrics.
-        <<<<<<< HEAD
-        =======
 
-                conn: Connection.
-        >>>>>>> origin/main
+        conn: Connection.
 
-                Note:
-                    This write is idempotent: an existing row with the same (run_id,
-                    turn_number) may be replaced. Callers can safely retry or recompute;
-                    duplicate writes do not raise. Implementations (e.g. SQLite) may use
-                    INSERT OR REPLACE (delete+insert semantics).
+        Note:
+            This write is idempotent: an existing row with the same (run_id,
+            turn_number) may be replaced. Callers can safely retry or recompute;
+            duplicate writes do not raise. Implementations (e.g. SQLite) may use
+            INSERT OR REPLACE (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -262,17 +250,14 @@ class MetricsDatabaseAdapter(ABC):
         conn: object,
     ) -> None:
         """Write run metrics.
-        <<<<<<< HEAD
-        =======
 
-                conn: Connection.
-        >>>>>>> origin/main
+        conn: Connection.
 
-                Note:
-                    This write is idempotent: an existing row with the same run_id may be
-                    replaced. Callers can safely retry or recompute; duplicate writes do
-                    not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
-                    (delete+insert semantics).
+        Note:
+            This write is idempotent: an existing row with the same run_id may be
+            replaced. Callers can safely retry or recompute; duplicate writes do
+            not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
+            (delete+insert semantics).
         """
         raise NotImplementedError
 
@@ -736,6 +721,16 @@ class AgentBioDatabaseAdapter(ABC):
         """Read all bios for an agent, ordered by created_at DESC."""
         raise NotImplementedError
 
+    @abstractmethod
+    def read_latest_agent_bios_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, AgentBio | None]:
+        """Read the latest bio per agent_id for the given agent IDs.
+
+        Returns dict mapping agent_id -> AgentBio | None.
+        """
+        raise NotImplementedError
+
 
 class UserAgentProfileMetadataDatabaseAdapter(ABC):
     """Abstract interface for user agent profile metadata database operations."""
@@ -759,4 +754,14 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
         self, agent_id: str, *, conn: object
     ) -> UserAgentProfileMetadata | None:
         """Read metadata by agent_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Read metadata for the given agent IDs.
+
+        Returns dict mapping agent_id -> metadata | None.
+        """
         raise NotImplementedError

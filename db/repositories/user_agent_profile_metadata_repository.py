@@ -1,5 +1,7 @@
 """SQLite implementation of user agent profile metadata repositories."""
 
+from collections.abc import Iterable
+
 from db.adapters.base import (
     TransactionProvider,
     UserAgentProfileMetadataDatabaseAdapter,
@@ -39,6 +41,13 @@ class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepositor
         """Get metadata by agent_id."""
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_by_agent_id(agent_id, conn=c)
+
+    def get_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Return metadata per agent_id for the given agent IDs."""
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_metadata_by_agent_ids(agent_ids, conn=c)
 
 
 def create_sqlite_user_agent_profile_metadata_repository(

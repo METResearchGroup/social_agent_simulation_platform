@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
-from lib.rate_limiting import limiter
+from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.dependencies.auth import require_auth
 from simulation.api.dummy_data import get_default_config_dummy
@@ -110,6 +110,7 @@ async def get_simulation_agents_mock(
     summary="Create simulation agent",
     description="Create a user-generated agent.",
 )
+@limiter.limit(RATE_LIMIT_AGENTS_CREATE)
 @log_route_completion_decorator(
     route=SIMULATION_AGENTS_CREATE_ROUTE, success_type=AgentSchema
 )

@@ -1,6 +1,11 @@
-"""SQLite implementation of agent persona bio database adapter."""
+"""SQLite implementation of agent persona bio database adapter.
+
+TODO: For caching or async, consider a caching layer around
+read_latest_bios_by_agent_ids or an async batch loader (e.g. DataLoader).
+"""
 
 import sqlite3
+from collections.abc import Iterable
 
 from db.adapters.base import AgentBioDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
@@ -79,4 +84,29 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
         for row in rows:
             self._validate_agent_bio_row(row)
             result.append(self._row_to_agent_bio(row))
+        return result
+
+    def read_latest_agent_bios_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: sqlite3.Connection
+    ) -> dict[str, AgentBio | None]:
+        """Read the latest bio per agent_id for the given agent IDs."""
+        agent_ids_list = list(agent_ids)
+        if not agent_ids_list:
+            return {}
+        q_marks = ",".join("?" for _ in agent_ids_list)
+        sql = (
+            "SELECT * FROM agent_persona_bios "
+            f"WHERE agent_id IN ({q_marks}) "
+            "ORDER BY agent_id, created_at DESC"
+        )
+        rows = conn.execute(sql, tuple(agent_ids_list)).fetchall()
+        result: dict[str, AgentBio | None] = {}
+        for row in rows:
+            aid = row["agent_id"]
+            if aid not in result:
+                self._validate_agent_bio_row(row)
+                result[aid] = self._row_to_agent_bio(row)
+        for aid in agent_ids_list:
+            if aid not in result:
+                result[aid] = None
         return result
