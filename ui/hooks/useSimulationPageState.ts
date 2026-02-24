@@ -90,7 +90,6 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [agentsError, setAgentsError] = useState<Error | null>(null);
   const [retryAgentsTrigger, setRetryAgentsTrigger] = useState<number>(0);
   const [agentsHasMore, setAgentsHasMore] = useState<boolean>(false);
-  const [agentsOffset, setAgentsOffset] = useState<number>(0);
   const [mockAgents, setMockAgents] = useState<Agent[]>([]);
   const [mockAgentsLoading, setMockAgentsLoading] = useState<boolean>(true);
   const [mockAgentsError, setMockAgentsError] = useState<Error | null>(null);
@@ -117,12 +116,12 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
   const agentsRequestIdRef = useRef<number>(0);
   const agentsLoadMoreRequestIdRef = useRef<number>(0);
+  const agentsOffsetRef = useRef<number>(0);
   const mockAgentsRequestIdRef = useRef<number>(0);
   const runsRequestIdRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
-    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -164,7 +163,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setAgentsLoading(true);
     setAgentsError(null);
     setAgentsHasMore(false);
-    setAgentsOffset(0);
+    agentsOffsetRef.current = 0;
     setAgentsLoadingMore(false);
 
     const loadAgents = async (): Promise<void> => {
@@ -175,7 +174,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
         });
         if (!isMounted || requestId !== agentsRequestIdRef.current) return;
         setAgents(apiAgents);
-        setAgentsOffset(apiAgents.length);
+        agentsOffsetRef.current = apiAgents.length;
         setAgentsHasMore(apiAgents.length === DEFAULT_AGENT_PAGE_SIZE);
       } catch (error: unknown) {
         console.error('Failed to fetch agents:', error);
@@ -369,13 +368,13 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       try {
         const nextPage: Agent[] = await getAgents({
           limit: DEFAULT_AGENT_PAGE_SIZE,
-          offset: agentsOffset,
+          offset: agentsOffsetRef.current,
         });
         if (!isMountedRef.current || requestId !== agentsLoadMoreRequestIdRef.current) {
           return;
         }
         setAgents((prev) => [...prev, ...nextPage]);
-        setAgentsOffset((prev) => prev + nextPage.length);
+        agentsOffsetRef.current += nextPage.length;
         setAgentsHasMore(nextPage.length === DEFAULT_AGENT_PAGE_SIZE);
       } catch (error: unknown) {
         console.error('Failed to load more agents:', error);
@@ -389,7 +388,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
 
     void loadMore();
-  }, [agentsHasMore, agentsLoading, agentsLoadingMore, agentsOffset]);
+  }, [agentsHasMore, agentsLoading, agentsLoadingMore]);
 
   const handleRetryMockAgents = (): void => {
     setMockAgentsError(null);
