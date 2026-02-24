@@ -25,7 +25,7 @@ class AgentRepository(ABC):
 
     @abstractmethod
     def create_or_update_agent(self, agent: Agent, conn: object | None = None) -> Agent:
-        """Create or update an agent. When conn is provided, use it for transactional writes."""
+        """Create or update an agent."""
         raise NotImplementedError
 
     @abstractmethod
@@ -49,7 +49,7 @@ class AgentBioRepository(ABC):
 
     @abstractmethod
     def create_agent_bio(self, bio: AgentBio, conn: object | None = None) -> AgentBio:
-        """Create an agent bio. When conn is provided, use it for transactional writes."""
+        """Create an agent bio."""
         raise NotImplementedError
 
     @abstractmethod
@@ -70,7 +70,7 @@ class UserAgentProfileMetadataRepository(ABC):
     def create_or_update_metadata(
         self, metadata: UserAgentProfileMetadata, conn: object | None = None
     ) -> UserAgentProfileMetadata:
-        """Create or update user agent profile metadata. When conn is provided, use it for transactional writes."""
+        """Create or update user agent profile metadata."""
         raise NotImplementedError
 
     @abstractmethod
@@ -105,8 +105,6 @@ class RunRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Update a run's status.
-
-        When conn is provided, implementation uses it and does not commit.
 
         Raises:
             RunNotFoundError: If the run with the given ID does not exist
@@ -157,8 +155,6 @@ class RunRepository(ABC):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection for transactional use; when provided,
-                  implementation uses it and does not commit.
 
         Raises:
             ValueError: If turn_metadata is invalid
@@ -177,8 +173,6 @@ class MetricsRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Write computed metrics for a specific run/turn.
-
-        When conn is provided, use it and do not commit (for transactional use).
 
         Note:
             This write is idempotent: an existing row with the same (run_id,
@@ -205,8 +199,6 @@ class MetricsRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Write computed metrics for a run.
-
-        When conn is provided, use it and do not commit (for transactional use).
 
         Note:
             This write is idempotent: an existing row with the same run_id may be

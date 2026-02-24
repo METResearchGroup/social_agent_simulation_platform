@@ -30,8 +30,7 @@ class TransactionProvider(ABC):
     def run_transaction(self) -> AbstractContextManager[object]:
         """Enter a transaction and yield a connection.
 
-        Commit on normal exit, roll back on exception. The yielded object
-        is passed to repositories as their conn parameter.
+        Commit on normal exit, roll back on exception.
         """
         raise NotImplementedError
 
@@ -114,8 +113,6 @@ class RunDatabaseAdapter(ABC):
             status: New status value (should be a valid RunStatus enum value as string)
             completed_at: Optional timestamp when the run was completed.
                          Should be set when status is 'completed', None otherwise.
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
@@ -137,8 +134,6 @@ class RunDatabaseAdapter(ABC):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Optional connection. When provided, use it and do not open/close
-                  or commit; when None, use a new connection (caller manages lifecycle).
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -189,8 +184,6 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Optional connection. When provided, use it and do not commit;
-                  when None, use a new connection and commit.
 
         Raises:
             DuplicateTurnMetadataError: If turn metadata already exists
@@ -210,7 +203,7 @@ class MetricsDatabaseAdapter(ABC):
         turn_metrics: TurnMetrics,
         conn: object | None = None,
     ) -> None:
-        """Write turn metrics. When conn is provided, use it and do not commit.
+        """Write turn metrics.
 
         Note:
             This write is idempotent: an existing row with the same (run_id,
@@ -234,7 +227,7 @@ class MetricsDatabaseAdapter(ABC):
         run_metrics: RunMetrics,
         conn: object | None = None,
     ) -> None:
-        """Write run metrics. When conn is provided, use it and do not commit.
+        """Write run metrics.
 
         Note:
             This write is idempotent: an existing row with the same run_id may be
@@ -622,9 +615,6 @@ class AgentDatabaseAdapter(ABC):
     def write_agent(self, agent: Agent, conn: object | None = None) -> None:
         """Write an agent to the database.
 
-        When conn is provided, use it and do not commit; when None, use a new
-        connection and commit.
-
         Note:
             Idempotent: an existing row with the same agent_id may be replaced.
         """
@@ -651,11 +641,7 @@ class AgentBioDatabaseAdapter(ABC):
 
     @abstractmethod
     def write_agent_bio(self, bio: AgentBio, conn: object | None = None) -> None:
-        """Write an agent bio to the database.
-
-        When conn is provided, use it and do not commit; when None, use a new
-        connection and commit.
-        """
+        """Write an agent bio to the database."""
         raise NotImplementedError
 
     @abstractmethod
@@ -677,9 +663,6 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
         self, metadata: UserAgentProfileMetadata, conn: object | None = None
     ) -> None:
         """Write user agent profile metadata.
-
-        When conn is provided, use it and do not commit; when None, use a new
-        connection and commit.
 
         Note:
             Idempotent: an existing row with the same agent_id may be replaced.

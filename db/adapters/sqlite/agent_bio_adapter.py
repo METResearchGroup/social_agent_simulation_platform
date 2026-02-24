@@ -40,9 +40,6 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
     ) -> None:
         """Write an agent bio to SQLite.
 
-        When conn is provided, use it and do not commit; when None, use a new
-        connection and commit.
-
         Raises:
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails
