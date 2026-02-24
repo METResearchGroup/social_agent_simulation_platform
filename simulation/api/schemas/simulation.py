@@ -47,6 +47,15 @@ class FeedAlgorithmSchema(FeedAlgorithmMetadata):
     id: str  # algorithm_id from registry
 
 
+class MetricSchema(BaseModel):
+    """API response for GET /v1/simulations/metrics."""
+
+    key: str
+    description: str
+    scope: str  # "turn" | "run"
+    author: str
+
+
 class ErrorDetail(BaseModel):
     """Error payload included when status is failed or on server error."""
 
