@@ -23,11 +23,14 @@ def create_agent(req: CreateAgentRequest) -> AgentSchema:
     display_name = req.display_name.strip()
     bio_text = (req.bio or "").strip() or "No bio provided."
 
-    agent_repo = create_sqlite_agent_repository()
-    bio_repo = create_sqlite_agent_bio_repository()
-    metadata_repo = create_sqlite_user_agent_profile_metadata_repository()
+    provider = SqliteTransactionProvider()
+    agent_repo = create_sqlite_agent_repository(transaction_provider=provider)
+    bio_repo = create_sqlite_agent_bio_repository(transaction_provider=provider)
+    metadata_repo = create_sqlite_user_agent_profile_metadata_repository(
+        transaction_provider=provider
+    )
 
-    # NOTE that this can cause a slight race condition if we do this check
+    # TODO: that this can cause a slight race condition if we do this check
     # before the below context manager for writing the agent to the database.
     # This is a known issue, and we'll revisit this in the future.
     if agent_repo.get_agent_by_handle(handle) is not None:
@@ -39,8 +42,6 @@ def create_agent(req: CreateAgentRequest) -> AgentSchema:
     agent = _generate_agent(agent_id, handle, display_name, now)
     agent_bio = _generate_agent_bio(agent_id, bio_text, now)
     metadata = _generate_user_agent_profile_metadata(agent_id, now)
-
-    provider = SqliteTransactionProvider()
 
     with provider.run_transaction() as conn:
         agent_repo.create_or_update_agent(agent, conn=conn)

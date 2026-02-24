@@ -20,7 +20,7 @@ class TestSQLiteProfileAdapterWriteProfile:
 
     def test_writes_profile_successfully(self, adapter, mock_db_connection):
         """Test that write_profile executes INSERT OR REPLACE correctly."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             profile = BlueskyProfile(
                 handle="test.bsky.social",
                 did="did:plc:test123",
@@ -31,7 +31,7 @@ class TestSQLiteProfileAdapterWriteProfile:
                 posts_count=25,
             )
 
-            adapter.write_profile(profile)
+            adapter.write_profile(profile, conn=mock_conn)
 
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
@@ -45,11 +45,10 @@ class TestSQLiteProfileAdapterWriteProfile:
                 50,
                 25,
             )
-            mock_conn.commit.assert_called_once()
 
     def test_handles_sqlite_integrity_error(self, adapter, mock_db_connection):
         """Test that IntegrityError is raised when constraints are violated."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = sqlite3.IntegrityError(
                 "Constraint violation"
             )
@@ -65,7 +64,7 @@ class TestSQLiteProfileAdapterWriteProfile:
             )
 
             with pytest.raises(sqlite3.IntegrityError):
-                adapter.write_profile(profile)
+                adapter.write_profile(profile, conn=mock_conn)
 
 
 class TestSQLiteProfileAdapterReadProfile:
@@ -73,7 +72,7 @@ class TestSQLiteProfileAdapterReadProfile:
 
     def test_returns_profile_when_found(self, adapter, mock_db_connection):
         """Test that read_profile returns BlueskyProfile when found."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             row_data = {
                 "handle": "test.bsky.social",
                 "did": "did:plc:test123",
@@ -85,7 +84,7 @@ class TestSQLiteProfileAdapterReadProfile:
             }
             mock_cursor.fetchone.return_value = create_mock_row(row_data)
 
-            result = adapter.read_profile("test.bsky.social")
+            result = adapter.read_profile("test.bsky.social", conn=mock_conn)
 
             assert result is not None
             assert isinstance(result, BlueskyProfile)
@@ -95,10 +94,10 @@ class TestSQLiteProfileAdapterReadProfile:
 
     def test_returns_none_when_not_found(self, adapter, mock_db_connection):
         """Test that read_profile returns None when profile not found."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = None
 
-            result = adapter.read_profile("nonexistent.bsky.social")
+            result = adapter.read_profile("nonexistent.bsky.social", conn=mock_conn)
 
             assert result is None
 
@@ -110,7 +109,7 @@ class TestSQLiteProfileAdapterReadProfile:
         self, adapter, mock_db_connection, null_field, expected_message
     ):
         """Test that read_profile raises ValueError when a required field is NULL."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             row_data = {
                 "handle": "test.bsky.social",
                 "did": "did:plc:test123",
@@ -124,19 +123,17 @@ class TestSQLiteProfileAdapterReadProfile:
             mock_cursor.fetchone.return_value = create_mock_row(row_data)
 
             with pytest.raises(ValueError, match=expected_message):
-                adapter.read_profile("test.bsky.social")
+                adapter.read_profile("test.bsky.social", conn=mock_conn)
 
     def test_raises_operational_error_on_database_locked(
         self, adapter, mock_db_connection
     ):
         """Test that read_profile raises OperationalError when database is locked."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_cursor.fetchone.side_effect = sqlite3.OperationalError(
-                "Database locked"
-            )
+        with mock_db_connection() as (mock_conn, mock_cursor):
+            mock_conn.execute.side_effect = sqlite3.OperationalError("Database locked")
 
             with pytest.raises(sqlite3.OperationalError, match="Database locked"):
-                adapter.read_profile("test.bsky.social")
+                adapter.read_profile("test.bsky.social", conn=mock_conn)
 
 
 class TestSQLiteProfileAdapterReadAllProfiles:
@@ -144,7 +141,7 @@ class TestSQLiteProfileAdapterReadAllProfiles:
 
     def test_returns_all_profiles(self, adapter, mock_db_connection):
         """Test that read_all_profiles returns list of all profiles."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             row_data_1 = {
                 "handle": "test1.bsky.social",
                 "did": "did:plc:test1",
@@ -168,7 +165,7 @@ class TestSQLiteProfileAdapterReadAllProfiles:
                 create_mock_row(row_data_2),
             ]
 
-            result = adapter.read_all_profiles()
+            result = adapter.read_all_profiles(conn=mock_conn)
 
             assert len(result) == 2
             assert result[0].handle == "test1.bsky.social"
@@ -176,17 +173,17 @@ class TestSQLiteProfileAdapterReadAllProfiles:
 
     def test_returns_empty_list_when_no_profiles(self, adapter, mock_db_connection):
         """Test that read_all_profiles returns empty list when no profiles exist."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall.return_value = []
 
-            result = adapter.read_all_profiles()
+            result = adapter.read_all_profiles(conn=mock_conn)
 
             assert result == []
             assert isinstance(result, list)
 
     def test_raises_value_error_on_null_field(self, adapter, mock_db_connection):
         """Test that read_all_profiles raises ValueError when any field is NULL."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             row_data = {
                 "handle": "test.bsky.social",
                 "did": None,  # NULL field
@@ -199,16 +196,14 @@ class TestSQLiteProfileAdapterReadAllProfiles:
             mock_cursor.fetchall.return_value = [create_mock_row(row_data)]
 
             with pytest.raises(ValueError, match="did cannot be NULL"):
-                adapter.read_all_profiles()
+                adapter.read_all_profiles(conn=mock_conn)
 
     def test_raises_operational_error_on_database_locked(
         self, adapter, mock_db_connection
     ):
         """Test that read_all_profiles raises OperationalError when database is locked."""
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_cursor.fetchall.side_effect = sqlite3.OperationalError(
-                "Database locked"
-            )
+        with mock_db_connection() as (mock_conn, mock_cursor):
+            mock_conn.execute.side_effect = sqlite3.OperationalError("Database locked")
 
             with pytest.raises(sqlite3.OperationalError, match="Database locked"):
-                adapter.read_all_profiles()
+                adapter.read_all_profiles(conn=mock_conn)

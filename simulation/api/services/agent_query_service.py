@@ -1,5 +1,6 @@
 """Read-side CQRS service for simulation agent lookup APIs."""
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.interfaces import (
@@ -16,9 +17,12 @@ from simulation.core.models.agent import Agent
 
 def list_agents() -> list[AgentSchema]:
     """Return agents from DB, mapped to AgentSchema, sorted by handle."""
-    agent_repo = create_sqlite_agent_repository()
-    bio_repo = create_sqlite_agent_bio_repository()
-    metadata_repo = create_sqlite_user_agent_profile_metadata_repository()
+    provider = SqliteTransactionProvider()
+    agent_repo = create_sqlite_agent_repository(transaction_provider=provider)
+    bio_repo = create_sqlite_agent_bio_repository(transaction_provider=provider)
+    metadata_repo = create_sqlite_user_agent_profile_metadata_repository(
+        transaction_provider=provider
+    )
 
     agents = agent_repo.list_all_agents()
     result: list[AgentSchema] = []

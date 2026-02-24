@@ -4,7 +4,7 @@ import sqlite3
 
 from db.adapters.base import UserAgentProfileMetadataDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
-from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import user_agent_profile_metadata
 from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -37,9 +37,7 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
         )
 
     def write_user_agent_profile_metadata(
-        self,
-        metadata: UserAgentProfileMetadata,
-        conn: sqlite3.Connection | None = None,
+        self, metadata: UserAgentProfileMetadata, *, conn: sqlite3.Connection
     ) -> None:
         """Write user agent profile metadata to SQLite.
 
@@ -48,22 +46,18 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
             sqlite3.OperationalError: If database operation fails
         """
         row_values = tuple(getattr(metadata, col) for col in METADATA_COLUMNS)
-        if conn is not None:
-            conn.execute(_INSERT_METADATA_SQL, row_values)
-        else:
-            with get_connection() as c:
-                c.execute(_INSERT_METADATA_SQL, row_values)
-                c.commit()
+        conn.execute(_INSERT_METADATA_SQL, row_values)
 
-    def read_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
+    def read_by_agent_id(
+        self, agent_id: str, *, conn: sqlite3.Connection
+    ) -> UserAgentProfileMetadata | None:
         """Read metadata by agent_id."""
         validate_non_empty_string(agent_id, "agent_id")
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM user_agent_profile_metadata WHERE agent_id = ?",
-                (agent_id,),
-            ).fetchone()
-            if row is None:
-                return None
-            self._validate_metadata_row(row)
-            return self._row_to_metadata(row)
+        row = conn.execute(
+            "SELECT * FROM user_agent_profile_metadata WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        self._validate_metadata_row(row)
+        return self._row_to_metadata(row)

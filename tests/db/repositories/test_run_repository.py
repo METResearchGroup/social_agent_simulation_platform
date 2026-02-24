@@ -1,11 +1,12 @@
 """Tests for db.repositories.run_repository module."""
 
 import uuid
+from contextlib import contextmanager
 from unittest.mock import Mock, patch
 
 import pytest
 
-from db.adapters.base import RunDatabaseAdapter
+from db.adapters.base import RunDatabaseAdapter, TransactionProvider
 from db.repositories.run_repository import SQLiteRunRepository as _SQLiteRunRepository
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
@@ -19,13 +20,29 @@ from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
+def _make_mock_transaction_provider() -> TransactionProvider:
+    """Create a mock TransactionProvider that yields a mock conn."""
+
+    class MockTransactionProvider:
+        @contextmanager
+        def run_transaction(self):
+            conn = Mock()
+            yield conn
+
+    return MockTransactionProvider()  # type: ignore
+
+
 class SQLiteRunRepository(_SQLiteRunRepository):
     """Test-only shim that patches timestamp function from injected mock."""
 
     def __init__(
-        self, db_adapter: RunDatabaseAdapter, get_timestamp: Mock | None = None
+        self,
+        db_adapter: RunDatabaseAdapter,
+        transaction_provider: TransactionProvider | None = None,
+        get_timestamp: Mock | None = None,
     ):
-        super().__init__(db_adapter)
+        tp = transaction_provider or _make_mock_transaction_provider()
+        super().__init__(db_adapter=db_adapter, transaction_provider=tp)
         self._mock_get_timestamp = get_timestamp
 
     def create_run(self, config: RunConfig) -> Run:
@@ -87,7 +104,9 @@ class TestSQLiteRunRepositoryCreateRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         expected_timestamp = "2024_01_01-12:00:00"
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
@@ -114,7 +133,9 @@ class TestSQLiteRunRepositoryCreateRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_02_15-15:30:45")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=20, num_turns=50, feed_algorithm="chronological")
         expected_timestamp = "2024_02_15-15:30:45"
         mock_uuid_val = uuid.UUID("00000000-0000-0000-0000-000000000000")
@@ -135,7 +156,9 @@ class TestSQLiteRunRepositoryCreateRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Act
@@ -157,7 +180,9 @@ class TestSQLiteRunRepositoryCreateRun:
         timestamp1 = "2024_01_01-12:00:00"
         timestamp2 = "2024_01_01-12:00:01"
         mock_get_timestamp = Mock(side_effect=[timestamp1, timestamp2])
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         uuid1 = uuid.UUID("11111111-1111-1111-1111-111111111111")
         uuid2 = uuid.UUID("22222222-2222-2222-2222-222222222222")
@@ -179,7 +204,9 @@ class TestSQLiteRunRepositoryCreateRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Act
@@ -193,7 +220,9 @@ class TestSQLiteRunRepositoryCreateRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Act
@@ -208,7 +237,9 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         expected_timestamp = "2024_01_01-12:00:00"
         mock_get_timestamp = Mock(return_value=expected_timestamp)
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
         expected_run_id = f"run_{expected_timestamp}_{mock_uuid_val}"
@@ -232,7 +263,9 @@ class TestSQLiteRunRepositoryCreateRun:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         expected_timestamp = "2024_01_01-12:00:00"
         mock_get_timestamp = Mock(return_value=expected_timestamp)
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
         expected_run_id = f"run_{expected_timestamp}_{mock_uuid_val}"
@@ -253,7 +286,9 @@ class TestSQLiteRunRepositoryCreateRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
         original_error = ValueError("Invalid data")
         mock_adapter.write_run.side_effect = original_error
@@ -273,7 +308,9 @@ class TestSQLiteRunRepositoryGetRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         expected = Run(
             run_id=run_id,
@@ -298,14 +335,18 @@ class TestSQLiteRunRepositoryGetRun:
         assert result.started_at == expected.started_at
         assert result.status == expected.status
         assert result.completed_at == expected.completed_at
-        mock_adapter.read_run.assert_called_once_with(run_id)
+        mock_adapter.read_run.assert_called_once()
+        assert mock_adapter.read_run.call_args[0][0] == run_id
+        assert mock_adapter.read_run.call_args[1]["conn"] is not None
 
     def test_returns_none_when_run_not_found(self):
         """Test that get_run returns None when run does not exist."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "nonexistent_run"
         mock_adapter.read_run.return_value = None
 
@@ -314,14 +355,18 @@ class TestSQLiteRunRepositoryGetRun:
 
         # Assert
         assert result is None
-        mock_adapter.read_run.assert_called_once_with(run_id)
+        mock_adapter.read_run.assert_called_once()
+        assert mock_adapter.read_run.call_args[0][0] == run_id
+        assert mock_adapter.read_run.call_args[1]["conn"] is not None
 
     def test_calls_read_run_with_correct_run_id(self):
         """Test that get_run calls read_run with the correct run_id parameter."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         mock_adapter.read_run.return_value = None
 
@@ -329,14 +374,18 @@ class TestSQLiteRunRepositoryGetRun:
         repo.get_run(run_id)
 
         # Assert
-        mock_adapter.read_run.assert_called_once_with(run_id)
+        mock_adapter.read_run.assert_called_once()
+        assert mock_adapter.read_run.call_args[0][0] == run_id
+        assert mock_adapter.read_run.call_args[1]["conn"] is not None
 
     def test_returns_completed_run_correctly(self):
         """Test that get_run returns a completed run with completed_at timestamp."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         expected = Run(
             run_id=run_id,
@@ -362,7 +411,9 @@ class TestSQLiteRunRepositoryGetRun:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         expected = Run(
             run_id=run_id,
@@ -391,7 +442,9 @@ class TestSQLiteRunRepositoryListRuns:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         expected = []
         mock_adapter.read_all_runs.return_value = expected
 
@@ -403,13 +456,16 @@ class TestSQLiteRunRepositoryListRuns:
         assert isinstance(result, list)
         assert len(result) == 0
         mock_adapter.read_all_runs.assert_called_once()
+        assert mock_adapter.read_all_runs.call_args[1]["conn"] is not None
 
     def test_returns_all_runs_when_runs_exist(self):
         """Test that list_runs returns all runs from the database."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         expected = [
             Run(
                 run_id="run_1",
@@ -445,7 +501,9 @@ class TestSQLiteRunRepositoryListRuns:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         expected = [
             Run(
                 run_id="run_newest",
@@ -480,7 +538,9 @@ class TestSQLiteRunRepositoryListRuns:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         mock_adapter.read_all_runs.return_value = []
 
         # Act
@@ -488,13 +548,16 @@ class TestSQLiteRunRepositoryListRuns:
 
         # Assert
         mock_adapter.read_all_runs.assert_called_once()
+        assert mock_adapter.read_all_runs.call_args[1]["conn"] is not None
 
     def test_handles_large_number_of_runs(self):
         """Test that list_runs handles a large number of runs correctly."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         expected = [
             Run(
                 run_id=f"run_{i}",
@@ -526,7 +589,9 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         expected_timestamp = "2024_01_01-13:00:00"
         mock_get_timestamp = Mock(return_value=expected_timestamp)
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         status = RunStatus.COMPLETED
         current_run = Run(
@@ -547,16 +612,20 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Verify that status enum is converted to string value
         mock_adapter.update_run_status.assert_called_once()
         call_args = mock_adapter.update_run_status.call_args[0]
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
-        assert call_args[2] == expected_timestamp
+        assert call_kwargs["completed_at"] == expected_timestamp
+        assert call_kwargs["conn"] is not None  # repo opened transaction
 
     def test_updates_status_to_failed_without_completed_at(self):
         """Test that update_run_status sets completed_at to None for FAILED status."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         status = RunStatus.FAILED
         current_run = Run(
@@ -573,17 +642,21 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Act
         repo.update_run_status(run_id, status)
 
-        # Assert
-        mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, None, conn=None
-        )
+        # Assert (conn from repo's transaction when conn not passed)
+        mock_adapter.update_run_status.assert_called_once()
+        call = mock_adapter.update_run_status.call_args
+        assert call[0][:2] == (run_id, status.value)
+        assert call[1]["completed_at"] is None
+        assert call[1]["conn"] is not None
 
     def test_updates_status_to_running_without_completed_at(self):
         """Test that update_run_status sets completed_at to None for RUNNING status."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         status = RunStatus.RUNNING
         current_run = Run(
@@ -600,10 +673,12 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Act
         repo.update_run_status(run_id, status)
 
-        # Assert
-        mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, None, conn=None
-        )
+        # Assert (conn from repo's transaction when conn not passed)
+        mock_adapter.update_run_status.assert_called_once()
+        call = mock_adapter.update_run_status.call_args
+        assert call[0][:2] == (run_id, status.value)
+        assert call[1]["completed_at"] is None
+        assert call[1]["conn"] is not None
 
     def test_calls_update_run_status_with_correct_parameters_for_completed(self):
         """Test that update_run_status calls db function with correct parameters for COMPLETED."""
@@ -611,7 +686,9 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         expected_timestamp = "2024_01_01-13:00:00"
         mock_get_timestamp = Mock(return_value=expected_timestamp)
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         status = RunStatus.COMPLETED
         current_run = Run(
@@ -631,16 +708,19 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert
         mock_adapter.update_run_status.assert_called_once()
         call_args = mock_adapter.update_run_status.call_args[0]
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
-        assert call_args[2] == expected_timestamp
+        assert call_kwargs["completed_at"] == expected_timestamp
 
     def test_calls_update_run_status_with_correct_parameters_for_failed(self):
         """Test that update_run_status calls db function with correct parameters for FAILED."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         status = RunStatus.FAILED
         current_run = Run(
@@ -660,9 +740,10 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert
         mock_adapter.update_run_status.assert_called_once()
         call_args = mock_adapter.update_run_status.call_args[0]
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
-        assert call_args[2] is None
+        assert call_kwargs["completed_at"] is None
 
     def test_uses_current_timestamp_for_completed_status(self):
         """Test that update_run_status uses get_current_timestamp for COMPLETED status."""
@@ -671,7 +752,9 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         timestamp1 = "2024_01_01-13:00:00"
         timestamp2 = "2024_01_01-14:00:00"
         mock_get_timestamp = Mock(side_effect=[timestamp1, timestamp2])
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         status = RunStatus.COMPLETED
         current_run = Run(
@@ -688,17 +771,21 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Act
         repo.update_run_status(run_id, status)
 
-        # Assert
-        mock_adapter.update_run_status.assert_called_once_with(
-            run_id, status.value, timestamp1, conn=None
-        )
+        # Assert (conn from repo's transaction when conn not passed)
+        mock_adapter.update_run_status.assert_called_once()
+        call = mock_adapter.update_run_status.call_args
+        assert call[0][:2] == (run_id, status.value)
+        assert call[1]["completed_at"] == timestamp1
+        assert call[1]["conn"] is not None
 
     def test_handles_valid_transitions_from_running(self):
         """Test that update_run_status handles all valid transitions from RUNNING status."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -723,13 +810,15 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
             # Act
             repo.update_run_status(run_id, status)
 
-            # Assert
+            # Assert (conn from repo's transaction when conn not passed)
             expected_completed_at = (
                 "2024_01_01-13:00:00" if status == RunStatus.COMPLETED else None
             )
-            mock_adapter.update_run_status.assert_called_once_with(
-                run_id, status.value, expected_completed_at, conn=None
-            )
+            mock_adapter.update_run_status.assert_called_once()
+            call = mock_adapter.update_run_status.call_args
+            assert call[0][:2] == (run_id, status.value)
+            assert call[1]["completed_at"] == expected_completed_at
+            assert call[1]["conn"] is not None
 
 
 class TestSQLiteRunRepositoryStateMachineValidation:
@@ -740,7 +829,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -764,7 +855,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -788,7 +881,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-14:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -812,7 +907,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -839,7 +936,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -865,7 +964,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -891,7 +992,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -917,7 +1020,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -946,7 +1051,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -974,7 +1081,9 @@ class TestSQLiteRunRepositoryStateMachineValidation:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "nonexistent_run"
         mock_adapter.read_run.return_value = None
 
@@ -1077,7 +1186,9 @@ class TestDomainExceptions:
         """Test that RunStatusUpdateError is raised when database update fails."""
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-13:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         current_run = Run(
             run_id=run_id,
@@ -1108,7 +1219,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
 
@@ -1133,14 +1246,21 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         assert result.turn_number == expected.turn_number
         assert result.total_actions == expected.total_actions
         assert result.created_at == expected.created_at
-        mock_adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        mock_adapter.read_turn_metadata.assert_called_once()
+        assert mock_adapter.read_turn_metadata.call_args[0][:2] == (
+            run_id,
+            turn_number,
+        )
+        assert mock_adapter.read_turn_metadata.call_args[1]["conn"] is not None
 
     def test_returns_none_when_not_found(self):
         """Test that get_turn_metadata returns None when metadata doesn't exist."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
         mock_adapter.read_turn_metadata.return_value = None
@@ -1150,14 +1270,21 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
 
         # Assert
         assert result is None
-        mock_adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        mock_adapter.read_turn_metadata.assert_called_once()
+        assert mock_adapter.read_turn_metadata.call_args[0][:2] == (
+            run_id,
+            turn_number,
+        )
+        assert mock_adapter.read_turn_metadata.call_args[1]["conn"] is not None
 
     def test_raises_valueerror_for_empty_run_id(self):
         """Test that get_turn_metadata raises ValueError for empty run_id."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = ""
         turn_number = 0
 
@@ -1173,7 +1300,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "   "
         turn_number = 0
 
@@ -1189,7 +1318,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = -1
 
@@ -1205,7 +1336,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
         adapter_error = ValueError("Invalid data from adapter")
@@ -1220,7 +1353,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
         adapter_error = KeyError("missing column")
@@ -1235,7 +1370,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 5
         mock_adapter.read_turn_metadata.return_value = None
@@ -1244,14 +1381,21 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         repo.get_turn_metadata(run_id, turn_number)
 
         # Assert
-        mock_adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        mock_adapter.read_turn_metadata.assert_called_once()
+        assert mock_adapter.read_turn_metadata.call_args[0][:2] == (
+            run_id,
+            turn_number,
+        )
+        assert mock_adapter.read_turn_metadata.call_args[1]["conn"] is not None
 
     def test_handles_turn_metadata_with_all_action_types(self):
         """Test that get_turn_metadata handles all action types correctly."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
 
@@ -1284,7 +1428,9 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
 
@@ -1319,7 +1465,9 @@ class TestSQLiteRunRepositoryListTurnMetadata:
     def test_returns_ordered_turn_metadata_list(self):
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         expected_result = [
             make_turn_metadata(
@@ -1338,12 +1486,16 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         result = repo.list_turn_metadata(run_id)
 
         assert result == expected_result
-        mock_adapter.read_turn_metadata_for_run.assert_called_once_with(run_id=run_id)
+        mock_adapter.read_turn_metadata_for_run.assert_called_once()
+        assert mock_adapter.read_turn_metadata_for_run.call_args[0][0] == run_id
+        assert mock_adapter.read_turn_metadata_for_run.call_args[1]["conn"] is not None
 
     def test_returns_empty_list_when_adapter_returns_empty(self):
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         expected_result: list[TurnMetadata] = []
         mock_adapter.read_turn_metadata_for_run.return_value = expected_result
@@ -1351,12 +1503,16 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         result = repo.list_turn_metadata(run_id)
 
         assert result == expected_result
-        mock_adapter.read_turn_metadata_for_run.assert_called_once_with(run_id=run_id)
+        mock_adapter.read_turn_metadata_for_run.assert_called_once()
+        assert mock_adapter.read_turn_metadata_for_run.call_args[0][0] == run_id
+        assert mock_adapter.read_turn_metadata_for_run.call_args[1]["conn"] is not None
 
     def test_raises_valueerror_for_empty_run_id(self):
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
 
         with pytest.raises(ValueError, match="run_id cannot be empty"):
             repo.list_turn_metadata("")
@@ -1366,7 +1522,9 @@ class TestSQLiteRunRepositoryListTurnMetadata:
     def test_propagates_adapter_exceptions(self):
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         adapter_error = ValueError("Invalid turn metadata data")
         mock_adapter.read_turn_metadata_for_run.side_effect = adapter_error
@@ -1383,7 +1541,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
         turn_number = 0
 
@@ -1414,16 +1574,19 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.write_turn_metadata(turn_metadata)
 
         # Assert
-        mock_adapter.write_turn_metadata.assert_called_once_with(
-            turn_metadata, conn=None
-        )
+        mock_adapter.write_turn_metadata.assert_called_once()
+        call = mock_adapter.write_turn_metadata.call_args
+        assert call[0][0] == turn_metadata
+        assert call[1]["conn"] is not None
 
     def test_raises_run_not_found_error_when_run_does_not_exist(self):
         """Test that write_turn_metadata raises RunNotFoundError when run doesn't exist."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "nonexistent_run"
 
         # Mock get_run to return None (run doesn't exist)
@@ -1449,7 +1612,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
 
         # Mock get_run to return a run with 5 turns (0-4)
@@ -1487,7 +1652,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
 
         # Mock get_run to return a proper Run object
@@ -1517,9 +1684,10 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
 
         assert exc_info.value.run_id == run_id
         assert exc_info.value.turn_number == 0
-        mock_adapter.write_turn_metadata.assert_called_once_with(
-            turn_metadata, conn=None
-        )
+        mock_adapter.write_turn_metadata.assert_called_once()
+        call = mock_adapter.write_turn_metadata.call_args
+        assert call[0][0] == turn_metadata
+        assert call[1]["conn"] is not None
 
     def test_propagates_database_exceptions(self):
         """Test that write_turn_metadata propagates database exceptions from adapter."""
@@ -1528,7 +1696,9 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
 
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
 
         # Mock get_run to return a proper Run object
@@ -1556,16 +1726,19 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         with pytest.raises(sqlite3.OperationalError, match="Database locked"):
             repo.write_turn_metadata(turn_metadata)
 
-        mock_adapter.write_turn_metadata.assert_called_once_with(
-            turn_metadata, conn=None
-        )
+        mock_adapter.write_turn_metadata.assert_called_once()
+        call = mock_adapter.write_turn_metadata.call_args
+        assert call[0][0] == turn_metadata
+        assert call[1]["conn"] is not None
 
     def test_calls_adapter_with_correct_turn_metadata(self):
         """Test that write_turn_metadata calls adapter with correct TurnMetadata object."""
         # Arrange
         mock_adapter = Mock(spec=RunDatabaseAdapter)
         mock_get_timestamp = Mock(return_value="2024_01_01-12:00:00")
-        repo = SQLiteRunRepository(mock_adapter, mock_get_timestamp)
+        repo = SQLiteRunRepository(
+            db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
+        )
         run_id = "run_123"
 
         # Mock get_run to return a proper Run object with enough turns
@@ -1595,9 +1768,10 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.write_turn_metadata(turn_metadata)
 
         # Assert
-        mock_adapter.write_turn_metadata.assert_called_once_with(
-            turn_metadata, conn=None
-        )
+        mock_adapter.write_turn_metadata.assert_called_once()
+        call = mock_adapter.write_turn_metadata.call_args
+        assert call[0][0] == turn_metadata
+        assert call[1]["conn"] is not None
         # Verify the exact object passed
         call_args = mock_adapter.write_turn_metadata.call_args[0]
         assert len(call_args) == 1

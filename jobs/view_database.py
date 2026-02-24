@@ -1,5 +1,6 @@
 """Simple script to view all profiles and posts in the database."""
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 
@@ -41,7 +42,8 @@ def main():
     print("=" * 80)
 
     # Read and display profiles
-    profile_repo = create_sqlite_profile_repository()
+    tx = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
     profiles = profile_repo.list_profiles()
     print(f"\n📊 PROFILES ({len(profiles)} total)")
     print("=" * 80)
@@ -53,7 +55,7 @@ def main():
             print_profile(profile)
 
     # Read and display posts
-    feed_post_repo = create_sqlite_feed_post_repository()
+    feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
     posts = feed_post_repo.list_all_feed_posts()
     print(f"\n\n📝 POSTS ({len(posts)} total)")
     print("=" * 80)

@@ -1,20 +1,5 @@
 """Integration tests for jobs.migrate_agents_to_new_schema."""
 
-import os
-import tempfile
-
-import pytest
-
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
-from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
-from db.repositories.agent_repository import create_sqlite_agent_repository
-from db.repositories.generated_bio_repository import (
-    create_sqlite_generated_bio_repository,
-)
-from db.repositories.profile_repository import create_sqlite_profile_repository
-from db.repositories.user_agent_profile_metadata_repository import (
-    create_sqlite_user_agent_profile_metadata_repository,
-)
 from jobs.migrate_agents_to_new_schema import main
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
@@ -22,32 +7,8 @@ from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.profiles import BlueskyProfile
 
 
-@pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    original_path = DB_PATH
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
-    os.close(fd)
-    sqlite_module.DB_PATH = temp_path
-    initialize_database()
-    yield temp_path
-    sqlite_module.DB_PATH = original_path
-    if os.path.exists(temp_path):
-        os.unlink(temp_path)
-
-
-def _seed_legacy_data(temp_db: str) -> None:
+def _seed_legacy_data(profile_repo, generated_bio_repo) -> None:
     """Populate bluesky_profiles and agent_bios (legacy) for migration."""
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    sqlite_module.DB_PATH = temp_db
-    initialize_database()
-
-    profile_repo = create_sqlite_profile_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
-
     profile1 = BlueskyProfile(
         handle="alice.bsky.social",
         did="did:plc:alice123",
@@ -87,21 +48,24 @@ def _seed_legacy_data(temp_db: str) -> None:
 class TestMigrateAgentsToNewSchema:
     """Integration tests for the migration job."""
 
-    def test_migration_creates_agents_and_metadata(self, temp_db, capsys):
+    def test_migration_creates_agents_and_metadata(
+        self,
+        profile_repo,
+        generated_bio_repo,
+        agent_repo,
+        agent_bio_repo,
+        user_agent_profile_metadata_repo,
+        capsys,
+    ):
         """Test that migration creates agent, agent_persona_bios, user_agent_profile_metadata."""
-        import db.adapters.sqlite.sqlite as sqlite_module
-
-        _seed_legacy_data(temp_db)
-        sqlite_module.DB_PATH = temp_db
+        _seed_legacy_data(profile_repo, generated_bio_repo)
 
         main()
 
         captured = capsys.readouterr()
         assert "Migrated 2 agents." in captured.out
 
-        agent_repo = create_sqlite_agent_repository()
-        agent_bio_repo = create_sqlite_agent_bio_repository()
-        metadata_repo = create_sqlite_user_agent_profile_metadata_repository()
+        metadata_repo = user_agent_profile_metadata_repo
 
         agents = agent_repo.list_all_agents()
         assert len(agents) == 2

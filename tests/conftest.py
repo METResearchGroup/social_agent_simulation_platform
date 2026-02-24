@@ -8,6 +8,76 @@ from collections.abc import Generator
 
 import pytest
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
+from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
+from db.repositories.agent_repository import create_sqlite_agent_repository
+from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
+from db.repositories.generated_bio_repository import (
+    create_sqlite_generated_bio_repository,
+)
+from db.repositories.generated_feed_repository import (
+    create_sqlite_generated_feed_repository,
+)
+from db.repositories.metrics_repository import create_sqlite_metrics_repository
+from db.repositories.profile_repository import create_sqlite_profile_repository
+from db.repositories.run_repository import create_sqlite_repository
+from db.repositories.user_agent_profile_metadata_repository import (
+    create_sqlite_user_agent_profile_metadata_repository,
+)
+
+
+@pytest.fixture
+def sqlite_tx(temp_db):
+    """Shared TransactionProvider for SQLite integration tests."""
+    return SqliteTransactionProvider()
+
+
+@pytest.fixture
+def run_repo(temp_db, sqlite_tx):
+    return create_sqlite_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def profile_repo(temp_db, sqlite_tx):
+    return create_sqlite_profile_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def feed_post_repo(temp_db, sqlite_tx):
+    return create_sqlite_feed_post_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def generated_feed_repo(temp_db, sqlite_tx):
+    return create_sqlite_generated_feed_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def generated_bio_repo(temp_db, sqlite_tx):
+    return create_sqlite_generated_bio_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def agent_repo(temp_db, sqlite_tx):
+    return create_sqlite_agent_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def agent_bio_repo(temp_db, sqlite_tx):
+    return create_sqlite_agent_bio_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def user_agent_profile_metadata_repo(temp_db, sqlite_tx):
+    return create_sqlite_user_agent_profile_metadata_repository(
+        transaction_provider=sqlite_tx
+    )
+
+
+@pytest.fixture
+def metrics_repo(temp_db, sqlite_tx):
+    return create_sqlite_metrics_repository(transaction_provider=sqlite_tx)
+
 
 @pytest.fixture
 def temp_db(monkeypatch: pytest.MonkeyPatch) -> Generator[str, None, None]:
