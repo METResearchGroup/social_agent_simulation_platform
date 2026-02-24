@@ -283,14 +283,10 @@ export async function getAgents(params?: {
   const offset: number | undefined = params?.offset;
 
   const baseUrl: string = buildApiUrl('/simulations/agents');
-  const parts: string[] = [];
-  if (limit != null) {
-    parts.push(`limit=${encodeURIComponent(String(limit))}`);
-  }
-  if (offset != null) {
-    parts.push(`offset=${encodeURIComponent(String(offset))}`);
-  }
-  const url: string = parts.length > 0 ? `${baseUrl}?${parts.join('&')}` : baseUrl;
+  const qs = new URLSearchParams();
+  if (limit != null) qs.set('limit', String(limit));
+  if (offset != null) qs.set('offset', String(offset));
+  const url: string = qs.size > 0 ? `${baseUrl}?${qs}` : baseUrl;
 
   const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(url);
   return apiAgents.map(mapAgent);
