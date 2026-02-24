@@ -43,6 +43,8 @@ def list_agents(
 
     agents: list[Agent]
     if limit is None:
+        if offset != 0:
+            raise ValueError("offset requires limit to be set")
         agents = agent_repo.list_all_agents()
     else:
         agents = agent_repo.list_agents_page(limit=limit, offset=offset)
