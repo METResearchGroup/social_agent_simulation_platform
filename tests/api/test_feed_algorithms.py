@@ -23,4 +23,11 @@ def test_get_feed_algorithms_includes_chronological(simulation_client):
     assert chronological is not None
     assert chronological["display_name"] == "Chronological"
     assert "sorted by creation time" in chronological["description"]
-    assert chronological.get("config_schema") is None
+    assert isinstance(chronological.get("config_schema"), dict)
+    config_schema = chronological["config_schema"]
+    assert config_schema["type"] == "object"
+    assert "order" in config_schema["properties"]
+    assert config_schema["properties"]["order"]["enum"] == [
+        "newest_first",
+        "oldest_first",
+    ]

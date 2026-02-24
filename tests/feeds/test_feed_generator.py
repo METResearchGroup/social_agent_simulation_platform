@@ -6,6 +6,8 @@ import pytest
 
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
+from feeds.algorithms.interfaces import FeedAlgorithmResult
 from feeds.feed_generator import _generate_feed, generate_feeds
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
@@ -95,6 +97,7 @@ class TestGenerateFeed:
             run_id=run_id,
             turn_number=turn_number,
             feed_algorithm=feed_algorithm,
+            feed_algorithm_config=None,
         )
 
         # Assert
@@ -151,6 +154,7 @@ class TestGenerateFeed:
             run_id="run_123",
             turn_number=0,
             feed_algorithm="chronological",
+            feed_algorithm_config=None,
         )
 
         # Uri "a" < "z" alphabetically, so post_a comes before post_z
@@ -175,7 +179,52 @@ class TestGenerateFeed:
                 run_id=run_id,
                 turn_number=turn_number,
                 feed_algorithm=feed_algorithm,
+                feed_algorithm_config=None,
             )
+
+    def test_generate_feed_passes_feed_algorithm_config_to_algorithm(
+        self, sample_agent, sample_posts
+    ):
+        """_generate_feed forwards feed_algorithm_config into algorithm.generate(config=...)."""
+        mock_algorithm = Mock()
+        mock_algorithm.generate.return_value = FeedAlgorithmResult(
+            feed_id="feed-1",
+            agent_handle=sample_agent.handle,
+            post_uris=[p.uri for p in sample_posts],
+        )
+        feed_algorithm_config = {"order": "oldest_first"}
+        with patch(
+            "feeds.feed_generator.get_feed_generator", return_value=mock_algorithm
+        ):
+            _generate_feed(
+                agent=sample_agent,
+                candidate_posts=sample_posts,
+                run_id="run_123",
+                turn_number=0,
+                feed_algorithm="chronological",
+                feed_algorithm_config=feed_algorithm_config,
+            )
+
+        _, kwargs = mock_algorithm.generate.call_args
+        assert kwargs["config"] == feed_algorithm_config
+
+    def test_chronological_respects_oldest_first_config(
+        self, sample_agent, sample_posts
+    ):
+        """Chronological algorithm supports order=oldest_first."""
+        algorithm = ChronologicalFeedAlgorithm()
+        result = algorithm.generate(
+            candidate_posts=sample_posts,
+            agent=sample_agent,
+            limit=20,
+            config={"order": "oldest_first"},
+        )
+        expected_order = [
+            "at://did:plc:test1/app.bsky.feed.post/post1",
+            "at://did:plc:test2/app.bsky.feed.post/post2",
+            "at://did:plc:test3/app.bsky.feed.post/post3",
+        ]
+        assert result.post_uris == expected_order
 
 
 class TestGenerateFeeds:

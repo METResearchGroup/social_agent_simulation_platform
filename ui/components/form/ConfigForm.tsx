@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import AlgorithmSettingsSection from '@/components/form/AlgorithmSettingsSection';
+import {
+  buildDefaults,
+  normalizeConfigSchema,
+  pruneConfig,
+  validateConfig,
+} from '@/components/form/config-schema';
+import type { JsonObject } from '@/components/form/config-schema';
 import { getFeedAlgorithms } from '@/lib/api/simulation';
 import { FeedAlgorithm, RunConfig } from '@/types';
 
@@ -13,6 +21,18 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
   const [numAgents, setNumAgents] = useState(defaultConfig.numAgents);
   const [numTurns, setNumTurns] = useState(defaultConfig.numTurns);
   const [feedAlgorithm, setFeedAlgorithm] = useState<string>(defaultConfig.feedAlgorithm);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [showAlgorithmSettings, setShowAlgorithmSettings] = useState(false);
+  const [feedAlgorithmConfigByAlgId, setFeedAlgorithmConfigByAlgId] = useState<
+    Record<string, JsonObject>
+  >(() =>
+    defaultConfig.feedAlgorithmConfig
+      ? { [defaultConfig.feedAlgorithm]: defaultConfig.feedAlgorithmConfig }
+      : {},
+  );
+  const [feedAlgorithmConfig, setFeedAlgorithmConfig] = useState<JsonObject>(
+    defaultConfig.feedAlgorithmConfig || {},
+  );
   const [algorithms, setAlgorithms] = useState<FeedAlgorithm[]>([]);
   const algorithmsRequestIdRef = useRef<number>(0);
 
@@ -42,12 +62,73 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
     };
   }, []);
 
+  const selectedAlg = algorithms.find((a) => a.id === feedAlgorithm);
+  const normalizedSchema = useMemo(
+    () => normalizeConfigSchema(selectedAlg?.configSchema ?? null),
+    [selectedAlg?.configSchema],
+  );
+  const schemaFields = useMemo(() => normalizedSchema?.fields ?? [], [normalizedSchema]);
+  const configErrors = useMemo(
+    () => validateConfig(schemaFields, feedAlgorithmConfig),
+    [schemaFields, feedAlgorithmConfig],
+  );
+
+  useEffect(() => {
+    setShowAlgorithmSettings(schemaFields.length > 0);
+  }, [schemaFields.length]);
+
   const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
-    onSubmit({ numAgents, numTurns, feedAlgorithm });
+    if (Object.keys(configErrors).length > 0) {
+      setSubmitAttempted(true);
+      return;
+    }
+
+    onSubmit({
+      numAgents,
+      numTurns,
+      feedAlgorithm,
+      feedAlgorithmConfig: pruneConfig(feedAlgorithmConfig),
+    });
   };
 
-  const selectedAlg = algorithms.find((a) => a.id === feedAlgorithm);
+  useEffect(() => {
+    setSubmitAttempted(false);
+    const saved = feedAlgorithmConfigByAlgId[feedAlgorithm];
+    if (saved) {
+      setFeedAlgorithmConfig(saved);
+      return;
+    }
+
+    const defaults = buildDefaults(schemaFields);
+    setFeedAlgorithmConfig(defaults);
+    if (Object.keys(defaults).length > 0) {
+      setFeedAlgorithmConfigByAlgId((prev) => ({ ...prev, [feedAlgorithm]: defaults }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedAlgorithm, selectedAlg?.configSchema]);
+
+  const setConfigValue = (key: string, value: unknown | undefined): void => {
+    setFeedAlgorithmConfig((prev) => {
+      const next: JsonObject = { ...prev };
+      if (value === undefined) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return next;
+    });
+    setFeedAlgorithmConfigByAlgId((prev) => {
+      const existing = prev[feedAlgorithm] || {};
+      const next: JsonObject = { ...existing };
+      if (value === undefined) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return { ...prev, [feedAlgorithm]: next };
+    });
+  };
 
   return (
     <div className="flex-1 flex items-center justify-center p-8">
@@ -83,7 +164,17 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
             {selectedAlg?.description && (
               <p className="mt-1 text-sm text-beige-600">{selectedAlg.description}</p>
             )}
+            <AlgorithmSettingsSection
+              schemaFields={schemaFields}
+              feedAlgorithmConfig={feedAlgorithmConfig}
+              configErrors={configErrors}
+              submitAttempted={submitAttempted}
+              showAlgorithmSettings={showAlgorithmSettings}
+              onToggleShowAlgorithmSettings={() => setShowAlgorithmSettings((v) => !v)}
+              onSetConfigValue={setConfigValue}
+            />
           </div>
+
           <div>
             <label
               htmlFor="numAgents"
@@ -128,6 +219,7 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
           </div>
           <button
             type="submit"
+            disabled={Object.keys(configErrors).length > 0}
             className="w-full px-6 py-3 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors"
           >
             Start Simulation

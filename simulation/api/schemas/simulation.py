@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, JsonValue, field_validator, model_validator
 
 from feeds.algorithms.interfaces import FeedAlgorithmMetadata
 from simulation.core.models.actions import TurnAction
@@ -23,6 +23,7 @@ class RunRequest(BaseModel):
     num_agents: int
     num_turns: int | None = None
     feed_algorithm: str | None = None
+    feed_algorithm_config: dict[str, JsonValue] | None = None
 
     @field_validator("num_agents")
     @classmethod

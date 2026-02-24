@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 if TYPE_CHECKING:
     from simulation.core.models.agents import SocialMediaAgent
@@ -50,6 +51,7 @@ class FeedAlgorithm(ABC):
         ],  # TODO: decouple from Bluesky-specific type
         agent: SocialMediaAgent,
         limit: int,
+        config: Mapping[str, JsonValue] | None = None,
     ) -> FeedAlgorithmResult:
         """Rank and select posts.
 

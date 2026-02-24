@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, JsonValue, field_validator
 
 from lib.validation_utils import (
     validate_non_empty_string,
@@ -16,6 +16,7 @@ class RunConfig(BaseModel):
     num_agents: int
     num_turns: int
     feed_algorithm: str
+    feed_algorithm_config: dict[str, JsonValue] | None = None
 
     @field_validator("num_agents")
     @classmethod

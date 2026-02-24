@@ -41,7 +41,7 @@ def mock_feed_generator():
     """Feed generator mock that returns one empty feed per agent (satisfies validate_agents_without_feeds)."""
     mock = Mock(spec=FeedGenerator)
     mock.generate_feeds.side_effect = (
-        lambda agents, run_id, turn_number, feed_algorithm: {
+        lambda agents, run_id, turn_number, feed_algorithm, feed_algorithm_config=None: {
             a.handle: [] for a in agents
         }
     )
@@ -116,6 +116,7 @@ class TestSimulationCommandServiceExecuteRun:
                 "feed_algorithm": "chronological",
                 "num_agents": 2,
                 "num_turns": turns,
+                "feed_algorithm_config": None,
             },
         )()
 
