@@ -159,6 +159,7 @@ Document the contract, not just the implementation
 - When behavior could be surprising (e.g. overwrite vs fail-on-duplicate, retry safety), document the chosen contract (inputs, outputs, exceptions, idempotency/immutability) at the interface.
 - Prefer documenting intent at the boundary over leaving semantics to be inferred from implementation details.
 - Comment non-obvious design choices: If a choice is made for consistency, future-proofing, or maintainability rather than immediate benefit, add a short comment explaining why, so reviewers and future readers understand the intent.
+- When adding infrastructure that may be extended later (caching, read replicas, async batch loaders), add short TODO: comments at the boundary (e.g. above batch-fetch calls or in adapter docstrings) to indicate where future extensions could be wired in.
 
 Persistence and model boundaries
 

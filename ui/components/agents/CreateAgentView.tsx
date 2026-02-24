@@ -78,7 +78,14 @@ export default function CreateAgentView({
     isSubmittingRef.current = true;
     setSubmitError(null);
     setSubmitLoading(true);
-    void onSubmit({ handle: handle.trim(), displayName: displayName.trim(), bio: bio.trim() })
+    void Promise.resolve()
+      .then(() =>
+        onSubmit({
+          handle: handle.trim(),
+          displayName: displayName.trim(),
+          bio: bio.trim(),
+        }),
+      )
       .catch((err: unknown) => {
         setSubmitError(err instanceof Error ? err : new Error(String(err)));
       })
