@@ -4,11 +4,39 @@ This runbook covers how to bypass auth during local development and how to persi
 
 ---
 
-## Option 1: Bypass auth (no sign-in)
+## Option 1 (recommended): Local dev mode (no sign-in)
+
+Use this for most local development and UI work.
+
+### Backend (LOCAL=true)
+
+Run the API with `LOCAL=true`:
+
+```bash
+LOCAL=true PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload --port 8000
+```
+
+This enables auth bypass automatically and seeds a local dummy DB at `db/dev_dummy_data_db.sqlite`.
+
+### Frontend (LOCAL=true)
+
+Run the UI with `LOCAL=true`:
+
+```bash
+cd ui && LOCAL=true npm run dev
+```
+
+This automatically enables frontend auth bypass (no `.env.local` required).
+
+**Security:** Do not use `LOCAL=true` in production. The backend fails fast if `LOCAL=true` is enabled in production-like environments.
+
+---
+
+## Option 2: Bypass auth (legacy flags)
 
 Use this when you want to work on the app without configuring OAuth (e.g. for UI work, API integration).
 
-### Backend
+### Backend (DISABLE_AUTH=1)
 
 Set `DISABLE_AUTH=1` (or `true`) before starting the API:
 
@@ -22,7 +50,7 @@ Or add to `.env` in the project root (if your runner loads it):
 DISABLE_AUTH=1
 ```
 
-### Frontend
+### Frontend (NEXT_PUBLIC_DISABLE_AUTH=true)
 
 Add to `ui/.env.local`:
 
@@ -36,7 +64,7 @@ Restart the Next.js dev server. The app will render without showing the Sign-In 
 
 ---
 
-## Option 2: Real OAuth with persistent session
+## Option 3: Real OAuth with persistent session
 
 Use this when you need to test the full auth flow or session persistence.
 
@@ -45,7 +73,7 @@ Use this when you need to test the full auth flow or session persistence.
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 3. Ensure the backend has `SUPABASE_JWT_SECRET` (from Supabase Project Settings → API → JWT Secret).
-4. **Do not** set `DISABLE_AUTH` or `NEXT_PUBLIC_DISABLE_AUTH`.
+4. **Do not** set `LOCAL`, `DISABLE_AUTH`, or `NEXT_PUBLIC_DISABLE_AUTH`.
 
 ### Signing in
 
