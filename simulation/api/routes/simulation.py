@@ -9,6 +9,11 @@ from fastapi.responses import JSONResponse, Response
 from lib.decorators import timed
 from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
+from simulation.api.constants import (
+    DEFAULT_AGENT_LIST_LIMIT,
+    DEFAULT_AGENT_LIST_OFFSET,
+    MAX_AGENT_LIST_LIMIT,
+)
 from simulation.api.dependencies.auth import require_auth
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
@@ -149,13 +154,13 @@ async def post_simulation_agents(
 async def get_simulation_agents(
     request: Request,
     limit: int = Query(
-        default=100,
+        default=DEFAULT_AGENT_LIST_LIMIT,
         ge=1,
-        le=500,
+        le=MAX_AGENT_LIST_LIMIT,
         description="Maximum number of agents to return (ordered by handle).",
     ),
     offset: int = Query(
-        default=0,
+        default=DEFAULT_AGENT_LIST_OFFSET,
         ge=0,
         description="Number of agents to skip before returning results (ordered by handle).",
     ),

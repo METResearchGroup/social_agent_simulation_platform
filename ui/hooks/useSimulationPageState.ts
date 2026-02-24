@@ -16,6 +16,7 @@ import {
   getRunConfig,
   withComputedRunStatuses,
 } from '@/lib/run-selectors';
+import { DEFAULT_AGENT_PAGE_SIZE } from '@/lib/constants';
 import { ApiError, Agent, Run, RunConfig, Turn } from '@/types';
 
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
@@ -24,7 +25,6 @@ const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_TURNS_LOADING: Record<string, boolean> = {};
 const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
-const DEFAULT_AGENT_PAGE_SIZE: number = 100;
 
 /**
  * Result of useSimulationPageState.

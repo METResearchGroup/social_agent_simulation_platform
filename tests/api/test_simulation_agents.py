@@ -2,6 +2,7 @@
 
 import uuid
 
+from simulation.api.constants import DEFAULT_AGENT_LIST_LIMIT
 from simulation.api.dummy_data import DUMMY_AGENTS
 from simulation.core.models.agent import Agent, PersonaSource
 
@@ -206,9 +207,10 @@ def test_get_simulations_agents_pagination(simulation_client, temp_db, agent_rep
 def test_get_simulations_agents_default_limit_is_100(
     simulation_client, temp_db, agent_repo
 ):
-    """GET /v1/simulations/agents defaults to limit=100 when no params are provided."""
+    """GET /v1/simulations/agents defaults to DEFAULT_AGENT_LIST_LIMIT when no params are provided."""
     repo = agent_repo
-    for i in range(105):
+    total_agents = DEFAULT_AGENT_LIST_LIMIT + 5
+    for i in range(total_agents):
         handle = f"@user{i:03d}.bsky.social"
         repo.create_or_update_agent(
             Agent(
@@ -226,7 +228,7 @@ def test_get_simulations_agents_default_limit_is_100(
     assert r.status_code == 200
     data = r.json()
     assert isinstance(data, list)
-    assert len(data) == 100
+    assert len(data) == DEFAULT_AGENT_LIST_LIMIT
 
 
 def test_get_simulations_agents_pagination_validation_errors(
