@@ -162,12 +162,15 @@ class SimulationCommandService:
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
+            feed_algorithm_config: Mapping[str, JsonValue] | None = getattr(
+                run_config, "feed_algorithm_config", None
+            )
             self._simulate_turn(
                 run.run_id,
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
-                feed_algorithm_config=run_config.feed_algorithm_config,
+                feed_algorithm_config=feed_algorithm_config,
                 action_history_store=action_history_store,
             )
         except Exception as e:
@@ -227,8 +230,8 @@ class SimulationCommandService:
         turn_number: int,
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
-        feed_algorithm_config: Mapping[str, JsonValue] | None,
         action_history_store: ActionHistoryStore,
+        feed_algorithm_config: Mapping[str, JsonValue] | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
