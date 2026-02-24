@@ -29,6 +29,9 @@ from simulation.core.metrics.defaults import (
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -269,6 +272,9 @@ class SimulationCommandService:
         total_actions: dict[str, int] = {
             action_key: 0 for action_key in ACTION_KEY_TO_TURN_ACTION
         }
+        turn_likes: list[GeneratedLike] = []
+        turn_comments: list[GeneratedComment] = []
+        turn_follows: list[GeneratedFollow] = []
 
         for agent in agents:
             feed = agent_to_hydrated_feeds.get(agent.handle, [])
@@ -316,7 +322,7 @@ class SimulationCommandService:
                 )
             )
 
-            # Record the action targets into the DB.
+            # Record the action targets into the in-memory history store.
             self.agent_action_history_recorder.record(
                 run_id=run_id,
                 agent_handle=agent.handle,
@@ -326,6 +332,9 @@ class SimulationCommandService:
                 action_history_store=action_history_store,
             )
 
+            turn_likes.extend(likes)
+            turn_comments.extend(comments)
+            turn_follows.extend(follows)
             total_actions["likes"] += len(likes)
             total_actions["comments"] += len(comments)
             total_actions["follows"] += len(follows)
@@ -355,6 +364,9 @@ class SimulationCommandService:
         self.simulation_persistence.write_turn(
             turn_metadata=turn_metadata,
             turn_metrics=turn_metrics,
+            likes=turn_likes,
+            comments=turn_comments,
+            follows=turn_follows,
         )
 
         return TurnResult(

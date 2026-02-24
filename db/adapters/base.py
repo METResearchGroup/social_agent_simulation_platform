@@ -10,7 +10,15 @@ from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
+from simulation.core.models.persisted_actions import (
+    PersistedComment,
+    PersistedFollow,
+    PersistedLike,
+)
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
@@ -764,4 +772,73 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
 
         Returns dict mapping agent_id -> metadata | None.
         """
+        raise NotImplementedError
+
+
+class LikeDatabaseAdapter(ABC):
+    """Abstract interface for persisted like actions (run-scoped)."""
+
+    @abstractmethod
+    def write_likes(
+        self,
+        run_id: str,
+        turn_number: int,
+        likes: Iterable[GeneratedLike],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert like rows for the given run and turn."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_likes_by_run_turn(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> list[PersistedLike]:
+        """Read all like rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
+        raise NotImplementedError
+
+
+class CommentDatabaseAdapter(ABC):
+    """Abstract interface for persisted comment actions (run-scoped)."""
+
+    @abstractmethod
+    def write_comments(
+        self,
+        run_id: str,
+        turn_number: int,
+        comments: Iterable[GeneratedComment],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert comment rows for the given run and turn."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_comments_by_run_turn(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> list[PersistedComment]:
+        """Read all comment rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
+        raise NotImplementedError
+
+
+class FollowDatabaseAdapter(ABC):
+    """Abstract interface for persisted follow actions (run-scoped)."""
+
+    @abstractmethod
+    def write_follows(
+        self,
+        run_id: str,
+        turn_number: int,
+        follows: Iterable[GeneratedFollow],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert follow rows for the given run and turn."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_follows_by_run_turn(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> list[PersistedFollow]:
+        """Read all follow rows for (run_id, turn_number). Ordered by agent_handle, user_id."""
         raise NotImplementedError

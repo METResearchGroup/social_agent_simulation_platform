@@ -11,13 +11,16 @@ import pytest
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
+from db.repositories.comment_repository import create_sqlite_comment_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
+from db.repositories.follow_repository import create_sqlite_follow_repository
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
 )
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
+from db.repositories.like_repository import create_sqlite_like_repository
 from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from db.repositories.run_repository import create_sqlite_repository
@@ -77,6 +80,21 @@ def user_agent_profile_metadata_repo(temp_db, sqlite_tx):
 @pytest.fixture
 def metrics_repo(temp_db, sqlite_tx):
     return create_sqlite_metrics_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def like_repo(temp_db, sqlite_tx):
+    return create_sqlite_like_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def comment_repo(temp_db, sqlite_tx):
+    return create_sqlite_comment_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def follow_repo(temp_db, sqlite_tx):
+    return create_sqlite_follow_repository(transaction_provider=sqlite_tx)
 
 
 @pytest.fixture

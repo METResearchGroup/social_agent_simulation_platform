@@ -1,8 +1,11 @@
 """Factory for creating the simulation query service."""
 
 from db.repositories.interfaces import (
+    CommentRepository,
     FeedPostRepository,
+    FollowRepository,
     GeneratedFeedRepository,
+    LikeRepository,
     MetricsRepository,
     RunRepository,
 )
@@ -15,6 +18,9 @@ def create_query_service(
     metrics_repo: MetricsRepository,
     feed_post_repo: FeedPostRepository,
     generated_feed_repo: GeneratedFeedRepository,
+    like_repo: LikeRepository | None = None,
+    comment_repo: CommentRepository | None = None,
+    follow_repo: FollowRepository | None = None,
 ) -> SimulationQueryService:
     """Create query-side service with read dependencies."""
     return SimulationQueryService(
@@ -22,4 +28,7 @@ def create_query_service(
         metrics_repo=metrics_repo,
         feed_post_repo=feed_post_repo,
         generated_feed_repo=generated_feed_repo,
+        like_repo=like_repo,
+        comment_repo=comment_repo,
+        follow_repo=follow_repo,
     )

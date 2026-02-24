@@ -185,6 +185,61 @@ user_agent_profile_metadata = sa.Table(
 )
 
 
+# --- Run-scoped action tables (likes, comments, follows) ---
+
+likes = sa.Table(
+    "likes",
+    metadata,
+    sa.Column("like_id", sa.Text(), primary_key=True),
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("turn_number", sa.Integer(), nullable=False),
+    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("post_id", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("explanation", sa.Text(), nullable=True),
+    sa.Column("model_used", sa.Text(), nullable=True),
+    sa.Column("generation_metadata_json", sa.Text(), nullable=True),
+    sa.Column("generation_created_at", sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_likes_run_id"),
+    sa.CheckConstraint("turn_number >= 0", name="ck_likes_turn_number_gte_0"),
+)
+
+comments = sa.Table(
+    "comments",
+    metadata,
+    sa.Column("comment_id", sa.Text(), primary_key=True),
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("turn_number", sa.Integer(), nullable=False),
+    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("post_id", sa.Text(), nullable=False),
+    sa.Column("text", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("explanation", sa.Text(), nullable=True),
+    sa.Column("model_used", sa.Text(), nullable=True),
+    sa.Column("generation_metadata_json", sa.Text(), nullable=True),
+    sa.Column("generation_created_at", sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_comments_run_id"),
+    sa.CheckConstraint("turn_number >= 0", name="ck_comments_turn_number_gte_0"),
+)
+
+follows = sa.Table(
+    "follows",
+    metadata,
+    sa.Column("follow_id", sa.Text(), primary_key=True),
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("turn_number", sa.Integer(), nullable=False),
+    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("user_id", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("explanation", sa.Text(), nullable=True),
+    sa.Column("model_used", sa.Text(), nullable=True),
+    sa.Column("generation_metadata_json", sa.Text(), nullable=True),
+    sa.Column("generation_created_at", sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_follows_run_id"),
+    sa.CheckConstraint("turn_number >= 0", name="ck_follows_turn_number_gte_0"),
+)
+
+
 # --- Indexes (match current SQLite schema) ---
 
 sa.Index("idx_runs_status", runs.c.status)
@@ -196,4 +251,25 @@ sa.Index(
     "idx_agent_persona_bios_agent_id_created_at",
     agent_persona_bios.c.agent_id,
     agent_persona_bios.c.created_at.desc(),
+)
+sa.Index("idx_likes_run_turn", likes.c.run_id, likes.c.turn_number)
+sa.Index(
+    "idx_likes_run_turn_agent",
+    likes.c.run_id,
+    likes.c.turn_number,
+    likes.c.agent_handle,
+)
+sa.Index("idx_comments_run_turn", comments.c.run_id, comments.c.turn_number)
+sa.Index(
+    "idx_comments_run_turn_agent",
+    comments.c.run_id,
+    comments.c.turn_number,
+    comments.c.agent_handle,
+)
+sa.Index("idx_follows_run_turn", follows.c.run_id, follows.c.turn_number)
+sa.Index(
+    "idx_follows_run_turn_agent",
+    follows.c.run_id,
+    follows.c.turn_number,
+    follows.c.agent_handle,
 )
