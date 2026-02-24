@@ -5,7 +5,11 @@ import tempfile
 
 import pytest
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
+from db.adapters.sqlite.sqlite import (
+    DB_PATH,
+    SqliteTransactionProvider,
+    initialize_database,
+)
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from simulation.core.models.agent import Agent, PersonaSource
@@ -31,7 +35,9 @@ def temp_db():
 @pytest.fixture
 def agent_in_db(temp_db):
     """Create an agent in the database for bio tests."""
-    agent_repo = create_sqlite_agent_repository()
+    agent_repo = create_sqlite_agent_repository(
+        transaction_provider=SqliteTransactionProvider()
+    )
     agent = Agent(
         agent_id="did:plc:test123",
         handle="test.bsky.social",
@@ -49,7 +55,9 @@ class TestSQLiteAgentBioRepositoryIntegration:
 
     def test_create_and_get_latest_bio(self, temp_db, agent_in_db):
         """Test creating a bio and retrieving it as latest."""
-        repo = create_sqlite_agent_bio_repository()
+        repo = create_sqlite_agent_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         bio = AgentBio(
             id="bio1",
             agent_id=agent_in_db,
@@ -67,7 +75,9 @@ class TestSQLiteAgentBioRepositoryIntegration:
 
     def test_get_latest_when_multiple_exist(self, temp_db, agent_in_db):
         """Test that get_latest returns the most recent by created_at."""
-        repo = create_sqlite_agent_bio_repository()
+        repo = create_sqlite_agent_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         repo.create_agent_bio(
             AgentBio(
                 id="bio1",
@@ -96,7 +106,9 @@ class TestSQLiteAgentBioRepositoryIntegration:
 
     def test_list_agent_bios_ordered_by_created_at_desc(self, temp_db, agent_in_db):
         """Test list_agent_bios returns bios in created_at DESC order."""
-        repo = create_sqlite_agent_bio_repository()
+        repo = create_sqlite_agent_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         repo.create_agent_bio(
             AgentBio(
                 id="first",

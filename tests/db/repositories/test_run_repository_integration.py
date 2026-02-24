@@ -7,7 +7,11 @@ import time
 
 import pytest
 
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider, get_connection
+from db.adapters.sqlite.sqlite import (
+    SqliteTransactionProvider,
+    get_connection,
+    run_transaction,
+)
 from db.repositories.run_repository import create_sqlite_repository
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
@@ -133,7 +137,8 @@ class TestRunStatusEnumSerialization:
             completed_at=None,
         )
 
-        adapter.write_run(run)
+        with run_transaction() as conn:
+            adapter.write_run(run, conn=conn)
 
         # Read directly from DB to verify string storage
         conn = get_connection()

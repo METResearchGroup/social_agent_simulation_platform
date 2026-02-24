@@ -1,6 +1,6 @@
 """SQLite implementation of agent repositories."""
 
-from db.adapters.base import AgentDatabaseAdapter
+from db.adapters.base import AgentDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent import Agent
@@ -10,32 +10,48 @@ from simulation.core.validators import validate_agent_id, validate_handle_exists
 class SQLiteAgentRepository(AgentRepository):
     """SQLite implementation of AgentRepository."""
 
-    def __init__(self, db_adapter: AgentDatabaseAdapter):
+    def __init__(
+        self,
+        *,
+        db_adapter: AgentDatabaseAdapter,
+        transaction_provider: TransactionProvider,
+    ):
         """Initialize repository with injected dependencies."""
         self._db_adapter = db_adapter
+        self._transaction_provider = transaction_provider
 
     def create_or_update_agent(self, agent: Agent) -> Agent:
         """Create or update an agent in SQLite."""
-        self._db_adapter.write_agent(agent)
+        with self._transaction_provider.run_transaction() as c:
+            self._db_adapter.write_agent(agent, conn=c)
         return agent
 
     @validate_inputs((validate_agent_id, "agent_id"))
     def get_agent(self, agent_id: str) -> Agent | None:
         """Get an agent by ID."""
-        return self._db_adapter.read_agent(agent_id)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_agent(agent_id, conn=c)
 
     @validate_inputs((validate_handle_exists, "handle"))
     def get_agent_by_handle(self, handle: str) -> Agent | None:
         """Get an agent by handle."""
-        return self._db_adapter.read_agent_by_handle(handle)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_agent_by_handle(handle, conn=c)
 
     def list_all_agents(self) -> list[Agent]:
         """List all agents, ordered by handle."""
-        return self._db_adapter.read_all_agents()
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_all_agents(conn=c)
 
 
-def create_sqlite_agent_repository() -> SQLiteAgentRepository:
+def create_sqlite_agent_repository(
+    *,
+    transaction_provider: TransactionProvider,
+) -> SQLiteAgentRepository:
     """Factory to create SQLiteAgentRepository with default dependencies."""
     from db.adapters.sqlite import SQLiteAgentAdapter
 
-    return SQLiteAgentRepository(db_adapter=SQLiteAgentAdapter())
+    return SQLiteAgentRepository(
+        db_adapter=SQLiteAgentAdapter(),
+        transaction_provider=transaction_provider,
+    )

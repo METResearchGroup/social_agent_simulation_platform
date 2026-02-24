@@ -22,7 +22,7 @@ def test_write_run_metrics_raises_value_error_when_conn_is_none(adapter):
         created_at="2026-01-01T00:00:00",
     )
     with pytest.raises(ValueError, match="conn is required"):
-        adapter.write_run_metrics(run_metrics)
+        adapter.write_run_metrics(run_metrics, conn=None)
 
 
 def test_write_run_metrics_with_conn_does_not_commit(adapter):
@@ -47,4 +47,4 @@ def test_write_turn_metrics_raises_value_error_when_conn_is_none(adapter):
         created_at="2026-01-01T00:00:00",
     )
     with pytest.raises(ValueError, match="conn is required"):
-        adapter.write_turn_metrics(turn_metrics)
+        adapter.write_turn_metrics(turn_metrics, conn=None)

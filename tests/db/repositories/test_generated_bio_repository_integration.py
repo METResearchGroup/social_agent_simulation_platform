@@ -5,6 +5,7 @@ These tests use a real SQLite database to test end-to-end functionality.
 
 import pytest
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
 )
@@ -18,7 +19,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_create_or_update_generated_bio_persists_to_database(self, temp_db):
         """Test that create_or_update_generated_bio persists a bio to the database."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         bio = GeneratedBio(
             handle="test.bsky.social",
             generated_bio="This is a test bio for the profile.",
@@ -43,7 +46,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_get_generated_bio_retrieves_from_database(self, temp_db):
         """Test that get_generated_bio retrieves a bio from the database."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         bio = GeneratedBio(
             handle="retrieve.bsky.social",
             generated_bio="This bio should be retrievable.",
@@ -65,7 +70,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_list_all_generated_bios_retrieves_all_bios(self, temp_db):
         """Test that list_all_generated_bios retrieves all bios from the database."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         # Create multiple bios
         bio1 = GeneratedBio(
@@ -120,7 +127,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_create_or_update_generated_bio_updates_existing_bio(self, temp_db):
         """Test that create_or_update_generated_bio updates an existing bio."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         # Create initial bio
         initial_bio = GeneratedBio(
@@ -155,14 +164,18 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_get_generated_bio_returns_none_for_nonexistent_handle(self, temp_db):
         """Test that get_generated_bio returns None for a non-existent handle."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         result = repo.get_generated_bio("nonexistent.bsky.social")
         assert result is None
 
     def test_generated_bio_with_long_text_content(self, temp_db):
         """Test that generated bios with long text content are handled correctly."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         long_bio_text = "This is a very long bio. " * 100  # 2500 characters
         bio = GeneratedBio(
@@ -185,7 +198,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_multiple_bios_with_different_handles(self, temp_db):
         """Test that multiple bios with different handles can coexist."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         bio1 = GeneratedBio(
             handle="alice.bsky.social",
@@ -222,7 +237,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_list_all_generated_bios_returns_empty_list_when_no_bios(self, temp_db):
         """Test that list_all_generated_bios returns an empty list when no bios exist."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         bios = repo.list_all_generated_bios()
         assert bios == []
@@ -230,14 +247,18 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
 
     def test_get_generated_bio_with_empty_handle_raises_error(self, temp_db):
         """Test that get_generated_bio raises ValueError when handle is empty."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_bio("")
 
     def test_generated_bio_with_special_characters(self, temp_db):
         """Test that generated bios with special characters work correctly."""
-        repo = create_sqlite_generated_bio_repository()
+        repo = create_sqlite_generated_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         bio_text = "Bio with special chars: !@#$%^&*() and unicode: 🚀✨"
         bio = GeneratedBio(

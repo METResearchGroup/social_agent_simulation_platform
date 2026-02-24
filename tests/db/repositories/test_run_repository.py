@@ -335,7 +335,9 @@ class TestSQLiteRunRepositoryGetRun:
         assert result.started_at == expected.started_at
         assert result.status == expected.status
         assert result.completed_at == expected.completed_at
-        mock_adapter.read_run.assert_called_once_with(run_id)
+        mock_adapter.read_run.assert_called_once()
+        assert mock_adapter.read_run.call_args[0][0] == run_id
+        assert mock_adapter.read_run.call_args[1]["conn"] is not None
 
     def test_returns_none_when_run_not_found(self):
         """Test that get_run returns None when run does not exist."""
@@ -353,7 +355,9 @@ class TestSQLiteRunRepositoryGetRun:
 
         # Assert
         assert result is None
-        mock_adapter.read_run.assert_called_once_with(run_id)
+        mock_adapter.read_run.assert_called_once()
+        assert mock_adapter.read_run.call_args[0][0] == run_id
+        assert mock_adapter.read_run.call_args[1]["conn"] is not None
 
     def test_calls_read_run_with_correct_run_id(self):
         """Test that get_run calls read_run with the correct run_id parameter."""
@@ -370,7 +374,9 @@ class TestSQLiteRunRepositoryGetRun:
         repo.get_run(run_id)
 
         # Assert
-        mock_adapter.read_run.assert_called_once_with(run_id)
+        mock_adapter.read_run.assert_called_once()
+        assert mock_adapter.read_run.call_args[0][0] == run_id
+        assert mock_adapter.read_run.call_args[1]["conn"] is not None
 
     def test_returns_completed_run_correctly(self):
         """Test that get_run returns a completed run with completed_at timestamp."""
@@ -450,6 +456,7 @@ class TestSQLiteRunRepositoryListRuns:
         assert isinstance(result, list)
         assert len(result) == 0
         mock_adapter.read_all_runs.assert_called_once()
+        assert mock_adapter.read_all_runs.call_args[1]["conn"] is not None
 
     def test_returns_all_runs_when_runs_exist(self):
         """Test that list_runs returns all runs from the database."""
@@ -541,6 +548,7 @@ class TestSQLiteRunRepositoryListRuns:
 
         # Assert
         mock_adapter.read_all_runs.assert_called_once()
+        assert mock_adapter.read_all_runs.call_args[1]["conn"] is not None
 
     def test_handles_large_number_of_runs(self):
         """Test that list_runs handles a large number of runs correctly."""
@@ -604,10 +612,10 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Verify that status enum is converted to string value
         mock_adapter.update_run_status.assert_called_once()
         call_args = mock_adapter.update_run_status.call_args[0]
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
-        assert call_args[2] == expected_timestamp
-        call_kwargs = mock_adapter.update_run_status.call_args[1]
+        assert call_kwargs["completed_at"] == expected_timestamp
         assert call_kwargs["conn"] is not None  # repo opened transaction
 
     def test_updates_status_to_failed_without_completed_at(self):
@@ -637,7 +645,8 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert (conn from repo's transaction when conn not passed)
         mock_adapter.update_run_status.assert_called_once()
         call = mock_adapter.update_run_status.call_args
-        assert call[0] == (run_id, status.value, None)
+        assert call[0][:2] == (run_id, status.value)
+        assert call[1]["completed_at"] is None
         assert call[1]["conn"] is not None
 
     def test_updates_status_to_running_without_completed_at(self):
@@ -667,7 +676,8 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert (conn from repo's transaction when conn not passed)
         mock_adapter.update_run_status.assert_called_once()
         call = mock_adapter.update_run_status.call_args
-        assert call[0] == (run_id, status.value, None)
+        assert call[0][:2] == (run_id, status.value)
+        assert call[1]["completed_at"] is None
         assert call[1]["conn"] is not None
 
     def test_calls_update_run_status_with_correct_parameters_for_completed(self):
@@ -698,9 +708,10 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert
         mock_adapter.update_run_status.assert_called_once()
         call_args = mock_adapter.update_run_status.call_args[0]
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
-        assert call_args[2] == expected_timestamp
+        assert call_kwargs["completed_at"] == expected_timestamp
 
     def test_calls_update_run_status_with_correct_parameters_for_failed(self):
         """Test that update_run_status calls db function with correct parameters for FAILED."""
@@ -729,9 +740,10 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert
         mock_adapter.update_run_status.assert_called_once()
         call_args = mock_adapter.update_run_status.call_args[0]
+        call_kwargs = mock_adapter.update_run_status.call_args[1]
         assert call_args[0] == run_id
         assert call_args[1] == status.value  # Enum value (string) is passed
-        assert call_args[2] is None
+        assert call_kwargs["completed_at"] is None
 
     def test_uses_current_timestamp_for_completed_status(self):
         """Test that update_run_status uses get_current_timestamp for COMPLETED status."""
@@ -762,7 +774,8 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         # Assert (conn from repo's transaction when conn not passed)
         mock_adapter.update_run_status.assert_called_once()
         call = mock_adapter.update_run_status.call_args
-        assert call[0] == (run_id, status.value, timestamp1)
+        assert call[0][:2] == (run_id, status.value)
+        assert call[1]["completed_at"] == timestamp1
         assert call[1]["conn"] is not None
 
     def test_handles_valid_transitions_from_running(self):
@@ -803,7 +816,8 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
             )
             mock_adapter.update_run_status.assert_called_once()
             call = mock_adapter.update_run_status.call_args
-            assert call[0] == (run_id, status.value, expected_completed_at)
+            assert call[0][:2] == (run_id, status.value)
+            assert call[1]["completed_at"] == expected_completed_at
             assert call[1]["conn"] is not None
 
 
@@ -1232,7 +1246,12 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         assert result.turn_number == expected.turn_number
         assert result.total_actions == expected.total_actions
         assert result.created_at == expected.created_at
-        mock_adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        mock_adapter.read_turn_metadata.assert_called_once()
+        assert mock_adapter.read_turn_metadata.call_args[0][:2] == (
+            run_id,
+            turn_number,
+        )
+        assert mock_adapter.read_turn_metadata.call_args[1]["conn"] is not None
 
     def test_returns_none_when_not_found(self):
         """Test that get_turn_metadata returns None when metadata doesn't exist."""
@@ -1251,7 +1270,12 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
 
         # Assert
         assert result is None
-        mock_adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        mock_adapter.read_turn_metadata.assert_called_once()
+        assert mock_adapter.read_turn_metadata.call_args[0][:2] == (
+            run_id,
+            turn_number,
+        )
+        assert mock_adapter.read_turn_metadata.call_args[1]["conn"] is not None
 
     def test_raises_valueerror_for_empty_run_id(self):
         """Test that get_turn_metadata raises ValueError for empty run_id."""
@@ -1357,7 +1381,12 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         repo.get_turn_metadata(run_id, turn_number)
 
         # Assert
-        mock_adapter.read_turn_metadata.assert_called_once_with(run_id, turn_number)
+        mock_adapter.read_turn_metadata.assert_called_once()
+        assert mock_adapter.read_turn_metadata.call_args[0][:2] == (
+            run_id,
+            turn_number,
+        )
+        assert mock_adapter.read_turn_metadata.call_args[1]["conn"] is not None
 
     def test_handles_turn_metadata_with_all_action_types(self):
         """Test that get_turn_metadata handles all action types correctly."""
@@ -1457,7 +1486,9 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         result = repo.list_turn_metadata(run_id)
 
         assert result == expected_result
-        mock_adapter.read_turn_metadata_for_run.assert_called_once_with(run_id=run_id)
+        mock_adapter.read_turn_metadata_for_run.assert_called_once()
+        assert mock_adapter.read_turn_metadata_for_run.call_args[0][0] == run_id
+        assert mock_adapter.read_turn_metadata_for_run.call_args[1]["conn"] is not None
 
     def test_returns_empty_list_when_adapter_returns_empty(self):
         mock_adapter = Mock(spec=RunDatabaseAdapter)
@@ -1472,7 +1503,9 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         result = repo.list_turn_metadata(run_id)
 
         assert result == expected_result
-        mock_adapter.read_turn_metadata_for_run.assert_called_once_with(run_id=run_id)
+        mock_adapter.read_turn_metadata_for_run.assert_called_once()
+        assert mock_adapter.read_turn_metadata_for_run.call_args[0][0] == run_id
+        assert mock_adapter.read_turn_metadata_for_run.call_args[1]["conn"] is not None
 
     def test_raises_valueerror_for_empty_run_id(self):
         mock_adapter = Mock(spec=RunDatabaseAdapter)

@@ -4,7 +4,7 @@ import sqlite3
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
-from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import agent_bios
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
@@ -46,30 +46,40 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             context=context,
         )
 
-    def write_generated_bio(self, bio: GeneratedBio) -> None:
+    def write_generated_bio(
+        self, bio: GeneratedBio, *, conn: sqlite3.Connection
+    ) -> None:
         """Write a generated bio to SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             bio: GeneratedBio model to write
+            conn: Connection. Repository must provide it (from its transaction).
 
         Raises:
             sqlite3.IntegrityError: If handle violates constraints
             sqlite3.OperationalError: If database operation fails
         """
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
         created_at = bio.metadata.created_at or get_current_timestamp()
         row_values = tuple(
             created_at if col == "created_at" else getattr(bio, col)
             for col in AGENT_BIOS_COLUMNS
         )
-        with get_connection() as conn:
-            conn.execute(_INSERT_AGENT_BIOS_SQL, row_values)
-            conn.commit()
+        conn.execute(_INSERT_AGENT_BIOS_SQL, row_values)
 
-    def read_generated_bio(self, handle: str) -> GeneratedBio | None:
+    def read_generated_bio(
+        self, handle: str, *, conn: sqlite3.Connection
+    ) -> GeneratedBio | None:
         """Read a generated bio from SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             handle: Profile handle to look up
+            conn: Connection. Repository must provide it (from its transaction).
 
         Returns:
             GeneratedBio if found, None otherwise.
@@ -81,30 +91,35 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             KeyError: If required columns are missing from the database row
         """
         validate_handle_exists(handle)
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM agent_bios WHERE handle = ?", (handle,)
-            ).fetchone()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        row = conn.execute(
+            "SELECT * FROM agent_bios WHERE handle = ?", (handle,)
+        ).fetchone()
 
-            if row is None:
-                return None
+        if row is None:
+            return None
 
-            # Validate required fields are not NULL
-            context = f"generated bio handle={handle}"
-            self._validate_generated_bio_row(row, context=context)
+        # Validate required fields are not NULL
+        context = f"generated bio handle={handle}"
+        self._validate_generated_bio_row(row, context=context)
 
-            return GeneratedBio(
-                handle=row["handle"],
-                generated_bio=row["generated_bio"],
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at=row["created_at"],
-                ),
-            )
+        return GeneratedBio(
+            handle=row["handle"],
+            generated_bio=row["generated_bio"],
+            metadata=GenerationMetadata(
+                model_used=None,
+                generation_metadata=None,
+                created_at=row["created_at"],
+            ),
+        )
 
-    def read_all_generated_bios(self) -> list[GeneratedBio]:
+    def read_all_generated_bios(
+        self, *, conn: sqlite3.Connection
+    ) -> list[GeneratedBio]:
         """Read all generated bios from SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Returns:
             List of GeneratedBio models.
@@ -114,26 +129,27 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        with get_connection() as conn:
-            rows = conn.execute("SELECT * FROM agent_bios").fetchall()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute("SELECT * FROM agent_bios").fetchall()
 
-            bios = []
-            for row in rows:
-                # Validate required fields are not NULL
-                handle_value = row["handle"] if row["handle"] is not None else "unknown"
-                context = f"generated bio handle={handle_value}"
-                self._validate_generated_bio_row(row, context=context)
+        bios = []
+        for row in rows:
+            # Validate required fields are not NULL
+            handle_value = row["handle"] if row["handle"] is not None else "unknown"
+            context = f"generated bio handle={handle_value}"
+            self._validate_generated_bio_row(row, context=context)
 
-                bios.append(
-                    GeneratedBio(
-                        handle=row["handle"],
-                        generated_bio=row["generated_bio"],
-                        metadata=GenerationMetadata(
-                            model_used=None,
-                            generation_metadata=None,
-                            created_at=row["created_at"],
-                        ),
-                    )
+            bios.append(
+                GeneratedBio(
+                    handle=row["handle"],
+                    generated_bio=row["generated_bio"],
+                    metadata=GenerationMetadata(
+                        model_used=None,
+                        generation_metadata=None,
+                        created_at=row["created_at"],
+                    ),
                 )
+            )
 
-            return bios
+        return bios

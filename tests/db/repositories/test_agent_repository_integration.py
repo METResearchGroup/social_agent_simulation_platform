@@ -5,7 +5,11 @@ import tempfile
 
 import pytest
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
+from db.adapters.sqlite.sqlite import (
+    DB_PATH,
+    SqliteTransactionProvider,
+    initialize_database,
+)
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from simulation.core.models.agent import Agent, PersonaSource
 
@@ -31,7 +35,9 @@ class TestSQLiteAgentRepositoryIntegration:
 
     def test_create_and_read_agent(self, temp_db):
         """Test creating an agent and reading it back."""
-        repo = create_sqlite_agent_repository()
+        repo = create_sqlite_agent_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         agent = Agent(
             agent_id="did:plc:test123",
             handle="test.bsky.social",
@@ -53,7 +59,9 @@ class TestSQLiteAgentRepositoryIntegration:
 
     def test_get_agent_by_handle(self, temp_db):
         """Test getting an agent by handle."""
-        repo = create_sqlite_agent_repository()
+        repo = create_sqlite_agent_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         agent = Agent(
             agent_id="did:plc:abc",
             handle="alice.bsky.social",
@@ -71,7 +79,9 @@ class TestSQLiteAgentRepositoryIntegration:
 
     def test_list_all_agents_ordered_by_handle(self, temp_db):
         """Test list_all returns agents ordered by handle."""
-        repo = create_sqlite_agent_repository()
+        repo = create_sqlite_agent_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         for handle, agent_id in [
             ("zoe.bsky.social", "did:plc:z"),
             ("alice.bsky.social", "did:plc:a"),
@@ -94,7 +104,9 @@ class TestSQLiteAgentRepositoryIntegration:
 
     def test_create_or_update_overwrites(self, temp_db):
         """Test that create_or_update_agent overwrites existing agent."""
-        repo = create_sqlite_agent_repository()
+        repo = create_sqlite_agent_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         agent = Agent(
             agent_id="did:plc:same",
             handle="same.bsky.social",

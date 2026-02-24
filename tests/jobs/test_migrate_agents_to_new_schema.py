@@ -5,7 +5,11 @@ import tempfile
 
 import pytest
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
+from db.adapters.sqlite.sqlite import (
+    DB_PATH,
+    SqliteTransactionProvider,
+    initialize_database,
+)
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.generated_bio_repository import (
@@ -45,8 +49,11 @@ def _seed_legacy_data(temp_db: str) -> None:
     sqlite_module.DB_PATH = temp_db
     initialize_database()
 
-    profile_repo = create_sqlite_profile_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
+    tx_provider = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx_provider)
+    generated_bio_repo = create_sqlite_generated_bio_repository(
+        transaction_provider=tx_provider
+    )
 
     profile1 = BlueskyProfile(
         handle="alice.bsky.social",
@@ -99,9 +106,15 @@ class TestMigrateAgentsToNewSchema:
         captured = capsys.readouterr()
         assert "Migrated 2 agents." in captured.out
 
-        agent_repo = create_sqlite_agent_repository()
-        agent_bio_repo = create_sqlite_agent_bio_repository()
-        metadata_repo = create_sqlite_user_agent_profile_metadata_repository()
+        agent_repo = create_sqlite_agent_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
+        agent_bio_repo = create_sqlite_agent_bio_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
+        metadata_repo = create_sqlite_user_agent_profile_metadata_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         agents = agent_repo.list_all_agents()
         assert len(agents) == 2

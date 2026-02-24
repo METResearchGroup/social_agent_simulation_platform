@@ -5,7 +5,7 @@ import sqlite3
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
-from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import generated_feeds
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
@@ -50,33 +50,46 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             context=context,
         )
 
-    def write_generated_feed(self, feed: GeneratedFeed) -> None:
+    def write_generated_feed(
+        self, feed: GeneratedFeed, *, conn: sqlite3.Connection
+    ) -> None:
         """Write a generated feed to SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             feed: GeneratedFeed model to write
+            conn: Connection. Repository must provide it (from its transaction).
 
         Raises:
             sqlite3.IntegrityError: If composite key violates constraints
             sqlite3.OperationalError: If database operation fails
         """
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
         row_values = tuple(
             json.dumps(feed.post_uris) if col == "post_uris" else getattr(feed, col)
             for col in GENERATED_FEED_COLUMNS
         )
-        with get_connection() as conn:
-            conn.execute(_INSERT_GENERATED_FEED_SQL, row_values)
-            conn.commit()
+        conn.execute(_INSERT_GENERATED_FEED_SQL, row_values)
 
     def read_generated_feed(
-        self, agent_handle: str, run_id: str, turn_number: int
+        self,
+        agent_handle: str,
+        run_id: str,
+        turn_number: int,
+        *,
+        conn: sqlite3.Connection,
     ) -> GeneratedFeed:
         """Read a generated feed from SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             agent_handle: Agent handle to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
+            conn: Connection. Repository must provide it (from its transaction).
 
         Returns:
             GeneratedFeed model for the specified agent, run, and turn.
@@ -87,21 +100,21 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM generated_feeds WHERE agent_handle = ? AND run_id = ? AND turn_number = ?",
-                (agent_handle, run_id, turn_number),
-            ).fetchone()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        row = conn.execute(
+            "SELECT * FROM generated_feeds WHERE agent_handle = ? AND run_id = ? AND turn_number = ?",
+            (agent_handle, run_id, turn_number),
+        ).fetchone()
 
-            if row is None:
-                # this isn't supposed to happen, so we want to raise an error if it does.
-                raise ValueError(
-                    f"Generated feed not found for agent {agent_handle}, run {run_id}, turn {turn_number}"
-                )
+        if row is None:
+            raise ValueError(
+                f"Generated feed not found for agent {agent_handle}, run {run_id}, turn {turn_number}"
+            )
 
-            context = f"generated feed agent_handle={agent_handle}, run_id={run_id}, turn_number={turn_number}"
-            self._validate_generated_feed_row(row, context=context)
-            return self._row_to_generated_feed(row)
+        context = f"generated feed agent_handle={agent_handle}, run_id={run_id}, turn_number={turn_number}"
+        self._validate_generated_feed_row(row, context=context)
+        return self._row_to_generated_feed(row)
 
     def _row_to_generated_feed(self, row: sqlite3.Row) -> GeneratedFeed:
         """Build GeneratedFeed from a validated row. Call _validate_generated_feed_row first."""
@@ -124,8 +137,12 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         except (KeyError, TypeError):
             return "generated feed (identifying info unavailable)"
 
-    def read_all_generated_feeds(self) -> list[GeneratedFeed]:
+    def read_all_generated_feeds(
+        self, *, conn: sqlite3.Connection
+    ) -> list[GeneratedFeed]:
         """Read all generated feeds from SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Returns:
             List of GeneratedFeed models.
@@ -135,8 +152,9 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        with get_connection() as conn:
-            rows = conn.execute("SELECT * FROM generated_feeds").fetchall()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute("SELECT * FROM generated_feeds").fetchall()
         feeds = []
         for row in rows:
             self._validate_generated_feed_row(
@@ -148,12 +166,17 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     @validate_inputs(
         (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
     )
-    def read_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
+    def read_post_uris_for_run(
+        self, agent_handle: str, run_id: str, *, conn: sqlite3.Connection
+    ) -> set[str]:
         """Read all post URIs from generated feeds for a specific agent and run.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             agent_handle: Agent handle to filter by
             run_id: Run ID to filter by
+            conn: Connection. Repository must provide it (from its transaction).
 
         Returns:
             Set of post URIs from all generated feeds matching the agent and run.
@@ -163,24 +186,30 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             ValueError: If agent_handle or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
-        with get_connection() as conn:
-            rows = conn.execute(
-                """
-                SELECT post_uris
-                FROM generated_feeds
-                WHERE agent_handle = ? AND run_id = ?
-            """,
-                (agent_handle, run_id),
-            ).fetchall()
-            return {uri for row in rows for uri in json.loads(row["post_uris"])}
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute(
+            """
+            SELECT post_uris
+            FROM generated_feeds
+            WHERE agent_handle = ? AND run_id = ?
+        """,
+            (agent_handle, run_id),
+        ).fetchall()
+        return {uri for row in rows for uri in json.loads(row["post_uris"])}
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
-    def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
+    def read_feeds_for_turn(
+        self, run_id: str, turn_number: int, *, conn: sqlite3.Connection
+    ) -> list[GeneratedFeed]:
         """Read all generated feeds for a specific run and turn.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
+            conn: Connection. Repository must provide it (from its transaction).
 
         Returns:
             List of GeneratedFeed models for the specified run and turn.
@@ -192,18 +221,19 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             KeyError: If required columns are missing from the database row
             sqlite3.OperationalError: If database operation fails
         """
-        with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?",
-                (run_id, turn_number),
-            ).fetchall()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute(
+            "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?",
+            (run_id, turn_number),
+        ).fetchall()
 
-            if len(rows) == 0:
-                return []
+        if len(rows) == 0:
+            return []
 
-            context = f"generated feed for run {run_id}, turn {turn_number}"
-            feeds = []
-            for row in rows:
-                self._validate_generated_feed_row(row, context=context)
-                feeds.append(self._row_to_generated_feed(row))
-            return feeds
+        context = f"generated feed for run {run_id}, turn {turn_number}"
+        feeds = []
+        for row in rows:
+            self._validate_generated_feed_row(row, context=context)
+            feeds.append(self._row_to_generated_feed(row))
+        return feeds

@@ -77,7 +77,8 @@ class SQLiteRunRepository(RunRepository):
                 started_at=ts,
                 status=RunStatus.RUNNING,
             )
-            self._db_adapter.write_run(run)
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.write_run(run, conn=c)
             return run
         except Exception as e:
             raise RunCreationError(run_id, str(e)) from e
@@ -95,11 +96,13 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             ValueError: If run_id is empty or None
         """
-        return self._db_adapter.read_run(run_id)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_run(run_id, conn=c)
 
     def list_runs(self) -> list[Run]:
         """List all runs from SQLite."""
-        return self._db_adapter.read_all_runs()
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_all_runs(conn=c)
 
     def update_run_status(
         self,
@@ -143,12 +146,18 @@ class SQLiteRunRepository(RunRepository):
             completed_at = ts if status == RunStatus.COMPLETED else None
             if conn is not None:
                 self._db_adapter.update_run_status(
-                    validated_run_id, status.value, completed_at, conn=conn
+                    validated_run_id,
+                    status.value,
+                    completed_at=completed_at,
+                    conn=conn,
                 )
             else:
                 with self._transaction_provider.run_transaction() as c:
                     self._db_adapter.update_run_status(
-                        validated_run_id, status.value, completed_at, conn=c
+                        validated_run_id,
+                        status.value,
+                        completed_at=completed_at,
+                        conn=c,
                     )
 
         except (RunNotFoundError, InvalidTransitionError):
@@ -174,7 +183,8 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        return self._db_adapter.read_turn_metadata(run_id, turn_number)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_turn_metadata(run_id, turn_number, conn=c)
 
     @validate_inputs((validate_run_id, "run_id"))
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
@@ -193,7 +203,8 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        return self._db_adapter.read_turn_metadata_for_run(run_id=run_id)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_turn_metadata_for_run(run_id, conn=c)
 
     def write_turn_metadata(
         self,

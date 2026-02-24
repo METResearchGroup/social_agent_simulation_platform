@@ -88,13 +88,21 @@ def create_engine(
             transaction_provider=transaction_provider
         )
     if profile_repo is None:
-        profile_repo = create_sqlite_profile_repository()
+        profile_repo = create_sqlite_profile_repository(
+            transaction_provider=transaction_provider
+        )
     if feed_post_repo is None:
-        feed_post_repo = create_sqlite_feed_post_repository()
+        feed_post_repo = create_sqlite_feed_post_repository(
+            transaction_provider=transaction_provider
+        )
     if generated_bio_repo is None:
-        generated_bio_repo = create_sqlite_generated_bio_repository()
+        generated_bio_repo = create_sqlite_generated_bio_repository(
+            transaction_provider=transaction_provider
+        )
     if generated_feed_repo is None:
-        generated_feed_repo = create_sqlite_generated_feed_repository()
+        generated_feed_repo = create_sqlite_generated_feed_repository(
+            transaction_provider=transaction_provider
+        )
 
     # Create default agent factory if not provided
     if agent_factory is None:

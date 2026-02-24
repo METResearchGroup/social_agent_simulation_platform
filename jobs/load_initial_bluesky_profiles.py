@@ -6,7 +6,7 @@ For now, what this looks like is:
 - Persisting the agent to the SQLite database.
 """
 
-from db.adapters.sqlite.sqlite import initialize_database
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider, initialize_database
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from lib.bluesky_client import BlueskyClient
@@ -89,8 +89,9 @@ def get_bsky_profile_information(handle: str) -> dict:
 
 def main():
     initialize_database()
-    profile_repo = create_sqlite_profile_repository()
-    feed_post_repo = create_sqlite_feed_post_repository()
+    tx = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
+    feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
     for handle in BLUESKY_PROFILES:
         print(f"Getting profile information for {handle}...")
         profile_info = get_bsky_profile_information(handle)

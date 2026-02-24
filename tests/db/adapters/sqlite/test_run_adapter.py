@@ -45,11 +45,11 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act
-            result = adapter.read_turn_metadata(run_id, turn_number)
+            result = adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -70,11 +70,11 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = None
 
             # Act
-            result = adapter.read_turn_metadata(run_id, turn_number)
+            result = adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
             # Assert
             assert result is None
@@ -88,12 +88,12 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         turn_number = default_test_data["turn_number"]
         db_error = sqlite3.OperationalError("Database locked")
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = db_error
 
             # Act & Assert
             with pytest.raises(sqlite3.OperationalError):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_keyerror_when_missing_required_column(
         self, adapter, default_test_data, mock_db_connection
@@ -112,14 +112,14 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(
                 KeyError, match="Missing required column 'total_actions'"
             ):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_keyerror_when_missing_created_at_column(
         self, adapter, default_test_data, mock_db_connection
@@ -138,12 +138,12 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(KeyError, match="Missing required column 'created_at'"):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_valueerror_when_null_fields(
         self, adapter, default_test_data, mock_db_connection
@@ -162,12 +162,12 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(ValueError, match="Turn metadata has NULL fields"):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_valueerror_when_null_created_at(
         self, adapter, default_test_data, mock_db_connection
@@ -186,12 +186,12 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(ValueError, match="Turn metadata has NULL fields"):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_valueerror_when_invalid_json(
         self, adapter, default_test_data, mock_db_connection
@@ -210,14 +210,14 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(
                 ValueError, match="Could not parse total_actions as JSON"
             ):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_valueerror_when_invalid_turn_metadata_data(
         self, adapter, mock_db_connection
@@ -236,12 +236,12 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(ValueError, match="Invalid turn metadata data"):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_raises_valueerror_when_invalid_action_type(
         self, adapter, default_test_data, mock_db_connection
@@ -260,14 +260,14 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
 
             # Act & Assert
             with pytest.raises(
                 ValueError, match="Invalid action type in total_actions"
             ):
-                adapter.read_turn_metadata(run_id, turn_number)
+                adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
     def test_calls_database_with_correct_parameters(self, adapter, mock_db_connection):
         """Test that read_turn_metadata calls database with correct parameters."""
@@ -275,11 +275,11 @@ class TestSQLiteRunAdapterReadTurnMetadata:
         run_id = "run_123"
         turn_number = 5
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = None
 
             # Act
-            adapter.read_turn_metadata(run_id, turn_number)
+            adapter.read_turn_metadata(run_id, turn_number, conn=mock_conn)
 
             # Assert
             mock_conn.execute.assert_called_once()
@@ -316,10 +316,10 @@ class TestSQLiteRunAdapterReadTurnMetadataForRun:
         )
         expected_turn_numbers = [0, 1]
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall.return_value = [row_turn_0, row_turn_1]
 
-            result = adapter.read_turn_metadata_for_run(run_id)
+            result = adapter.read_turn_metadata_for_run(run_id, conn=mock_conn)
 
             assert [item.turn_number for item in result] == expected_turn_numbers
             assert result[1].total_actions[TurnAction.LIKE] == 3
@@ -328,10 +328,10 @@ class TestSQLiteRunAdapterReadTurnMetadataForRun:
         run_id = "run_123"
         expected_result: list[TurnMetadata] = []
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall.return_value = []
 
-            result = adapter.read_turn_metadata_for_run(run_id)
+            result = adapter.read_turn_metadata_for_run(run_id, conn=mock_conn)
 
             assert result == expected_result
 
@@ -346,21 +346,24 @@ class TestSQLiteRunAdapterReadTurnMetadataForRun:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall.return_value = [mock_row]
-            list_result = adapter.read_turn_metadata_for_run(run_id)
+            list_result = adapter.read_turn_metadata_for_run(run_id, conn=mock_conn)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchone.return_value = mock_row
-            single_result = adapter.read_turn_metadata(run_id, turn_number)
+            single_result = adapter.read_turn_metadata(
+                run_id, turn_number, conn=mock_conn
+            )
 
         assert len(list_result) == 1
         assert single_result is not None
         assert list_result[0] == single_result
 
     def test_raises_valueerror_for_invalid_run_id(self, adapter):
+        mock_conn = Mock()
         with pytest.raises(ValueError, match="run_id cannot be empty"):
-            adapter.read_turn_metadata_for_run("")
+            adapter.read_turn_metadata_for_run("", conn=mock_conn)
 
     def test_raises_operational_error_on_database_error(
         self, adapter, mock_db_connection
@@ -368,19 +371,19 @@ class TestSQLiteRunAdapterReadTurnMetadataForRun:
         run_id = "run_123"
         db_error = sqlite3.OperationalError("Database locked")
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = db_error
 
             with pytest.raises(sqlite3.OperationalError):
-                adapter.read_turn_metadata_for_run(run_id)
+                adapter.read_turn_metadata_for_run(run_id, conn=mock_conn)
 
     def test_calls_database_with_correct_parameters(self, adapter, mock_db_connection):
         run_id = "run_123"
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall.return_value = []
 
-            adapter.read_turn_metadata_for_run(run_id)
+            adapter.read_turn_metadata_for_run(run_id, conn=mock_conn)
 
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
@@ -416,7 +419,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         # Mock read_turn_metadata to return None (no duplicate)
         adapter.read_turn_metadata = Mock(return_value=None)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             # Act
             adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
@@ -450,7 +453,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             created_at="2024_01_01-12:00:00",
         )
         with pytest.raises(ValueError, match="conn is required"):
-            adapter.write_turn_metadata(turn_metadata)
+            adapter.write_turn_metadata(turn_metadata, conn=None)
 
     def test_write_turn_metadata_with_conn_does_not_commit(
         self, adapter, default_test_data
@@ -531,7 +534,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         adapter.read_turn_metadata = Mock(return_value=None)
 
         db_error = sqlite3.OperationalError("Database locked")
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = db_error
 
             # Act & Assert
@@ -560,7 +563,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         # Mock read_turn_metadata to return None (no duplicate)
         adapter.read_turn_metadata = Mock(return_value=None)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             # Act
             adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
@@ -590,7 +593,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         # Mock read_turn_metadata to return None (no duplicate)
         adapter.read_turn_metadata = Mock(return_value=None)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             # Act
             adapter.write_turn_metadata(turn_metadata, conn=mock_conn)
 
@@ -642,7 +645,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         integrity_error = sqlite3.IntegrityError(
             "UNIQUE constraint failed: turn_metadata.run_id, turn_metadata.turn_number"
         )
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = integrity_error
 
             # Act & Assert
@@ -678,7 +681,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
         adapter.read_turn_metadata = Mock(return_value=None)
         integrity_error = sqlite3.IntegrityError("UNIQUE constraint failed")
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = integrity_error
 
             # Act & Assert
@@ -699,6 +702,7 @@ class TestSQLiteRunAdapterUpdateRunStatus:
                 run_id="run_123",
                 status="completed",
                 completed_at="2026-01-01T00:00:00",
+                conn=None,
             )
 
     def test_update_run_status_with_conn_does_not_commit(self, adapter):

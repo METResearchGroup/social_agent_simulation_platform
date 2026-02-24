@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from db.adapters.base import ProfileDatabaseAdapter
 from db.repositories.profile_repository import SQLiteProfileRepository
 from simulation.core.models.profiles import BlueskyProfile
+from tests.db.repositories.conftest import make_mock_transaction_provider
 
 
 class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
@@ -17,7 +18,10 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         """Test that create_or_update_profile creates a profile with correct values."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         profile = BlueskyProfile(
             handle="test.bsky.social",
             did="did:plc:test123",
@@ -33,13 +37,18 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
 
         # Assert
         assert result == profile
-        mock_adapter.write_profile.assert_called_once_with(profile)
+        mock_adapter.write_profile.assert_called_once()
+        assert mock_adapter.write_profile.call_args[0][0] == profile
+        assert mock_adapter.write_profile.call_args[1]["conn"] is not None
 
     def test_creates_profile_with_different_values(self):
         """Test that create_or_update_profile handles different profile values correctly."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         profile = BlueskyProfile(
             handle="another.bsky.social",
             did="did:plc:another456",
@@ -57,13 +66,18 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         assert result.handle == "another.bsky.social"
         assert result.followers_count == 5000
         assert result.posts_count == 150
-        mock_adapter.write_profile.assert_called_once_with(profile)
+        mock_adapter.write_profile.assert_called_once()
+        assert mock_adapter.write_profile.call_args[0][0] == profile
+        assert mock_adapter.write_profile.call_args[1]["conn"] is not None
 
     def test_persists_profile_to_database(self):
         """Test that create_or_update_profile persists the profile to the database via write_profile."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         profile = BlueskyProfile(
             handle="test.bsky.social",
             did="did:plc:test123",
@@ -79,6 +93,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
 
         # Assert
         mock_adapter.write_profile.assert_called_once()
+        assert mock_adapter.write_profile.call_args[1]["conn"] is not None
         call_args = mock_adapter.write_profile.call_args[0][0]
         assert isinstance(call_args, BlueskyProfile)
         assert call_args.handle == result.handle
@@ -124,7 +139,10 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
         mock_adapter.write_profile.side_effect = Exception("Database error")
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         profile = BlueskyProfile(
             handle="test.bsky.social",
             did="did:plc:test123",
@@ -148,7 +166,10 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
         db_error = Exception("DB error")
         mock_adapter.write_profile.side_effect = db_error
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         profile = BlueskyProfile(
             handle="specific.bsky.social",
             did="did:plc:test123",
@@ -172,7 +193,10 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
         original_error = ValueError("Invalid data")
         mock_adapter.write_profile.side_effect = original_error
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         profile = BlueskyProfile(
             handle="test.bsky.social",
             did="did:plc:test123",
@@ -198,7 +222,10 @@ class TestSQLiteProfileRepositoryGetProfile:
         """Test that get_profile returns a profile when it exists in the database."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         handle = "test.bsky.social"
         expected = BlueskyProfile(
             handle=handle,
@@ -223,13 +250,18 @@ class TestSQLiteProfileRepositoryGetProfile:
         assert result.followers_count == expected.followers_count
         assert result.follows_count == expected.follows_count
         assert result.posts_count == expected.posts_count
-        mock_adapter.read_profile.assert_called_once_with(handle)
+        mock_adapter.read_profile.assert_called_once()
+        assert mock_adapter.read_profile.call_args[0][0] == handle
+        assert mock_adapter.read_profile.call_args[1]["conn"] is not None
 
     def test_returns_none_when_profile_not_found(self):
         """Test that get_profile returns None when profile does not exist."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         handle = "nonexistent.bsky.social"
         mock_adapter.read_profile.return_value = None
 
@@ -238,13 +270,18 @@ class TestSQLiteProfileRepositoryGetProfile:
 
         # Assert
         assert result is None
-        mock_adapter.read_profile.assert_called_once_with(handle)
+        mock_adapter.read_profile.assert_called_once()
+        assert mock_adapter.read_profile.call_args[0][0] == handle
+        assert mock_adapter.read_profile.call_args[1]["conn"] is not None
 
     def test_calls_read_profile_with_correct_handle(self):
         """Test that get_profile calls read_profile with the correct handle parameter."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         handle = "test.bsky.social"
         mock_adapter.read_profile.return_value = None
 
@@ -252,13 +289,18 @@ class TestSQLiteProfileRepositoryGetProfile:
         repo.get_profile(handle)
 
         # Assert
-        mock_adapter.read_profile.assert_called_once_with(handle)
+        mock_adapter.read_profile.assert_called_once()
+        assert mock_adapter.read_profile.call_args[0][0] == handle
+        assert mock_adapter.read_profile.call_args[1]["conn"] is not None
 
     def test_returns_profile_with_all_fields(self):
         """Test that get_profile returns a profile with all fields correctly populated."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         handle = "test.bsky.social"
         expected = BlueskyProfile(
             handle=handle,
@@ -291,7 +333,10 @@ class TestSQLiteProfileRepositoryGetProfile:
         """Test that get_profile raises ValueError when handle is empty."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="handle cannot be empty"):
@@ -303,7 +348,10 @@ class TestSQLiteProfileRepositoryGetProfile:
         """Test that get_profile raises ValueError when handle is whitespace."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="handle cannot be empty"):
@@ -319,7 +367,10 @@ class TestSQLiteProfileRepositoryListProfiles:
         """Test that list_profiles returns an empty list when no profiles exist."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         expected = []
         mock_adapter.read_all_profiles.return_value = expected
 
@@ -331,12 +382,16 @@ class TestSQLiteProfileRepositoryListProfiles:
         assert isinstance(result, list)
         assert len(result) == 0
         mock_adapter.read_all_profiles.assert_called_once()
+        assert mock_adapter.read_all_profiles.call_args[1]["conn"] is not None
 
     def test_returns_all_profiles_when_profiles_exist(self):
         """Test that list_profiles returns all profiles from the database."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         expected = [
             BlueskyProfile(
                 handle="user1.bsky.social",
@@ -373,7 +428,10 @@ class TestSQLiteProfileRepositoryListProfiles:
         """Test that list_profiles returns profiles in the order provided by read_all_profiles."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         expected = [
             BlueskyProfile(
                 handle="first.bsky.social",
@@ -407,7 +465,10 @@ class TestSQLiteProfileRepositoryListProfiles:
         """Test that list_profiles calls read_all_profiles exactly once."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         mock_adapter.read_all_profiles.return_value = []
 
         # Act
@@ -415,12 +476,16 @@ class TestSQLiteProfileRepositoryListProfiles:
 
         # Assert
         mock_adapter.read_all_profiles.assert_called_once()
+        assert mock_adapter.read_all_profiles.call_args[1]["conn"] is not None
 
     def test_handles_large_number_of_profiles(self):
         """Test that list_profiles handles a large number of profiles correctly."""
         # Arrange
         mock_adapter = Mock(spec=ProfileDatabaseAdapter)
-        repo = SQLiteProfileRepository(mock_adapter)
+        repo = SQLiteProfileRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         expected = [
             BlueskyProfile(
                 handle=f"user{i}.bsky.social",

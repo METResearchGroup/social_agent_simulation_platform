@@ -6,7 +6,10 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 from pydantic import ValidationError
 
-from db.adapters.sqlite.sqlite import get_connection
+from db.adapters.sqlite.sqlite import (
+    SqliteTransactionProvider,
+    get_connection,
+)
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
@@ -40,7 +43,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
     def test_create_and_read_generated_feed(self, temp_db):
         """Test creating a generated feed and reading it back from the database."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         _ensure_run_exists("run_123")
         feed = GeneratedFeed(
             feed_id="feed_test123",
@@ -69,7 +74,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
     def test_write_generated_feed_updates_existing_feed(self, temp_db):
         """Test that write_generated_feed updates an existing feed (composite key)."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         _ensure_run_exists("run_123")
 
         # Create initial feed
@@ -113,14 +120,18 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         self, temp_db
     ):
         """Test that get_generated_feed raises ValueError for a non-existent composite key."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         with pytest.raises(ValueError, match="Generated feed not found"):
             repo.get_generated_feed("nonexistent.bsky.social", "run_999", 99)
 
     def test_list_all_generated_feeds_retrieves_all_feeds(self, temp_db):
         """Test that list_all_generated_feeds retrieves all feeds from the database."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         # Create multiple feeds
         for i in range(1, 4):
@@ -162,7 +173,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
     def test_list_all_generated_feeds_returns_empty_list_when_no_feeds(self, temp_db):
         """Test that list_all_generated_feeds returns an empty list when no feeds exist."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         feeds = repo.list_all_generated_feeds()
         assert feeds == []
@@ -172,7 +185,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         self, temp_db
     ):
         """Test that multiple feeds with same agent_handle but different run_id/turn_number can coexist."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         _ensure_run_exists("run_1")
         _ensure_run_exists("run_2")
 
@@ -237,14 +252,18 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
     def test_get_generated_feed_with_empty_agent_handle_raises_error(self, temp_db):
         """Test that get_generated_feed raises ValueError when agent_handle is empty."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
     def test_generated_feed_with_multiple_post_uris(self, temp_db):
         """Test that generated feeds with multiple post URIs are handled correctly."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         _ensure_run_exists("run_123")
 
         post_uris = [
@@ -268,7 +287,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
     def test_read_feeds_for_turn_returns_feeds_for_specific_turn(self, temp_db):
         """Test that read_feeds_for_turn returns all feeds for a specific run and turn."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         _ensure_run_exists("run_123")
         _ensure_run_exists("run_456")
 
@@ -329,7 +350,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
     def test_read_feeds_for_turn_returns_empty_list_when_no_feeds(self, temp_db):
         """Test that read_feeds_for_turn returns empty list when no feeds exist for turn."""
-        repo = create_sqlite_generated_feed_repository()
+        repo = create_sqlite_generated_feed_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         feeds = repo.read_feeds_for_turn("run_999", 99)
         assert feeds == []

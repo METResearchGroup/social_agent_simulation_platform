@@ -6,6 +6,7 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 from pydantic import ValidationError
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from simulation.core.models.profiles import BlueskyProfile
 
@@ -15,7 +16,9 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_create_and_read_profile(self, temp_db):
         """Test creating a profile and reading it back from the database."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         profile = BlueskyProfile(
             handle="test.bsky.social",
             did="did:plc:test123",
@@ -45,7 +48,9 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_create_or_update_profile_updates_existing_profile(self, temp_db):
         """Test that create_or_update_profile updates an existing profile."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         # Create initial profile
         initial_profile = BlueskyProfile(
@@ -83,14 +88,18 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_get_profile_returns_none_for_nonexistent_handle(self, temp_db):
         """Test that get_profile returns None for a non-existent handle."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         result = repo.get_profile("nonexistent.bsky.social")
         assert result is None
 
     def test_list_profiles_returns_empty_list_when_no_profiles(self, temp_db):
         """Test that list_profiles returns an empty list when no profiles exist."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         profiles = repo.list_profiles()
         assert profiles == []
@@ -98,7 +107,9 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_list_profiles_returns_all_profiles(self, temp_db):
         """Test that list_profiles returns all profiles from the database."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         # Create multiple profiles
         profile1 = BlueskyProfile(
@@ -169,14 +180,18 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_get_profile_with_empty_handle_raises_error(self, temp_db):
         """Test that get_profile raises ValueError when handle is empty."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_profile("")
 
     def test_multiple_profiles_with_different_handles(self, temp_db):
         """Test that multiple profiles with different handles can coexist."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         profile1 = BlueskyProfile(
             handle="alice.bsky.social",
@@ -215,7 +230,9 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_profile_with_long_bio(self, temp_db):
         """Test that profiles with long bios are handled correctly."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         long_bio = "This is a very long bio. " * 50  # 1000+ characters
         profile = BlueskyProfile(
@@ -237,7 +254,9 @@ class TestSQLiteProfileRepositoryIntegration:
 
     def test_profile_with_special_characters_in_handle(self, temp_db):
         """Test that profiles with special characters in handle work correctly."""
-        repo = create_sqlite_profile_repository()
+        repo = create_sqlite_profile_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
 
         # Note: Bluesky handles typically don't have special chars, but test edge cases
         profile = BlueskyProfile(

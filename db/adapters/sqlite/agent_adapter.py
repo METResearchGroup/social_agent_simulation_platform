@@ -4,7 +4,7 @@ import sqlite3
 
 from db.adapters.base import AgentDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
-from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import agent as agent_table
 from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.agent import Agent, PersonaSource
@@ -35,53 +35,58 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             updated_at=row["updated_at"],
         )
 
-    def write_agent(self, agent: Agent) -> None:
+    def write_agent(self, agent: Agent, *, conn: sqlite3.Connection) -> None:
         """Write an agent to SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Raises:
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails
         """
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
         row_values = tuple(
             agent.persona_source.value
             if col == "persona_source"
             else getattr(agent, col)
             for col in AGENT_COLUMNS
         )
-        with get_connection() as conn:
-            conn.execute(_INSERT_AGENT_SQL, row_values)
-            conn.commit()
+        conn.execute(_INSERT_AGENT_SQL, row_values)
 
-    def read_agent(self, agent_id: str) -> Agent | None:
+    def read_agent(self, agent_id: str, *, conn: sqlite3.Connection) -> Agent | None:
         """Read an agent by ID."""
         validate_non_empty_string(agent_id, "agent_id")
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM agent WHERE agent_id = ?", (agent_id,)
-            ).fetchone()
-            if row is None:
-                return None
-            self._validate_agent_row(row)
-            return self._row_to_agent(row)
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        row = conn.execute(
+            "SELECT * FROM agent WHERE agent_id = ?", (agent_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        self._validate_agent_row(row)
+        return self._row_to_agent(row)
 
-    def read_agent_by_handle(self, handle: str) -> Agent | None:
+    def read_agent_by_handle(
+        self, handle: str, *, conn: sqlite3.Connection
+    ) -> Agent | None:
         """Read an agent by handle."""
         validate_non_empty_string(handle, "handle")
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM agent WHERE handle = ?", (handle,)
-            ).fetchone()
-            if row is None:
-                return None
-            self._validate_agent_row(row)
-            return self._row_to_agent(row)
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        row = conn.execute("SELECT * FROM agent WHERE handle = ?", (handle,)).fetchone()
+        if row is None:
+            return None
+        self._validate_agent_row(row)
+        return self._row_to_agent(row)
 
-    def read_all_agents(self) -> list[Agent]:
+    def read_all_agents(self, *, conn: sqlite3.Connection) -> list[Agent]:
         """Read all agents, ordered by handle for deterministic output."""
-        with get_connection() as conn:
-            rows = conn.execute("SELECT * FROM agent ORDER BY handle").fetchall()
-            result: list[Agent] = []
-            for row in rows:
-                self._validate_agent_row(row)
-                result.append(self._row_to_agent(row))
-            return result
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute("SELECT * FROM agent ORDER BY handle").fetchall()
+        result: list[Agent] = []
+        for row in rows:
+            self._validate_agent_row(row)
+            result.append(self._row_to_agent(row))
+        return result

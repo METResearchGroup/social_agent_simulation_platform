@@ -4,7 +4,7 @@ to use for the agent, and save to the database."""
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-from db.adapters.sqlite.sqlite import initialize_database
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider, initialize_database
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
@@ -136,9 +136,10 @@ def generate_bio_for_profile(
 def main():
     initialize_database()
     print("Reading profiles and feed posts from database...")
-    profile_repo = create_sqlite_profile_repository()
-    feed_post_repo = create_sqlite_feed_post_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
+    tx = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
+    feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
+    generated_bio_repo = create_sqlite_generated_bio_repository(transaction_provider=tx)
     profiles: list[BlueskyProfile] = profile_repo.list_profiles()
     feed_posts: list[BlueskyFeedPost] = feed_post_repo.list_all_feed_posts()
     posts_by_author: dict[str, list[BlueskyFeedPost]] = {}

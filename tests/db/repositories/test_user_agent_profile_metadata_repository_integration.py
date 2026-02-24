@@ -5,7 +5,11 @@ import tempfile
 
 import pytest
 
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
+from db.adapters.sqlite.sqlite import (
+    DB_PATH,
+    SqliteTransactionProvider,
+    initialize_database,
+)
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
@@ -33,7 +37,9 @@ def temp_db():
 @pytest.fixture
 def agent_in_db(temp_db):
     """Create an agent in the database for metadata tests."""
-    agent_repo = create_sqlite_agent_repository()
+    agent_repo = create_sqlite_agent_repository(
+        transaction_provider=SqliteTransactionProvider()
+    )
     agent = Agent(
         agent_id="did:plc:meta123",
         handle="meta.bsky.social",
@@ -51,7 +57,9 @@ class TestSQLiteUserAgentProfileMetadataRepositoryIntegration:
 
     def test_create_and_get_by_agent_id(self, temp_db, agent_in_db):
         """Test creating metadata and retrieving by agent_id."""
-        repo = create_sqlite_user_agent_profile_metadata_repository()
+        repo = create_sqlite_user_agent_profile_metadata_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         metadata = UserAgentProfileMetadata(
             id="meta1",
             agent_id=agent_in_db,
@@ -71,7 +79,9 @@ class TestSQLiteUserAgentProfileMetadataRepositoryIntegration:
 
     def test_create_or_update_overwrites(self, temp_db, agent_in_db):
         """Test that create_or_update_metadata overwrites existing metadata."""
-        repo = create_sqlite_user_agent_profile_metadata_repository()
+        repo = create_sqlite_user_agent_profile_metadata_repository(
+            transaction_provider=SqliteTransactionProvider()
+        )
         repo.create_or_update_metadata(
             UserAgentProfileMetadata(
                 id="meta1",

@@ -7,7 +7,7 @@ import sqlite3
 
 from db.adapters.base import RunDatabaseAdapter
 from db.adapters.sqlite.schema_utils import required_column_names
-from db.adapters.sqlite.sqlite import get_connection, validate_required_fields
+from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import runs
 from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunNotFoundError
@@ -88,34 +88,36 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             completed_at=row["completed_at"],
         )
 
-    def write_run(self, run: Run) -> None:
+    def write_run(self, run: Run, *, conn: sqlite3.Connection) -> None:
         """Write a run to SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Raises:
             sqlite3.IntegrityError: If run_id violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        with get_connection() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO runs 
-                (run_id, created_at, total_turns, total_agents, feed_algorithm, started_at, status, completed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    run.run_id,
-                    run.created_at,
-                    run.total_turns,
-                    run.total_agents,
-                    run.feed_algorithm,
-                    run.started_at,
-                    run.status.value,  # Convert enum to string explicitly
-                    run.completed_at,
-                ),
-            )
-            conn.commit()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO runs 
+            (run_id, created_at, total_turns, total_agents, feed_algorithm, started_at, status, completed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                run.run_id,
+                run.created_at,
+                run.total_turns,
+                run.total_agents,
+                run.feed_algorithm,
+                run.started_at,
+                run.status.value,  # Convert enum to string explicitly
+                run.completed_at,
+            ),
+        )
 
-    def read_run(self, run_id: str) -> Run | None:
+    def read_run(self, run_id: str, *, conn: sqlite3.Connection) -> Run | None:
         """Read a run from SQLite.
 
         Raises:
@@ -123,17 +125,16 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        with get_connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
-            ).fetchone()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
 
-            if row is None:
-                return None
+        if row is None:
+            return None
 
-            return self._row_to_run(row)
+        return self._row_to_run(row)
 
-    def read_all_runs(self) -> list[Run]:
+    def read_all_runs(self, *, conn: sqlite3.Connection) -> list[Run]:
         """Read all runs from SQLite.
 
         Raises:
@@ -141,19 +142,19 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM runs ORDER BY created_at DESC"
-            ).fetchall()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
 
-            return [self._row_to_run(row) for row in rows]
+        return [self._row_to_run(row) for row in rows]
 
     def update_run_status(
         self,
         run_id: str,
         status: str,
+        *,
         completed_at: str | None = None,
-        conn: sqlite3.Connection | None = None,
+        conn: sqlite3.Connection,
     ) -> None:
         """Update run status in SQLite.
 
@@ -184,9 +185,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         self,
         run_id: str,
         turn_number: int,
-        conn: sqlite3.Connection | None = None,
+        *,
+        conn: sqlite3.Connection,
     ) -> TurnMetadata | None:
         """Read turn metadata from SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         The total_actions field is stored as JSON with string keys (e.g., {"like": 5}).
         This method converts those string keys to TurnAction enum keys.
@@ -194,8 +198,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Optional connection. When provided, use it (no commit); when None,
-                  open a new connection via get_connection().
+            conn: Connection. Repository must provide it (from its transaction).
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -206,17 +209,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
         """
-        if conn is not None:
-            row = conn.execute(
-                "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
-                (run_id, turn_number),
-            ).fetchone()
-        else:
-            with get_connection() as c:
-                row = c.execute(
-                    "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
-                    (run_id, turn_number),
-                ).fetchone()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        row = conn.execute(
+            "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
+            (run_id, turn_number),
+        ).fetchone()
 
         if row is None:
             return None
@@ -238,11 +236,16 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             ) from e
 
     @validate_inputs((validate_run_id, "run_id"))
-    def read_turn_metadata_for_run(self, run_id: str) -> list[TurnMetadata]:
+    def read_turn_metadata_for_run(
+        self, run_id: str, *, conn: sqlite3.Connection
+    ) -> list[TurnMetadata]:
         """Read all turn metadata rows for a run from SQLite.
+
+        conn is required; repository must provide it (from its transaction).
 
         Args:
             run_id: The ID of the run
+            conn: Connection. Repository must provide it (from its transaction).
 
         Returns:
             List of TurnMetadata ordered by turn_number ascending.
@@ -253,11 +256,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from a database row
         """
-        with get_connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
-                (run_id,),
-            ).fetchall()
+        if conn is None:
+            raise ValueError("conn is required; repository must provide it")
+        rows = conn.execute(
+            "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
+            (run_id,),
+        ).fetchall()
 
         turn_metadata_list: list[TurnMetadata] = []
         for row in rows:
@@ -284,7 +288,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     def write_turn_metadata(
         self,
         turn_metadata: TurnMetadata,
-        conn: sqlite3.Connection | None = None,
+        *,
+        conn: sqlite3.Connection,
     ) -> None:
         """Write turn metadata to SQLite.
 
