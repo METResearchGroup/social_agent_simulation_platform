@@ -113,13 +113,23 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
         "/v1/simulations/run",
         json={"num_agents": 1, "num_turns": 1},
     )
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "status": "completed",
         "num_agents": 1,
         "num_turns": 1,
         "error": None,
+        "turns": [
+            {
+                "turn_number": 0,
+                "created_at": run.created_at,
+                "total_actions": {"like": 0, "comment": 0, "follow": 0},
+                "metrics": {"turn.actions.total": 0},
+            }
+        ],
+        "run_metrics": {"run.actions.total": 0},
     }
     assert data["status"] == expected_result["status"]
     assert data["num_agents"] == expected_result["num_agents"]
@@ -127,15 +137,8 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
     assert data["error"] is expected_result["error"]
     assert data["run_id"] == run.run_id
     assert data["created_at"] == run.created_at
-    assert data["turns"] == [
-        {
-            "turn_number": 0,
-            "created_at": run.created_at,
-            "total_actions": {"like": 0, "comment": 0, "follow": 0},
-            "metrics": {"turn.actions.total": 0},
-        }
-    ]
-    assert data["run_metrics"] == {"run.actions.total": 0}
+    assert data["turns"] == expected_result["turns"]
+    assert data["run_metrics"] == expected_result["run_metrics"]
 
 
 def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_client):
@@ -152,12 +155,18 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
         "/v1/simulations/run",
         json={"num_agents": 1},
     )
-    assert response.status_code == 200
+    expected_result = {
+        "status_code": 200,
+        "num_turns": 10,
+        "status": "completed",
+        "turn_count": 10,
+    }
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert data["created_at"] == run.created_at
-    assert data["num_turns"] == 10
-    assert data["status"] == "completed"
-    assert len(data["turns"]) == 10
+    assert data["num_turns"] == expected_result["num_turns"]
+    assert data["status"] == expected_result["status"]
+    assert len(data["turns"]) == expected_result["turn_count"]
 
 
 def test_post_simulations_run_passes_feed_algorithm_config_to_engine(simulation_client):
@@ -175,12 +184,17 @@ def test_post_simulations_run_passes_feed_algorithm_config_to_engine(simulation_
         "/v1/simulations/run",
         json={"num_agents": 1, "feed_algorithm_config": feed_algorithm_config},
     )
-    assert response.status_code == 200
+    expected_result = {
+        "status_code": 200,
+        "feed_algorithm": "chronological",
+        "feed_algorithm_config": feed_algorithm_config,
+    }
+    assert response.status_code == expected_result["status_code"]
 
     _, kwargs = mock_engine.execute_run.call_args
     run_config = kwargs["run_config"]
-    assert run_config.feed_algorithm == "chronological"
-    assert run_config.feed_algorithm_config == feed_algorithm_config
+    assert run_config.feed_algorithm == expected_result["feed_algorithm"]
+    assert run_config.feed_algorithm_config == expected_result["feed_algorithm_config"]
 
 
 def test_post_simulations_run_validation_num_agents_zero(simulation_client):
@@ -190,7 +204,8 @@ def test_post_simulations_run_validation_num_agents_zero(simulation_client):
         "/v1/simulations/run",
         json={"num_agents": 0},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_run_validation_num_agents_missing(simulation_client):
@@ -200,7 +215,8 @@ def test_post_simulations_run_validation_num_agents_missing(simulation_client):
         "/v1/simulations/run",
         json={},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_run_validation_invalid_feed_algorithm(simulation_client):
@@ -210,7 +226,8 @@ def test_post_simulations_run_validation_invalid_feed_algorithm(simulation_clien
         "/v1/simulations/run",
         json={"num_agents": 1, "feed_algorithm": "invalid_algo"},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
@@ -227,12 +244,18 @@ def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
         "/v1/simulations/run",
         json={"num_agents": 2, "num_turns": 2},
     )
-    assert response.status_code == 500
+    expected_result = {
+        "status_code": 500,
+        "error_code": "RUN_CREATION_FAILED",
+        "error_message": "Run creation or status update failed",
+        "error_detail": None,
+    }
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert "error" in data
-    assert data["error"]["code"] == "RUN_CREATION_FAILED"
-    assert data["error"]["message"] == "Run creation or status update failed"
-    assert data["error"]["detail"] is None
+    assert data["error"]["code"] == expected_result["error_code"]
+    assert data["error"]["message"] == expected_result["error_message"]
+    assert data["error"]["detail"] is expected_result["error_detail"]
 
 
 def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
@@ -285,7 +308,8 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         "/v1/simulations/run",
         json={"num_agents": 2, "num_turns": 2},
     )
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "run_id": "run-partial-1",
@@ -311,9 +335,14 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     assert data["turns"] == expected_result["turns"]
     assert data["run_metrics"] is expected_result["run_metrics"]
     assert data["error"] is not None
-    assert data["error"]["code"] == "SIMULATION_FAILED"
-    assert data["error"]["message"] == "Run failed during execution"
-    assert data["error"]["detail"] is None
+    expected_result = {
+        "error_code": "SIMULATION_FAILED",
+        "error_message": "Run failed during execution",
+        "error_detail": None,
+    }
+    assert data["error"]["code"] == expected_result["error_code"]
+    assert data["error"]["message"] == expected_result["error_message"]
+    assert data["error"]["detail"] is expected_result["error_detail"]
 
 
 def test_get_simulations_runs_returns_dummy_run_list(simulation_client):
@@ -321,7 +350,8 @@ def test_get_simulations_runs_returns_dummy_run_list(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/runs")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     sorted_run_ids = [
         run.run_id
@@ -347,7 +377,8 @@ def test_get_simulations_run_turns_returns_turn_map(simulation_client):
     run_id = DUMMY_RUNS[0].run_id
     response = client.get(f"/v1/simulations/runs/{run_id}/turns")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "turn_count": len(DUMMY_TURNS[run_id]),
@@ -365,7 +396,8 @@ def test_get_simulations_run_turns_missing_run_returns_404(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/runs/missing-run-id/turns")
 
-    assert response.status_code == 404
+    expected_result = {"status_code": 404}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "code": "RUN_NOT_FOUND",
