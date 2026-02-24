@@ -30,8 +30,7 @@ class TransactionProvider(ABC):
     def run_transaction(self) -> AbstractContextManager[object]:
         """Enter a transaction and yield a connection.
 
-        Commit on normal exit, roll back on exception. The yielded object
-        is passed to repositories as their conn parameter.
+        Commit on normal exit, roll back on exception.
         """
         raise NotImplementedError
 
@@ -722,6 +721,16 @@ class AgentBioDatabaseAdapter(ABC):
         """Read all bios for an agent, ordered by created_at DESC."""
         raise NotImplementedError
 
+    @abstractmethod
+    def read_latest_agent_bios_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, AgentBio | None]:
+        """Read the latest bio per agent_id for the given agent IDs.
+
+        Returns dict mapping agent_id -> AgentBio | None.
+        """
+        raise NotImplementedError
+
 
 class UserAgentProfileMetadataDatabaseAdapter(ABC):
     """Abstract interface for user agent profile metadata database operations."""
@@ -745,4 +754,14 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
         self, agent_id: str, *, conn: object
     ) -> UserAgentProfileMetadata | None:
         """Read metadata by agent_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_metadata_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, UserAgentProfileMetadata | None]:
+        """Read metadata for the given agent IDs.
+
+        Returns dict mapping agent_id -> metadata | None.
+        """
         raise NotImplementedError

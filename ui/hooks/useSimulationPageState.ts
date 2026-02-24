@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   getAgents,
+  getMockAgents,
   getRuns,
   getTurnsForRun,
   postRun,
@@ -32,6 +33,8 @@ const TURN_FETCH_THROTTLE_MS: number = 1500;
  * - runsError: set when runs fetch fails; cleared when handleRetryRuns is called.
  * - agentsLoading: true while getAgents() is in flight; false otherwise.
  * - agentsError: set when agents fetch fails; cleared when handleRetryAgents is called.
+ * - mockAgentsLoading: true while getMockAgents() is in flight; false otherwise.
+ * - mockAgentsError: set when mock agents fetch fails; cleared when handleRetryMockAgents is called.
  * - turnsLoadingByRunId: runId -> true while turns for that run are loading.
  * - turnsErrorByRunId: runId -> Error when turns fetch fails; cleared when handleRetryTurns(runId) is called.
  */
@@ -44,6 +47,9 @@ interface UseSimulationPageStateResult {
   agents: Agent[];
   agentsLoading: boolean;
   agentsError: Error | null;
+  mockAgents: Agent[];
+  mockAgentsLoading: boolean;
+  mockAgentsError: Error | null;
   turnsLoadingByRunId: Record<string, boolean>;
   turnsErrorByRunId: Record<string, ApiError | null>;
   viewMode: ViewMode;
@@ -65,6 +71,7 @@ interface UseSimulationPageStateResult {
   handleStartNewRun: () => void;
   handleRetryRuns: () => void;
   handleRetryAgents: () => void;
+  handleRetryMockAgents: () => void;
   handleRetryTurns: (runId: string) => void;
 }
 
@@ -76,6 +83,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [agentsLoading, setAgentsLoading] = useState<boolean>(true);
   const [agentsError, setAgentsError] = useState<Error | null>(null);
   const [retryAgentsTrigger, setRetryAgentsTrigger] = useState<number>(0);
+  const [mockAgents, setMockAgents] = useState<Agent[]>([]);
+  const [mockAgentsLoading, setMockAgentsLoading] = useState<boolean>(true);
+  const [mockAgentsError, setMockAgentsError] = useState<Error | null>(null);
+  const [retryMockAgentsTrigger, setRetryMockAgentsTrigger] = useState<number>(0);
   const [turnsLoadingByRunId, setTurnsLoadingByRunId] = useState<Record<string, boolean>>(
     EMPTY_TURNS_LOADING,
   );
@@ -97,6 +108,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
   const agentsRequestIdRef = useRef<number>(0);
+  const mockAgentsRequestIdRef = useRef<number>(0);
   const runsRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
@@ -160,6 +172,36 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       isMounted = false;
     };
   }, [retryAgentsTrigger]);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+    mockAgentsRequestIdRef.current += 1;
+    const requestId: number = mockAgentsRequestIdRef.current;
+    setMockAgentsLoading(true);
+    setMockAgentsError(null);
+
+    const loadMockAgents = async (): Promise<void> => {
+      try {
+        const apiMockAgents: Agent[] = await getMockAgents();
+        if (!isMounted || requestId !== mockAgentsRequestIdRef.current) return;
+        setMockAgents(apiMockAgents);
+      } catch (error: unknown) {
+        console.error('Failed to fetch mock agents:', error);
+        if (!isMounted || requestId !== mockAgentsRequestIdRef.current) return;
+        setMockAgentsError(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        if (isMounted && requestId === mockAgentsRequestIdRef.current) {
+          setMockAgentsLoading(false);
+        }
+      }
+    };
+
+    void loadMockAgents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [retryMockAgentsTrigger]);
 
   useEffect(() => {
     if (!selectedRunId || loadedTurnsRunIdsRef.current.has(selectedRunId)) {
@@ -241,8 +283,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
 
   const runAgents = useMemo(
-    () => getRunAgents(selectedRun, agents),
-    [selectedRun, agents],
+    () => getRunAgents(selectedRun, mockAgents),
+    [selectedRun, mockAgents],
   );
 
   const currentRunConfig: RunConfig | null = useMemo(
@@ -292,6 +334,11 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryAgentsTrigger((t) => t + 1);
   };
 
+  const handleRetryMockAgents = (): void => {
+    setMockAgentsError(null);
+    setRetryMockAgentsTrigger((t) => t + 1);
+  };
+
   const handleRetryTurns = (runId: string): void => {
     setTurnsErrorByRunId((prev) => {
       const next: Record<string, ApiError | null> = { ...prev };
@@ -321,6 +368,9 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     agents,
     agentsLoading,
     agentsError,
+    mockAgents,
+    mockAgentsLoading,
+    mockAgentsError,
     turnsLoadingByRunId,
     turnsErrorByRunId,
     viewMode,
@@ -342,6 +392,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     handleStartNewRun,
     handleRetryRuns,
     handleRetryAgents,
+    handleRetryMockAgents,
     handleRetryTurns,
   };
 }

@@ -10,21 +10,14 @@ import {
   Turn,
 } from '@/types';
 import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
+import type { components } from '@/types/api.generated';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
   process.env.NEXT_PUBLIC_SIMULATION_API_URL || DEFAULT_SIMULATION_API_BASE_URL
 ).replace(/\/$/, '');
 
-interface ApiAgent {
-  handle: string;
-  name: string;
-  bio: string;
-  generated_bio: string;
-  followers: number;
-  following: number;
-  posts_count: number;
-}
+type ApiAgent = components['schemas']['AgentSchema'];
 
 function mapAgent(apiAgent: ApiAgent): Agent {
   return {
@@ -38,77 +31,21 @@ function mapAgent(apiAgent: ApiAgent): Agent {
   };
 }
 
-interface ApiRunListItem {
-  run_id: string;
-  created_at: string;
-  total_turns: number;
-  total_agents: number;
-  status: Run['status'];
-}
+type ApiRunListItem = components['schemas']['RunListItem'];
 
-interface ApiFeed {
-  feed_id: string;
-  run_id: string;
-  turn_number: number;
-  agent_handle: string;
-  post_uris: string[];
-  created_at: string;
-}
+type ApiFeed = components['schemas']['FeedSchema'];
 
-interface ApiAgentAction {
-  action_id: string;
-  agent_handle: string;
-  post_uri?: string;
-  user_id?: string;
-  type: AgentAction['type'];
-  created_at: string;
-}
+type ApiAgentAction = components['schemas']['AgentActionSchema'];
 
-/** API response shape for default config. Matches DefaultConfigSchema. */
-interface ApiDefaultConfig {
-  num_agents: number;
-  num_turns: number;
-}
+type ApiDefaultConfig = components['schemas']['DefaultConfigSchema'];
 
-/** API response shape for feed algorithm. Matches FeedAlgorithmSchema. */
-interface ApiFeedAlgorithm {
-  id: string;
-  display_name: string;
-  description: string;
-  config_schema: Record<string, unknown> | null;
-}
+type ApiFeedAlgorithm = components['schemas']['FeedAlgorithmSchema'];
 
-/** API response shape for POST /simulations/run. Matches RunResponse. */
-interface ApiRunResponse {
-  run_id: string;
-  created_at: string;
-  status: 'completed' | 'failed';
-  num_agents: number;
-  num_turns: number;
-  turns: unknown[];
-  run_metrics?: unknown;
-  error?: { code: string; message: string; detail?: string | null };
-}
+type ApiRunResponse = components['schemas']['RunResponse'];
 
-/** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
-interface ApiPost {
-  uri: string;
-  author_display_name: string;
-  author_handle: string;
-  text: string;
-  bookmark_count: number;
-  like_count: number;
-  quote_count: number;
-  reply_count: number;
-  repost_count: number;
-  created_at: string;
-}
+type ApiPost = components['schemas']['PostSchema'];
 
-interface ApiTurn {
-  turn_number: number;
-  agent_feeds: Record<string, ApiFeed>;
-  agent_actions: Record<string, ApiAgentAction[]>;
-}
+type ApiTurn = components['schemas']['TurnSchema'];
 
 function buildApiUrl(path: string): string {
   return `${SIMULATION_API_BASE_URL}${path}`;
@@ -222,8 +159,8 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
   return {
     actionId: apiAction.action_id,
     agentHandle: apiAction.agent_handle,
-    postUri: apiAction.post_uri,
-    userId: apiAction.user_id,
+    postUri: apiAction.post_uri ?? undefined,
+    userId: apiAction.user_id ?? undefined,
     type: apiAction.type,
     createdAt: apiAction.created_at,
   };
@@ -280,7 +217,7 @@ function mapFeedAlgorithm(api: ApiFeedAlgorithm): FeedAlgorithm {
     id: api.id,
     displayName: api.display_name,
     description: api.description,
-    configSchema: api.config_schema,
+    configSchema: api.config_schema ?? null,
   };
 }
 
@@ -343,6 +280,26 @@ export async function getAgents(): Promise<Agent[]> {
     buildApiUrl('/simulations/agents'),
   );
   return apiAgents.map(mapAgent);
+}
+
+/** Returns mock agents for run-detail context (dummy runs). */
+export async function getMockAgents(): Promise<Agent[]> {
+  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
+    buildApiUrl('/simulations/agents/mock'),
+  );
+  return apiAgents.map(mapAgent);
+}
+
+export async function postAgent(body: {
+  handle: string;
+  display_name: string;
+  bio?: string;
+}): Promise<Agent> {
+  const api: ApiAgent = await fetchPost<typeof body, ApiAgent>(
+    buildApiUrl('/simulations/agents'),
+    body,
+  );
+  return mapAgent(api);
 }
 
 export async function getPosts(uris?: string[]): Promise<Post[]> {

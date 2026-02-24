@@ -11,7 +11,7 @@ import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
 import StartScreenView from '@/components/start/StartScreenView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimulationPageState } from '@/hooks/useSimulationPageState';
-import { getDefaultConfig } from '@/lib/api/simulation';
+import { getDefaultConfig, postAgent } from '@/lib/api/simulation';
 import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
 import type { RunConfig } from '@/types';
 
@@ -68,6 +68,24 @@ function AuthenticatedApp() {
     handleRetryAgents,
     handleRetryTurns,
   } = useSimulationPageState();
+
+  const handleCreateAgent = useCallback(
+    async (payload: {
+      handle: string;
+      displayName: string;
+      bio: string;
+    }): Promise<void> => {
+      const created = await postAgent({
+        handle: payload.handle,
+        display_name: payload.displayName,
+        bio: payload.bio,
+      });
+      handleRetryAgents();
+      handleSetViewMode('agents');
+      handleSelectAgent(created.handle);
+    },
+    [handleRetryAgents, handleSetViewMode, handleSelectAgent],
+  );
 
   const runDetailContextValue = useMemo(
     () => ({
@@ -130,6 +148,7 @@ function AuthenticatedApp() {
           agentsLoading={agentsLoading}
           agentsError={agentsError}
           onRetryAgents={handleRetryAgents}
+          onSubmit={handleCreateAgent}
         />
       ) : viewMode === 'agents' ? (
         <AgentsView

@@ -7,12 +7,13 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
-from lib.rate_limiting import limiter
+from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.dependencies.auth import require_auth
 from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
+    CreateAgentRequest,
     DefaultConfigSchema,
     FeedAlgorithmSchema,
     MetricSchema,
@@ -23,7 +24,8 @@ from simulation.api.schemas.simulation import (
     RunResponse,
     TurnSchema,
 )
-from simulation.api.services.agent_query_service import list_agents_dummy
+from simulation.api.services.agent_command_service import create_agent
+from simulation.api.services.agent_query_service import list_agents, list_agents_dummy
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
     get_posts_by_uris_dummy,
@@ -31,7 +33,11 @@ from simulation.api.services.run_query_service import (
     get_turns_for_run_dummy,
     list_runs_dummy,
 )
-from simulation.core.exceptions import RunNotFoundError, SimulationRunFailure
+from simulation.core.exceptions import (
+    HandleAlreadyExistsError,
+    RunNotFoundError,
+    SimulationRunFailure,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +48,8 @@ SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
+SIMULATION_AGENTS_MOCK_ROUTE: str = "GET /v1/simulations/agents/mock"
+SIMULATION_AGENTS_CREATE_ROUTE: str = "POST /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
 SIMULATION_METRICS_ROUTE: str = "GET /v1/simulations/metrics"
@@ -98,15 +106,48 @@ async def get_simulation_config_default(
 
 
 @router.get(
+    "/simulations/agents/mock",
+    response_model=list[AgentSchema],
+    status_code=200,
+    summary="List mock simulation agents",
+    description="Return dummy agent list for run-detail context (mock runs).",
+)
+@log_route_completion_decorator(route=SIMULATION_AGENTS_MOCK_ROUTE, success_type=list)
+async def get_simulation_agents_mock(
+    request: Request,
+) -> list[AgentSchema] | Response:
+    """Return mock agents for run detail view."""
+    return await _execute_get_simulation_agents_mock(request)
+
+
+@router.post(
+    "/simulations/agents",
+    response_model=AgentSchema,
+    status_code=201,
+    summary="Create simulation agent",
+    description="Create a user-generated agent.",
+)
+@limiter.limit(RATE_LIMIT_AGENTS_CREATE)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENTS_CREATE_ROUTE, success_type=AgentSchema
+)
+async def post_simulation_agents(
+    request: Request, body: CreateAgentRequest
+) -> AgentSchema | Response:
+    """Create an agent and return it."""
+    return await _execute_post_simulation_agents(request, body=body)
+
+
+@router.get(
     "/simulations/agents",
     response_model=list[AgentSchema],
     status_code=200,
     summary="List simulation agents",
-    description="Return simulation agent profiles for the UI.",
+    description="Return simulation agent profiles from DB for View agents and Create form.",
 )
 @log_route_completion_decorator(route=SIMULATION_AGENTS_ROUTE, success_type=list)
 async def get_simulation_agents(request: Request) -> list[AgentSchema] | Response:
-    """Return all simulation agents from the backend dummy source."""
+    """Return all simulation agents from the database."""
     return await _execute_get_simulation_agents(request)
 
 
@@ -309,12 +350,60 @@ async def _execute_get_simulation_runs(
 
 
 @timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_simulation_agents_mock(
+    request: Request,
+) -> list[AgentSchema] | Response:
+    """Fetch mock agent list for run-detail context."""
+    try:
+        return await asyncio.to_thread(list_agents_dummy)
+    except Exception:
+        logger.exception("Unexpected error while listing mock agents")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_post_simulation_agents(
+    request: Request, *, body: CreateAgentRequest
+) -> AgentSchema | Response:
+    """Create agent and convert known failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(create_agent, body)
+    except HandleAlreadyExistsError as e:
+        return _error_response(
+            status_code=409,
+            code="HANDLE_ALREADY_EXISTS",
+            message="Agent with this handle already exists",
+            detail=e.handle,
+        )
+    except ValueError as e:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(e),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while creating agent")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_simulation_agents(
     request: Request,
 ) -> list[AgentSchema] | Response:
-    """Fetch agent list and convert unexpected failures to HTTP responses."""
+    """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(list_agents_dummy)
+        return await asyncio.to_thread(list_agents)
     except Exception:
         logger.exception("Unexpected error while listing simulation agents")
         return _error_response(
