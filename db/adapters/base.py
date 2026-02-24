@@ -8,6 +8,9 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_liked_post import AgentLikedPost
+from simulation.core.models.agent_linked_agent import AgentLinkedAgent
+from simulation.core.models.agent_profile_comment import AgentProfileComment
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -764,4 +767,58 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
 
         Returns dict mapping agent_id -> metadata | None.
         """
+        raise NotImplementedError
+
+
+class AgentProfileCommentDatabaseAdapter(ABC):
+    """Abstract interface for agent profile comment database operations."""
+
+    @abstractmethod
+    def write_agent_profile_comments(
+        self, comments: list[AgentProfileComment], *, conn: object
+    ) -> None:
+        """Write agent profile comments (batch)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_profile_comments_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, list[AgentProfileComment]]:
+        """Read comments per agent_id. Returns dict mapping agent_id -> list of comments."""
+        raise NotImplementedError
+
+
+class AgentLikedPostDatabaseAdapter(ABC):
+    """Abstract interface for agent liked post database operations."""
+
+    @abstractmethod
+    def write_agent_liked_posts(
+        self, liked_posts: list[AgentLikedPost], *, conn: object
+    ) -> None:
+        """Write agent liked posts (batch)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_liked_posts_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, list[AgentLikedPost]]:
+        """Read liked posts per agent_id. Returns dict mapping agent_id -> list of liked posts."""
+        raise NotImplementedError
+
+
+class AgentLinkedAgentDatabaseAdapter(ABC):
+    """Abstract interface for agent linked agent database operations."""
+
+    @abstractmethod
+    def write_agent_linked_agents(
+        self, linked_agents: list[AgentLinkedAgent], *, conn: object
+    ) -> None:
+        """Write agent linked agents (batch)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_linked_agents_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, list[AgentLinkedAgent]]:
+        """Read linked agents per agent_id. Returns dict mapping agent_id -> list of linked agents."""
         raise NotImplementedError

@@ -118,18 +118,22 @@ class RunListItem(BaseModel):
     status: RunStatus
 
 
-class CreateAgentRequest(BaseModel):
-    """Request body for POST /v1/simulations/agents.
+class CommentEntry(BaseModel):
+    """One comment entry (text + post URI) for agent profile history."""
 
-    Fast-follows (not yet supported):
-    - comments: list of {text, postUri}
-    - likedPostUris: list of post URIs
-    - linkedAgentHandles: list of agent handles to link
-    """
+    text: str = ""
+    post_uri: str = ""
+
+
+class CreateAgentRequest(BaseModel):
+    """Request body for POST /v1/simulations/agents."""
 
     handle: str
     display_name: str
     bio: str = ""
+    comments: list[CommentEntry] = []
+    liked_post_uris: list[str] = []
+    linked_agent_handles: list[str] = []
 
     @field_validator("handle")
     @classmethod
@@ -156,6 +160,9 @@ class AgentSchema(BaseModel):
     followers: int
     following: int
     posts_count: int
+    comments: list[CommentEntry] = []
+    liked_post_uris: list[str] = []
+    linked_agent_handles: list[str] = []
 
 
 class FeedSchema(BaseModel):

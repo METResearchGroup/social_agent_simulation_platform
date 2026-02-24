@@ -35,6 +35,7 @@ from simulation.api.services.run_query_service import (
 )
 from simulation.core.exceptions import (
     HandleAlreadyExistsError,
+    LinkedAgentHandleNotFoundError,
     RunNotFoundError,
     SimulationRunFailure,
 )
@@ -378,6 +379,13 @@ async def _execute_post_simulation_agents(
             status_code=409,
             code="HANDLE_ALREADY_EXISTS",
             message="Agent with this handle already exists",
+            detail=e.handle,
+        )
+    except LinkedAgentHandleNotFoundError as e:
+        return _error_response(
+            status_code=422,
+            code="LINKED_AGENT_NOT_FOUND",
+            message="Linked agent handle not found",
             detail=e.handle,
         )
     except ValueError as e:

@@ -212,6 +212,19 @@ class HandleAlreadyExistsError(Exception):
         super().__init__(f"Agent with handle '{handle}' already exists")
 
 
+class LinkedAgentHandleNotFoundError(Exception):
+    """Raised when a linked_agent_handle does not exist in the agent table."""
+
+    def __init__(self, handle: str):
+        """Initialize LinkedAgentHandleNotFoundError.
+
+        Args:
+            handle: The linked agent handle that was not found.
+        """
+        self.handle = handle
+        super().__init__(f"Linked agent handle '{handle}' not found")
+
+
 class MetricsComputationError(Exception):
     """Raised when a required metric cannot be computed."""
 

@@ -10,6 +10,9 @@ from collections.abc import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_liked_post import AgentLikedPost
+from simulation.core.models.agent_linked_agent import AgentLinkedAgent
+from simulation.core.models.agent_profile_comment import AgentProfileComment
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -97,6 +100,60 @@ class UserAgentProfileMetadataRepository(ABC):
 
         Keys are agent_ids; value is metadata or None if none exists.
         """
+        raise NotImplementedError
+
+
+class AgentProfileCommentRepository(ABC):
+    """Abstract base class for agent profile comment repositories."""
+
+    @abstractmethod
+    def create_comments(
+        self, comments: list[AgentProfileComment], conn: object | None = None
+    ) -> None:
+        """Create agent profile comments (batch)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_comments_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, list[AgentProfileComment]]:
+        """Return comments per agent_id for the given agent IDs."""
+        raise NotImplementedError
+
+
+class AgentLikedPostRepository(ABC):
+    """Abstract base class for agent liked post repositories."""
+
+    @abstractmethod
+    def create_liked_posts(
+        self, liked_posts: list[AgentLikedPost], conn: object | None = None
+    ) -> None:
+        """Create agent liked posts (batch)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_liked_posts_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, list[AgentLikedPost]]:
+        """Return liked posts per agent_id for the given agent IDs."""
+        raise NotImplementedError
+
+
+class AgentLinkedAgentRepository(ABC):
+    """Abstract base class for agent linked agent repositories."""
+
+    @abstractmethod
+    def create_linked_agents(
+        self, linked_agents: list[AgentLinkedAgent], conn: object | None = None
+    ) -> None:
+        """Create agent linked agents (batch)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_linked_agents_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, list[AgentLinkedAgent]]:
+        """Return linked agents per agent_id for the given agent IDs."""
         raise NotImplementedError
 
 

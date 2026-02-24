@@ -183,6 +183,44 @@ user_agent_profile_metadata = sa.Table(
     sa.UniqueConstraint("agent_id", name="uq_user_agent_profile_metadata_agent_id"),
 )
 
+agent_profile_comments = sa.Table(
+    "agent_profile_comments",
+    metadata,
+    sa.Column("id", sa.Text(), primary_key=True),
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("post_uri", sa.Text(), nullable=False),
+    sa.Column("text", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("updated_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_agent_profile_comments_agent_id"
+    ),
+)
+
+agent_liked_posts = sa.Table(
+    "agent_liked_posts",
+    metadata,
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("post_uri", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_agent_liked_posts_agent_id"
+    ),
+    sa.PrimaryKeyConstraint("agent_id", "post_uri", name="pk_agent_liked_posts"),
+)
+
+agent_linked_agents = sa.Table(
+    "agent_linked_agents",
+    metadata,
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("linked_agent_handle", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_agent_linked_agents_agent_id"
+    ),
+    sa.PrimaryKeyConstraint(
+        "agent_id", "linked_agent_handle", name="pk_agent_linked_agents"
+    ),
+)
+
 
 # --- Indexes (match current SQLite schema) ---
 
@@ -196,3 +234,4 @@ sa.Index(
     agent_persona_bios.c.agent_id,
     agent_persona_bios.c.created_at.desc(),
 )
+sa.Index("idx_agent_profile_comments_agent_id", agent_profile_comments.c.agent_id)
