@@ -379,7 +379,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
         setAgentsHasMore(nextPage.length === DEFAULT_AGENT_PAGE_SIZE);
       } catch (error: unknown) {
         console.error('Failed to load more agents:', error);
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || requestId !== agentsLoadMoreRequestIdRef.current) return;
         setAgentsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
         if (isMountedRef.current && requestId === agentsLoadMoreRequestIdRef.current) {
