@@ -58,6 +58,14 @@
             "title": "Bio",
             "type": "string"
           },
+          "comments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CommentEntry"
+            },
+            "title": "Comments",
+            "type": "array"
+          },
           "followers": {
             "title": "Followers",
             "type": "integer"
@@ -73,6 +81,22 @@
           "handle": {
             "title": "Handle",
             "type": "string"
+          },
+          "liked_post_uris": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Liked Post Uris",
+            "type": "array"
+          },
+          "linked_agent_handles": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Linked Agent Handles",
+            "type": "array"
           },
           "name": {
             "title": "Name",
@@ -95,13 +119,38 @@
         "title": "AgentSchema",
         "type": "object"
       },
+      "CommentEntry": {
+        "description": "One comment entry (text + post URI) for agent profile history.",
+        "properties": {
+          "post_uri": {
+            "default": "",
+            "title": "Post Uri",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "title": "CommentEntry",
+        "type": "object"
+      },
       "CreateAgentRequest": {
-        "description": "Request body for POST /v1/simulations/agents.\n\nFast-follows (not yet supported):\n- comments: list of {text, postUri}\n- likedPostUris: list of post URIs\n- linkedAgentHandles: list of agent handles to link",
+        "description": "Request body for POST /v1/simulations/agents.",
         "properties": {
           "bio": {
             "default": "",
             "title": "Bio",
             "type": "string"
+          },
+          "comments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CommentEntry"
+            },
+            "title": "Comments",
+            "type": "array"
           },
           "display_name": {
             "title": "Display Name",
@@ -110,6 +159,22 @@
           "handle": {
             "title": "Handle",
             "type": "string"
+          },
+          "liked_post_uris": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Liked Post Uris",
+            "type": "array"
+          },
+          "linked_agent_handles": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Linked Agent Handles",
+            "type": "array"
           }
         },
         "required": [

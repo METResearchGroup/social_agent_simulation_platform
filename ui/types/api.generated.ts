@@ -256,6 +256,11 @@ export interface components {
         AgentSchema: {
             /** Bio */
             bio: string;
+            /**
+             * Comments
+             * @default []
+             */
+            comments: components["schemas"]["CommentEntry"][];
             /** Followers */
             followers: number;
             /** Following */
@@ -264,19 +269,40 @@ export interface components {
             generated_bio: string;
             /** Handle */
             handle: string;
+            /**
+             * Liked Post Uris
+             * @default []
+             */
+            liked_post_uris: string[];
+            /**
+             * Linked Agent Handles
+             * @default []
+             */
+            linked_agent_handles: string[];
             /** Name */
             name: string;
             /** Posts Count */
             posts_count: number;
         };
         /**
+         * CommentEntry
+         * @description One comment entry (text + post URI) for agent profile history.
+         */
+        CommentEntry: {
+            /**
+             * Post Uri
+             * @default
+             */
+            post_uri: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+        };
+        /**
          * CreateAgentRequest
          * @description Request body for POST /v1/simulations/agents.
-         *
-         *     Fast-follows (not yet supported):
-         *     - comments: list of {text, postUri}
-         *     - likedPostUris: list of post URIs
-         *     - linkedAgentHandles: list of agent handles to link
          */
         CreateAgentRequest: {
             /**
@@ -284,10 +310,25 @@ export interface components {
              * @default
              */
             bio: string;
+            /**
+             * Comments
+             * @default []
+             */
+            comments: components["schemas"]["CommentEntry"][];
             /** Display Name */
             display_name: string;
             /** Handle */
             handle: string;
+            /**
+             * Liked Post Uris
+             * @default []
+             */
+            liked_post_uris: string[];
+            /**
+             * Linked Agent Handles
+             * @default []
+             */
+            linked_agent_handles: string[];
         };
         /**
          * DefaultConfigSchema
