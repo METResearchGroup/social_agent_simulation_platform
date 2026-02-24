@@ -41,8 +41,6 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
     ) -> None:
         """Write user agent profile metadata to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Raises:
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails

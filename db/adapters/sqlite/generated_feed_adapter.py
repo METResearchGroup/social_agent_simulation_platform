@@ -55,11 +55,9 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     ) -> None:
         """Write a generated feed to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             feed: GeneratedFeed model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             sqlite3.IntegrityError: If composite key violates constraints
@@ -81,13 +79,11 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     ) -> GeneratedFeed:
         """Read a generated feed from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             agent_handle: Agent handle to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             GeneratedFeed model for the specified agent, run, and turn.
@@ -138,8 +134,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     ) -> list[GeneratedFeed]:
         """Read all generated feeds from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Returns:
             List of GeneratedFeed models.
 
@@ -165,12 +159,10 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     ) -> set[str]:
         """Read all post URIs from generated feeds for a specific agent and run.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             agent_handle: Agent handle to filter by
             run_id: Run ID to filter by
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             Set of post URIs from all generated feeds matching the agent and run.
@@ -196,12 +188,10 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     ) -> list[GeneratedFeed]:
         """Read all generated feeds for a specific run and turn.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of GeneratedFeed models for the specified run and turn.

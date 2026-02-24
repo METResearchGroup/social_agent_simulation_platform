@@ -38,8 +38,6 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
     def write_agent_bio(self, bio: AgentBio, *, conn: sqlite3.Connection) -> None:
         """Write an agent bio to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Raises:
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails

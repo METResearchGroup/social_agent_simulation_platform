@@ -91,8 +91,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     def write_run(self, run: Run, *, conn: sqlite3.Connection) -> None:
         """Write a run to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Raises:
             sqlite3.IntegrityError: If run_id violates constraints
             sqlite3.OperationalError: If database operation fails
@@ -152,9 +150,6 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     ) -> None:
         """Update run status in SQLite.
 
-        conn is required; repository must provide it (from its transaction or
-        a standalone transaction).
-
         Raises:
             RunNotFoundError: If no run exists with the given run_id
             sqlite3.OperationalError: If database operation fails
@@ -181,15 +176,13 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     ) -> TurnMetadata | None:
         """Read turn metadata from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         The total_actions field is stored as JSON with string keys (e.g., {"like": 5}).
         This method converts those string keys to TurnAction enum keys.
 
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -230,11 +223,9 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     ) -> list[TurnMetadata]:
         """Read all turn metadata rows for a run from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             run_id: The ID of the run
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of TurnMetadata ordered by turn_number ascending.
@@ -281,12 +272,10 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         """Write turn metadata to SQLite.
 
         Writes to the `turn_metadata` table. Uses INSERT.
-        conn is required; repository must provide it.
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Connection. Repository must provide it (from its transaction
-                  or a standalone transaction).
+            conn: Connection.
 
         Raises:
             sqlite3.OperationalError: If database operation fails

@@ -78,11 +78,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
     ) -> None:
         """Write a feed post to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             post: BlueskyFeedPost model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             sqlite3.IntegrityError: If uri violates constraints
@@ -98,11 +96,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
     ) -> None:
         """Write multiple feed posts to SQLite (batch operation).
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             posts: List of BlueskyFeedPost models to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             sqlite3.IntegrityError: If any uri violates constraints
@@ -119,11 +115,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
     def read_feed_post(self, uri: str, *, conn: sqlite3.Connection) -> BlueskyFeedPost:
         """Read a feed post from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             uri: Post URI to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             BlueskyFeedPost model if found.
@@ -154,11 +148,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
     ) -> list[BlueskyFeedPost]:
         """Read all feed posts by a specific author from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             author_handle: Author handle to filter by
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of BlueskyFeedPost models for the author.
@@ -193,8 +185,6 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
     def read_all_feed_posts(self, *, conn: sqlite3.Connection) -> list[BlueskyFeedPost]:
         """Read all feed posts from SQLite.
-
-        conn is required; repository must provide it (from its transaction).
 
         Returns:
             List of BlueskyFeedPost models.
@@ -243,11 +233,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
     ) -> list[BlueskyFeedPost]:
         """Read feed posts by URIs.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             uris: Iterable of post URIs to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of BlueskyFeedPost models for the given URIs.

@@ -51,11 +51,9 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
     ) -> None:
         """Write a generated bio to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             bio: GeneratedBio model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             sqlite3.IntegrityError: If handle violates constraints
@@ -73,11 +71,9 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
     ) -> GeneratedBio | None:
         """Read a generated bio from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             handle: Profile handle to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             GeneratedBio if found, None otherwise.
@@ -114,8 +110,6 @@ class SQLiteGeneratedBioAdapter(GeneratedBioDatabaseAdapter):
         self, *, conn: sqlite3.Connection
     ) -> list[GeneratedBio]:
         """Read all generated bios from SQLite.
-
-        conn is required; repository must provide it (from its transaction).
 
         Returns:
             List of GeneratedBio models.

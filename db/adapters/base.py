@@ -49,8 +49,7 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             run: Run model to write
-            conn: Connection. Repository must provide it (from its transaction).
-                  Adapter executes against it; does not commit.
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -71,7 +70,7 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             run_id: Unique identifier for the run
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             Run model if found, None otherwise
@@ -90,7 +89,7 @@ class RunDatabaseAdapter(ABC):
         """Read all runs.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of Run models, ordered by created_at descending (newest first).
@@ -121,9 +120,7 @@ class RunDatabaseAdapter(ABC):
             status: New status value (should be a valid RunStatus enum value as string)
             completed_at: Optional timestamp when the run was completed.
                          Should be set when status is 'completed', None otherwise.
-            conn: Connection. Repository must provide it (from its transaction or
-                  a standalone transaction). Adapter executes against it; does not
-                  commit.
+            conn: Connection.
 
         Raises:
             RunNotFoundError: If no run exists with the given run_id
@@ -146,7 +143,7 @@ class RunDatabaseAdapter(ABC):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             TurnMetadata if found, None otherwise
@@ -173,7 +170,7 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             run_id: The ID of the run
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of TurnMetadata ordered by turn_number ascending.
@@ -201,9 +198,7 @@ class RunDatabaseAdapter(ABC):
 
         Args:
             turn_metadata: TurnMetadata model to write
-            conn: Connection. Repository must provide it (from its transaction or
-                  a standalone transaction). Adapter executes against it; does not
-                  commit.
+            conn: Connection.
 
         Raises:
             DuplicateTurnMetadataError: If turn metadata already exists
@@ -226,8 +221,7 @@ class MetricsDatabaseAdapter(ABC):
     ) -> None:
         """Write turn metrics.
 
-        conn: Connection. Repository must provide it (from its transaction or a
-              standalone transaction). Adapter executes against it; does not commit.
+        conn: Connection.
 
         Note:
             This write is idempotent: an existing row with the same (run_id,
@@ -258,8 +252,7 @@ class MetricsDatabaseAdapter(ABC):
     ) -> None:
         """Write run metrics.
 
-        conn: Connection. Repository must provide it (from its transaction or a
-              standalone transaction). Adapter executes against it; does not commit.
+        conn: Connection.
 
         Note:
             This write is idempotent: an existing row with the same run_id may be
@@ -288,7 +281,7 @@ class ProfileDatabaseAdapter(ABC):
 
         Args:
             profile: BlueskyProfile model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -309,7 +302,7 @@ class ProfileDatabaseAdapter(ABC):
 
         Args:
             handle: Profile handle to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             BlueskyProfile model if found, None otherwise.
@@ -328,7 +321,7 @@ class ProfileDatabaseAdapter(ABC):
         """Read all profiles.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of BlueskyProfile models. Returns empty list if no profiles exist.
@@ -357,7 +350,7 @@ class FeedPostDatabaseAdapter(ABC):
 
         Args:
             post: BlueskyFeedPost model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -378,7 +371,7 @@ class FeedPostDatabaseAdapter(ABC):
 
         Args:
             posts: List of BlueskyFeedPost models to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -399,7 +392,7 @@ class FeedPostDatabaseAdapter(ABC):
 
         Args:
             uri: Post URI to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             BlueskyFeedPost model if found.
@@ -422,7 +415,7 @@ class FeedPostDatabaseAdapter(ABC):
 
         Args:
             author_handle: Author handle to filter by
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of BlueskyFeedPost models for the author.
@@ -441,7 +434,7 @@ class FeedPostDatabaseAdapter(ABC):
         """Read all feed posts.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of all BlueskyFeedPost models. Returns empty list if no posts exist.
@@ -463,7 +456,7 @@ class FeedPostDatabaseAdapter(ABC):
 
         Args:
             uris: Iterable of post URIs to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of BlueskyFeedPost models for the given URIs.
@@ -496,7 +489,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
 
         Args:
             feed: GeneratedFeed model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -527,7 +520,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
             agent_handle: Agent handle to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             GeneratedFeed model for the specified agent, run, and turn.
@@ -547,7 +540,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
         """Read all generated feeds.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of all GeneratedFeed models. Returns empty list if no feeds exist.
@@ -570,7 +563,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
         Args:
             agent_handle: Agent handle to filter by
             run_id: Run ID to filter by
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             Set of post URIs from all generated feeds matching the agent and run.
@@ -593,7 +586,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of GeneratedFeed models for the specified run and turn.
@@ -623,7 +616,7 @@ class GeneratedBioDatabaseAdapter(ABC):
 
         Args:
             bio: GeneratedBio model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             Exception: Database-specific exception if constraints are violated or
@@ -644,7 +637,7 @@ class GeneratedBioDatabaseAdapter(ABC):
 
         Args:
             handle: Profile handle to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             GeneratedBio model if found, None otherwise.
@@ -663,7 +656,7 @@ class GeneratedBioDatabaseAdapter(ABC):
         """Read all generated bios.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             List of all GeneratedBio models. Returns empty list if no bios exist.
@@ -686,7 +679,7 @@ class AgentDatabaseAdapter(ABC):
         """Write an agent to the database.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Note:
             Idempotent: an existing row with the same agent_id may be replaced.
@@ -740,7 +733,7 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
         """Write user agent profile metadata.
 
         Args:
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Note:
             Idempotent: an existing row with the same agent_id may be replaced.

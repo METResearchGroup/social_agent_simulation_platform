@@ -38,8 +38,6 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
     def write_agent(self, agent: Agent, *, conn: sqlite3.Connection) -> None:
         """Write an agent to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Raises:
             sqlite3.IntegrityError: If constraints are violated
             sqlite3.OperationalError: If database operation fails

@@ -29,11 +29,9 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
     ) -> None:
         """Write a profile to SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             profile: BlueskyProfile model to write
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Raises:
             sqlite3.IntegrityError: If handle violates constraints
@@ -60,11 +58,9 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
     ) -> BlueskyProfile | None:
         """Read a profile from SQLite.
 
-        conn is required; repository must provide it (from its transaction).
-
         Args:
             handle: Profile handle to look up
-            conn: Connection. Repository must provide it (from its transaction).
+            conn: Connection.
 
         Returns:
             BlueskyProfile if found, None otherwise.
@@ -97,8 +93,6 @@ class SQLiteProfileAdapter(ProfileDatabaseAdapter):
 
     def read_all_profiles(self, *, conn: sqlite3.Connection) -> list[BlueskyProfile]:
         """Read all profiles from SQLite.
-
-        conn is required; repository must provide it (from its transaction).
 
         Returns:
             List of BlueskyProfile models.
