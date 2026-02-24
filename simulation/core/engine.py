@@ -12,6 +12,11 @@ from simulation.core.action_history import (
     ActionHistoryStore,
 )
 from simulation.core.command_service import SimulationCommandService
+from simulation.core.metrics.defaults import (
+    DEFAULT_RUN_METRIC_KEYS,
+    DEFAULT_TURN_METRIC_KEYS,
+    resolve_metric_keys_by_scope,
+)
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -83,12 +88,20 @@ class SimulationEngine:
         turn_number: int,
         agents: list[SocialMediaAgent],
     ) -> None:
+        config_metric_keys = getattr(run_config, "metric_keys", None)
+        metric_keys: list[str] = (
+            config_metric_keys
+            if config_metric_keys and len(config_metric_keys) > 0
+            else sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+        )
+        turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
         self.command_service.simulate_turn(
             run,
             run_config,
             turn_number,
             agents,
             action_history_store=self.action_history_store_factory(),
+            turn_metric_keys=turn_keys,
         )
 
     def simulate_turns(
@@ -98,12 +111,20 @@ class SimulationEngine:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
     ) -> None:
+        config_metric_keys = getattr(run_config, "metric_keys", None)
+        metric_keys: list[str] = (
+            config_metric_keys
+            if config_metric_keys and len(config_metric_keys) > 0
+            else sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+        )
+        turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
         self.command_service.simulate_turns(
             total_turns,
             run,
             run_config,
             agents,
             action_history_store=self.action_history_store_factory(),
+            turn_metric_keys=turn_keys,
         )
 
     def create_agents_for_run(

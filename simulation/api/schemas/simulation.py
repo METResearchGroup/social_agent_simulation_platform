@@ -13,6 +13,7 @@ from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
 from simulation.core.validators import (
     validate_feed_algorithm,
+    validate_metric_keys,
     validate_num_agents,
     validate_num_turns,
 )
@@ -25,6 +26,12 @@ class RunRequest(BaseModel):
     num_turns: int | None = None
     feed_algorithm: str | None = None
     feed_algorithm_config: dict[str, JsonValue] | None = None
+    metric_keys: list[str] | None = None
+
+    @field_validator("metric_keys")
+    @classmethod
+    def _validate_metric_keys(cls, v: list[str] | None) -> list[str] | None:
+        return validate_metric_keys(v)
 
     @field_validator("num_agents")
     @classmethod
@@ -106,6 +113,7 @@ class RunConfigDetail(BaseModel):
     num_agents: int
     num_turns: int
     feed_algorithm: str
+    metric_keys: list[str]
 
 
 class RunListItem(BaseModel):

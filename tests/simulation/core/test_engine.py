@@ -99,6 +99,13 @@ class TestSimulationEngineDelegation:
             created_at="2024_01_01-12:00:00",
             total_turns=1,
             total_agents=1,
+            feed_algorithm="chronological",
+            metric_keys=[
+                "run.actions.total",
+                "run.actions.total_by_type",
+                "turn.actions.counts_by_type",
+                "turn.actions.total",
+            ],
             started_at="2024_01_01-12:00:00",
             status=RunStatus.RUNNING,
             completed_at=None,
@@ -110,6 +117,12 @@ class TestSimulationEngineDelegation:
                 "feed_algorithm": "chronological",
                 "num_agents": 1,
                 "num_turns": 1,
+                "metric_keys": [
+                    "run.actions.total",
+                    "run.actions.total_by_type",
+                    "turn.actions.counts_by_type",
+                    "turn.actions.total",
+                ],
             },
         )()
         agents = [SocialMediaAgent("agent1.bsky.social")]
@@ -123,9 +136,19 @@ class TestSimulationEngineDelegation:
         command_service.execute_run.assert_called_once_with(config)
         command_service.update_run_status.assert_called_once_with(run, RunStatus.FAILED)
         command_service.simulate_turn.assert_called_once_with(
-            run, config, 0, agents, action_history_store=ANY
+            run,
+            config,
+            0,
+            agents,
+            action_history_store=ANY,
+            turn_metric_keys=["turn.actions.counts_by_type", "turn.actions.total"],
         )
         command_service.simulate_turns.assert_called_once_with(
-            1, run, config, agents, action_history_store=ANY
+            1,
+            run,
+            config,
+            agents,
+            action_history_store=ANY,
+            turn_metric_keys=["turn.actions.counts_by_type", "turn.actions.total"],
         )
         command_service.create_agents_for_run.assert_called_once_with(run, config)

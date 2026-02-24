@@ -12,6 +12,10 @@ from simulation.core.exceptions import (
     RunNotFoundError,
     RunStatusUpdateError,
 )
+from simulation.core.metrics.defaults import (
+    DEFAULT_RUN_METRIC_KEYS,
+    DEFAULT_TURN_METRIC_KEYS,
+)
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.validators import (
@@ -68,12 +72,21 @@ class SQLiteRunRepository(RunRepository):
             ts = get_current_timestamp()
             run_id = f"run_{ts}_{uuid.uuid4()}"
 
+            metric_keys: list[str]
+            if config.metric_keys is None or len(config.metric_keys) == 0:
+                metric_keys = sorted(
+                    set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
+                )
+            else:
+                metric_keys = config.metric_keys
+
             run = Run(
                 run_id=run_id,
                 created_at=ts,
                 total_turns=config.num_turns,
                 total_agents=config.num_agents,
                 feed_algorithm=config.feed_algorithm,
+                metric_keys=metric_keys,
                 started_at=ts,
                 status=RunStatus.RUNNING,
             )

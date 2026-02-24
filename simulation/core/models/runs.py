@@ -17,6 +17,15 @@ class RunConfig(BaseModel):
     num_turns: int
     feed_algorithm: str
     feed_algorithm_config: dict[str, JsonValue] | None = None
+    metric_keys: list[str] | None = None
+
+    @field_validator("metric_keys")
+    @classmethod
+    def validate_metric_keys_config(cls, v: list[str] | None) -> list[str] | None:
+        """Validate that metric_keys, when provided, contains only registered keys."""
+        from simulation.core.validators import validate_metric_keys
+
+        return validate_metric_keys(v)
 
     @field_validator("num_agents")
     @classmethod
@@ -66,9 +75,22 @@ class Run(BaseModel):
     total_turns: int
     total_agents: int
     feed_algorithm: str = DEFAULT_FEED_ALGORITHM
+    metric_keys: list[str]
     started_at: str
     status: RunStatus
     completed_at: str | None = None
+
+    @field_validator("metric_keys")
+    @classmethod
+    def validate_metric_keys_run(cls, v: list[str]) -> list[str]:
+        """Validate that metric_keys is non-empty and contains only registered keys."""
+        from simulation.core.validators import validate_metric_keys
+
+        if not v:
+            raise ValueError("metric_keys cannot be empty")
+        result = validate_metric_keys(v)
+        assert result is not None  # v is non-empty, so result will be the list
+        return result
 
     @field_validator("run_id")
     @classmethod

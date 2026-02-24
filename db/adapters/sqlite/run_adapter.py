@@ -11,6 +11,10 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import runs
 from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import DuplicateTurnMetadataError, RunNotFoundError
+from simulation.core.metrics.defaults import (
+    DEFAULT_RUN_METRIC_KEYS,
+    DEFAULT_TURN_METRIC_KEYS,
+)
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
@@ -77,12 +81,31 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 f"Invalid status value: {row['status']}. Must be one of: {[s.value for s in RunStatus]}"
             ) from err
 
+        metric_keys: list[str]
+        raw_metric_keys: str | None = (
+            row["metric_keys"] if "metric_keys" in row.keys() else None
+        )
+        if raw_metric_keys is None or (
+            isinstance(raw_metric_keys, str) and not raw_metric_keys.strip()
+        ):
+            metric_keys = sorted(
+                set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
+            )
+        else:
+            parsed = json.loads(raw_metric_keys)
+            if not isinstance(parsed, list):
+                raise ValueError(
+                    f"metric_keys must be a JSON array, got {type(parsed).__name__}"
+                )
+            metric_keys = sorted(str(k) for k in parsed)
+
         return Run(
             run_id=row["run_id"],
             created_at=row["created_at"],
             total_turns=row["total_turns"],
             total_agents=row["total_agents"],
             feed_algorithm=row["feed_algorithm"],
+            metric_keys=metric_keys,
             started_at=row["started_at"],
             status=status,
             completed_at=row["completed_at"],
@@ -95,11 +118,13 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             sqlite3.IntegrityError: If run_id violates constraints
             sqlite3.OperationalError: If database operation fails
         """
+        metric_keys_json: str = json.dumps(sorted(run.metric_keys))
+
         conn.execute(
             """
             INSERT OR REPLACE INTO runs 
-            (run_id, created_at, total_turns, total_agents, feed_algorithm, started_at, status, completed_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (run_id, created_at, total_turns, total_agents, feed_algorithm, metric_keys, started_at, status, completed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 run.run_id,
@@ -107,6 +132,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 run.total_turns,
                 run.total_agents,
                 run.feed_algorithm,
+                metric_keys_json,
                 run.started_at,
                 run.status.value,  # Convert enum to string explicitly
                 run.completed_at,

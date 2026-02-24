@@ -12,6 +12,10 @@ from simulation.api.schemas.simulation import (
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
+from simulation.core.metrics.defaults import (
+    DEFAULT_RUN_METRIC_KEYS,
+    DEFAULT_TURN_METRIC_KEYS,
+)
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig
 from simulation.core.models.turns import TurnMetadata
@@ -92,6 +96,12 @@ def execute(
 
 def _build_run_config(request: RunRequest) -> RunConfig:
     """Build RunConfig from request, applying API defaults."""
+    metric_keys: list[str]
+    if request.metric_keys is None or len(request.metric_keys) == 0:
+        metric_keys = sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+    else:
+        metric_keys = request.metric_keys
+
     return RunConfig(
         num_agents=request.num_agents,
         num_turns=request.num_turns
@@ -99,6 +109,7 @@ def _build_run_config(request: RunRequest) -> RunConfig:
         else DEFAULT_NUM_TURNS,
         feed_algorithm=request.feed_algorithm or DEFAULT_FEED_ALGORITHM,
         feed_algorithm_config=request.feed_algorithm_config,
+        metric_keys=metric_keys,
     )
 
 

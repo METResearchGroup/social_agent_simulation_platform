@@ -103,6 +103,65 @@ class _BoomMetric(Metric):
         raise ValueError("boom")
 
 
+class TestMetricsCollectorOptionalKeysOverride:
+    """Tests for optional turn_metric_keys/run_metric_keys override."""
+
+    def test_collect_turn_metrics_uses_override_when_provided(self):
+        """Passing turn_metric_keys overrides instance default."""
+        registry = MetricsRegistry(
+            metric_builders={
+                "turn.a": _const_metric_class(
+                    key="turn.a", scope=MetricScope.TURN, value=1
+                ),
+                "turn.b": _const_metric_class(
+                    key="turn.b", scope=MetricScope.TURN, value=2
+                ),
+            }
+        )
+        deps = MetricDeps(run_repo=Mock(), metrics_repo=Mock(), sql_executor=None)
+        collector = MetricsCollector(
+            registry=registry,
+            turn_metric_keys=["turn.a", "turn.b"],
+            run_metric_keys=[],
+            deps=deps,
+        )
+
+        result = collector.collect_turn_metrics(
+            run_id="run_x",
+            turn_number=0,
+            turn_metric_keys=["turn.a"],
+        )
+
+        assert result == {"turn.a": 1}
+
+    def test_collect_run_metrics_uses_override_when_provided(self):
+        """Passing run_metric_keys overrides instance default."""
+        registry = MetricsRegistry(
+            metric_builders={
+                "run.x": _const_metric_class(
+                    key="run.x", scope=MetricScope.RUN, value=10
+                ),
+                "run.y": _const_metric_class(
+                    key="run.y", scope=MetricScope.RUN, value=20
+                ),
+            }
+        )
+        deps = MetricDeps(run_repo=Mock(), metrics_repo=Mock(), sql_executor=None)
+        collector = MetricsCollector(
+            registry=registry,
+            turn_metric_keys=[],
+            run_metric_keys=["run.x", "run.y"],
+            deps=deps,
+        )
+
+        result = collector.collect_run_metrics(
+            run_id="run_x",
+            run_metric_keys=["run.y"],
+        )
+
+        assert result == {"run.y": 20}
+
+
 class TestMetricsCollectorResolveOrder:
     """Tests for deterministic dependency ordering."""
 

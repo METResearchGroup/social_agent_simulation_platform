@@ -24,6 +24,11 @@ from simulation.core.agent_action_history_recorder import AgentActionHistoryReco
 from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
+from simulation.core.metrics.defaults import (
+    DEFAULT_RUN_METRIC_KEYS,
+    DEFAULT_TURN_METRIC_KEYS,
+    resolve_metric_keys_by_scope,
+)
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
@@ -99,15 +104,29 @@ class SimulationCommandService:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
             action_history_store = self.action_history_store_factory()
 
+            metric_keys_for_run: list[str]
+            config_metric_keys = getattr(run_config, "metric_keys", None)
+            if config_metric_keys and len(config_metric_keys) > 0:
+                metric_keys_for_run = config_metric_keys
+            else:
+                metric_keys_for_run = sorted(
+                    set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
+                )
+            turn_keys, run_keys = resolve_metric_keys_by_scope(metric_keys_for_run)
+
             self.simulate_turns(
                 total_turns=run.total_turns,
                 run=run,
                 run_config=run_config,
                 agents=agents,
                 action_history_store=action_history_store,
+                turn_metric_keys=turn_keys,
             )
             run_metrics_dict: ComputedMetrics = (
-                self.metrics_collector.collect_run_metrics(run_id=run.run_id)
+                self.metrics_collector.collect_run_metrics(
+                    run_id=run.run_id,
+                    run_metric_keys=run_keys,
+                )
             )
             run_metrics = RunMetrics(
                 run_id=run.run_id,
@@ -159,6 +178,7 @@ class SimulationCommandService:
         turn_number: int,
         agents: list[SocialMediaAgent],
         action_history_store: ActionHistoryStore,
+        turn_metric_keys: list[str],
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
@@ -172,6 +192,7 @@ class SimulationCommandService:
                 run_config.feed_algorithm,
                 feed_algorithm_config=feed_algorithm_config,
                 action_history_store=action_history_store,
+                turn_metric_keys=turn_metric_keys,
             )
         except Exception as e:
             logger.error(
@@ -199,6 +220,7 @@ class SimulationCommandService:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
         action_history_store: ActionHistoryStore,
+        turn_metric_keys: list[str],
     ) -> None:
         for turn_number in range(total_turns):
             self.simulate_turn(
@@ -207,6 +229,7 @@ class SimulationCommandService:
                 turn_number=turn_number,
                 agents=agents,
                 action_history_store=action_history_store,
+                turn_metric_keys=turn_metric_keys,
             )
 
     def create_agents_for_run(
@@ -232,6 +255,7 @@ class SimulationCommandService:
         feed_algorithm: str,
         action_history_store: ActionHistoryStore,
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
+        turn_metric_keys: list[str] | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
@@ -330,6 +354,7 @@ class SimulationCommandService:
         computed_metrics: ComputedMetrics = self.metrics_collector.collect_turn_metrics(
             run_id=run_id,
             turn_number=turn_number,
+            turn_metric_keys=turn_metric_keys,
         )
         turn_metrics = TurnMetrics(
             run_id=run_id,

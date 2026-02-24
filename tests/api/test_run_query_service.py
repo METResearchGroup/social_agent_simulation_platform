@@ -20,6 +20,12 @@ def test_get_run_details_returns_sorted_turns_with_string_action_keys():
         total_turns=2,
         total_agents=2,
         feed_algorithm="chronological",
+        metric_keys=[
+            "run.actions.total",
+            "run.actions.total_by_type",
+            "turn.actions.counts_by_type",
+            "turn.actions.total",
+        ],
         started_at="2026-01-01T00:00:00",
         status=RunStatus.COMPLETED,
         completed_at="2026-01-01T00:01:00",

@@ -117,6 +117,12 @@ class TestSimulationCommandServiceExecuteRun:
                 "num_agents": 2,
                 "num_turns": turns,
                 "feed_algorithm_config": None,
+                "metric_keys": [
+                    "run.actions.total",
+                    "run.actions.total_by_type",
+                    "turn.actions.counts_by_type",
+                    "turn.actions.total",
+                ],
             },
         )()
 
