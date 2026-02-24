@@ -13,6 +13,7 @@ Dependency Injection over concrete instantiation
 - Services should not instantiate concrete infra/state dependencies internally (e.g., no InMemory...() inside business methods).
 - Inject dependencies via constructor or builder functions.
 - Default “what runs” via factories: for configurable behavior (e.g. which metrics), use factory functions that accept optional overrides (e.g. metrics_collector: MetricsCollector | None = None) and, when None, build the default (e.g. default registry + default key lists). This keeps one canonical default while allowing tests and callers to inject alternatives.
+- When a parent (e.g. engine/facade) always supplies a value to a child (e.g. command service, collector), the child should accept it as a required parameter. Do not provide fallbacks (e.g. param: list[str] | None = None with param or self._default) in the child; the parent is the single place that decides the value so downstream code can assume it is present.
 
 Keep orchestration thin
 
@@ -59,6 +60,7 @@ Type annotations:
 API design and rollout
 
 - Prefer sync endpoints first to lock in behavior and contracts; add async/job-based APIs later for concurrency and scale.
+- For optional list fields where "no items" is a valid intent (e.g. metric_keys), prefer the contract omit the field for "none" and reject empty list in validation (raise with a message like "cannot be empty; omit the field if you don't want any"). That keeps "absent" and "present but empty" distinct and avoids ambiguous semantics.
 
 Per-commit:
 
@@ -102,6 +104,7 @@ Fixed sets of values (e.g. status, type, kind):
 - Use a Pydantic model or discriminated union when each value has different required fields.
 - Prefer enum over Literal when the type is shared and reused; Literal is fine for a one-off field in a single schema.
 - When a feature has distinct scopes or phases (e.g. per-turn vs post-run), model them with an explicit enum (e.g. MetricScope.TURN / RUN) and enforce scope at runtime (e.g. reject a TURN-scoped implementation when running RUN-scoped) so misconfiguration fails fast.
+- When branching on a fixed set (e.g. enum like MetricScope), use explicit branches for each known value and raise (e.g. ValueError) for any other value. Avoid a single else that treats "everything else" as one known case (e.g. non-TURN → RUN), so new enum values cause an immediate, explicit failure instead of being misclassified.
 
 Deterministic outputs:
 
