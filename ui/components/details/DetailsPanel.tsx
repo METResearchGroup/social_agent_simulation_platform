@@ -94,19 +94,16 @@ function getPostUrisFromTurn(turn: Turn): string[] {
       }
     }
   }
+  for (const actions of Object.values(turn.agentActions)) {
+    for (const action of actions) {
+      if (!action.postUri) continue;
+      if (!seen.has(action.postUri)) {
+        seen.add(action.postUri);
+        uris.push(action.postUri);
+      }
+    }
+  }
   return uris;
-}
-
-function getAllPostsForTurn(
-  turn: Turn,
-  postsByUri: Record<string, Post>,
-): Post[] {
-  return Object.values(turn.agentFeeds)
-    .flatMap((feed) =>
-      feed.postUris
-        .map((uri) => postsByUri[uri])
-        .filter((post): post is Post => post !== undefined),
-    );
 }
 
 interface TurnDetailContentProps {
@@ -187,7 +184,6 @@ function TurnDetailContent({
     );
   }
 
-  const allPosts: Post[] = getAllPostsForTurn(currentTurn, postsByUri);
   const participatingAgents: Agent[] = getParticipatingAgents(
     currentTurn,
     runAgents,
@@ -217,7 +213,7 @@ function TurnDetailContent({
                   agent={agent}
                   feed={feedPosts}
                   actions={agentActions}
-                  allPosts={allPosts}
+                  postsByUri={postsByUri}
                 />
               </div>
             );
