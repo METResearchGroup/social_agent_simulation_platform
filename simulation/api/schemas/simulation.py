@@ -7,6 +7,7 @@ from enum import Enum
 from pydantic import BaseModel, JsonValue, field_validator, model_validator
 
 from feeds.algorithms.interfaces import FeedAlgorithmMetadata
+from simulation.core.metrics.interfaces import MetricScope
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
@@ -52,7 +53,7 @@ class MetricSchema(BaseModel):
 
     key: str
     description: str
-    scope: str  # "turn" | "run"
+    scope: MetricScope
     author: str
 
 

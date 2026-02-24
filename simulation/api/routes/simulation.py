@@ -213,7 +213,7 @@ def _get_metrics_list() -> list[MetricSchema]:
         MetricSchema(
             key=key,
             description=description,
-            scope=scope.value,
+            scope=scope,
             author=author,
         )
         for key, description, scope, author in get_registered_metrics_metadata()
