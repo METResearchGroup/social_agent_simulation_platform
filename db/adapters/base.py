@@ -700,6 +700,20 @@ class AgentDatabaseAdapter(ABC):
         """Read all agents. Returns empty list if none exist."""
         raise NotImplementedError
 
+    @abstractmethod
+    def read_agents_page(self, *, limit: int, offset: int, conn: object) -> list[Agent]:
+        """Read a page of agents, ordered by handle for deterministic output.
+
+        Args:
+            limit: Maximum number of agents to return.
+            offset: Number of agents to skip.
+            conn: Connection.
+
+        Returns:
+            List of Agent models (possibly empty).
+        """
+        raise NotImplementedError
+
 
 class AgentBioDatabaseAdapter(ABC):
     """Abstract interface for agent persona bio database operations."""

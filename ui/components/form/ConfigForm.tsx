@@ -9,8 +9,9 @@ import {
   validateConfig,
 } from '@/components/form/config-schema';
 import type { JsonObject } from '@/components/form/config-schema';
-import { getFeedAlgorithms } from '@/lib/api/simulation';
-import { FeedAlgorithm, RunConfig } from '@/types';
+import { getAvailableMetrics, getFeedAlgorithms } from '@/lib/api/simulation';
+import { FeedAlgorithm, Metric, RunConfig } from '@/types';
+import MetricSelector from '@/components/form/MetricSelector';
 
 interface ConfigFormProps {
   onSubmit: (config: RunConfig) => void;
@@ -35,6 +36,12 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
   );
   const [algorithms, setAlgorithms] = useState<FeedAlgorithm[]>([]);
   const algorithmsRequestIdRef = useRef<number>(0);
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [selectedMetricKeys, setSelectedMetricKeys] = useState<string[]>(
+    defaultConfig.metricKeys && defaultConfig.metricKeys.length > 0 ? defaultConfig.metricKeys : [],
+  );
+  const [showMetricsSection, setShowMetricsSection] = useState(true);
+  const metricsRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -53,6 +60,36 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
         setAlgorithms(list);
       } catch (err) {
         console.error('Failed to fetch feed algorithms:', err);
+      }
+    };
+
+    void load();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    metricsRequestIdRef.current += 1;
+    const requestId = metricsRequestIdRef.current;
+
+    const load = async (): Promise<void> => {
+      try {
+        const list = await getAvailableMetrics();
+        if (!isMounted || requestId !== metricsRequestIdRef.current) return;
+        if (list.length === 0) {
+          console.warn(
+            '[ConfigForm] Metrics list empty or failed to load; metric selector hidden.',
+          );
+        }
+        setMetrics(list);
+        setSelectedMetricKeys((prev) => {
+          if (prev.length > 0) return prev;
+          return list.map((m) => m.key).sort();
+        });
+      } catch (err) {
+        console.error('Failed to fetch metrics:', err);
       }
     };
 
@@ -89,6 +126,7 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
       numTurns,
       feedAlgorithm,
       feedAlgorithmConfig: pruneConfig(feedAlgorithmConfig),
+      metricKeys: selectedMetricKeys.length > 0 ? selectedMetricKeys : undefined,
     });
   };
 
@@ -172,6 +210,16 @@ export default function ConfigForm({ onSubmit, defaultConfig }: ConfigFormProps)
               showAlgorithmSettings={showAlgorithmSettings}
               onToggleShowAlgorithmSettings={() => setShowAlgorithmSettings((v) => !v)}
               onSetConfigValue={setConfigValue}
+            />
+          </div>
+
+          <div>
+            <MetricSelector
+              metrics={metrics}
+              selectedKeys={selectedMetricKeys}
+              onSelectionChange={setSelectedMetricKeys}
+              showMetricsSection={showMetricsSection}
+              onToggleShowMetricsSection={() => setShowMetricsSection((v) => !v)}
             />
           </div>
 

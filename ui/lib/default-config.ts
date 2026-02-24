@@ -6,4 +6,5 @@ export const FALLBACK_DEFAULT_CONFIG: RunConfig = {
   numTurns: 10,
   feedAlgorithm: 'chronological',
   feedAlgorithmConfig: null,
+  metricKeys: undefined,
 };

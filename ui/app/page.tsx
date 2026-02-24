@@ -44,7 +44,9 @@ function AuthenticatedApp() {
     runsError,
     agents,
     agentsLoading,
+    agentsLoadingMore,
     agentsError,
+    agentsHasMore,
     turnsLoadingByRunId,
     turnsErrorByRunId,
     viewMode,
@@ -66,6 +68,7 @@ function AuthenticatedApp() {
     handleStartNewRun,
     handleRetryRuns,
     handleRetryAgents,
+    handleLoadMoreAgents,
     handleRetryTurns,
   } = useSimulationPageState();
 
@@ -136,8 +139,11 @@ function AuthenticatedApp() {
         onSetViewMode={handleSetViewMode}
         agents={agents}
         agentsLoading={agentsLoading}
+        agentsLoadingMore={agentsLoadingMore}
+        agentsHasMore={agentsHasMore}
         agentsError={agentsError}
         onRetryAgents={handleRetryAgents}
+        onLoadMoreAgents={handleLoadMoreAgents}
         selectedAgentHandle={selectedAgentHandle}
         onSelectAgent={handleSelectAgent}
       />

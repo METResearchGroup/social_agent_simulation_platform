@@ -69,6 +69,31 @@ class TestSQLiteAgentRepositoryIntegration:
         assert agents[0].handle == "alice.bsky.social"
         assert agents[1].handle == "zoe.bsky.social"
 
+    def test_list_agents_page_returns_expected_order_and_offset(self, agent_repo):
+        """list_agents_page returns deterministic ordering and respects offset."""
+        repo = agent_repo
+        for handle, agent_id in [
+            ("@zoe.bsky.social", "did:plc:z"),
+            ("@alice.bsky.social", "did:plc:a"),
+            ("@bob.bsky.social", "did:plc:b"),
+        ]:
+            repo.create_or_update_agent(
+                Agent(
+                    agent_id=agent_id,
+                    handle=handle,
+                    persona_source=PersonaSource.SYNC_BLUESKY,
+                    display_name=handle.lstrip("@").split(".")[0],
+                    created_at="2026_02_24-10:00:00",
+                    updated_at="2026_02_24-10:00:00",
+                )
+            )
+
+        page0 = repo.list_agents_page(limit=1, offset=0)
+        assert [a.handle for a in page0] == ["@alice.bsky.social"]
+
+        page1 = repo.list_agents_page(limit=1, offset=1)
+        assert [a.handle for a in page1] == ["@bob.bsky.social"]
+
     def test_create_or_update_overwrites(self, agent_repo):
         """Test that create_or_update_agent overwrites existing agent."""
         repo = agent_repo
