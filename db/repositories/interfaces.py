@@ -69,7 +69,7 @@ class AgentBioRepository(ABC):
         """Return the latest bio per agent_id for the given agent IDs.
 
         Keys are agent_ids; value is the latest AgentBio or None if none exists.
-        Missing agent_ids are omitted; caller should treat absence as None.
+        Every input agent_id is guaranteed to appear as a key.
         """
         raise NotImplementedError
 
