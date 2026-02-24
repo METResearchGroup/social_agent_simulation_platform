@@ -61,11 +61,22 @@ export interface FeedAlgorithm {
   configSchema: Record<string, unknown> | null;
 }
 
+/** Maps to MetricSchema from GET /v1/simulations/metrics. */
+export interface Metric {
+  key: string;
+  displayName: string;
+  description: string;
+  scope: 'turn' | 'run';
+  author: string;
+}
+
 export interface RunConfig {
   numAgents: number;
   numTurns: number;
   feedAlgorithm: string;
   feedAlgorithmConfig: Record<string, unknown> | null;
+  /** Selected metric keys to track for the run. Omit to use backend defaults. */
+  metricKeys?: string[];
 }
 
 /**

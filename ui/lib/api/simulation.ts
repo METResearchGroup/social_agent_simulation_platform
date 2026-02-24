@@ -4,6 +4,7 @@ import {
   ApiError,
   Feed,
   FeedAlgorithm,
+  Metric,
   Post,
   Run,
   RunConfig,
@@ -228,13 +229,41 @@ export async function getFeedAlgorithms(): Promise<FeedAlgorithm[]> {
   return api.map(mapFeedAlgorithm);
 }
 
+type ApiMetric = components['schemas']['MetricSchema'];
+
+function mapMetric(api: ApiMetric): Metric {
+  return {
+    key: api.key,
+    displayName: api.display_name,
+    description: api.description,
+    scope: api.scope,
+    author: api.author,
+  };
+}
+
+export async function getAvailableMetrics(): Promise<Metric[]> {
+  const api: ApiMetric[] = await fetchJson<ApiMetric[]>(
+    buildApiUrl('/simulations/metrics'),
+  );
+  return api.map(mapMetric);
+}
+
 export async function postRun(config: RunConfig): Promise<Run> {
-  const body = {
+  const body: {
+    num_agents: number;
+    num_turns: number;
+    feed_algorithm: string;
+    feed_algorithm_config: Record<string, unknown> | null;
+    metric_keys?: string[];
+  } = {
     num_agents: config.numAgents,
     num_turns: config.numTurns,
     feed_algorithm: config.feedAlgorithm,
     feed_algorithm_config: config.feedAlgorithmConfig,
   };
+  if (config.metricKeys != null && config.metricKeys.length > 0) {
+    body.metric_keys = config.metricKeys;
+  }
   const api: ApiRunResponse = await fetchPost<typeof body, ApiRunResponse>(
     buildApiUrl('/simulations/run'),
     body,

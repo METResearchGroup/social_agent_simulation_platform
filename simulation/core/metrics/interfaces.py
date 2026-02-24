@@ -81,6 +81,7 @@ class Metric(ABC):
     DEFAULT_ENABLED: ClassVar[bool] = True
     DESCRIPTION: ClassVar[str]
     AUTHOR: ClassVar[str]
+    DISPLAY_NAME: ClassVar[str]
 
     @property
     def key(self) -> str:
@@ -97,6 +98,10 @@ class Metric(ABC):
     @property
     def author(self) -> str:
         return self.AUTHOR
+
+    @property
+    def display_name(self) -> str:
+        return self.DISPLAY_NAME
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -133,6 +138,15 @@ class Metric(ABC):
         except ValueError:
             raise TypeError(
                 f"{cls.__module__}.{cls.__name__} must define non-empty class var AUTHOR"
+            ) from None
+
+        try:
+            validate_non_empty_string(
+                getattr(cls, "DISPLAY_NAME", None), "DISPLAY_NAME"
+            )
+        except ValueError:
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define non-empty class var DISPLAY_NAME"
             ) from None
 
     @property
