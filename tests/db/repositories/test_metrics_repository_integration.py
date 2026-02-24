@@ -1,8 +1,5 @@
 """Integration tests for db.repositories.metrics_repository module."""
 
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider
-from db.repositories.metrics_repository import create_sqlite_metrics_repository
-from db.repositories.run_repository import create_sqlite_repository
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import RunConfig
@@ -11,14 +8,8 @@ from simulation.core.models.runs import RunConfig
 class TestSQLiteMetricsRepositoryIntegration:
     """Integration tests using a real SQLite database."""
 
-    def test_write_and_read_turn_metrics(self, temp_db):
+    def test_write_and_read_turn_metrics(self, run_repo, metrics_repo):
         """write_turn_metrics then get_turn_metrics round-trips."""
-        tx_provider = SqliteTransactionProvider()
-        run_repo = create_sqlite_repository(transaction_provider=tx_provider)
-        metrics_repo = create_sqlite_metrics_repository(
-            transaction_provider=tx_provider
-        )
-
         run = run_repo.create_run(
             RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
         )
@@ -40,14 +31,8 @@ class TestSQLiteMetricsRepositoryIntegration:
         assert result.metrics == {"turn.actions.total": 3}
         assert result.created_at == created_at
 
-    def test_list_turn_metrics_is_ordered_by_turn_number(self, temp_db):
+    def test_list_turn_metrics_is_ordered_by_turn_number(self, run_repo, metrics_repo):
         """list_turn_metrics returns items ordered by turn_number ascending."""
-        tx_provider = SqliteTransactionProvider()
-        run_repo = create_sqlite_repository(transaction_provider=tx_provider)
-        metrics_repo = create_sqlite_metrics_repository(
-            transaction_provider=tx_provider
-        )
-
         run = run_repo.create_run(
             RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
         )
@@ -82,14 +67,8 @@ class TestSQLiteMetricsRepositoryIntegration:
 
         assert [item.turn_number for item in result] == expected_turn_numbers
 
-    def test_write_and_read_run_metrics(self, temp_db):
+    def test_write_and_read_run_metrics(self, run_repo, metrics_repo):
         """write_run_metrics then get_run_metrics round-trips."""
-        tx_provider = SqliteTransactionProvider()
-        run_repo = create_sqlite_repository(transaction_provider=tx_provider)
-        metrics_repo = create_sqlite_metrics_repository(
-            transaction_provider=tx_provider
-        )
-
         run = run_repo.create_run(
             RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
         )
