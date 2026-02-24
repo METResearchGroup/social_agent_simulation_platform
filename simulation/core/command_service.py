@@ -25,8 +25,6 @@ from simulation.core.agent_action_rules_validator import AgentActionRulesValidat
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
-    DEFAULT_RUN_METRIC_KEYS,
-    DEFAULT_TURN_METRIC_KEYS,
     resolve_metric_keys_by_scope,
 )
 from simulation.core.models.actions import TurnAction
