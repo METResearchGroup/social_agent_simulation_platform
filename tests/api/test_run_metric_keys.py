@@ -131,3 +131,18 @@ def test_post_run_with_invalid_metric_key_returns_422(simulation_client):
         },
     )
     assert create_resp.status_code == 422
+
+
+def test_post_run_with_empty_metric_keys_returns_422(simulation_client):
+    """POST with empty metric_keys returns 422; omit the field or use valid keys."""
+    client, fastapi_app = simulation_client
+    fastapi_app.state.engine = _make_mock_engine_with_metric_keys()
+    create_resp = client.post(
+        "/v1/simulations/run",
+        json={
+            "num_agents": 1,
+            "num_turns": 1,
+            "metric_keys": [],
+        },
+    )
+    assert create_resp.status_code == 422

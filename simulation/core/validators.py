@@ -60,8 +60,12 @@ def validate_metric_keys(metric_keys: list[str] | None) -> list[str] | None:
     Raises:
         ValueError: If any key is not in the metrics registry.
     """
-    if metric_keys is None or len(metric_keys) == 0:
+    if metric_keys is None:
         return None
+    if len(metric_keys) == 0:
+        raise ValueError(
+            "metric_keys cannot be empty. Please omit the field if you don't want to collect any metrics."
+        )
     from simulation.core.metrics.defaults import REGISTERED_METRIC_KEYS
 
     for key in metric_keys:
