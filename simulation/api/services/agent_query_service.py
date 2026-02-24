@@ -3,20 +3,18 @@
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
-from db.repositories.interfaces import (
-    AgentBioRepository,
-    UserAgentProfileMetadataRepository,
-)
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
 from simulation.api.dummy_data import DUMMY_AGENTS
 from simulation.api.schemas.simulation import AgentSchema
 from simulation.core.models.agent import Agent
+from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
 
 def list_agents() -> list[AgentSchema]:
-    """Return agents from DB, mapped to AgentSchema, sorted by handle."""
+    """Return agents from DB, mapped to AgentSchema, ordered by handle."""
     provider = SqliteTransactionProvider()
     agent_repo = create_sqlite_agent_repository(transaction_provider=provider)
     bio_repo = create_sqlite_agent_bio_repository(transaction_provider=provider)
@@ -25,22 +23,27 @@ def list_agents() -> list[AgentSchema]:
     )
 
     agents = agent_repo.list_all_agents()
-    result: list[AgentSchema] = []
+    if not agents:
+        return []
 
-    for agent in agents:
-        result.append(_get_single_agent(agent, bio_repo, metadata_repo))
+    agent_ids = [a.agent_id for a in agents]
+    # Batch-fetch bios and metadata to avoid N+1 queries.
+    # EXTENSION: Caching or read-replica routing could wrap these fetches;
+    # consider a hydrate_agents helper if logic grows (e.g. pagination).
+    bio_map = bio_repo.get_latest_bios_by_agent_ids(agent_ids)
+    metadata_map = metadata_repo.get_metadata_by_agent_ids(agent_ids)
 
-    return sorted(result, key=lambda a: a.handle)
+    return [_agent_to_schema(agent, bio_map, metadata_map) for agent in agents]
 
 
-def _get_single_agent(
+def _agent_to_schema(
     agent: Agent,
-    bio_repo: AgentBioRepository,
-    metadata_repo: UserAgentProfileMetadataRepository,
+    bio_map: dict[str, AgentBio | None],
+    metadata_map: dict[str, UserAgentProfileMetadata | None],
 ) -> AgentSchema:
-    """Map a single agent plus bio/metadata to AgentSchema."""
-    bio = bio_repo.get_latest_agent_bio(agent.agent_id)
-    metadata = metadata_repo.get_by_agent_id(agent.agent_id)
+    """Map a single agent plus pre-fetched bio/metadata to AgentSchema."""
+    bio = bio_map.get(agent.agent_id)
+    metadata = metadata_map.get(agent.agent_id)
 
     persona_bio = bio.persona_bio if bio else ""
     followers = metadata.followers_count if metadata else 0

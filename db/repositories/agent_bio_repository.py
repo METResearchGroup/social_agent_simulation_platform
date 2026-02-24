@@ -1,5 +1,7 @@
 """SQLite implementation of agent bio repositories."""
 
+from collections.abc import Iterable
+
 from db.adapters.base import AgentBioDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentBioRepository
 from lib.validation_decorators import validate_inputs
@@ -40,6 +42,15 @@ class SQLiteAgentBioRepository(AgentBioRepository):
         """List all bios for an agent, ordered by created_at DESC."""
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_agent_bios_by_agent_id(agent_id, conn=c)
+
+    def get_latest_bios_by_agent_ids(
+        self, agent_ids: Iterable[str]
+    ) -> dict[str, AgentBio | None]:
+        """Return the latest bio per agent_id for the given agent IDs."""
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_latest_agent_bios_by_agent_ids(
+                agent_ids, conn=c
+            )
 
 
 def create_sqlite_agent_bio_repository(
