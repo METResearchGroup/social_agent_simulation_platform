@@ -61,6 +61,10 @@ Smoke tests against a running server:
 - Runbook: `docs/runbooks/SMOKE_TEST.md`
 - Command: `SIMULATION_API_URL=http://localhost:8000 uv run pytest -m smoke tests/api/test_simulation_smoke.py`
 
+## Plans
+
+Implementation plans live in `docs/plans/`.
+
 ## Architecture conventions (high-signal highlights)
 
 See `docs/RULES.md` for the full set. A few that commonly matter during edits:
