@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.repositories.generated_feed_repository import SQLiteGeneratedFeedRepository
 from simulation.core.models.feeds import GeneratedFeed
+from tests.db.repositories.conftest import make_mock_transaction_provider
 
 
 class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
@@ -17,7 +18,10 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         """Test that write_generated_feed creates a feed with correct values."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         feed = GeneratedFeed(
             feed_id="feed_test123",
             run_id="run_123",
@@ -32,13 +36,18 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
 
         # Assert
         assert result == feed
-        mock_adapter.write_generated_feed.assert_called_once_with(feed)
+        mock_adapter.write_generated_feed.assert_called_once()
+        assert mock_adapter.write_generated_feed.call_args[0][0] == feed
+        assert mock_adapter.write_generated_feed.call_args[1]["conn"] is not None
 
     def test_creates_generated_feed_with_different_values(self):
         """Test that write_generated_feed handles different feed values correctly."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         feed = GeneratedFeed(
             feed_id="feed_another456",
             run_id="run_456",
@@ -59,13 +68,18 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         assert result.run_id == "run_456"
         assert result.turn_number == 5
         assert len(result.post_uris) == 2
-        mock_adapter.write_generated_feed.assert_called_once_with(feed)
+        mock_adapter.write_generated_feed.assert_called_once()
+        assert mock_adapter.write_generated_feed.call_args[0][0] == feed
+        assert mock_adapter.write_generated_feed.call_args[1]["conn"] is not None
 
     def test_persists_generated_feed_to_database(self):
         """Test that write_generated_feed persists the feed to the database via write_generated_feed."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         feed = GeneratedFeed(
             feed_id="feed_test123",
             run_id="run_123",
@@ -80,6 +94,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
 
         # Assert
         mock_adapter.write_generated_feed.assert_called_once()
+        assert mock_adapter.write_generated_feed.call_args[1]["conn"] is not None
         call_args = mock_adapter.write_generated_feed.call_args[0][0]
         assert isinstance(call_args, GeneratedFeed)
         assert call_args.feed_id == result.feed_id
@@ -128,7 +143,10 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             "UNIQUE constraint failed: generated_feeds.agent_handle, run_id, turn_number"
         )
         mock_adapter.write_generated_feed.side_effect = db_error
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
         feed = GeneratedFeed(
             feed_id="feed_test123",
             run_id="run_123",
@@ -143,7 +161,9 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             repo.write_generated_feed(feed)
 
         assert exc_info.value is db_error
-        mock_adapter.write_generated_feed.assert_called_once_with(feed)
+        mock_adapter.write_generated_feed.assert_called_once()
+        assert mock_adapter.write_generated_feed.call_args[0][0] == feed
+        assert mock_adapter.write_generated_feed.call_args[1]["conn"] is not None
 
 
 class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
@@ -162,16 +182,23 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
             created_at="2024-01-01T00:00:00Z",
         )
         mock_adapter.read_generated_feed.return_value = expected_feed
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act
         result = repo.get_generated_feed("test.bsky.social", "run_123", 1)
 
         # Assert
         assert result == expected_feed
-        mock_adapter.read_generated_feed.assert_called_once_with(
-            "test.bsky.social", "run_123", 1
+        mock_adapter.read_generated_feed.assert_called_once()
+        assert mock_adapter.read_generated_feed.call_args[0][:3] == (
+            "test.bsky.social",
+            "run_123",
+            1,
         )
+        assert mock_adapter.read_generated_feed.call_args[1]["conn"] is not None
 
     def test_gets_generated_feed_when_not_found_raises_value_error(self):
         """Test that get_generated_feed raises ValueError when feed is not found (matches current behavior)."""
@@ -180,21 +207,31 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         mock_adapter.read_generated_feed.side_effect = ValueError(
             "Generated feed not found for agent test.bsky.social, run run_123, turn 1"
         )
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="Generated feed not found"):
             repo.get_generated_feed("test.bsky.social", "run_123", 1)
 
-        mock_adapter.read_generated_feed.assert_called_once_with(
-            "test.bsky.social", "run_123", 1
+        mock_adapter.read_generated_feed.assert_called_once()
+        assert mock_adapter.read_generated_feed.call_args[0][:3] == (
+            "test.bsky.social",
+            "run_123",
+            1,
         )
+        assert mock_adapter.read_generated_feed.call_args[1]["conn"] is not None
 
     def test_raises_value_error_when_agent_handle_is_empty(self):
         """Test that get_generated_feed raises ValueError when agent_handle is empty."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="handle cannot be empty"):
@@ -206,7 +243,10 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         """Test that get_generated_feed raises ValueError when run_id is empty."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="run_id cannot be empty"):
@@ -223,7 +263,10 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         mock_adapter.read_all_generated_feeds.return_value = []
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act
         result = repo.list_all_generated_feeds()
@@ -231,6 +274,7 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
         # Assert
         assert result == []
         mock_adapter.read_all_generated_feeds.assert_called_once()
+        assert mock_adapter.read_all_generated_feeds.call_args[1]["conn"] is not None
 
     def test_lists_all_generated_feeds_when_feeds_exist(self):
         """Test that list_all_generated_feeds returns all feeds when they exist."""
@@ -248,7 +292,10 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
             for i in range(1, 4)
         ]
         mock_adapter.read_all_generated_feeds.return_value = expected_feeds
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act
         result = repo.list_all_generated_feeds()
@@ -257,6 +304,7 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
         assert result == expected_feeds
         assert len(result) == 3
         mock_adapter.read_all_generated_feeds.assert_called_once()
+        assert mock_adapter.read_all_generated_feeds.call_args[1]["conn"] is not None
 
     def test_lists_all_generated_feeds_returns_correct_order(self):
         """Test that list_all_generated_feeds returns feeds in the order from adapter."""
@@ -274,7 +322,10 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
             for i in range(1, 4)
         ]
         mock_adapter.read_all_generated_feeds.return_value = expected_feeds
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act
         result = repo.list_all_generated_feeds()
@@ -303,34 +354,47 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
             )
         ]
         mock_adapter.read_feeds_for_turn.return_value = expected_feeds
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act
         result = repo.read_feeds_for_turn("run_123", 0)
 
         # Assert
         assert result == expected_feeds
-        mock_adapter.read_feeds_for_turn.assert_called_once_with("run_123", 0)
+        mock_adapter.read_feeds_for_turn.assert_called_once()
+        assert mock_adapter.read_feeds_for_turn.call_args[0][:2] == ("run_123", 0)
+        assert mock_adapter.read_feeds_for_turn.call_args[1]["conn"] is not None
 
     def test_reads_feeds_for_turn_returns_empty_list_when_no_feeds(self):
         """Test that read_feeds_for_turn returns empty list when no feeds found."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         mock_adapter.read_feeds_for_turn.return_value = []
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act
         result = repo.read_feeds_for_turn("run_123", 0)
 
         # Assert
         assert result == []
-        mock_adapter.read_feeds_for_turn.assert_called_once_with("run_123", 0)
+        mock_adapter.read_feeds_for_turn.assert_called_once()
+        assert mock_adapter.read_feeds_for_turn.call_args[0][:2] == ("run_123", 0)
+        assert mock_adapter.read_feeds_for_turn.call_args[1]["conn"] is not None
 
     def test_raises_value_error_when_run_id_is_empty(self):
         """Test that read_feeds_for_turn raises ValueError when run_id is empty."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="run_id cannot be empty"):
@@ -342,7 +406,10 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         """Test that read_feeds_for_turn raises ValueError when run_id is whitespace only."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="run_id cannot be empty"):
@@ -354,7 +421,10 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         """Test that read_feeds_for_turn raises ValueError when turn_number is negative."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(ValueError, match="turn_number must be >= 0"):
@@ -370,11 +440,16 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         db_error = sqlite3.OperationalError("Database connection failed")
         mock_adapter.read_feeds_for_turn.side_effect = db_error
-        repo = SQLiteGeneratedFeedRepository(mock_adapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
 
         # Act & Assert
         with pytest.raises(sqlite3.OperationalError) as exc_info:
             repo.read_feeds_for_turn("run_123", 0)
 
         assert exc_info.value is db_error
-        mock_adapter.read_feeds_for_turn.assert_called_once_with("run_123", 0)
+        mock_adapter.read_feeds_for_turn.assert_called_once()
+        assert mock_adapter.read_feeds_for_turn.call_args[0][:2] == ("run_123", 0)
+        assert mock_adapter.read_feeds_for_turn.call_args[1]["conn"] is not None

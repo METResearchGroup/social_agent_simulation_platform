@@ -7,8 +7,7 @@ import time
 
 import pytest
 
-from db.adapters.sqlite.sqlite import get_connection
-from db.repositories.run_repository import create_sqlite_repository
+from db.adapters.sqlite.sqlite import get_connection, run_transaction
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
@@ -20,9 +19,9 @@ from simulation.core.models.runs import Run, RunConfig, RunStatus
 class TestSQLiteRunRepositoryIntegration:
     """Integration tests using a real database."""
 
-    def test_create_and_read_run(self, temp_db):
+    def test_create_and_read_run(self, run_repo):
         """Test creating a run and reading it back from the database."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
 
         # Create run
@@ -39,9 +38,9 @@ class TestSQLiteRunRepositoryIntegration:
         assert retrieved_run.total_agents == 5
         assert retrieved_run.total_turns == 10
 
-    def test_update_run_status_to_completed(self, temp_db):
+    def test_update_run_status_to_completed(self, run_repo):
         """Test updating run status to completed."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -55,9 +54,9 @@ class TestSQLiteRunRepositoryIntegration:
         assert updated_run.status == RunStatus.COMPLETED
         assert updated_run.completed_at is not None
 
-    def test_update_run_status_to_failed(self, temp_db):
+    def test_update_run_status_to_failed(self, run_repo):
         """Test updating run status to failed."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -71,18 +70,18 @@ class TestSQLiteRunRepositoryIntegration:
         assert updated_run.status == RunStatus.FAILED
         assert updated_run.completed_at is None
 
-    def test_update_run_status_nonexistent_run(self, temp_db):
+    def test_update_run_status_nonexistent_run(self, run_repo):
         """Test updating status of a non-existent run raises error."""
-        repo = create_sqlite_repository()
+        repo = run_repo
 
         with pytest.raises(RunNotFoundError) as exc_info:
             repo.update_run_status("nonexistent_run_id", RunStatus.COMPLETED)
 
         assert exc_info.value.run_id == "nonexistent_run_id"
 
-    def test_list_runs_returns_all_runs_ordered(self, temp_db):
+    def test_list_runs_returns_all_runs_ordered(self, run_repo):
         """Test that list_runs returns all runs in correct order."""
-        repo = create_sqlite_repository()
+        repo = run_repo
 
         # Create multiple runs with delays to ensure distinct timestamps
         run1 = repo.create_run(
@@ -110,7 +109,7 @@ class TestSQLiteRunRepositoryIntegration:
 class TestRunStatusEnumSerialization:
     """Tests for RunStatus enum serialization/deserialization."""
 
-    def test_enum_serializes_to_correct_string(self, temp_db):
+    def test_enum_serializes_to_correct_string(self, temp_db, run_repo):
         """Test that RunStatus enum values serialize correctly."""
         from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 
@@ -127,7 +126,8 @@ class TestRunStatusEnumSerialization:
             completed_at=None,
         )
 
-        adapter.write_run(run)
+        with run_transaction() as conn:
+            adapter.write_run(run, conn=conn)
 
         # Read directly from DB to verify string storage
         conn = get_connection()
@@ -137,7 +137,7 @@ class TestRunStatusEnumSerialization:
         assert row["status"] == "running"
         conn.close()
 
-    def test_invalid_status_string_raises_error(self, temp_db):
+    def test_invalid_status_string_raises_error(self, temp_db, run_repo):
         """Test that reading invalid status string raises ValueError."""
         from unittest.mock import MagicMock
 
@@ -181,9 +181,9 @@ class TestRunStatusEnumSerialization:
         with pytest.raises(ValueError, match="Invalid status value"):
             adapter._row_to_run(mock_row)
 
-    def test_all_status_values_roundtrip(self, temp_db):
+    def test_all_status_values_roundtrip(self, temp_db, run_repo):
         """Test that all RunStatus enum values roundtrip correctly."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
 
         # Test RUNNING status (default from create_run)
@@ -221,11 +221,11 @@ class TestRunStatusEnumSerialization:
 class TestConcurrentRunCreation:
     """Tests for concurrent run creation scenarios."""
 
-    def test_concurrent_run_creation_generates_unique_ids(self, temp_db):
+    def test_concurrent_run_creation_generates_unique_ids(self, temp_db, run_repo):
         """Test that concurrent run creation generates unique run IDs."""
         import threading
 
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
 
         run_ids = []
@@ -256,9 +256,9 @@ class TestConcurrentRunCreation:
 class TestStateMachineValidationIntegration:
     """Integration tests for state machine validation."""
 
-    def test_valid_transition_running_to_completed(self, temp_db):
+    def test_valid_transition_running_to_completed(self, temp_db, run_repo):
         """Test that RUNNING -> COMPLETED transition works with real database."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -271,9 +271,9 @@ class TestStateMachineValidationIntegration:
         assert updated_run is not None
         assert updated_run.status == RunStatus.COMPLETED
 
-    def test_valid_transition_running_to_failed(self, temp_db):
+    def test_valid_transition_running_to_failed(self, temp_db, run_repo):
         """Test that RUNNING -> FAILED transition works with real database."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -286,9 +286,9 @@ class TestStateMachineValidationIntegration:
         assert updated_run is not None
         assert updated_run.status == RunStatus.FAILED
 
-    def test_invalid_transition_completed_to_failed(self, temp_db):
+    def test_invalid_transition_completed_to_failed(self, temp_db, run_repo):
         """Test that COMPLETED -> FAILED transition is rejected."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -307,9 +307,9 @@ class TestStateMachineValidationIntegration:
         assert updated_run is not None
         assert updated_run.status == RunStatus.COMPLETED
 
-    def test_invalid_transition_failed_to_completed(self, temp_db):
+    def test_invalid_transition_failed_to_completed(self, temp_db, run_repo):
         """Test that FAILED -> COMPLETED transition is rejected."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -328,9 +328,9 @@ class TestStateMachineValidationIntegration:
         assert updated_run is not None
         assert updated_run.status == RunStatus.FAILED
 
-    def test_invalid_transition_completed_to_running(self, temp_db):
+    def test_invalid_transition_completed_to_running(self, temp_db, run_repo):
         """Test that COMPLETED -> RUNNING transition is rejected."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -349,9 +349,9 @@ class TestStateMachineValidationIntegration:
         assert updated_run is not None
         assert updated_run.status == RunStatus.COMPLETED
 
-    def test_idempotent_status_update_completed(self, temp_db):
+    def test_idempotent_status_update_completed(self, temp_db, run_repo):
         """Test that setting COMPLETED status again is allowed (idempotent)."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -364,9 +364,9 @@ class TestStateMachineValidationIntegration:
         assert updated_run is not None
         assert updated_run.status == RunStatus.COMPLETED
 
-    def test_idempotent_status_update_failed(self, temp_db):
+    def test_idempotent_status_update_failed(self, temp_db, run_repo):
         """Test that setting FAILED status again is allowed (idempotent)."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
 
         run = repo.create_run(config)
@@ -417,7 +417,7 @@ def _create_mock_row(**overrides):
 class TestNullabilityValidation:
     """Tests for nullability validation when reading runs."""
 
-    def test_null_run_id_raises_error(self, temp_db):
+    def test_null_run_id_raises_error(self, temp_db, run_repo):
         """Test that NULL run_id raises ValueError."""
         from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 
@@ -427,7 +427,7 @@ class TestNullabilityValidation:
         with pytest.raises(ValueError, match="run_id cannot be NULL"):
             adapter._row_to_run(mock_row)  # type: ignore
 
-    def test_null_status_raises_error(self, temp_db):
+    def test_null_status_raises_error(self, temp_db, run_repo):
         """Test that NULL status raises ValueError."""
         from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 
@@ -441,14 +441,14 @@ class TestNullabilityValidation:
 class TestTurnMetadataIntegration:
     """Integration tests for turn metadata operations."""
 
-    def test_write_and_read_turn_metadata(self, temp_db):
+    def test_write_and_read_turn_metadata(self, temp_db, run_repo):
         """Test writing turn metadata using repository and reading it back."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
         # Create a run first
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -478,9 +478,9 @@ class TestTurnMetadataIntegration:
         assert result.total_actions[TurnAction.FOLLOW] == 1
         assert result.created_at == turn_metadata.created_at
 
-    def test_read_turn_metadata_returns_none_when_not_found(self, temp_db):
+    def test_read_turn_metadata_returns_none_when_not_found(self, temp_db, run_repo):
         """Test that get_turn_metadata returns None when metadata doesn't exist."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -490,12 +490,12 @@ class TestTurnMetadataIntegration:
         # Assert
         assert result is None
 
-    def test_read_turn_metadata_with_multiple_turns(self, temp_db):
+    def test_read_turn_metadata_with_multiple_turns(self, temp_db, run_repo):
         """Test reading turn metadata for multiple turns in the same run."""
         from simulation.core.models.actions import TurnAction
 
         # Create a run
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -537,12 +537,12 @@ class TestTurnMetadataIntegration:
             assert result.total_actions[TurnAction.COMMENT] == turn_number
             assert result.total_actions[TurnAction.FOLLOW] == turn_number * 3
 
-    def test_read_turn_metadata_with_zero_actions(self, temp_db):
+    def test_read_turn_metadata_with_zero_actions(self, temp_db, run_repo):
         """Test reading turn metadata with all actions set to zero."""
         from simulation.core.models.actions import TurnAction
 
         # Create a run
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -578,12 +578,12 @@ class TestTurnMetadataIntegration:
         assert result.total_actions[TurnAction.COMMENT] == 0
         assert result.total_actions[TurnAction.FOLLOW] == 0
 
-    def test_read_turn_metadata_different_runs(self, temp_db):
+    def test_read_turn_metadata_different_runs(self, temp_db, run_repo):
         """Test that turn metadata is correctly isolated per run."""
         from simulation.core.models.actions import TurnAction
 
         # Create two runs
-        repo = create_sqlite_repository()
+        repo = run_repo
         run1 = repo.create_run(
             RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
         )
@@ -641,14 +641,14 @@ class TestTurnMetadataIntegration:
         assert result1.total_actions[TurnAction.LIKE] == 10
         assert result2.total_actions[TurnAction.LIKE] == 20
 
-    def test_write_turn_metadata_using_repository_method(self, temp_db):
+    def test_write_turn_metadata_using_repository_method(self, temp_db, run_repo):
         """Test writing turn metadata using repository.write_turn_metadata method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
         # Create a run
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -677,14 +677,14 @@ class TestTurnMetadataIntegration:
         assert result.total_actions[TurnAction.FOLLOW] == 3
         assert result.created_at == turn_metadata.created_at
 
-    def test_write_multiple_turns_using_repository_method(self, temp_db):
+    def test_write_multiple_turns_using_repository_method(self, temp_db, run_repo):
         """Test writing multiple turns using repository.write_turn_metadata method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
         # Create a run
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -711,14 +711,16 @@ class TestTurnMetadataIntegration:
             assert result.total_actions[TurnAction.COMMENT] == turn_number
             assert result.total_actions[TurnAction.FOLLOW] == turn_number * 3
 
-    def test_write_turn_metadata_with_zero_actions_using_repository(self, temp_db):
+    def test_write_turn_metadata_with_zero_actions_using_repository(
+        self, temp_db, run_repo
+    ):
         """Test writing turn metadata with zero actions using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
         # Create a run
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -744,14 +746,16 @@ class TestTurnMetadataIntegration:
         assert result.total_actions[TurnAction.COMMENT] == 0
         assert result.total_actions[TurnAction.FOLLOW] == 0
 
-    def test_write_turn_metadata_different_runs_using_repository(self, temp_db):
+    def test_write_turn_metadata_different_runs_using_repository(
+        self, temp_db, run_repo
+    ):
         """Test that turn metadata is correctly isolated per run using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
         # Create two runs
-        repo = create_sqlite_repository()
+        repo = run_repo
         run1 = repo.create_run(
             RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
         )
@@ -793,14 +797,14 @@ class TestTurnMetadataIntegration:
         assert result1.total_actions[TurnAction.LIKE] == 10
         assert result2.total_actions[TurnAction.LIKE] == 20
 
-    def test_write_turn_metadata_raises_duplicate_error(self, temp_db):
+    def test_write_turn_metadata_raises_duplicate_error(self, temp_db, run_repo):
         """Test that writing duplicate turn metadata raises DuplicateTurnMetadataError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
         # Create a run
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -820,13 +824,15 @@ class TestTurnMetadataIntegration:
         assert exc_info.value.run_id == run.run_id
         assert exc_info.value.turn_number == 0
 
-    def test_write_turn_metadata_raises_error_when_run_not_found(self, temp_db):
+    def test_write_turn_metadata_raises_error_when_run_not_found(
+        self, temp_db, run_repo
+    ):
         """Test that writing turn metadata for non-existent run raises RunNotFoundError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
-        repo = create_sqlite_repository()
+        repo = run_repo
 
         # Try to write metadata for a non-existent run
         turn_metadata = TurnMetadata(
@@ -842,7 +848,7 @@ class TestTurnMetadataIntegration:
         assert exc_info.value.run_id == "nonexistent_run"
 
     def test_write_turn_metadata_raises_error_when_turn_number_out_of_bounds(
-        self, temp_db
+        self, temp_db, run_repo
     ):
         """Test that writing turn metadata with out-of-bounds turn_number raises ValueError."""
         from lib.timestamp_utils import get_current_timestamp
@@ -850,7 +856,7 @@ class TestTurnMetadataIntegration:
         from simulation.core.models.turns import TurnMetadata
 
         # Create a run with 5 turns (0-4)
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -868,13 +874,13 @@ class TestTurnMetadataIntegration:
         ):
             repo.write_turn_metadata(turn_metadata)
 
-    def test_list_turn_metadata_returns_all_rows_in_turn_order(self, temp_db):
+    def test_list_turn_metadata_returns_all_rows_in_turn_order(self, temp_db, run_repo):
         """Test listing turn metadata returns all rows ordered by turn_number."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -893,9 +899,11 @@ class TestTurnMetadataIntegration:
         assert len(result) == 3
         assert [item.turn_number for item in result] == expected_turn_numbers
 
-    def test_list_turn_metadata_returns_empty_for_run_without_turns(self, temp_db):
+    def test_list_turn_metadata_returns_empty_for_run_without_turns(
+        self, temp_db, run_repo
+    ):
         """Test listing turn metadata returns empty list when no rows exist."""
-        repo = create_sqlite_repository()
+        repo = run_repo
         config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
         run = repo.create_run(config)
 
@@ -903,13 +911,13 @@ class TestTurnMetadataIntegration:
         expected_result = []
         assert result == expected_result
 
-    def test_list_turn_metadata_is_isolated_by_run(self, temp_db):
+    def test_list_turn_metadata_is_isolated_by_run(self, temp_db, run_repo):
         """Test listing turn metadata only returns rows for the requested run."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
         from simulation.core.models.turns import TurnMetadata
 
-        repo = create_sqlite_repository()
+        repo = run_repo
         run_1 = repo.create_run(
             RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
         )

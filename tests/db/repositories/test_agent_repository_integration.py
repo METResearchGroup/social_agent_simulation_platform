@@ -1,37 +1,14 @@
 """Integration tests for db.repositories.agent_repository module."""
 
-import os
-import tempfile
-
-import pytest
-
-from db.adapters.sqlite.sqlite import DB_PATH, initialize_database
-from db.repositories.agent_repository import create_sqlite_agent_repository
 from simulation.core.models.agent import Agent, PersonaSource
-
-
-@pytest.fixture
-def temp_db():
-    """Create a temporary database for testing."""
-    import db.adapters.sqlite.sqlite as sqlite_module
-
-    original_path = DB_PATH
-    fd, temp_path = tempfile.mkstemp(suffix=".sqlite")
-    os.close(fd)
-    sqlite_module.DB_PATH = temp_path
-    initialize_database()
-    yield temp_path
-    sqlite_module.DB_PATH = original_path
-    if os.path.exists(temp_path):
-        os.unlink(temp_path)
 
 
 class TestSQLiteAgentRepositoryIntegration:
     """Integration tests for AgentRepository using a real database."""
 
-    def test_create_and_read_agent(self, temp_db):
+    def test_create_and_read_agent(self, agent_repo):
         """Test creating an agent and reading it back."""
-        repo = create_sqlite_agent_repository()
+        repo = agent_repo
         agent = Agent(
             agent_id="did:plc:test123",
             handle="test.bsky.social",
@@ -51,9 +28,9 @@ class TestSQLiteAgentRepositoryIntegration:
         assert retrieved.persona_source == PersonaSource.SYNC_BLUESKY
         assert retrieved.display_name == created.display_name
 
-    def test_get_agent_by_handle(self, temp_db):
+    def test_get_agent_by_handle(self, agent_repo):
         """Test getting an agent by handle."""
-        repo = create_sqlite_agent_repository()
+        repo = agent_repo
         agent = Agent(
             agent_id="did:plc:abc",
             handle="alice.bsky.social",
@@ -69,9 +46,9 @@ class TestSQLiteAgentRepositoryIntegration:
         assert retrieved.handle == "alice.bsky.social"
         assert retrieved.agent_id == "did:plc:abc"
 
-    def test_list_all_agents_ordered_by_handle(self, temp_db):
+    def test_list_all_agents_ordered_by_handle(self, agent_repo):
         """Test list_all returns agents ordered by handle."""
-        repo = create_sqlite_agent_repository()
+        repo = agent_repo
         for handle, agent_id in [
             ("zoe.bsky.social", "did:plc:z"),
             ("alice.bsky.social", "did:plc:a"),
@@ -92,9 +69,9 @@ class TestSQLiteAgentRepositoryIntegration:
         assert agents[0].handle == "alice.bsky.social"
         assert agents[1].handle == "zoe.bsky.social"
 
-    def test_create_or_update_overwrites(self, temp_db):
+    def test_create_or_update_overwrites(self, agent_repo):
         """Test that create_or_update_agent overwrites existing agent."""
-        repo = create_sqlite_agent_repository()
+        repo = agent_repo
         agent = Agent(
             agent_id="did:plc:same",
             handle="same.bsky.social",

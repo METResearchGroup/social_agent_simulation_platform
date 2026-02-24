@@ -1,5 +1,6 @@
 """Generate candidate posts for the feeds."""
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
@@ -12,7 +13,8 @@ from simulation.core.models.posts import BlueskyFeedPost
 # on, but as a first pass it's easy enough to just load all the posts.
 def load_posts() -> list[BlueskyFeedPost]:
     """Load the posts for the feeds."""
-    feed_post_repo = create_sqlite_feed_post_repository()
+    tx = SqliteTransactionProvider()
+    feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
     return feed_post_repo.list_all_feed_posts()
 
 
@@ -21,7 +23,10 @@ def load_seen_post_uris(agent: SocialMediaAgent, run_id: str) -> set[str]:
 
     Returns a set of URIs.
     """
-    generated_feed_repo = create_sqlite_generated_feed_repository()
+    tx = SqliteTransactionProvider()
+    generated_feed_repo = create_sqlite_generated_feed_repository(
+        transaction_provider=tx
+    )
     return generated_feed_repo.get_post_uris_for_run(
         agent_handle=agent.handle, run_id=run_id
     )

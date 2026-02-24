@@ -1,5 +1,6 @@
 """Given the database of Bluesky profiles and feed posts, create a list of agents."""
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
@@ -14,9 +15,10 @@ from simulation.core.models.profiles import BlueskyProfile
 def create_initial_agents() -> list[SocialMediaAgent]:
     """Create a list of agents from the database of Bluesky profiles and feed
     posts and pass into the network."""
-    profile_repo = create_sqlite_profile_repository()
-    feed_post_repo = create_sqlite_feed_post_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
+    tx = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
+    feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
+    generated_bio_repo = create_sqlite_generated_bio_repository(transaction_provider=tx)
     profiles: list[BlueskyProfile] = profile_repo.list_profiles()
     feed_posts: list[BlueskyFeedPost] = feed_post_repo.list_all_feed_posts()
     generated_bios: list[GeneratedBio] = generated_bio_repo.list_all_generated_bios()

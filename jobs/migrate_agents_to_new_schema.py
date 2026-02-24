@@ -2,7 +2,10 @@
 
 import uuid
 
-from db.adapters.sqlite.sqlite import initialize_database
+from db.adapters.sqlite.sqlite import (
+    SqliteTransactionProvider,
+    initialize_database,
+)
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.generated_bio_repository import (
@@ -24,11 +27,18 @@ def main() -> None:
     """Migrate profiles and generated bios to new agent tables."""
     initialize_database()
 
-    profile_repo = create_sqlite_profile_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
-    agent_repo = create_sqlite_agent_repository()
-    agent_bio_repo = create_sqlite_agent_bio_repository()
-    metadata_repo = create_sqlite_user_agent_profile_metadata_repository()
+    tx_provider = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx_provider)
+    generated_bio_repo = create_sqlite_generated_bio_repository(
+        transaction_provider=tx_provider
+    )
+    agent_repo = create_sqlite_agent_repository(transaction_provider=tx_provider)
+    agent_bio_repo = create_sqlite_agent_bio_repository(
+        transaction_provider=tx_provider
+    )
+    metadata_repo = create_sqlite_user_agent_profile_metadata_repository(
+        transaction_provider=tx_provider
+    )
 
     profiles = profile_repo.list_profiles()
     generated_bios = {

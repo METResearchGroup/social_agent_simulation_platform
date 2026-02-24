@@ -1,0 +1,23 @@
+flowchart TB
+    subgraph service [Service Layer]
+        SP[SimulationPersistenceService.write_turn]
+    end
+
+    subgraph repo [Repository Layer]
+        MR[SQLiteMetricsRepository.write_turn_metrics]
+        RR[SQLiteRunRepository.write_turn_metadata]
+    end
+
+    subgraph adapter [Adapter Layer]
+        MA[SQLiteMetricsAdapter.write_turn_metrics]
+        RA[SQLiteRunAdapter.write_turn_metadata]
+    end
+
+    subgraph tx [TransactionProvider]
+        TP[run_transaction]
+    end
+
+    SP -->|"with run_transaction as conn"| MR
+    SP -->|"pass conn"| RR
+    MR -->|"conn provided: pass through"| MA
+    RR -->|"conn provided: pass through"| RA

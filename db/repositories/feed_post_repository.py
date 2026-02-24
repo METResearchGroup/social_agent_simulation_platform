@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 
-from db.adapters.base import FeedPostDatabaseAdapter
+from db.adapters.base import FeedPostDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import FeedPostRepository
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.validators import (
@@ -20,13 +20,20 @@ class SQLiteFeedPostRepository(FeedPostRepository):
     decoupling it from concrete implementations.
     """
 
-    def __init__(self, db_adapter: FeedPostDatabaseAdapter):
+    def __init__(
+        self,
+        *,
+        db_adapter: FeedPostDatabaseAdapter,
+        transaction_provider: TransactionProvider,
+    ):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for feed post operations
+            transaction_provider: Provider for transactions
         """
         self._db_adapter = db_adapter
+        self._transaction_provider = transaction_provider
 
     def create_or_update_feed_post(self, post: BlueskyFeedPost) -> BlueskyFeedPost:
         """Create or update a feed post in SQLite.
@@ -43,7 +50,8 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             sqlite3.OperationalError: If database operation fails (from adapter)
         """
         # Validation is handled by Pydantic model (BlueskyFeedPost.validate_uri)
-        self._db_adapter.write_feed_post(post)
+        with self._transaction_provider.run_transaction() as c:
+            self._db_adapter.write_feed_post(post, conn=c)
         return post
 
     def create_or_update_feed_posts(
@@ -68,7 +76,8 @@ class SQLiteFeedPostRepository(FeedPostRepository):
 
         # Validation is handled by Pydantic models (BlueskyFeedPost.validate_uri)
         # Pydantic will raise ValueError if any post has an empty uri
-        self._db_adapter.write_feed_posts(posts)
+        with self._transaction_provider.run_transaction() as c:
+            self._db_adapter.write_feed_posts(posts, conn=c)
         return posts
 
     def get_feed_post(self, uri: str) -> BlueskyFeedPost:
@@ -88,7 +97,8 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             parameter (not a BlueskyFeedPost model), we validate uri here.
         """
         validate_uri_exists(uri=uri)
-        return self._db_adapter.read_feed_post(uri)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_feed_post(uri, conn=c)
 
     def list_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
         """List all feed posts by a specific author from SQLite.
@@ -107,7 +117,8 @@ class SQLiteFeedPostRepository(FeedPostRepository):
             parameter (not a BlueskyFeedPost model), we validate author_handle here.
         """
         validate_handle_exists(handle=author_handle)
-        return self._db_adapter.read_feed_posts_by_author(author_handle)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_feed_posts_by_author(author_handle, conn=c)
 
     def list_all_feed_posts(self) -> list[BlueskyFeedPost]:
         """List all feed posts from SQLite.
@@ -115,7 +126,8 @@ class SQLiteFeedPostRepository(FeedPostRepository):
         Returns:
             List of all BlueskyFeedPost models.
         """
-        return self._db_adapter.read_all_feed_posts()
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_all_feed_posts(conn=c)
 
     def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
         """Read feed posts by URIs from SQLite.
@@ -133,10 +145,14 @@ class SQLiteFeedPostRepository(FeedPostRepository):
         except ValueError:
             return []
 
-        return self._db_adapter.read_feed_posts_by_uris(uris)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_feed_posts_by_uris(uris, conn=c)
 
 
-def create_sqlite_feed_post_repository() -> SQLiteFeedPostRepository:
+def create_sqlite_feed_post_repository(
+    *,
+    transaction_provider: TransactionProvider,
+) -> SQLiteFeedPostRepository:
     """Factory function to create a SQLiteFeedPostRepository with default dependencies.
 
     Returns:
@@ -144,4 +160,7 @@ def create_sqlite_feed_post_repository() -> SQLiteFeedPostRepository:
     """
     from db.adapters.sqlite import SQLiteFeedPostAdapter
 
-    return SQLiteFeedPostRepository(db_adapter=SQLiteFeedPostAdapter())
+    return SQLiteFeedPostRepository(
+        db_adapter=SQLiteFeedPostAdapter(),
+        transaction_provider=transaction_provider,
+    )
