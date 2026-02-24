@@ -10,7 +10,8 @@ def test_get_simulations_agents_returns_list(simulation_client, temp_db):
     client, _ = simulation_client
     response = client.get("/v1/simulations/agents")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert isinstance(data, list)
 
@@ -20,10 +21,12 @@ def test_get_simulations_agents_ordering_deterministic(simulation_client, temp_d
     client, _ = simulation_client
     response = client.get("/v1/simulations/agents")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     handles = [a["handle"] for a in data]
-    assert handles == sorted(handles)
+    expected_result = sorted(handles)
+    assert handles == expected_result
 
 
 def test_get_simulations_agents_fields_present(simulation_client, temp_db):
@@ -31,9 +34,10 @@ def test_get_simulations_agents_fields_present(simulation_client, temp_db):
     client, _ = simulation_client
     response = client.get("/v1/simulations/agents")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
-    required_fields = {
+    expected_result = {
         "handle",
         "name",
         "bio",
@@ -43,7 +47,7 @@ def test_get_simulations_agents_fields_present(simulation_client, temp_db):
         "posts_count",
     }
     for agent in data:
-        for field in required_fields:
+        for field in expected_result:
             assert field in agent, f"Agent missing field {field}"
 
 
@@ -52,12 +56,14 @@ def test_get_simulations_agents_mock_returns_dummy(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/agents/mock")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200, "count": len(DUMMY_AGENTS)}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) == len(DUMMY_AGENTS)
+    assert len(data) == expected_result["count"]
     handles = [a["handle"] for a in data]
-    assert handles == sorted(handles)
+    expected_result = sorted(handles)
+    assert handles == expected_result
 
 
 def test_post_simulations_agents_success(simulation_client, temp_db):
@@ -72,16 +78,25 @@ def test_post_simulations_agents_success(simulation_client, temp_db):
 
     response = client.post("/v1/simulations/agents", json=body)
 
-    assert response.status_code == 201
+    expected_result = {
+        "status_code": 201,
+        "name": "Test Agent",
+        "bio": "A test bio",
+        "generated_bio": "",
+        "followers": 0,
+        "following": 0,
+        "posts_count": 0,
+    }
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
-    expected_handle = f"@{handle.lstrip('@').lower()}"
-    assert data["handle"] == expected_handle
-    assert data["name"] == "Test Agent"
-    assert data["bio"] == "A test bio"
-    assert data["generated_bio"] == ""
-    assert data["followers"] == 0
-    assert data["following"] == 0
-    assert data["posts_count"] == 0
+    expected_result["handle"] = f"@{handle.lstrip('@').lower()}"
+    assert data["handle"] == expected_result["handle"]
+    assert data["name"] == expected_result["name"]
+    assert data["bio"] == expected_result["bio"]
+    assert data["generated_bio"] == expected_result["generated_bio"]
+    assert data["followers"] == expected_result["followers"]
+    assert data["following"] == expected_result["following"]
+    assert data["posts_count"] == expected_result["posts_count"]
 
 
 def test_post_simulations_agents_duplicate_handle_returns_409(
@@ -93,13 +108,15 @@ def test_post_simulations_agents_duplicate_handle_returns_409(
     body = {"handle": handle, "display_name": "First", "bio": ""}
 
     r1 = client.post("/v1/simulations/agents", json=body)
-    assert r1.status_code == 201
+    expected_result = {"status_code": 201}
+    assert r1.status_code == expected_result["status_code"]
 
     r2 = client.post("/v1/simulations/agents", json=body)
-    assert r2.status_code == 409
+    expected_result = {"status_code": 409, "error_code": "HANDLE_ALREADY_EXISTS"}
+    assert r2.status_code == expected_result["status_code"]
     err = r2.json()
     assert "error" in err
-    assert err["error"]["code"] == "HANDLE_ALREADY_EXISTS"
+    assert err["error"]["code"] == expected_result["error_code"]
 
 
 def test_post_simulations_agents_validation_empty_handle_returns_422(
@@ -111,7 +128,8 @@ def test_post_simulations_agents_validation_empty_handle_returns_422(
         "/v1/simulations/agents",
         json={"handle": "", "display_name": "Name", "bio": ""},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_agents_validation_empty_display_name_returns_422(
@@ -123,7 +141,8 @@ def test_post_simulations_agents_validation_empty_display_name_returns_422(
         "/v1/simulations/agents",
         json={"handle": "user.bsky.social", "display_name": "", "bio": ""},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_agents_then_get_includes_new_agent(
@@ -139,11 +158,14 @@ def test_post_simulations_agents_then_get_includes_new_agent(
     }
 
     post_resp = client.post("/v1/simulations/agents", json=body)
-    assert post_resp.status_code == 201
+    expected_result = {"status_code": 201}
+    assert post_resp.status_code == expected_result["status_code"]
     created = post_resp.json()
 
     get_resp = client.get("/v1/simulations/agents")
-    assert get_resp.status_code == 200
+    expected_result = {"status_code": 200}
+    assert get_resp.status_code == expected_result["status_code"]
     agents = get_resp.json()
     handles = [a["handle"] for a in agents]
-    assert created["handle"] in handles
+    expected_result = created["handle"]
+    assert expected_result in handles
