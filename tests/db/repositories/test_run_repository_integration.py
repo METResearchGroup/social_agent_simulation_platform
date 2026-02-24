@@ -7,24 +7,13 @@ import time
 
 import pytest
 
-from db.adapters.sqlite.sqlite import (
-    SqliteTransactionProvider,
-    get_connection,
-    run_transaction,
-)
-from db.repositories.run_repository import create_sqlite_repository
+from db.adapters.sqlite.sqlite import get_connection, run_transaction
 from simulation.core.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
     RunNotFoundError,
 )
 from simulation.core.models.runs import Run, RunConfig, RunStatus
-
-
-@pytest.fixture
-def run_repo(temp_db):
-    """Create a run repository with SqliteTransactionProvider for integration tests."""
-    return create_sqlite_repository(transaction_provider=SqliteTransactionProvider())
 
 
 class TestSQLiteRunRepositoryIntegration:
