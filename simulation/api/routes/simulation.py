@@ -160,7 +160,7 @@ async def get_simulation_agents(request: Request) -> list[AgentSchema] | Respons
 )
 @log_route_completion_decorator(route=SIMULATION_RUNS_ROUTE, success_type=list)
 async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
-    """Return all simulation runs from the backend dummy source."""
+    """Return all simulation runs from the database (app engine backed by SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_runs(request)
 
 
@@ -215,7 +215,7 @@ async def get_simulation_posts(
     request: Request,
     uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
 ) -> list[PostSchema] | Response:
-    """Return posts from the backend dummy source."""
+    """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_posts(request, uris=uris)
 
 
@@ -232,7 +232,7 @@ async def get_simulation_posts(
 async def get_simulation_run_turns(
     request: Request, run_id: str
 ) -> dict[str, TurnSchema] | Response:
-    """Return turn payload for a run from the backend dummy source."""
+    """Return turn payload for a run from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_run_turns(request, run_id=run_id)
 
 
