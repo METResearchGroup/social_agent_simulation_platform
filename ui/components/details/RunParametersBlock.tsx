@@ -70,16 +70,26 @@ function AlgorithmConfigBlock({ entries }: AlgorithmConfigBlockProps) {
 }
 
 interface MetricsBlockProps {
+  /**
+   * Selected metric keys for this run.
+   * - `undefined`: use backend default metrics
+   * - `[]`: no metrics selected
+   * - `[...keys]`: selected metrics
+   */
   metricKeys?: string[];
 }
 
 function MetricsBlock({ metricKeys }: MetricsBlockProps) {
-  const hasMetrics = Array.isArray(metricKeys) && metricKeys.length > 0;
-
   return (
     <div className="pt-1">
       <span className="text-beige-900">Metrics: </span>
-      {hasMetrics ? (
+      {metricKeys === undefined ? (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-beige-200 text-beige-800">
+          Default
+        </span>
+      ) : metricKeys.length === 0 ? (
+        <span className="text-beige-600">—</span>
+      ) : (
         <span className="flex flex-wrap gap-1.5 mt-1">
           {metricKeys.map((key) => (
             <span
@@ -90,8 +100,6 @@ function MetricsBlock({ metricKeys }: MetricsBlockProps) {
             </span>
           ))}
         </span>
-      ) : (
-        <span className="text-beige-600">—</span>
       )}
     </div>
   );
