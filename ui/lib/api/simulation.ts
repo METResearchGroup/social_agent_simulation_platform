@@ -44,6 +44,10 @@ type ApiFeedAlgorithm = components['schemas']['FeedAlgorithmSchema'];
 
 type ApiRunResponse = components['schemas']['RunResponse'];
 
+type ApiRunConfigDetail = components['schemas']['RunConfigDetail'];
+
+type ApiRunDetailsResponse = components['schemas']['RunDetailsResponse'];
+
 type ApiPost = components['schemas']['PostSchema'];
 
 type ApiTurn = components['schemas']['TurnSchema'];
@@ -210,6 +214,7 @@ export async function getDefaultConfig(): Promise<RunConfig> {
     numTurns: api.num_turns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
     feedAlgorithmConfig: null,
+    metricKeys: api.metric_keys,
   };
 }
 
@@ -274,6 +279,34 @@ export async function postRun(config: RunConfig): Promise<Run> {
     totalTurns: api.num_turns,
     totalAgents: api.num_agents,
     status: api.status,
+  };
+}
+
+// NOTE: `getRunDetails` intentionally returns only `{ runId, config }`, where `config` is mapped via
+// `mapRunDetailsConfig`. `mapRunDetailsConfig` intentionally sets `feedAlgorithmConfig` to null
+// because `ApiRunConfigDetail` (RunConfigDetail) does not include `feed_algorithm_config`. Other
+// fields available on `ApiRunDetailsResponse` (status, turns, run_metrics, etc.) are deliberately
+// omitted in this PR scope to avoid callers assuming they’re available without a separate fetch.
+function mapRunDetailsConfig(apiConfig: ApiRunConfigDetail): RunConfig {
+  return {
+    numAgents: apiConfig.num_agents,
+    numTurns: apiConfig.num_turns,
+    feedAlgorithm: apiConfig.feed_algorithm,
+    feedAlgorithmConfig: null,
+    metricKeys: apiConfig.metric_keys,
+  };
+}
+
+export async function getRunDetails(runId: string): Promise<{
+  runId: string;
+  config: RunConfig;
+}> {
+  const api: ApiRunDetailsResponse = await fetchJson<ApiRunDetailsResponse>(
+    buildApiUrl(`/simulations/runs/${encodeURIComponent(runId)}`),
+  );
+  return {
+    runId: api.run_id,
+    config: mapRunDetailsConfig(api.config),
   };
 }
 

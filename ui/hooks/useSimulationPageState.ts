@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getAgents, getRuns, getTurnsForRun, postRun } from '@/lib/api/simulation';
+import { getAgents, getRunDetails, getRuns, getTurnsForRun, postRun } from '@/lib/api/simulation';
 import {
   getAvailableTurns,
   getCompletedTurnsCount,
@@ -18,6 +18,8 @@ const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_TURNS_LOADING: Record<string, boolean> = {};
 const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
+const EMPTY_RUN_DETAILS_LOADING: Record<string, boolean> = {};
+const EMPTY_RUN_DETAILS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
 
 /**
@@ -55,8 +57,11 @@ interface UseSimulationPageStateResult {
   completedTurnsCount: number;
   runAgents: Agent[];
   currentRunConfig: RunConfig | null;
+  runDetailsLoading: boolean;
+  runDetailsError: ApiError | null;
   isStartScreen: boolean;
   handleConfigSubmit: (config: RunConfig) => void;
+  handleRetryRunDetails: () => void;
   handleSetViewMode: (mode: ViewMode) => void;
   handleSelectAgent: (handle: string | null) => void;
   handleSelectRun: (runId: string) => void;
@@ -91,6 +96,12 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedTurn, setSelectedTurn] = useState<number | 'summary' | null>(null);
   const [runConfigs, setRunConfigs] = useState<Record<string, RunConfig>>(EMPTY_RUN_CONFIGS);
+  const [runDetailsLoadingByRunId, setRunDetailsLoadingByRunId] = useState<
+    Record<string, boolean>
+  >(EMPTY_RUN_DETAILS_LOADING);
+  const [runDetailsErrorByRunId, setRunDetailsErrorByRunId] = useState<
+    Record<string, ApiError | null>
+  >(EMPTY_RUN_DETAILS_ERROR);
   const [newRunTurns] = useState<Record<string, Record<string, Turn>>>(EMPTY_NEW_RUN_TURNS);
   const [fallbackTurns, setFallbackTurns] = useState<Record<string, Record<string, Turn>>>(
     EMPTY_FALLBACK_TURNS,
@@ -102,6 +113,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const agentsLoadMoreRequestIdRef = useRef<number>(0);
   const agentsOffsetRef = useRef<number>(0);
   const runsRequestIdRef = useRef<number>(0);
+  const runDetailsRequestIdMapRef = useRef<Map<string, number>>(new Map());
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -230,6 +242,54 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
   }, [selectedRunId, retryTurnsTrigger]);
 
+  const selectedRunHasConfig: boolean =
+    selectedRunId !== null ? runConfigs[selectedRunId] !== undefined : false;
+
+  useEffect(() => {
+    if (!selectedRunId || selectedRunHasConfig) {
+      return;
+    }
+
+    const runId: string = selectedRunId;
+    const nextRequestId: number = (runDetailsRequestIdMapRef.current.get(runId) ?? 0) + 1;
+    runDetailsRequestIdMapRef.current.set(runId, nextRequestId);
+    setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
+    setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: null }));
+
+    const loadRunDetails = async (): Promise<void> => {
+      try {
+        const details = await getRunDetails(runId);
+        const isStale =
+          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
+        if (!isStale) {
+          setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
+        }
+      } catch (error: unknown) {
+        console.error(`Failed to fetch run details for ${runId}:`, error);
+        const isStale =
+          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
+        if (!isStale) {
+          const apiError: ApiError =
+            error instanceof ApiError
+              ? error
+              : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+          setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
+        }
+      } finally {
+        const isStale =
+          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
+        if (!isStale) {
+          setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
+        }
+        if (runDetailsRequestIdMapRef.current.get(runId) === nextRequestId) {
+          runDetailsRequestIdMapRef.current.delete(runId);
+        }
+      }
+    };
+
+    void loadRunDetails();
+  }, [selectedRunId, selectedRunHasConfig]);
+
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
     [runs],
@@ -264,6 +324,25 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     () => getRunConfig(selectedRun, runConfigs),
     [selectedRun, runConfigs],
   );
+
+  const runDetailsLoading: boolean =
+    selectedRunId !== null ? (runDetailsLoadingByRunId[selectedRunId] ?? false) : false;
+  const runDetailsError: ApiError | null =
+    selectedRunId !== null ? (runDetailsErrorByRunId[selectedRunId] ?? null) : null;
+
+  const handleRetryRunDetails = useCallback((): void => {
+    if (selectedRunId === null) return;
+    setRunDetailsErrorByRunId((prev) => {
+      const next = { ...prev };
+      delete next[selectedRunId];
+      return next;
+    });
+    setRunConfigs((prev) => {
+      const next = { ...prev };
+      delete next[selectedRunId];
+      return next;
+    });
+  }, [selectedRunId]);
 
   const handleConfigSubmit = (config: RunConfig): void => {
     setRunsError(null); // Clear stale run errors before starting a new run.
@@ -386,6 +465,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     completedTurnsCount,
     runAgents,
     currentRunConfig,
+    runDetailsLoading,
+    runDetailsError,
     isStartScreen: selectedRunId === null,
     handleConfigSubmit,
     handleSetViewMode,
@@ -397,5 +478,6 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     handleRetryAgents,
     handleLoadMoreAgents,
     handleRetryTurns,
+    handleRetryRunDetails,
   };
 }
