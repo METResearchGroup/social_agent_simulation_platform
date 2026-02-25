@@ -11,8 +11,6 @@ autogenerate comparison to check for diffs against `db.schema.metadata`.
 
 from __future__ import annotations
 
-import os
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -21,39 +19,7 @@ import sqlalchemy as sa
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
-
-
-def _alembic_upgrade_head(*, repo_root: Path, sqlite_path: Path) -> None:
-    env = os.environ.copy()
-    env["SIM_DB_PATH"] = str(sqlite_path)
-    completed = subprocess.run(
-        [
-            "uv",
-            "run",
-            "python",
-            "-m",
-            "alembic",
-            "-c",
-            "pyproject.toml",
-            "upgrade",
-            "head",
-        ],
-        cwd=str(repo_root),
-        env=env,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            "Alembic upgrade failed.\n"
-            f"stdout:\n{completed.stdout}\n"
-            f"stderr:\n{completed.stderr}\n"
-        )
+from scripts._schema_utils import _alembic_upgrade_head, _repo_root
 
 
 def main() -> int:

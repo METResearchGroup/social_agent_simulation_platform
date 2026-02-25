@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
@@ -34,9 +33,7 @@ from typing import Any
 
 import sqlalchemy as sa
 
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+from scripts._schema_utils import _alembic_upgrade_head, _repo_root
 
 
 def _run(
@@ -107,33 +104,6 @@ from datetime import datetime, timezone
 
 def _now_version_prefix() -> str:
     return datetime.now(timezone.utc).strftime("%Y_%m_%d-%H%M%S")
-
-
-def _alembic_upgrade_head(*, repo_root: Path, sqlite_path: Path) -> None:
-    env = os.environ.copy()
-    env["SIM_DB_PATH"] = str(sqlite_path)
-    completed = _run(
-        [
-            "uv",
-            "run",
-            "python",
-            "-m",
-            "alembic",
-            "-c",
-            "pyproject.toml",
-            "upgrade",
-            "head",
-        ],
-        cwd=repo_root,
-        env=env,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise RuntimeError(
-            "Alembic upgrade failed.\n"
-            f"stdout:\n{completed.stdout}\n"
-            f"stderr:\n{completed.stderr}\n"
-        )
 
 
 @dataclass(frozen=True)
