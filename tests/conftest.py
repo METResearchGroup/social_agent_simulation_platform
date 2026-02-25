@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import os
 import tempfile
+import zlib
 from collections.abc import Generator
 
 import pytest
+from faker import Faker
 
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
@@ -27,6 +29,7 @@ from db.repositories.run_repository import create_sqlite_repository
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
+from tests.factories.context import reset_faker, set_faker
 
 
 @pytest.fixture
@@ -95,6 +98,20 @@ def comment_repo(temp_db, sqlite_tx):
 @pytest.fixture
 def follow_repo(temp_db, sqlite_tx):
     return create_sqlite_follow_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture(autouse=True)
+def fake(request: pytest.FixtureRequest) -> Generator[Faker, None, None]:
+    """Per-test seeded Faker instance for deterministic factory defaults."""
+    node_id = request.node.nodeid
+    seed = zlib.adler32(node_id.encode("utf-8"))
+    faker = Faker()
+    faker.seed_instance(seed)
+    token = set_faker(faker)
+    try:
+        yield faker
+    finally:
+        reset_faker(token)
 
 
 @pytest.fixture
