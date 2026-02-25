@@ -138,7 +138,6 @@ def _alembic_upgrade_head(*, repo_root: Path, sqlite_path: Path) -> None:
 class _SchemaArtifacts:
     schema_snapshot: dict[str, Any]
     schema_md: str
-    schema_mmd: str
 
 
 def _schema_snapshot_from_sqlite(sqlite_path: Path) -> dict[str, Any]:
@@ -257,12 +256,18 @@ def _schema_snapshot_from_sqlite(sqlite_path: Path) -> dict[str, Any]:
     }
 
 
-def _render_markdown(snapshot: dict[str, Any]) -> str:
+def _render_markdown(snapshot: dict[str, Any], *, mermaid: str) -> str:
     tables: dict[str, Any] = snapshot["tables"]
     referenced_by: dict[str, Any] = snapshot["referenced_by"]
 
     lines: list[str] = []
     lines.append("# Database schema (Alembic migrations @ head)")
+    lines.append("")
+    lines.append("## Mermaid Diagram")
+    lines.append("")
+    lines.append("```mermaid")
+    lines.append(mermaid.rstrip())
+    lines.append("```")
     lines.append("")
     lines.append(
         "This documentation is generated from a fresh SQLite database after applying "
@@ -404,9 +409,9 @@ def _render_mermaid(snapshot: dict[str, Any]) -> str:
 
 def _artifacts_from_sqlite(sqlite_path: Path) -> _SchemaArtifacts:
     snapshot = _schema_snapshot_from_sqlite(sqlite_path)
-    md = _render_markdown(snapshot)
     mmd = _render_mermaid(snapshot)
-    return _SchemaArtifacts(schema_snapshot=snapshot, schema_md=md, schema_mmd=mmd)
+    md = _render_markdown(snapshot, mermaid=mmd)
+    return _SchemaArtifacts(schema_snapshot=snapshot, schema_md=md)
 
 
 def _write_artifacts(out_dir: Path, artifacts: _SchemaArtifacts) -> None:
@@ -416,7 +421,6 @@ def _write_artifacts(out_dir: Path, artifacts: _SchemaArtifacts) -> None:
         encoding="utf-8",
     )
     (out_dir / "schema.md").write_text(artifacts.schema_md, encoding="utf-8")
-    (out_dir / "schema.mmd").write_text(artifacts.schema_mmd, encoding="utf-8")
 
 
 def _diff_summary(a: dict[str, Any], b: dict[str, Any]) -> str:
@@ -572,8 +576,7 @@ def main() -> int:
         "ERROR: Database schema docs are out of date (migrations != latest docs).\n\n"
         f"{summary}\n\n"
         f"Baseline folder: {latest_dir}\n"
-        f"Baseline files: {latest_dir / 'schema.md'}, {latest_dir / 'schema.mmd'}, "
-        f"{latest_dir / 'schema.snapshot.json'}\n\n"
+        f"Baseline files: {latest_dir / 'schema.md'}, {latest_dir / 'schema.snapshot.json'}\n\n"
         "Fix:\n"
         "  uv run python scripts/generate_db_schema_docs.py --update\n\n"
         "After updating, review and commit the new folder under docs/db/, then compare:\n"

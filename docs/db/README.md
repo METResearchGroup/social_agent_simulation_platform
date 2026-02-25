@@ -13,7 +13,7 @@ Where:
 Each version folder contains:
 
 - `schema.md` — human-readable table/field/relationship reference
-- `schema.mmd` — Mermaid `erDiagram`
+- Mermaid `erDiagram` embedded at the top of `schema.md`
 - `schema.snapshot.json` — machine-readable, stable snapshot used for drift checks
 
 ## Source of truth
