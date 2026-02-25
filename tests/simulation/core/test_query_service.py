@@ -5,12 +5,15 @@ from unittest.mock import Mock
 import pytest
 
 from simulation.core.exceptions import RunNotFoundError
-from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.like import GeneratedLike
-from simulation.core.models.persisted_actions import PersistedLike
-from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.models.turns import TurnData, TurnMetadata
+from simulation.core.models.turns import TurnData
 from simulation.core.query_service import SimulationQueryService
+from tests.factories import (
+    GeneratedFeedFactory,
+    PersistedLikeFactory,
+    PostFactory,
+    TurnMetadataFactory,
+)
 
 SAMPLE_RUN_OVERRIDES = {"total_turns": 10, "total_agents": 5}
 
@@ -50,7 +53,7 @@ class TestSimulationQueryServiceListRuns:
 
 class TestSimulationQueryServiceGetTurnMetadata:
     def test_returns_metadata(self, query_service, mock_repos):
-        expected = TurnMetadata(
+        expected = TurnMetadataFactory.create(
             run_id="run_123",
             turn_number=0,
             total_actions={},
@@ -70,13 +73,13 @@ class TestSimulationQueryServiceGetTurnMetadata:
 class TestSimulationQueryServiceListTurnMetadata:
     def test_returns_turn_metadata_list(self, query_service, mock_repos):
         expected_result = [
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id="run_123",
                 turn_number=0,
                 total_actions={},
                 created_at="2024_01_01-12:00:00",
             ),
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id="run_123",
                 turn_number=1,
                 total_actions={},
@@ -94,19 +97,19 @@ class TestSimulationQueryServiceListTurnMetadata:
 
     def test_sorts_turn_metadata_by_turn_number(self, query_service, mock_repos):
         unsorted_metadata = [
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id="run_123",
                 turn_number=2,
                 total_actions={},
                 created_at="2024_01_01-12:02:00",
             ),
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id="run_123",
                 turn_number=0,
                 total_actions={},
                 created_at="2024_01_01-12:00:00",
             ),
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id="run_123",
                 turn_number=1,
                 total_actions={},
@@ -131,7 +134,7 @@ class TestSimulationQueryServiceGetTurnData:
     def test_returns_turn_data_with_feeds_and_posts(
         self, query_service, mock_repos, sample_run
     ):
-        feed1 = GeneratedFeed(
+        feed1 = GeneratedFeedFactory.create(
             feed_id="feed_1",
             run_id=sample_run.run_id,
             turn_number=0,
@@ -139,7 +142,7 @@ class TestSimulationQueryServiceGetTurnData:
             post_uris=["uri1", "uri2"],
             created_at="2024_01_01-12:00:00",
         )
-        feed2 = GeneratedFeed(
+        feed2 = GeneratedFeedFactory.create(
             feed_id="feed_2",
             run_id=sample_run.run_id,
             turn_number=0,
@@ -148,8 +151,8 @@ class TestSimulationQueryServiceGetTurnData:
             created_at="2024_01_01-12:00:01",
         )
         posts = [
-            BlueskyFeedPost(
-                id="uri1",
+            PostFactory.create(
+                post_id="uri1",
                 uri="uri1",
                 author_display_name="Author 1",
                 author_handle="author1.bsky.social",
@@ -161,8 +164,8 @@ class TestSimulationQueryServiceGetTurnData:
                 repost_count=1,
                 created_at="2024_01_01-12:00:00",
             ),
-            BlueskyFeedPost(
-                id="uri2",
+            PostFactory.create(
+                post_id="uri2",
                 uri="uri2",
                 author_display_name="Author 2",
                 author_handle="author2.bsky.social",
@@ -174,8 +177,8 @@ class TestSimulationQueryServiceGetTurnData:
                 repost_count=2,
                 created_at="2024_01_01-12:01:00",
             ),
-            BlueskyFeedPost(
-                id="uri3",
+            PostFactory.create(
+                post_id="uri3",
                 uri="uri3",
                 author_display_name="Author 3",
                 author_handle="author3.bsky.social",
@@ -218,7 +221,7 @@ class TestSimulationQueryServiceGetTurnData:
         """When like/comment/follow repos are provided, get_turn_data populates actions."""
         like_repo = Mock()
         like_repo.read_likes_by_run_turn.return_value = [
-            PersistedLike(
+            PersistedLikeFactory.create(
                 like_id="like_1",
                 run_id=sample_run.run_id,
                 turn_number=0,
@@ -245,7 +248,7 @@ class TestSimulationQueryServiceGetTurnData:
             comment_repo=comment_repo,
             follow_repo=follow_repo,
         )
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="f1",
             run_id=sample_run.run_id,
             turn_number=0,
@@ -253,8 +256,8 @@ class TestSimulationQueryServiceGetTurnData:
             post_uris=["at://did:plc:post1"],
             created_at="2026-02-24T12:00:00Z",
         )
-        post = BlueskyFeedPost(
-            id="at://did:plc:post1",
+        post = PostFactory.create(
+            post_id="at://did:plc:post1",
             uri="at://did:plc:post1",
             author_display_name="Author",
             author_handle="author.bsky.social",

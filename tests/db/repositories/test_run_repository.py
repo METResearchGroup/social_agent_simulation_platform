@@ -18,6 +18,7 @@ from simulation.core.exceptions import (
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from tests.factories import RunConfigFactory, RunFactory, TurnMetadataFactory
 
 DEFAULT_TEST_METRIC_KEYS: list[str] = [
     "run.actions.total",
@@ -76,33 +77,6 @@ class SQLiteRunRepository(_SQLiteRunRepository):
             return super().update_run_status(run_id, status, conn=conn)
 
 
-def make_turn_metadata(
-    run_id: str = "run_123",
-    turn_number: int = 0,
-    total_actions: dict[TurnAction, int] | None = None,
-    created_at: str = "2024_01_01-12:00:00",
-) -> TurnMetadata:
-    """Helper factory to create TurnMetadata instances for testing.
-
-    Args:
-        run_id: The run ID (default: "run_123")
-        turn_number: The turn number (default: 0)
-        total_actions: Dictionary mapping action types to counts (default: empty dict)
-        created_at: Creation timestamp (default: "2024_01_01-12:00:00")
-
-    Returns:
-        TurnMetadata instance with specified values
-    """
-    if total_actions is None:
-        total_actions = {}
-    return TurnMetadata(
-        run_id=run_id,
-        turn_number=turn_number,
-        total_actions=total_actions,
-        created_at=created_at,
-    )
-
-
 class TestSQLiteRunRepositoryCreateRun:
     """Tests for SQLiteRunRepository.create_run method."""
 
@@ -114,7 +88,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
         expected_timestamp = "2024_01_01-12:00:00"
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
 
@@ -143,7 +119,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=20, num_turns=50, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=20, num_turns=50, feed_algorithm="chronological"
+        )
         expected_timestamp = "2024_02_15-15:30:45"
         mock_uuid_val = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
@@ -166,7 +144,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
 
         # Act
         result = repo.create_run(config)
@@ -190,7 +170,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
         uuid1 = uuid.UUID("11111111-1111-1111-1111-111111111111")
         uuid2 = uuid.UUID("22222222-2222-2222-2222-222222222222")
 
@@ -214,7 +196,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
 
         # Act
         result = repo.create_run(config)
@@ -230,7 +214,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
 
         # Act
         result = repo.create_run(config)
@@ -247,7 +233,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
         expected_run_id = f"run_{expected_timestamp}_{mock_uuid_val}"
         db_error = Exception("Database connection failed")
@@ -273,7 +261,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
         mock_uuid_val = uuid.UUID("12345678-1234-5678-9012-123456789012")
         expected_run_id = f"run_{expected_timestamp}_{mock_uuid_val}"
         mock_adapter.write_run.side_effect = Exception("DB error")
@@ -296,7 +286,9 @@ class TestSQLiteRunRepositoryCreateRun:
         repo = SQLiteRunRepository(
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
         original_error = ValueError("Invalid data")
         mock_adapter.write_run.side_effect = original_error
 
@@ -319,7 +311,7 @@ class TestSQLiteRunRepositoryGetRun:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        expected = Run(
+        expected = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -396,7 +388,7 @@ class TestSQLiteRunRepositoryGetRun:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        expected = Run(
+        expected = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -426,7 +418,7 @@ class TestSQLiteRunRepositoryGetRun:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        expected = Run(
+        expected = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -480,7 +472,7 @@ class TestSQLiteRunRepositoryListRuns:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         expected = [
-            Run(
+            RunFactory.create(
                 run_id="run_1",
                 created_at="2024_01_01-12:00:00",
                 total_turns=10,
@@ -491,7 +483,7 @@ class TestSQLiteRunRepositoryListRuns:
                 status=RunStatus.COMPLETED,
                 completed_at="2024_01_01-13:00:00",
             ),
-            Run(
+            RunFactory.create(
                 run_id="run_2",
                 created_at="2024_01_02-12:00:00",
                 total_turns=20,
@@ -522,7 +514,7 @@ class TestSQLiteRunRepositoryListRuns:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         expected = [
-            Run(
+            RunFactory.create(
                 run_id="run_newest",
                 created_at="2024_01_03-12:00:00",
                 total_turns=10,
@@ -533,7 +525,7 @@ class TestSQLiteRunRepositoryListRuns:
                 status=RunStatus.RUNNING,
                 completed_at=None,
             ),
-            Run(
+            RunFactory.create(
                 run_id="run_oldest",
                 created_at="2024_01_01-12:00:00",
                 total_turns=10,
@@ -580,7 +572,7 @@ class TestSQLiteRunRepositoryListRuns:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         expected = [
-            Run(
+            RunFactory.create(
                 run_id=f"run_{i}",
                 created_at=f"2024_01_{i:02d}-12:00:00",
                 total_turns=10,
@@ -617,7 +609,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         )
         run_id = "run_123"
         status = RunStatus.COMPLETED
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -653,7 +645,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         )
         run_id = "run_123"
         status = RunStatus.FAILED
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -686,7 +678,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         )
         run_id = "run_123"
         status = RunStatus.RUNNING
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -720,7 +712,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         )
         run_id = "run_123"
         status = RunStatus.COMPLETED
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -754,7 +746,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         )
         run_id = "run_123"
         status = RunStatus.FAILED
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -790,7 +782,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
         )
         run_id = "run_123"
         status = RunStatus.COMPLETED
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -822,7 +814,7 @@ class TestSQLiteRunRepositoryUpdateRunStatus:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -870,7 +862,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -898,7 +890,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -926,7 +918,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -954,7 +946,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -985,7 +977,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -1015,7 +1007,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -1045,7 +1037,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -1075,7 +1067,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -1108,7 +1100,7 @@ class TestSQLiteRunRepositoryStateMachineValidation:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -1245,7 +1237,7 @@ class TestDomainExceptions:
             db_adapter=mock_adapter, get_timestamp=mock_get_timestamp
         )
         run_id = "run_123"
-        current_run = Run(
+        current_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,
@@ -1282,7 +1274,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         run_id = "run_123"
         turn_number = 0
 
-        expected = TurnMetadata(
+        expected = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -1456,7 +1448,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         run_id = "run_123"
         turn_number = 0
 
-        expected = make_turn_metadata(
+        expected = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -1491,7 +1483,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         run_id = "run_123"
         turn_number = 0
 
-        expected = make_turn_metadata(
+        expected = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -1527,12 +1519,12 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         )
         run_id = "run_123"
         expected_result = [
-            make_turn_metadata(
+            TurnMetadataFactory.create(
                 run_id=run_id,
                 turn_number=0,
                 total_actions={TurnAction.LIKE: 1},
             ),
-            make_turn_metadata(
+            TurnMetadataFactory.create(
                 run_id=run_id,
                 turn_number=1,
                 total_actions={TurnAction.LIKE: 2},
@@ -1605,7 +1597,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         turn_number = 0
 
         # Mock get_run to return a proper Run object
-        mock_run = Run(
+        mock_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=5,
@@ -1618,7 +1610,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         )
         repo.get_run = Mock(return_value=mock_run)
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -1651,7 +1643,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         # Mock get_run to return None (run doesn't exist)
         repo.get_run = Mock(return_value=None)
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -1677,7 +1669,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         run_id = "run_123"
 
         # Mock get_run to return a run with 5 turns (0-4)
-        mock_run = Run(
+        mock_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=5,
@@ -1691,7 +1683,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         repo.get_run = Mock(return_value=mock_run)
 
         # Try to write metadata for turn 5 (out of bounds)
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=5,  # Out of bounds (should be 0-4)
             total_actions={TurnAction.LIKE: 5},
@@ -1719,7 +1711,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         run_id = "run_123"
 
         # Mock get_run to return a proper Run object
-        mock_run = Run(
+        mock_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=5,
@@ -1732,7 +1724,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         )
         repo.get_run = Mock(return_value=mock_run)
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -1765,7 +1757,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         run_id = "run_123"
 
         # Mock get_run to return a proper Run object
-        mock_run = Run(
+        mock_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=5,
@@ -1778,7 +1770,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         )
         repo.get_run = Mock(return_value=mock_run)
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -1807,7 +1799,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         run_id = "run_123"
 
         # Mock get_run to return a proper Run object with enough turns
-        mock_run = Run(
+        mock_run = RunFactory.create(
             run_id=run_id,
             created_at="2024_01_01-12:00:00",
             total_turns=10,  # Enough turns to allow turn_number=5
@@ -1820,7 +1812,7 @@ class TestSQLiteRunRepositoryWriteTurnMetadata:
         )
         repo.get_run = Mock(return_value=mock_run)
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=5,
             total_actions={

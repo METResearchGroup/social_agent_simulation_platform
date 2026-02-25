@@ -6,15 +6,15 @@ import pytest
 
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
-from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.runs import Run, RunStatus
+from simulation.core.models.runs import RunStatus
 from simulation.core.query_service import SimulationQueryService
+from tests.factories import AgentFactory, RunFactory
 
 
 @pytest.fixture
 def agent_factory():
     factory = Mock()
-    factory.return_value = [SocialMediaAgent("agent1.bsky.social")]
+    factory.return_value = [AgentFactory.create(handle="agent1.bsky.social")]
     return factory
 
 
@@ -94,7 +94,7 @@ class TestSimulationEngineDelegation:
         query_service.get_turn_data.assert_called_once_with("run_123", 0)
 
     def test_delegates_command_methods(self, engine, command_service):
-        run = Run(
+        run = RunFactory.create(
             run_id="run_123",
             created_at="2024_01_01-12:00:00",
             total_turns=1,
@@ -125,7 +125,7 @@ class TestSimulationEngineDelegation:
                 ],
             },
         )()
-        agents = [SocialMediaAgent("agent1.bsky.social")]
+        agents = [AgentFactory.create(handle="agent1.bsky.social")]
 
         engine.execute_run(config)
         engine.update_run_status(run, RunStatus.FAILED)

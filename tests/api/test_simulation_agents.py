@@ -3,7 +3,8 @@
 import uuid
 
 from simulation.api.constants import DEFAULT_AGENT_LIST_LIMIT
-from simulation.core.models.agent import Agent, PersonaSource
+from simulation.core.models.agent import PersonaSource
+from tests.factories import AgentRecordFactory
 
 
 def test_get_simulations_agents_returns_list(simulation_client, temp_db):
@@ -23,24 +24,24 @@ def test_get_simulations_agents_matches_db_and_sorted(
     """GET /v1/simulations/agents returns DB-backed agents sorted by handle."""
     # Seed the temp DB in non-sorted order so ordering assertions are meaningful.
     agent_repo.create_or_update_agent(
-        Agent(
+        AgentRecordFactory.create(
             agent_id="did:plc:z",
             handle="@z.bsky.social",
             persona_source=PersonaSource.SYNC_BLUESKY,
             display_name="@z.bsky.social",
             created_at="2026_02_24-10:00:00",
             updated_at="2026_02_24-10:00:00",
-        )
+        ),
     )
     agent_repo.create_or_update_agent(
-        Agent(
+        AgentRecordFactory.create(
             agent_id="did:plc:a",
             handle="@a.bsky.social",
             persona_source=PersonaSource.SYNC_BLUESKY,
             display_name="@a.bsky.social",
             created_at="2026_02_24-10:00:00",
             updated_at="2026_02_24-10:00:00",
-        )
+        ),
     )
 
     client, _ = simulation_client
@@ -192,14 +193,14 @@ def test_get_simulations_agents_pagination(simulation_client, temp_db, agent_rep
         ("@b.bsky.social", "did:plc:b"),
     ]:
         repo.create_or_update_agent(
-            Agent(
+            AgentRecordFactory.create(
                 agent_id=agent_id,
                 handle=handle,
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name=handle,
                 created_at="2026_02_24-10:00:00",
                 updated_at="2026_02_24-10:00:00",
-            )
+            ),
         )
 
     client, _ = simulation_client
@@ -350,14 +351,14 @@ def test_get_simulations_agents_default_limit_is_100(
     for i in range(total_agents):
         handle = f"@user{i:03d}.bsky.social"
         repo.create_or_update_agent(
-            Agent(
+            AgentRecordFactory.create(
                 agent_id=f"did:plc:{i:03d}",
                 handle=handle,
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name=handle,
                 created_at="2026_02_24-10:00:00",
                 updated_at="2026_02_24-10:00:00",
-            )
+            ),
         )
 
     client, _ = simulation_client

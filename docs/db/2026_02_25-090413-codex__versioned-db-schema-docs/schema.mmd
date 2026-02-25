@@ -1,0 +1,97 @@
+erDiagram
+  agent {
+    TEXT agent_id PK
+    TEXT handle
+    TEXT persona_source
+    TEXT display_name
+    TEXT created_at
+    TEXT updated_at
+  }
+  agent_bios {
+    TEXT handle PK
+    TEXT generated_bio
+    TEXT created_at
+  }
+  agent_persona_bios {
+    TEXT id PK
+    TEXT agent_id FK
+    TEXT persona_bio
+    TEXT persona_bio_source
+    TEXT created_at
+    TEXT updated_at
+  }
+  alembic_version {
+    VARCHAR(32) version_num PK
+  }
+  bluesky_feed_posts {
+    TEXT uri PK
+    TEXT author_display_name
+    TEXT author_handle
+    TEXT text
+    INTEGER bookmark_count
+    INTEGER like_count
+    INTEGER quote_count
+    INTEGER reply_count
+    INTEGER repost_count
+    TEXT created_at
+  }
+  bluesky_profiles {
+    TEXT handle PK
+    TEXT did
+    TEXT display_name
+    TEXT bio
+    INTEGER followers_count
+    INTEGER follows_count
+    INTEGER posts_count
+  }
+  generated_feeds {
+    TEXT feed_id
+    TEXT run_id PK FK
+    INTEGER turn_number PK
+    TEXT agent_handle PK
+    TEXT post_uris
+    TEXT created_at
+  }
+  run_metrics {
+    TEXT run_id PK FK
+    TEXT metrics
+    TEXT created_at
+  }
+  runs {
+    TEXT run_id PK
+    TEXT created_at
+    INTEGER total_turns
+    INTEGER total_agents
+    TEXT started_at
+    TEXT status
+    TEXT completed_at
+    TEXT feed_algorithm
+    TEXT metric_keys
+  }
+  turn_metadata {
+    TEXT run_id PK FK
+    INTEGER turn_number PK
+    TEXT total_actions
+    TEXT created_at
+  }
+  turn_metrics {
+    TEXT run_id PK FK
+    INTEGER turn_number PK
+    TEXT metrics
+    TEXT created_at
+  }
+  user_agent_profile_metadata {
+    TEXT id PK
+    TEXT agent_id FK
+    INTEGER followers_count
+    INTEGER follows_count
+    INTEGER posts_count
+    TEXT created_at
+    TEXT updated_at
+  }
+  agent ||--o{ agent_persona_bios : "fk_agent_persona_bios_agent_id (agent_id)"
+  agent ||--o{ user_agent_profile_metadata : "fk_user_agent_profile_metadata_agent_id (agent_id)"
+  runs ||--o{ generated_feeds : "fk_generated_feeds_run_id (run_id)"
+  runs ||--o{ run_metrics : "fk_run_metrics_run_id (run_id)"
+  runs ||--o{ turn_metadata : "fk_turn_metadata_run_id (run_id)"
+  runs ||--o{ turn_metrics : "fk_turn_metrics_run_id (run_id)"

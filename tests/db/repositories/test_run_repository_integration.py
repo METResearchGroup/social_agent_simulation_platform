@@ -13,7 +13,8 @@ from simulation.core.exceptions import (
     InvalidTransitionError,
     RunNotFoundError,
 )
-from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.runs import RunStatus
+from tests.factories import RunConfigFactory, RunFactory, TurnMetadataFactory
 
 
 class TestSQLiteRunRepositoryIntegration:
@@ -22,7 +23,9 @@ class TestSQLiteRunRepositoryIntegration:
     def test_create_and_read_run(self, run_repo):
         """Test creating a run and reading it back from the database."""
         repo = run_repo
-        config = RunConfig(num_agents=5, num_turns=10, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=5, num_turns=10, feed_algorithm="chronological"
+        )
 
         # Create run
         created_run = repo.create_run(config)
@@ -41,7 +44,9 @@ class TestSQLiteRunRepositoryIntegration:
     def test_update_run_status_to_completed(self, run_repo):
         """Test updating run status to completed."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
 
@@ -57,7 +62,9 @@ class TestSQLiteRunRepositoryIntegration:
     def test_update_run_status_to_failed(self, run_repo):
         """Test updating run status to failed."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
 
@@ -85,15 +92,21 @@ class TestSQLiteRunRepositoryIntegration:
 
         # Create multiple runs with delays to ensure distinct timestamps
         run1 = repo.create_run(
-            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
         )
         time.sleep(1.1)  # Ensure different timestamp (format is down to seconds)
         run2 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=2, feed_algorithm="chronological"
+            )
         )
         time.sleep(1.1)
         run3 = repo.create_run(
-            RunConfig(num_agents=3, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=3, num_turns=3, feed_algorithm="chronological"
+            )
         )
 
         # List runs (should be ordered by created_at DESC, so newest first)
@@ -115,7 +128,7 @@ class TestRunStatusEnumSerialization:
 
         adapter = SQLiteRunAdapter()
 
-        run = Run(
+        run = RunFactory.create(
             run_id="test_run_1",
             created_at="2024_01_01-12:00:00",
             total_turns=5,
@@ -190,7 +203,9 @@ class TestRunStatusEnumSerialization:
     def test_all_status_values_roundtrip(self, temp_db, run_repo):
         """Test that all RunStatus enum values roundtrip correctly."""
         repo = run_repo
-        config = RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=2, num_turns=2, feed_algorithm="chronological"
+        )
 
         # Test RUNNING status (default from create_run)
         run_running = repo.create_run(config)
@@ -232,7 +247,9 @@ class TestConcurrentRunCreation:
         import threading
 
         repo = run_repo
-        config = RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=1, num_turns=1, feed_algorithm="chronological"
+        )
 
         run_ids = []
         errors = []
@@ -265,7 +282,9 @@ class TestStateMachineValidationIntegration:
     def test_valid_transition_running_to_completed(self, temp_db, run_repo):
         """Test that RUNNING -> COMPLETED transition works with real database."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         assert run.status == RunStatus.RUNNING
@@ -280,7 +299,9 @@ class TestStateMachineValidationIntegration:
     def test_valid_transition_running_to_failed(self, temp_db, run_repo):
         """Test that RUNNING -> FAILED transition works with real database."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         assert run.status == RunStatus.RUNNING
@@ -295,7 +316,9 @@ class TestStateMachineValidationIntegration:
     def test_invalid_transition_completed_to_failed(self, temp_db, run_repo):
         """Test that COMPLETED -> FAILED transition is rejected."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.COMPLETED)
@@ -316,7 +339,9 @@ class TestStateMachineValidationIntegration:
     def test_invalid_transition_failed_to_completed(self, temp_db, run_repo):
         """Test that FAILED -> COMPLETED transition is rejected."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.FAILED)
@@ -337,7 +362,9 @@ class TestStateMachineValidationIntegration:
     def test_invalid_transition_completed_to_running(self, temp_db, run_repo):
         """Test that COMPLETED -> RUNNING transition is rejected."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.COMPLETED)
@@ -358,7 +385,9 @@ class TestStateMachineValidationIntegration:
     def test_idempotent_status_update_completed(self, temp_db, run_repo):
         """Test that setting COMPLETED status again is allowed (idempotent)."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.COMPLETED)
@@ -373,7 +402,9 @@ class TestStateMachineValidationIntegration:
     def test_idempotent_status_update_failed(self, temp_db, run_repo):
         """Test that setting FAILED status again is allowed (idempotent)."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
 
         run = repo.create_run(config)
         repo.update_run_status(run.run_id, RunStatus.FAILED)
@@ -451,16 +482,17 @@ class TestTurnMetadataIntegration:
         """Test writing turn metadata using repository and reading it back."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run first
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write turn metadata using repository
         turn_number = 0
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=turn_number,
             total_actions={
@@ -487,7 +519,9 @@ class TestTurnMetadataIntegration:
     def test_read_turn_metadata_returns_none_when_not_found(self, temp_db, run_repo):
         """Test that get_turn_metadata returns None when metadata doesn't exist."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Try to read non-existent turn metadata
@@ -502,7 +536,9 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write metadata for multiple turns
@@ -549,7 +585,9 @@ class TestTurnMetadataIntegration:
 
         # Create a run
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write metadata with zero actions
@@ -591,10 +629,14 @@ class TestTurnMetadataIntegration:
         # Create two runs
         repo = run_repo
         run1 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
         run2 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
 
         # Write metadata for turn 0 in both runs with different values
@@ -651,15 +693,16 @@ class TestTurnMetadataIntegration:
         """Test writing turn metadata using repository.write_turn_metadata method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write turn metadata using repository method
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -687,16 +730,17 @@ class TestTurnMetadataIntegration:
         """Test writing multiple turns using repository.write_turn_metadata method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write metadata for multiple turns
         for turn_number in range(3):
-            turn_metadata = TurnMetadata(
+            turn_metadata = TurnMetadataFactory.create(
                 run_id=run.run_id,
                 turn_number=turn_number,
                 total_actions={
@@ -723,15 +767,16 @@ class TestTurnMetadataIntegration:
         """Test writing turn metadata with zero actions using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write metadata with zero actions
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -758,19 +803,22 @@ class TestTurnMetadataIntegration:
         """Test that turn metadata is correctly isolated per run using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create two runs
         repo = run_repo
         run1 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
         run2 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
 
         # Write metadata for turn 0 in both runs with different values
-        turn_metadata_1 = TurnMetadata(
+        turn_metadata_1 = TurnMetadataFactory.create(
             run_id=run1.run_id,
             turn_number=0,
             total_actions={
@@ -782,7 +830,7 @@ class TestTurnMetadataIntegration:
         )
         repo.write_turn_metadata(turn_metadata_1)
 
-        turn_metadata_2 = TurnMetadata(
+        turn_metadata_2 = TurnMetadataFactory.create(
             run_id=run2.run_id,
             turn_number=0,
             total_actions={
@@ -807,15 +855,16 @@ class TestTurnMetadataIntegration:
         """Test that writing duplicate turn metadata raises DuplicateTurnMetadataError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Write turn metadata once
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -836,12 +885,11 @@ class TestTurnMetadataIntegration:
         """Test that writing turn metadata for non-existent run raises RunNotFoundError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         repo = run_repo
 
         # Try to write metadata for a non-existent run
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id="nonexistent_run",
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -859,15 +907,16 @@ class TestTurnMetadataIntegration:
         """Test that writing turn metadata with out-of-bounds turn_number raises ValueError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run with 5 turns (0-4)
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         # Try to write metadata for turn 5 (out of bounds)
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=5,  # Out of bounds (should be 0-4)
             total_actions={TurnAction.LIKE: 5},
@@ -884,15 +933,16 @@ class TestTurnMetadataIntegration:
         """Test listing turn metadata returns all rows ordered by turn_number."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         for turn_number in [0, 1, 2]:
             repo.write_turn_metadata(
-                TurnMetadata(
+                TurnMetadataFactory.create(
                     run_id=run.run_id,
                     turn_number=turn_number,
                     total_actions={TurnAction.LIKE: turn_number + 1},
@@ -910,7 +960,9 @@ class TestTurnMetadataIntegration:
     ):
         """Test listing turn metadata returns empty list when no rows exist."""
         repo = run_repo
-        config = RunConfig(num_agents=3, num_turns=5, feed_algorithm="chronological")
+        config = RunConfigFactory.create(
+            num_agents=3, num_turns=5, feed_algorithm="chronological"
+        )
         run = repo.create_run(config)
 
         result = repo.list_turn_metadata(run.run_id)
@@ -921,18 +973,21 @@ class TestTurnMetadataIntegration:
         """Test listing turn metadata only returns rows for the requested run."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         repo = run_repo
         run_1 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
         run_2 = repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
 
         repo.write_turn_metadata(
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id=run_1.run_id,
                 turn_number=0,
                 total_actions={TurnAction.LIKE: 10},
@@ -940,7 +995,7 @@ class TestTurnMetadataIntegration:
             )
         )
         repo.write_turn_metadata(
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id=run_2.run_id,
                 turn_number=0,
                 total_actions={TurnAction.LIKE: 20},

@@ -27,6 +27,7 @@ from simulation.core.factories import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.query_service import SimulationQueryService
+from tests.factories import AgentFactory
 
 
 class TestCreateEngine:
@@ -188,7 +189,9 @@ class TestCreateDefaultAgentFactory:
         """Test that the factory returns the correct number of agents."""
         # Arrange
         # Create 10 mock agents
-        mock_agents = [SocialMediaAgent(f"agent{i}.bsky.social") for i in range(10)]
+        mock_agents = [
+            AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
+        ]
         mock_create_agents.return_value = mock_agents
         factory = create_default_agent_factory()
 
@@ -205,7 +208,9 @@ class TestCreateDefaultAgentFactory:
         """Test that the factory correctly limits the number of agents returned."""
         # Arrange
         # Create 10 mock agents
-        mock_agents = [SocialMediaAgent(f"agent{i}.bsky.social") for i in range(10)]
+        mock_agents = [
+            AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
+        ]
         mock_create_agents.return_value = mock_agents
         factory = create_default_agent_factory()
 
@@ -240,7 +245,9 @@ class TestCreateDefaultAgentFactory:
         """Test that the factory raises InsufficientAgentsError when fewer agents than requested."""
         # Arrange
         # Only 3 agents available
-        mock_agents = [SocialMediaAgent(f"agent{i}.bsky.social") for i in range(3)]
+        mock_agents = [
+            AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(3)
+        ]
         mock_create_agents.return_value = mock_agents
         factory = create_default_agent_factory()
 
@@ -258,7 +265,9 @@ class TestCreateDefaultAgentFactory:
         """Test that the factory returns all agents when requested count equals available."""
         # Arrange
         # Only 3 agents available
-        mock_agents = [SocialMediaAgent(f"agent{i}.bsky.social") for i in range(3)]
+        mock_agents = [
+            AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(3)
+        ]
         mock_create_agents.return_value = mock_agents
         factory = create_default_agent_factory()
 
@@ -273,7 +282,9 @@ class TestCreateDefaultAgentFactory:
     def test_calls_create_initial_agents_once_per_call(self, mock_create_agents):
         """Test that the factory calls create_initial_agents once per factory call."""
         # Arrange
-        mock_agents = [SocialMediaAgent(f"agent{i}.bsky.social") for i in range(10)]
+        mock_agents = [
+            AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
+        ]
         mock_create_agents.return_value = mock_agents
         factory = create_default_agent_factory()
 

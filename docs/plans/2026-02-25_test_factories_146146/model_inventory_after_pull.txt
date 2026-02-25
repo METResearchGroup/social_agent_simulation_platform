@@ -1,0 +1,50 @@
+# Model inventory after pull (issue #146)
+
+## Class definitions
+
+simulation/core/models/persisted_actions.py:12:class PersistedLike(BaseModel):
+simulation/core/models/persisted_actions.py:32:class PersistedComment(BaseModel):
+simulation/core/models/persisted_actions.py:53:class PersistedFollow(BaseModel):
+simulation/core/models/generated/like.py:8:class GeneratedLike(BaseModel):
+simulation/core/models/generated/follow.py:8:class GeneratedFollow(BaseModel):
+simulation/core/models/generated/comment.py:8:class GeneratedComment(BaseModel):
+
+## Persisted action usage
+
+db/adapters/base.py:18:    PersistedComment,
+db/adapters/base.py:19:    PersistedFollow,
+db/adapters/base.py:20:    PersistedLike,
+db/adapters/base.py:810:    ) -> list[PersistedLike]:
+db/adapters/base.py:833:    ) -> list[PersistedComment]:
+db/adapters/base.py:856:    ) -> list[PersistedFollow]:
+db/adapters/sqlite/like_adapter.py:9:from simulation.core.models.persisted_actions import PersistedLike
+db/adapters/sqlite/like_adapter.py:57:    ) -> list[PersistedLike]:
+db/adapters/sqlite/like_adapter.py:71:            PersistedLike(
+db/adapters/sqlite/follow_adapter.py:9:from simulation.core.models.persisted_actions import PersistedFollow
+db/adapters/sqlite/follow_adapter.py:57:    ) -> list[PersistedFollow]:
+db/adapters/sqlite/follow_adapter.py:71:            PersistedFollow(
+db/adapters/sqlite/comment_adapter.py:9:from simulation.core.models.persisted_actions import PersistedComment
+db/adapters/sqlite/comment_adapter.py:58:    ) -> list[PersistedComment]:
+db/adapters/sqlite/comment_adapter.py:73:            PersistedComment(
+db/repositories/like_repository.py:10:from simulation.core.models.persisted_actions import PersistedLike
+db/repositories/like_repository.py:40:    ) -> list[PersistedLike]:
+db/repositories/comment_repository.py:10:from simulation.core.models.persisted_actions import PersistedComment
+db/repositories/comment_repository.py:40:    ) -> list[PersistedComment]:
+db/repositories/follow_repository.py:10:from simulation.core.models.persisted_actions import PersistedFollow
+db/repositories/follow_repository.py:40:    ) -> list[PersistedFollow]:
+db/repositories/interfaces.py:20:    PersistedComment,
+db/repositories/interfaces.py:21:    PersistedFollow,
+db/repositories/interfaces.py:22:    PersistedLike,
+db/repositories/interfaces.py:503:    ) -> list[PersistedLike]:
+db/repositories/interfaces.py:525:    ) -> list[PersistedComment]:
+db/repositories/interfaces.py:547:    ) -> list[PersistedFollow]:
+simulation/core/utils/turn_data_hydration.py:11:    PersistedComment,
+simulation/core/utils/turn_data_hydration.py:12:    PersistedFollow,
+simulation/core/utils/turn_data_hydration.py:13:    PersistedLike,
+simulation/core/utils/turn_data_hydration.py:29:PersistedActionRow = PersistedLike | PersistedComment | PersistedFollow
+simulation/core/utils/turn_data_hydration.py:46:def persisted_like_to_generated(row: PersistedLike) -> GeneratedLike:
+simulation/core/utils/turn_data_hydration.py:47:    """Build GeneratedLike from a PersistedLike row."""
+simulation/core/utils/turn_data_hydration.py:60:def persisted_comment_to_generated(row: PersistedComment) -> GeneratedComment:
+simulation/core/utils/turn_data_hydration.py:61:    """Build GeneratedComment from a PersistedComment row."""
+simulation/core/utils/turn_data_hydration.py:75:def persisted_follow_to_generated(row: PersistedFollow) -> GeneratedFollow:
+simulation/core/utils/turn_data_hydration.py:76:    """Build GeneratedFollow from a PersistedFollow row."""

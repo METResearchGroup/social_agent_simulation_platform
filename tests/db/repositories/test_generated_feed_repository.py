@@ -9,6 +9,7 @@ from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.repositories.generated_feed_repository import SQLiteGeneratedFeedRepository
 from simulation.core.models.feeds import GeneratedFeed
 from tests.db.repositories.conftest import make_mock_transaction_provider
+from tests.factories import GeneratedFeedFactory
 
 
 class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
@@ -22,7 +23,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="feed_test123",
             run_id="run_123",
             turn_number=1,
@@ -48,7 +49,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="feed_another456",
             run_id="run_456",
             turn_number=5,
@@ -80,7 +81,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="feed_test123",
             run_id="run_123",
             turn_number=1,
@@ -106,7 +107,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id="feed_test123",
                 run_id="run_123",
                 turn_number=1,
@@ -122,7 +123,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id="feed_test123",
                 run_id="",
                 turn_number=1,
@@ -147,7 +148,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="feed_test123",
             run_id="run_123",
             turn_number=1,
@@ -173,7 +174,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         """Test that get_generated_feed returns a feed when found."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
-        expected_feed = GeneratedFeed(
+        expected_feed = GeneratedFeedFactory.create(
             feed_id="feed_test123",
             run_id="run_123",
             turn_number=1,
@@ -281,7 +282,7 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         expected_feeds = [
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id=f"feed_test{i}",
                 run_id=f"run_{i}",
                 turn_number=i,
@@ -311,7 +312,7 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         expected_feeds = [
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id=f"feed_test{i}",
                 run_id=f"run_{i}",
                 turn_number=i,
@@ -344,7 +345,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         expected_feeds = [
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id="feed_test123",
                 run_id="run_123",
                 turn_number=0,
