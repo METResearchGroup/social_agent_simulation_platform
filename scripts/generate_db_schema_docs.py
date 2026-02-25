@@ -143,7 +143,7 @@ class _SchemaArtifacts:
 def _schema_snapshot_from_sqlite(sqlite_path: Path) -> dict[str, Any]:
     engine = sa.create_engine(f"sqlite:///{sqlite_path}")
     inspector = sa.inspect(engine)
-    tables = sorted(inspector.get_table_names())
+    tables = sorted(t for t in inspector.get_table_names() if t != "alembic_version")
 
     snapshot_tables: dict[str, Any] = {}
     for table_name in tables:
