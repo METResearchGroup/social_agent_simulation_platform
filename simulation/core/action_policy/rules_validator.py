@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import Counter
 
-from simulation.core.action_history import ActionHistoryStore
+from simulation.core.action_history.interfaces import ActionHistoryStore
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
