@@ -48,18 +48,16 @@ def get_turns_for_run(
     an empty agent_actions mapping for now.
     """
     validated_run_id = validate_run_id(run_id)
-    run = engine.run_repo.get_run(validated_run_id)
+    run = engine.get_run(validated_run_id)
     if run is None:
         raise RunNotFoundError(validated_run_id)
 
-    metadata_list = engine.run_repo.list_turn_metadata(validated_run_id)
+    metadata_list = engine.list_turn_metadata(validated_run_id)
     metadata_sorted = sorted(metadata_list, key=lambda m: m.turn_number)
 
     turns: dict[str, TurnSchema] = {}
     for item in metadata_sorted:
-        feeds = engine.generated_feed_repo.read_feeds_for_turn(
-            validated_run_id, item.turn_number
-        )
+        feeds = engine.read_feeds_for_turn(validated_run_id, item.turn_number)
         agent_feeds = {
             feed.agent_handle: FeedSchema(
                 feed_id=feed.feed_id,
@@ -103,9 +101,9 @@ def get_posts_by_uris(
     """
     posts: list[BlueskyFeedPost]
     if not uris:
-        posts = engine.feed_post_repo.list_all_feed_posts()[:MAX_UNFILTERED_POSTS]
+        posts = engine.read_all_feed_posts()[:MAX_UNFILTERED_POSTS]
     else:
-        posts = engine.feed_post_repo.read_feed_posts_by_uris(uris)
+        posts = engine.read_feed_posts_by_uris(uris)
 
     return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.uri)]
 
