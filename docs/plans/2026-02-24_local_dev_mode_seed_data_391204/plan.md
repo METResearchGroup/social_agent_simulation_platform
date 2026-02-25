@@ -136,6 +136,7 @@ Dummy DB forced path:
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/01-runs-list.png`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/02-run-summary.png`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/03-turn-detail.png`
+   - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/04-seeded-run-metrics.png` (API response proof: seeded `run_metrics` + per-turn `metrics`)
 
 ## Manual Verification (checklist)
 - Backend startup (local mode)
