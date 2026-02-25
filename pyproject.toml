@@ -35,6 +35,7 @@ test = [
     "pyright>=1.1.0",
     "complexipy>=5.0.0",
     "pre-commit>=4.0.0",
+    "import-linter>=2.0.0",
 ]
 
 [build-system]
@@ -107,6 +108,56 @@ exclude = [
 pythonVersion = "3.12"
 typeCheckingMode = "basic"
 reportMissingTypeStubs = false
+
+[tool.importlinter]
+root_packages = ["simulation", "db", "lib", "feeds", "ai", "jobs", "ml_tooling", "ai_tools"]
+include_external_packages = false
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "PY-1 domain purity: simulation.core.models"
+type = "forbidden"
+source_modules = ["simulation.core.models"]
+forbidden_modules = [
+    "simulation.api",
+    "db",
+    "feeds",
+    "ai",
+    "jobs",
+    "ml_tooling",
+    # simulation.core.* excluding simulation.core.models
+    "simulation.core.action_generators",
+    "simulation.core.action_history",
+    "simulation.core.action_policy",
+    "simulation.core.command_service",
+    "simulation.core.engine",
+    "simulation.core.exceptions",
+    "simulation.core.factories",
+    "simulation.core.handle_utils",
+    "simulation.core.metrics",
+    "simulation.core.query_service",
+    "simulation.core.utils",
+    "simulation.core.validators",
+]
+
+[[tool.importlinter.contracts]]
+name = "PY-1 lib is leaf"
+type = "forbidden"
+source_modules = ["lib"]
+forbidden_modules = ["simulation", "db", "feeds", "ai", "jobs", "ml_tooling"]
+
+[[tool.importlinter.contracts]]
+name = "PY-1 ml_tooling constraints"
+type = "forbidden"
+source_modules = ["ml_tooling"]
+forbidden_modules = ["simulation", "db", "feeds", "ai", "jobs"]
+
+[[tool.importlinter.contracts]]
+name = "PY-1 API routes boundary: simulation.api.routes"
+type = "forbidden"
+source_modules = ["simulation.api.routes"]
+forbidden_modules = ["simulation.core", "db", "feeds", "ai", "jobs", "ml_tooling"]
+allow_indirect_imports = true
 
 
 [tool.alembic]

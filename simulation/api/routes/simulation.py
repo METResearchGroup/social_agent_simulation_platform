@@ -16,6 +16,11 @@ from simulation.api.constants import (
     MAX_AGENT_LIST_LIMIT,
 )
 from simulation.api.dependencies.auth import require_auth
+from simulation.api.errors import (
+    ApiHandleAlreadyExistsError,
+    ApiRunCreationFailedError,
+    ApiRunNotFoundError,
+)
 from simulation.api.schemas.simulation import (
     AgentSchema,
     CreateAgentRequest,
@@ -31,17 +36,13 @@ from simulation.api.schemas.simulation import (
 )
 from simulation.api.services.agent_command_service import create_agent
 from simulation.api.services.agent_query_service import list_agents
+from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
     get_posts_by_uris,
     get_run_details,
     get_turns_for_run,
     list_runs,
-)
-from simulation.core.exceptions import (
-    HandleAlreadyExistsError,
-    RunNotFoundError,
-    SimulationRunFailure,
 )
 
 logger = logging.getLogger(__name__)
@@ -238,39 +239,13 @@ async def get_simulation_run_turns(
     return await _execute_get_simulation_run_turns(request, run_id=run_id)
 
 
-def _get_feed_algorithms_list() -> list[FeedAlgorithmSchema]:
-    """Return feed algorithms with metadata for the API."""
-    from feeds.algorithms import get_registered_algorithms
-
-    return [
-        FeedAlgorithmSchema(id=alg_id, **meta.model_dump())
-        for alg_id, meta in get_registered_algorithms()
-    ]
-
-
-def _get_metrics_list() -> list[MetricSchema]:
-    """Return metrics with metadata for the API."""
-    from simulation.core.metrics.defaults import get_registered_metrics_metadata
-
-    return [
-        MetricSchema(
-            key=key,
-            display_name=display_name,
-            description=description,
-            scope=scope,
-            author=author,
-        )
-        for key, display_name, description, scope, author in get_registered_metrics_metadata()
-    ]
-
-
 @timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_metrics(
     request: Request,
 ) -> list[MetricSchema] | Response:
     """Fetch metrics and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(_get_metrics_list)
+        return await asyncio.to_thread(list_metrics)
     except Exception:
         logger.exception("Unexpected error while listing metrics")
         return _error_response(
@@ -287,7 +262,7 @@ async def _execute_get_feed_algorithms(
 ) -> list[FeedAlgorithmSchema] | Response:
     """Fetch feed algorithms and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(_get_feed_algorithms_list)
+        return await asyncio.to_thread(list_feed_algorithms)
     except Exception:
         logger.exception("Unexpected error while listing feed algorithms")
         return _error_response(
@@ -361,7 +336,7 @@ async def _execute_post_simulation_agents(
     """Create agent and convert known failures to HTTP responses."""
     try:
         return await asyncio.to_thread(create_agent, body)
-    except HandleAlreadyExistsError as e:
+    except ApiHandleAlreadyExistsError as e:
         return _error_response(
             status_code=409,
             code="HANDLE_ALREADY_EXISTS",
@@ -417,12 +392,12 @@ async def _execute_simulation_run(
             request=body,
             engine=engine,
         )
-    except SimulationRunFailure as e:
+    except ApiRunCreationFailedError as e:
         logger.exception("Simulation run failed before run creation")
         return _error_response(
             status_code=500,
             code="RUN_CREATION_FAILED",
-            message=e.args[0] if e.args else "Run creation or status update failed",
+            message=e.message,
             detail=None,
         )
     except Exception:
@@ -444,7 +419,7 @@ async def _execute_get_simulation_run_turns(
     try:
         engine = request.app.state.engine
         return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
-    except RunNotFoundError as e:
+    except ApiRunNotFoundError as e:
         return _error_response(
             status_code=404,
             code="RUN_NOT_FOUND",
@@ -480,7 +455,7 @@ async def _execute_get_simulation_run(
             run_id=run_id,
             engine=engine,
         )
-    except RunNotFoundError as e:
+    except ApiRunNotFoundError as e:
         return _error_response(
             status_code=404,
             code="RUN_NOT_FOUND",

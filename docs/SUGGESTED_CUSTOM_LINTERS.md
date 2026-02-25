@@ -60,8 +60,9 @@ These are good candidates for linting because they are:
 
 #### How (implementation) (PY-1)
 
-- Add `import-linter` (or `grimp`-based checks) and a `contracts` file (e.g. `lint/import_contracts.ini`).
-- Wire into pre-commit + CI (`uv run import-linter`).
+- Add `import-linter` and configure contracts in `pyproject.toml` under `[tool.importlinter]`.
+- Run locally: `uv run lint-imports --config pyproject.toml`.
+- Wire into pre-commit + CI (pre-commit hook + CI job run `uv run lint-imports --config pyproject.toml`).
 
 #### Known failing examples in this repo (PY-1)
 

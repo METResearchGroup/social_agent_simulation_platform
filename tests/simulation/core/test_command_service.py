@@ -231,7 +231,7 @@ class TestSimulationCommandServiceExecuteRun:
         )
 
         metadata = GenerationMetadataFactory.create(created_at="2024_01_01-12:00:00")
-        agent.like_posts = Mock(
+        mock_generate_likes = Mock(
             return_value=[
                 GeneratedLikeFactory.create(
                     like=LikeFactory.create(
@@ -245,7 +245,7 @@ class TestSimulationCommandServiceExecuteRun:
                 ),
             ]
         )
-        agent.comment_posts = Mock(
+        mock_generate_comments = Mock(
             return_value=[
                 GeneratedCommentFactory.create(
                     comment=CommentFactory.create(
@@ -260,7 +260,7 @@ class TestSimulationCommandServiceExecuteRun:
                 ),
             ]
         )
-        agent.follow_users = Mock(
+        mock_generate_follows = Mock(
             return_value=[
                 GeneratedFollowFactory.create(
                     follow=FollowFactory.create(
@@ -286,15 +286,28 @@ class TestSimulationCommandServiceExecuteRun:
         }
         command_service.feed_generator.generate_feeds.side_effect = None
 
-        action_history_store = Mock()
-        result = command_service._simulate_turn(
-            run_id=sample_run.run_id,
-            turn_number=0,
-            agents=[agent],
-            feed_algorithm="chronological",
-            action_history_store=action_history_store,
-            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
-        )
+        with (
+            patch(
+                "simulation.core.command_service.generate_likes", mock_generate_likes
+            ),
+            patch(
+                "simulation.core.command_service.generate_comments",
+                mock_generate_comments,
+            ),
+            patch(
+                "simulation.core.command_service.generate_follows",
+                mock_generate_follows,
+            ),
+        ):
+            action_history_store = Mock()
+            result = command_service._simulate_turn(
+                run_id=sample_run.run_id,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+                action_history_store=action_history_store,
+                turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
+            )
 
         assert result.total_actions[TurnAction.LIKE] == 1
         assert result.total_actions[TurnAction.COMMENT] == 1
@@ -369,9 +382,9 @@ class TestSimulationCommandServiceExecuteRun:
                 follow_candidates=[follow_only_post],
             )
         )
-        agent.like_posts = Mock(return_value=[])
-        agent.comment_posts = Mock(return_value=[])
-        agent.follow_users = Mock(return_value=[])
+        mock_generate_likes = Mock(return_value=[])
+        mock_generate_comments = Mock(return_value=[])
+        mock_generate_follows = Mock(return_value=[])
 
         command_service.agent_action_rules_validator = Mock()
         command_service.agent_action_rules_validator.validate.return_value = (
@@ -385,15 +398,28 @@ class TestSimulationCommandServiceExecuteRun:
         }
         command_service.feed_generator.generate_feeds.side_effect = None
 
-        action_history_store = Mock()
-        result = command_service._simulate_turn(
-            run_id=sample_run.run_id,
-            turn_number=0,
-            agents=[agent],
-            feed_algorithm="chronological",
-            action_history_store=action_history_store,
-            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
-        )
+        with (
+            patch(
+                "simulation.core.command_service.generate_likes", mock_generate_likes
+            ),
+            patch(
+                "simulation.core.command_service.generate_comments",
+                mock_generate_comments,
+            ),
+            patch(
+                "simulation.core.command_service.generate_follows",
+                mock_generate_follows,
+            ),
+        ):
+            action_history_store = Mock()
+            result = command_service._simulate_turn(
+                run_id=sample_run.run_id,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+                action_history_store=action_history_store,
+                turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
+            )
 
         expected_total_actions = {
             TurnAction.LIKE: 0,
@@ -401,20 +427,23 @@ class TestSimulationCommandServiceExecuteRun:
             TurnAction.FOLLOW: 0,
         }
         assert result.total_actions == expected_total_actions
-        agent.like_posts.assert_called_once_with(
+        mock_generate_likes.assert_called_once_with(
             [like_only_post],
             run_id=sample_run.run_id,
             turn_number=0,
+            agent_handle=agent.handle,
         )
-        agent.comment_posts.assert_called_once_with(
+        mock_generate_comments.assert_called_once_with(
             [comment_only_post],
             run_id=sample_run.run_id,
             turn_number=0,
+            agent_handle=agent.handle,
         )
-        agent.follow_users.assert_called_once_with(
+        mock_generate_follows.assert_called_once_with(
             [follow_only_post],
             run_id=sample_run.run_id,
             turn_number=0,
+            agent_handle=agent.handle,
         )
 
     def test_simulate_turn_produces_non_zero_likes_with_real_agent_and_filter(
@@ -518,7 +547,7 @@ class TestSimulationCommandServiceActionPersistence:
             generation_metadata=None,
             created_at="2026-02-24T12:00:00Z",
         )
-        agent.like_posts = Mock(
+        mock_generate_likes = Mock(
             return_value=[
                 GeneratedLikeFactory.create(
                     like=LikeFactory.create(
@@ -532,7 +561,7 @@ class TestSimulationCommandServiceActionPersistence:
                 ),
             ]
         )
-        agent.comment_posts = Mock(
+        mock_generate_comments = Mock(
             return_value=[
                 GeneratedCommentFactory.create(
                     comment=CommentFactory.create(
@@ -547,7 +576,7 @@ class TestSimulationCommandServiceActionPersistence:
                 ),
             ]
         )
-        agent.follow_users = Mock(
+        mock_generate_follows = Mock(
             return_value=[
                 GeneratedFollowFactory.create(
                     follow=FollowFactory.create(
@@ -602,14 +631,27 @@ class TestSimulationCommandServiceActionPersistence:
             agent_action_feed_filter=agent_action_feed_filter,
         )
 
-        command_service._simulate_turn(
-            run_id=run_id,
-            turn_number=0,
-            agents=[agent],
-            feed_algorithm="chronological",
-            action_history_store=action_history_store,
-            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
-        )
+        with (
+            patch(
+                "simulation.core.command_service.generate_likes", mock_generate_likes
+            ),
+            patch(
+                "simulation.core.command_service.generate_comments",
+                mock_generate_comments,
+            ),
+            patch(
+                "simulation.core.command_service.generate_follows",
+                mock_generate_follows,
+            ),
+        ):
+            command_service._simulate_turn(
+                run_id=run_id,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+                action_history_store=action_history_store,
+                turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
+            )
 
         persisted_likes = like_repo.read_likes_by_run_turn(run_id, 0)
         persisted_comments = comment_repo.read_comments_by_run_turn(run_id, 0)
