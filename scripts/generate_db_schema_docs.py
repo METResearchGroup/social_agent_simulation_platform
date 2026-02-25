@@ -503,7 +503,10 @@ def main() -> int:
             _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
             artifacts = _artifacts_from_sqlite(sqlite_path)
             _write_artifacts(out_dir, artifacts)
-            print(f"Kept temp DB at: {sqlite_path}")
+            print(
+                f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
+                f"Temp directory: {tmpdir}"
+            )
         else:
             with tempfile.TemporaryDirectory(prefix="sim-schema-docs-") as tmpdir:
                 sqlite_path = Path(tmpdir) / "schema.sqlite"
@@ -533,7 +536,11 @@ def main() -> int:
         sqlite_path = tmpdir / "schema.sqlite"
         _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
         generated_snapshot = _artifacts_from_sqlite(sqlite_path).schema_snapshot
-        print(f"Kept temp DB at: {sqlite_path}", file=sys.stderr)
+        print(
+            f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
+            f"Temp directory: {tmpdir}",
+            file=sys.stderr,
+        )
     else:
         generated_artifacts = _generate_to_temp(repo_root)
         generated_snapshot = generated_artifacts.schema_snapshot
