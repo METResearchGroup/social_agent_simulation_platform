@@ -39,6 +39,21 @@ def mock_transaction_provider():
 
 
 @pytest.fixture
+def mock_like_repo():
+    return Mock()
+
+
+@pytest.fixture
+def mock_comment_repo():
+    return Mock()
+
+
+@pytest.fixture
+def mock_follow_repo():
+    return Mock()
+
+
+@pytest.fixture
 def sample_turn_metadata():
     return TurnMetadata(
         run_id="run_1",
@@ -73,12 +88,21 @@ def sample_run_metrics():
 
 class TestCreateSimulationPersistenceService:
     def test_returns_simulation_persistence_service(
-        self, mock_run_repo, mock_metrics_repo, mock_transaction_provider
+        self,
+        mock_run_repo,
+        mock_metrics_repo,
+        mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
     ):
         service = create_simulation_persistence_service(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         assert isinstance(service, SimulationPersistenceService)
 
@@ -89,6 +113,9 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -97,6 +124,9 @@ class TestSimulationPersistenceServiceWriteTurn:
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         service.write_turn(
             turn_metadata=sample_turn_metadata,
@@ -115,6 +145,9 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -122,6 +155,9 @@ class TestSimulationPersistenceServiceWriteTurn:
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         service.write_turn(
             turn_metadata=sample_turn_metadata,
@@ -139,6 +175,9 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -151,6 +190,9 @@ class TestSimulationPersistenceServiceWriteTurn:
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         with pytest.raises(DuplicateTurnMetadataError):
             service.write_turn(
@@ -164,6 +206,9 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -172,6 +217,9 @@ class TestSimulationPersistenceServiceWriteTurn:
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         with pytest.raises(RuntimeError):
             service.write_turn(
@@ -187,6 +235,9 @@ class TestSimulationPersistenceServiceWriteRun:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_run_metrics,
     ):
         """When write_run is called, write_run_metrics and update_run_status are invoked in one transaction."""
@@ -194,6 +245,9 @@ class TestSimulationPersistenceServiceWriteRun:
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
@@ -213,12 +267,18 @@ class TestSimulationPersistenceServiceWriteRun:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_run_metrics,
     ):
         service = SimulationPersistenceService(
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
@@ -235,6 +295,9 @@ class TestSimulationPersistenceServiceWriteRun:
         mock_run_repo,
         mock_metrics_repo,
         mock_transaction_provider,
+        mock_like_repo,
+        mock_comment_repo,
+        mock_follow_repo,
         sample_run_metrics,
     ):
         mock_metrics_repo.write_run_metrics.side_effect = RuntimeError("db error")
@@ -242,6 +305,9 @@ class TestSimulationPersistenceServiceWriteRun:
             run_repo=mock_run_repo,
             metrics_repo=mock_metrics_repo,
             transaction_provider=mock_transaction_provider,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
         )
         with pytest.raises(RuntimeError):
             service.write_run(run_id="run_1", run_metrics=sample_run_metrics)

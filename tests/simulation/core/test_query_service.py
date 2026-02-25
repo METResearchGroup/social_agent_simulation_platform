@@ -1,9 +1,13 @@
 """Tests for simulation.core.query_service module."""
 
+from unittest.mock import Mock
+
 import pytest
 
 from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.feeds import GeneratedFeed
+from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.persisted_actions import PersistedLike
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
@@ -18,6 +22,9 @@ def query_service(mock_repos):
         metrics_repo=mock_repos["metrics_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
+        like_repo=mock_repos["like_repo"],
+        comment_repo=mock_repos["comment_repo"],
+        follow_repo=mock_repos["follow_repo"],
     )
 
 
@@ -204,3 +211,72 @@ class TestSimulationQueryServiceGetTurnData:
         mock_repos["run_repo"].get_run.return_value = sample_run
         mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = []
         assert query_service.get_turn_data(sample_run.run_id, 0) is None
+
+    def test_get_turn_data_hydrates_actions_from_action_repos(
+        self, mock_repos, sample_run
+    ):
+        """When like/comment/follow repos are provided, get_turn_data populates actions."""
+        like_repo = Mock()
+        like_repo.read_likes_by_run_turn.return_value = [
+            PersistedLike(
+                like_id="like_1",
+                run_id=sample_run.run_id,
+                turn_number=0,
+                agent_handle="agent1.bsky.social",
+                post_id="at://did:plc:post1",
+                created_at="2026-02-24T12:00:00Z",
+                explanation="Great",
+                model_used=None,
+                generation_metadata_json=None,
+                generation_created_at=None,
+            )
+        ]
+        comment_repo = Mock()
+        comment_repo.read_comments_by_run_turn.return_value = []
+        follow_repo = Mock()
+        follow_repo.read_follows_by_run_turn.return_value = []
+
+        query_service = SimulationQueryService(
+            run_repo=mock_repos["run_repo"],
+            metrics_repo=mock_repos["metrics_repo"],
+            feed_post_repo=mock_repos["feed_post_repo"],
+            generated_feed_repo=mock_repos["generated_feed_repo"],
+            like_repo=like_repo,
+            comment_repo=comment_repo,
+            follow_repo=follow_repo,
+        )
+        feed = GeneratedFeed(
+            feed_id="f1",
+            run_id=sample_run.run_id,
+            turn_number=0,
+            agent_handle="agent1.bsky.social",
+            post_uris=["at://did:plc:post1"],
+            created_at="2026-02-24T12:00:00Z",
+        )
+        post = BlueskyFeedPost(
+            id="at://did:plc:post1",
+            uri="at://did:plc:post1",
+            author_display_name="Author",
+            author_handle="author.bsky.social",
+            text="Hello",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2026-02-24T12:00:00",
+        )
+        mock_repos["run_repo"].get_run.return_value = sample_run
+        mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [feed]
+        mock_repos["feed_post_repo"].read_feed_posts_by_uris.return_value = [post]
+
+        result = query_service.get_turn_data(sample_run.run_id, 0)
+
+        assert result is not None
+        assert "agent1.bsky.social" in result.actions
+        agent_actions = result.actions["agent1.bsky.social"]
+        assert len(agent_actions) == 1
+        assert isinstance(agent_actions[0], GeneratedLike)
+        assert agent_actions[0].like.like_id == "like_1"
+        assert agent_actions[0].like.post_id == "at://did:plc:post1"
+        like_repo.read_likes_by_run_turn.assert_called_once_with(sample_run.run_id, 0)

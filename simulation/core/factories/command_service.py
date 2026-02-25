@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
@@ -11,10 +10,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
-from db.services.simulation_persistence_service import (
-    SimulationPersistenceService,
-    create_simulation_persistence_service,
-)
+from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.feed_generator_adapter import FeedGeneratorAdapter
 from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import (
@@ -42,7 +38,7 @@ def create_command_service(
     *,
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
-    simulation_persistence: SimulationPersistenceService | None = None,
+    simulation_persistence: SimulationPersistenceService,
     profile_repo: ProfileRepository,
     feed_post_repo: FeedPostRepository,
     generated_bio_repo: GeneratedBioRepository,
@@ -55,12 +51,6 @@ def create_command_service(
     agent_action_feed_filter: AgentActionFeedFilter | None = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
-    if simulation_persistence is None:
-        simulation_persistence = create_simulation_persistence_service(
-            run_repo=run_repo,
-            metrics_repo=metrics_repo,
-            transaction_provider=SqliteTransactionProvider(),
-        )
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
     if feed_generator is None:

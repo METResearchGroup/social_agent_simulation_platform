@@ -1,15 +1,30 @@
+from __future__ import annotations
+
+from collections import defaultdict
+
 from db.repositories.interfaces import (
+    CommentRepository,
     FeedPostRepository,
+    FollowRepository,
     GeneratedFeedRepository,
+    LikeRepository,
     MetricsRepository,
     RunRepository,
 )
 from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import RunNotFoundError
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
+from simulation.core.utils.turn_data_hydration import (
+    persisted_comment_to_generated,
+    persisted_follow_to_generated,
+    persisted_like_to_generated,
+)
 from simulation.core.validators import validate_run_id, validate_turn_number
 
 
@@ -22,11 +37,17 @@ class SimulationQueryService:
         metrics_repo: MetricsRepository,
         feed_post_repo: FeedPostRepository,
         generated_feed_repo: GeneratedFeedRepository,
+        like_repo: LikeRepository,
+        comment_repo: CommentRepository,
+        follow_repo: FollowRepository,
     ):
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
         self.feed_post_repo = feed_post_repo
         self.generated_feed_repo = generated_feed_repo
+        self.like_repo = like_repo
+        self.comment_repo = comment_repo
+        self.follow_repo = follow_repo
 
     @validate_inputs((validate_run_id, "run_id"))
     def get_run(self, run_id: str) -> Run | None:
@@ -93,9 +114,42 @@ class SimulationQueryService:
                     hydrated_posts.append(uri_to_post[post_uri])
             feeds_dict[feed.agent_handle] = hydrated_posts
 
+        actions_by_agent: dict[
+            str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
+        ] = defaultdict(list)
+        for row in self.like_repo.read_likes_by_run_turn(run_id, turn_number):
+            actions_by_agent[row.agent_handle].append(persisted_like_to_generated(row))
+        for row in self.comment_repo.read_comments_by_run_turn(run_id, turn_number):
+            actions_by_agent[row.agent_handle].append(
+                persisted_comment_to_generated(row)
+            )
+        for row in self.follow_repo.read_follows_by_run_turn(run_id, turn_number):
+            actions_by_agent[row.agent_handle].append(
+                persisted_follow_to_generated(row)
+            )
+
+        def _action_sort_key(
+            a: GeneratedLike | GeneratedComment | GeneratedFollow,
+        ) -> tuple[str, str]:
+            if isinstance(a, GeneratedLike):
+                return (a.like.post_id, a.like.like_id)
+            if isinstance(a, GeneratedComment):
+                return (a.comment.post_id, a.comment.comment_id)
+            if isinstance(a, GeneratedFollow):
+                return (a.follow.user_id, a.follow.follow_id)
+            raise TypeError(
+                f"_action_sort_key only supports GeneratedLike, GeneratedComment, "
+                f"GeneratedFollow; got unsupported action type {type(a)!r}"
+            )
+
+        actions_dict: dict[str, list] = {
+            agent_handle: sorted(agent_actions, key=_action_sort_key)
+            for agent_handle, agent_actions in actions_by_agent.items()
+        }
+
         return TurnData(
             turn_number=turn_number,
             agents=[],
             feeds=feeds_dict,
-            actions={},
+            actions=actions_dict,
         )

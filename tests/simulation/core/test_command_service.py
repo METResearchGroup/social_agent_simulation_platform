@@ -23,7 +23,7 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.models.runs import RunStatus
+from simulation.core.models.runs import RunConfig, RunStatus
 from simulation.core.models.turns import TurnResult
 
 
@@ -461,3 +461,159 @@ class TestSimulationCommandServiceExecuteRun:
 
         expected_min_likes = 1
         assert result.total_actions[TurnAction.LIKE] >= expected_min_likes
+
+
+class TestSimulationCommandServiceActionPersistence:
+    """Tests that simulate_turn persists actions to DB when using real persistence."""
+
+    def test_simulate_turn_persists_likes_comments_follows_to_db(
+        self,
+        run_repo,
+        metrics_repo,
+        like_repo,
+        comment_repo,
+        follow_repo,
+    ):
+        """Execute one turn with real persistence; assert likes/comments/follows are persisted."""
+        from db.adapters.sqlite.sqlite import SqliteTransactionProvider
+        from db.services.simulation_persistence_service import (
+            create_simulation_persistence_service,
+        )
+        from simulation.core.factories.action_history_store import (
+            create_default_action_history_store_factory,
+        )
+
+        transaction_provider = SqliteTransactionProvider()
+        simulation_persistence = create_simulation_persistence_service(
+            run_repo=run_repo,
+            metrics_repo=metrics_repo,
+            transaction_provider=transaction_provider,
+            like_repo=like_repo,
+            comment_repo=comment_repo,
+            follow_repo=follow_repo,
+        )
+        run = run_repo.create_run(
+            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+        )
+        run_id = run.run_id
+        run_repo.update_run_status(run_id, RunStatus.RUNNING)
+
+        agent = SocialMediaAgent("agent1.bsky.social")
+        metadata = GenerationMetadata(
+            model_used=None,
+            generation_metadata=None,
+            created_at="2026-02-24T12:00:00Z",
+        )
+        agent.like_posts = Mock(
+            return_value=[
+                GeneratedLike(
+                    like=Like(
+                        like_id="like_1",
+                        agent_id=agent.handle,
+                        post_id="at://did:plc:post1",
+                        created_at="2026-02-24T12:00:00Z",
+                    ),
+                    explanation="Great",
+                    metadata=metadata,
+                )
+            ]
+        )
+        agent.comment_posts = Mock(
+            return_value=[
+                GeneratedComment(
+                    comment=Comment(
+                        comment_id="comment_1",
+                        agent_id=agent.handle,
+                        post_id="at://did:plc:post1",
+                        text="Nice!",
+                        created_at="2026-02-24T12:00:00Z",
+                    ),
+                    explanation="Relevant",
+                    metadata=metadata,
+                )
+            ]
+        )
+        agent.follow_users = Mock(
+            return_value=[
+                GeneratedFollow(
+                    follow=Follow(
+                        follow_id="follow_1",
+                        agent_id=agent.handle,
+                        user_id="user2.bsky.social",
+                        created_at="2026-02-24T12:00:00Z",
+                    ),
+                    explanation="Interesting",
+                    metadata=metadata,
+                )
+            ]
+        )
+
+        feed_post = BlueskyFeedPost(
+            id="post_1",
+            uri="at://did:plc:post1",
+            author_display_name="Author",
+            author_handle="author.bsky.social",
+            text="Hello",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2026-02-24T12:00:00",
+        )
+        feed_generator = Mock(spec=FeedGenerator)
+        feed_generator.generate_feeds.side_effect = lambda **kwargs: {
+            a.handle: [feed_post] for a in kwargs["agents"]
+        }
+        action_history_store_factory = create_default_action_history_store_factory()
+        action_history_store = action_history_store_factory()
+        agent_action_feed_filter = HistoryAwareActionFeedFilter()
+        agent_action_rules_validator = AgentActionRulesValidator()
+        agent_action_history_recorder = AgentActionHistoryRecorder()
+        metrics_collector = Mock(spec=MetricsCollector)
+        metrics_collector.collect_turn_metrics.return_value = {}
+
+        command_service = SimulationCommandService(
+            run_repo=run_repo,
+            metrics_repo=metrics_repo,
+            metrics_collector=metrics_collector,
+            simulation_persistence=simulation_persistence,
+            profile_repo=Mock(),
+            feed_post_repo=Mock(),
+            generated_bio_repo=Mock(),
+            generated_feed_repo=Mock(),
+            agent_factory=lambda n: [agent],
+            action_history_store_factory=lambda: action_history_store,
+            feed_generator=feed_generator,
+            agent_action_rules_validator=agent_action_rules_validator,
+            agent_action_history_recorder=agent_action_history_recorder,
+            agent_action_feed_filter=agent_action_feed_filter,
+        )
+
+        command_service._simulate_turn(
+            run_id=run_id,
+            turn_number=0,
+            agents=[agent],
+            feed_algorithm="chronological",
+            action_history_store=action_history_store,
+            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
+        )
+
+        persisted_likes = like_repo.read_likes_by_run_turn(run_id, 0)
+        persisted_comments = comment_repo.read_comments_by_run_turn(run_id, 0)
+        persisted_follows = follow_repo.read_follows_by_run_turn(run_id, 0)
+
+        assert len(persisted_likes) == 1
+        assert persisted_likes[0].like_id == "like_1"
+        assert persisted_likes[0].agent_handle == "agent1.bsky.social"
+        assert persisted_likes[0].post_id == "at://did:plc:post1"
+
+        assert len(persisted_comments) == 1
+        assert persisted_comments[0].comment_id == "comment_1"
+        assert persisted_comments[0].agent_handle == "agent1.bsky.social"
+        assert persisted_comments[0].text == "Nice!"
+
+        assert len(persisted_follows) == 1
+        assert persisted_follows[0].follow_id == "follow_1"
+        assert persisted_follows[0].agent_handle == "agent1.bsky.social"
+        assert persisted_follows[0].user_id == "user2.bsky.social"
