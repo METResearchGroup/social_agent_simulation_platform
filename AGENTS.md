@@ -56,6 +56,12 @@ Preferred commands:
 - Pyright: `uv run pyright .`
 - Tests: `uv run pytest`
 
+### Writing Python tests
+
+Use the canonical runbook when adding or updating Python tests:
+
+- `docs/runbooks/CREATE_NEW_PYTHON_TESTS.md` (factories + Hypothesis + `uv run pytest`)
+
 Smoke tests against a running server:
 
 - Runbook: `docs/runbooks/SMOKE_TEST.md`
