@@ -9,7 +9,12 @@ import pytest
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
+from db.repositories.interfaces import (
+    CommentRepository,
+    FollowRepository,
+    LikeRepository,
+    MetricsRepository,
+)
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from simulation.core.models.runs import Run, RunStatus
@@ -17,6 +22,13 @@ from simulation.core.models.runs import Run, RunStatus
 
 @pytest.fixture
 def mock_repos():
+    like_repo = Mock(spec=LikeRepository)
+    like_repo.read_likes_by_run_turn.return_value = []
+    comment_repo = Mock(spec=CommentRepository)
+    comment_repo.read_comments_by_run_turn.return_value = []
+    follow_repo = Mock(spec=FollowRepository)
+    follow_repo.read_follows_by_run_turn.return_value = []
+
     return {
         "run_repo": Mock(spec=RunRepository),
         "metrics_repo": Mock(spec=MetricsRepository),
@@ -24,6 +36,9 @@ def mock_repos():
         "feed_post_repo": Mock(spec=FeedPostRepository),
         "generated_bio_repo": Mock(spec=GeneratedBioRepository),
         "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
+        "like_repo": like_repo,
+        "comment_repo": comment_repo,
+        "follow_repo": follow_repo,
     }
 
 
