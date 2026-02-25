@@ -220,24 +220,24 @@ def test_get_simulations_agents_query_case_insensitive_substring(
 ):
     """GET /v1/simulations/agents?q supports case-insensitive substring matching on handle."""
     agent_repo.create_or_update_agent(
-        Agent(
+        AgentRecordFactory.create(
             agent_id="did:plc:alpha",
             handle="@alpha.bsky.social",
             persona_source=PersonaSource.SYNC_BLUESKY,
             display_name="@alpha.bsky.social",
             created_at="2026_02_24-10:00:00",
             updated_at="2026_02_24-10:00:00",
-        )
+        ),
     )
     agent_repo.create_or_update_agent(
-        Agent(
+        AgentRecordFactory.create(
             agent_id="did:plc:beta",
             handle="@beta.bsky.social",
             persona_source=PersonaSource.SYNC_BLUESKY,
             display_name="@beta.bsky.social",
             created_at="2026_02_24-10:00:00",
             updated_at="2026_02_24-10:00:00",
-        )
+        ),
     )
 
     client, _ = simulation_client
@@ -256,14 +256,14 @@ def test_get_simulations_agents_query_wildcards(simulation_client, temp_db, agen
         ("@beta.bsky.social", "did:plc:beta"),
     ]:
         agent_repo.create_or_update_agent(
-            Agent(
+            AgentRecordFactory.create(
                 agent_id=agent_id,
                 handle=handle,
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name=handle,
                 created_at="2026_02_24-10:00:00",
                 updated_at="2026_02_24-10:00:00",
-            )
+            ),
         )
 
     client, _ = simulation_client
@@ -294,14 +294,14 @@ def test_get_simulations_agents_query_pagination(
         ("@b.bsky.social", "did:plc:b"),
     ]:
         agent_repo.create_or_update_agent(
-            Agent(
+            AgentRecordFactory.create(
                 agent_id=agent_id,
                 handle=handle,
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name=handle,
                 created_at="2026_02_24-10:00:00",
                 updated_at="2026_02_24-10:00:00",
-            )
+            ),
         )
 
     client, _ = simulation_client
@@ -322,14 +322,14 @@ def test_get_simulations_agents_query_scrubbing(simulation_client, temp_db, agen
         ("@beta.bsky.social", "did:plc:beta"),
     ]:
         agent_repo.create_or_update_agent(
-            Agent(
+            AgentRecordFactory.create(
                 agent_id=agent_id,
                 handle=handle,
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name=handle,
                 created_at="2026_02_24-10:00:00",
                 updated_at="2026_02_24-10:00:00",
-            )
+            ),
         )
 
     client, _ = simulation_client
