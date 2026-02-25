@@ -9,20 +9,23 @@ from lib.timestamp_utils import get_current_timestamp
 from tests.factories import GeneratedBioFactory, GenerationMetadataFactory
 
 
+@pytest.fixture
+def sample_metadata():
+    return GenerationMetadataFactory.create(created_at=get_current_timestamp())
+
+
 class TestSQLiteGeneratedBioRepositoryIntegration:
     """Integration tests using a real database."""
 
     def test_create_or_update_generated_bio_persists_to_database(
-        self, generated_bio_repo
+        self, generated_bio_repo, sample_metadata
     ):
         """Test that create_or_update_generated_bio persists a bio to the database."""
         repo = generated_bio_repo
         bio = GeneratedBioFactory.create(
             handle="test.bsky.social",
             generated_bio="This is a test bio for the profile.",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
 
         # Create bio
@@ -37,15 +40,15 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         assert retrieved_bio.generated_bio == created_bio.generated_bio
         assert retrieved_bio.metadata.created_at == created_bio.metadata.created_at
 
-    def test_get_generated_bio_retrieves_from_database(self, generated_bio_repo):
+    def test_get_generated_bio_retrieves_from_database(
+        self, generated_bio_repo, sample_metadata
+    ):
         """Test that get_generated_bio retrieves a bio from the database."""
         repo = generated_bio_repo
         bio = GeneratedBioFactory.create(
             handle="retrieve.bsky.social",
             generated_bio="This bio should be retrievable.",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
 
         # Create the bio first
@@ -57,7 +60,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         assert retrieved_bio.handle == "retrieve.bsky.social"
         assert retrieved_bio.generated_bio == "This bio should be retrievable."
 
-    def test_list_all_generated_bios_retrieves_all_bios(self, generated_bio_repo):
+    def test_list_all_generated_bios_retrieves_all_bios(
+        self, generated_bio_repo, sample_metadata
+    ):
         """Test that list_all_generated_bios retrieves all bios from the database."""
         repo = generated_bio_repo
 
@@ -65,23 +70,17 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         bio1 = GeneratedBioFactory.create(
             handle="user1.bsky.social",
             generated_bio="Bio 1",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
         bio2 = GeneratedBioFactory.create(
             handle="user2.bsky.social",
             generated_bio="Bio 2",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
         bio3 = GeneratedBioFactory.create(
             handle="user3.bsky.social",
             generated_bio="Bio 3",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
 
         repo.create_or_update_generated_bio(bio1)
@@ -107,7 +106,7 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         assert bio_dict["user3.bsky.social"].generated_bio == "Bio 3"
 
     def test_create_or_update_generated_bio_updates_existing_bio(
-        self, generated_bio_repo
+        self, generated_bio_repo, sample_metadata
     ):
         """Test that create_or_update_generated_bio updates an existing bio."""
         repo = generated_bio_repo
@@ -116,9 +115,7 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         initial_bio = GeneratedBioFactory.create(
             handle="update.bsky.social",
             generated_bio="Initial bio text",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
         repo.create_or_update_generated_bio(initial_bio)
 
@@ -126,9 +123,7 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         updated_bio = GeneratedBioFactory.create(
             handle="update.bsky.social",
             generated_bio="Updated bio text with more information",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
         repo.create_or_update_generated_bio(updated_bio)
 
@@ -148,7 +143,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         result = repo.get_generated_bio("nonexistent.bsky.social")
         assert result is None
 
-    def test_generated_bio_with_long_text_content(self, generated_bio_repo):
+    def test_generated_bio_with_long_text_content(
+        self, generated_bio_repo, sample_metadata
+    ):
         """Test that generated bios with long text content are handled correctly."""
         repo = generated_bio_repo
 
@@ -156,9 +153,7 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         bio = GeneratedBioFactory.create(
             handle="longbio.bsky.social",
             generated_bio=long_bio_text,
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
 
         repo.create_or_update_generated_bio(bio)
@@ -169,23 +164,21 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         assert retrieved.generated_bio == expected_bio
         assert len(retrieved.generated_bio) >= 2299
 
-    def test_multiple_bios_with_different_handles(self, generated_bio_repo):
+    def test_multiple_bios_with_different_handles(
+        self, generated_bio_repo, sample_metadata
+    ):
         """Test that multiple bios with different handles can coexist."""
         repo = generated_bio_repo
 
         bio1 = GeneratedBioFactory.create(
             handle="alice.bsky.social",
             generated_bio="Alice's bio",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
         bio2 = GeneratedBioFactory.create(
             handle="bob.bsky.social",
             generated_bio="Bob's bio",
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
 
         repo.create_or_update_generated_bio(bio1)
@@ -219,7 +212,9 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_bio("")
 
-    def test_generated_bio_with_special_characters(self, generated_bio_repo):
+    def test_generated_bio_with_special_characters(
+        self, generated_bio_repo, sample_metadata
+    ):
         """Test that generated bios with special characters work correctly."""
         repo = generated_bio_repo
 
@@ -227,9 +222,7 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         bio = GeneratedBioFactory.create(
             handle="special.bsky.social",
             generated_bio=bio_text,
-            metadata=GenerationMetadataFactory.create(
-                created_at=get_current_timestamp()
-            ),
+            metadata=sample_metadata,
         )
 
         repo.create_or_update_generated_bio(bio)

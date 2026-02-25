@@ -1,9 +1,9 @@
-"""Tests for simulation.core.agent_action_rules_validator module."""
+"""Tests for simulation.core.action_policy.rules_validator module."""
 
 import pytest
 
 from simulation.core.action_history import InMemoryActionHistoryStore
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
+from simulation.core.action_policy import AgentActionRulesValidator
 from tests.factories import (
     GeneratedCommentFactory,
     GeneratedFollowFactory,
