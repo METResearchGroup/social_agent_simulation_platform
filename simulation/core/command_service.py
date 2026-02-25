@@ -16,12 +16,11 @@ from db.services.simulation_persistence_service import SimulationPersistenceServ
 from feeds.interfaces import FeedGenerator
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.action_history import ActionHistoryStore
-from simulation.core.agent_action_feed_filter import (
+from simulation.core.action_history import ActionHistoryStore, record_action_targets
+from simulation.core.action_policy import (
     AgentActionFeedFilter,
+    AgentActionRulesValidator,
 )
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
@@ -29,6 +28,9 @@ from simulation.core.metrics.defaults import (
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -68,7 +70,6 @@ class SimulationCommandService:
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
         agent_action_rules_validator: AgentActionRulesValidator,
-        agent_action_history_recorder: AgentActionHistoryRecorder,
         agent_action_feed_filter: AgentActionFeedFilter,
     ):
         self.run_repo = run_repo
@@ -83,7 +84,6 @@ class SimulationCommandService:
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
         self.agent_action_rules_validator = agent_action_rules_validator
-        self.agent_action_history_recorder = agent_action_history_recorder
         self.agent_action_feed_filter = agent_action_feed_filter
 
     def execute_run(self, run_config: RunConfig) -> Run:
@@ -269,6 +269,9 @@ class SimulationCommandService:
         total_actions: dict[str, int] = {
             action_key: 0 for action_key in ACTION_KEY_TO_TURN_ACTION
         }
+        turn_likes: list[GeneratedLike] = []
+        turn_comments: list[GeneratedComment] = []
+        turn_follows: list[GeneratedFollow] = []
 
         for agent in agents:
             feed = agent_to_hydrated_feeds.get(agent.handle, [])
@@ -316,8 +319,8 @@ class SimulationCommandService:
                 )
             )
 
-            # Record the action targets into the DB.
-            self.agent_action_history_recorder.record(
+            # Record the action targets into action history.
+            record_action_targets(
                 run_id=run_id,
                 agent_handle=agent.handle,
                 like_post_ids=like_post_ids,
@@ -326,6 +329,9 @@ class SimulationCommandService:
                 action_history_store=action_history_store,
             )
 
+            turn_likes.extend(likes)
+            turn_comments.extend(comments)
+            turn_follows.extend(follows)
             total_actions["likes"] += len(likes)
             total_actions["comments"] += len(comments)
             total_actions["follows"] += len(follows)
@@ -355,6 +361,9 @@ class SimulationCommandService:
         self.simulation_persistence.write_turn(
             turn_metadata=turn_metadata,
             turn_metrics=turn_metrics,
+            likes=turn_likes,
+            comments=turn_comments,
+            follows=turn_follows,
         )
 
         return TurnResult(

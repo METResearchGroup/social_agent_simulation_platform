@@ -97,7 +97,7 @@ async def get_simulation_metrics(
     response_model=DefaultConfigSchema,
     status_code=200,
     summary="Get default simulation config",
-    description="Return default config for simulation start form (num_agents, num_turns).",
+    description="Return default config for simulation start form (num_agents, num_turns, metric_keys).",
 )
 @log_route_completion_decorator(
     route=SIMULATION_CONFIG_DEFAULT_ROUTE, success_type=DefaultConfigSchema

@@ -57,7 +57,7 @@ export interface paths {
         };
         /**
          * Get default simulation config
-         * @description Return default config for simulation start form (num_agents, num_turns).
+         * @description Return default config for simulation start form (num_agents, num_turns, metric_keys).
          */
         get: operations["get_simulation_config_default_v1_simulations_config_default_get"];
         put?: never;
@@ -274,6 +274,8 @@ export interface components {
          * @description Default config for simulation start form.
          */
         DefaultConfigSchema: {
+            /** Metric Keys */
+            metric_keys: string[];
             /** Num Agents */
             num_agents: number;
             /** Num Turns */

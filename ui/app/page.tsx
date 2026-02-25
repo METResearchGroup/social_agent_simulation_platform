@@ -70,6 +70,9 @@ function AuthenticatedApp() {
     handleRetryAgents,
     handleLoadMoreAgents,
     handleRetryTurns,
+    runDetailsLoading,
+    runDetailsError,
+    handleRetryRunDetails,
   } = useSimulationPageState();
 
   const handleCreateAgent = useCallback(
@@ -101,6 +104,8 @@ function AuthenticatedApp() {
       completedTurnsCount,
       turnsLoading: selectedRunId ? (turnsLoadingByRunId[selectedRunId] ?? false) : false,
       turnsError: selectedRunId ? (turnsErrorByRunId[selectedRunId] ?? null) : null,
+      runDetailsLoading,
+      runDetailsError,
       onSelectTurn: handleSelectTurn,
       onRetryTurns:
         selectedRunId !== null
@@ -108,6 +113,7 @@ function AuthenticatedApp() {
           : () => {
               /* no-op when no run selected */
             },
+      onRetryRunDetails: handleRetryRunDetails,
     }),
     [
       selectedRun,
@@ -120,8 +126,11 @@ function AuthenticatedApp() {
       selectedRunId,
       turnsLoadingByRunId,
       turnsErrorByRunId,
+      runDetailsLoading,
+      runDetailsError,
       handleSelectTurn,
       handleRetryTurns,
+      handleRetryRunDetails,
     ],
   );
 
