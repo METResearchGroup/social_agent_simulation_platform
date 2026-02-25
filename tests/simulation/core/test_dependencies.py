@@ -85,9 +85,9 @@ class TestCreateEngine:
         assert engine.agent_factory is mock_agent_factory
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
-        assert engine.query_service._like_repo is mock_like_repo
-        assert engine.query_service._comment_repo is mock_comment_repo
-        assert engine.query_service._follow_repo is mock_follow_repo
+        assert engine.query_service.like_repo is mock_like_repo
+        assert engine.query_service.comment_repo is mock_comment_repo
+        assert engine.query_service.follow_repo is mock_follow_repo
         assert (
             engine.command_service.simulation_persistence._like_repo is mock_like_repo
         )

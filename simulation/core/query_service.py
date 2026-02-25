@@ -45,9 +45,9 @@ class SimulationQueryService:
         self.metrics_repo = metrics_repo
         self.feed_post_repo = feed_post_repo
         self.generated_feed_repo = generated_feed_repo
-        self._like_repo = like_repo
-        self._comment_repo = comment_repo
-        self._follow_repo = follow_repo
+        self.like_repo = like_repo
+        self.comment_repo = comment_repo
+        self.follow_repo = follow_repo
 
     @validate_inputs((validate_run_id, "run_id"))
     def get_run(self, run_id: str) -> Run | None:
@@ -117,13 +117,13 @@ class SimulationQueryService:
         actions_by_agent: dict[
             str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
         ] = defaultdict(list)
-        for row in self._like_repo.read_likes_by_run_turn(run_id, turn_number):
+        for row in self.like_repo.read_likes_by_run_turn(run_id, turn_number):
             actions_by_agent[row.agent_handle].append(persisted_like_to_generated(row))
-        for row in self._comment_repo.read_comments_by_run_turn(run_id, turn_number):
+        for row in self.comment_repo.read_comments_by_run_turn(run_id, turn_number):
             actions_by_agent[row.agent_handle].append(
                 persisted_comment_to_generated(row)
             )
-        for row in self._follow_repo.read_follows_by_run_turn(run_id, turn_number):
+        for row in self.follow_repo.read_follows_by_run_turn(run_id, turn_number):
             actions_by_agent[row.agent_handle].append(
                 persisted_follow_to_generated(row)
             )
@@ -135,7 +135,12 @@ class SimulationQueryService:
                 return (a.like.post_id, a.like.like_id)
             if isinstance(a, GeneratedComment):
                 return (a.comment.post_id, a.comment.comment_id)
-            return (a.follow.user_id, a.follow.follow_id)
+            if isinstance(a, GeneratedFollow):
+                return (a.follow.user_id, a.follow.follow_id)
+            raise TypeError(
+                f"_action_sort_key only supports GeneratedLike, GeneratedComment, "
+                f"GeneratedFollow; got unsupported action type {type(a)!r}"
+            )
 
         actions_dict: dict[str, list] = {
             agent_handle: sorted(agent_actions, key=_action_sort_key)
