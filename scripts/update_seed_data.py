@@ -12,13 +12,13 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from lib.constants import REPO_ROOT
 from simulation.api.dummy_data import DUMMY_AGENTS, DUMMY_POSTS, DUMMY_RUNS, DUMMY_TURNS
 from simulation.api.schemas.simulation import TurnSchema
 from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.actions import TurnAction
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-FIXTURES_DIR = REPO_ROOT / "simulation" / "local_dev" / "seed_fixtures"
+FIXTURES_DIR = Path(REPO_ROOT) / "simulation" / "local_dev" / "seed_fixtures"
 
 
 def _stable_id(prefix: str, value: str) -> str:
