@@ -7,9 +7,15 @@ import pytest
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
+from db.repositories.interfaces import (
+    CommentRepository,
+    FollowRepository,
+    LikeRepository,
+    MetricsRepository,
+)
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from db.services.simulation_persistence_service import SimulationPersistenceService
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import InsufficientAgentsError
@@ -51,6 +57,9 @@ class TestCreateEngine:
         mock_feed_post_repo = Mock(spec=FeedPostRepository)
         mock_generated_bio_repo = Mock(spec=GeneratedBioRepository)
         mock_generated_feed_repo = Mock(spec=GeneratedFeedRepository)
+        mock_like_repo = Mock(spec=LikeRepository)
+        mock_comment_repo = Mock(spec=CommentRepository)
+        mock_follow_repo = Mock(spec=FollowRepository)
         mock_agent_factory = Mock(return_value=[])
 
         # Act
@@ -60,6 +69,9 @@ class TestCreateEngine:
             feed_post_repo=mock_feed_post_repo,
             generated_bio_repo=mock_generated_bio_repo,
             generated_feed_repo=mock_generated_feed_repo,
+            like_repo=mock_like_repo,
+            comment_repo=mock_comment_repo,
+            follow_repo=mock_follow_repo,
             agent_factory=mock_agent_factory,
         )
 
@@ -73,6 +85,20 @@ class TestCreateEngine:
         assert engine.agent_factory is mock_agent_factory
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
+        assert engine.query_service._like_repo is mock_like_repo
+        assert engine.query_service._comment_repo is mock_comment_repo
+        assert engine.query_service._follow_repo is mock_follow_repo
+        assert (
+            engine.command_service.simulation_persistence._like_repo is mock_like_repo
+        )
+        assert (
+            engine.command_service.simulation_persistence._comment_repo
+            is mock_comment_repo
+        )
+        assert (
+            engine.command_service.simulation_persistence._follow_repo
+            is mock_follow_repo
+        )
 
     def test_creates_engine_with_mix_of_defaults_and_provided(self):
         """Test that create_engine() creates defaults for None values and uses provided ones."""
@@ -129,9 +155,11 @@ class TestServiceBuilders:
         assert isinstance(service, SimulationQueryService)
 
     def test_create_command_service(self):
+        mock_simulation_persistence = Mock(spec=SimulationPersistenceService)
         service = create_command_service(
             run_repo=Mock(spec=RunRepository),
             metrics_repo=Mock(spec=MetricsRepository),
+            simulation_persistence=mock_simulation_persistence,
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
             generated_bio_repo=Mock(spec=GeneratedBioRepository),

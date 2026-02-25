@@ -30,6 +30,18 @@ from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.validators import validate_run_id, validate_turn_number
 
+DEFAULT_ACTION_EXPLANATION: str = "No explanation provided."
+
+
+def _normalize_action_explanation(explanation: str | None) -> str:
+    """Normalize a persisted explanation into a non-empty string.
+
+    Persisted rows may have NULL (or whitespace-only) explanation values; generated
+    action models require a non-empty explanation.
+    """
+    normalized = (explanation or "").strip()
+    return normalized or DEFAULT_ACTION_EXPLANATION
+
 
 def _persisted_like_to_generated(row: PersistedLike) -> GeneratedLike:
     """Build GeneratedLike from a PersistedLike row."""
@@ -50,7 +62,7 @@ def _persisted_like_to_generated(row: PersistedLike) -> GeneratedLike:
             post_id=row.post_id,
             created_at=row.created_at,
         ),
-        explanation=row.explanation or "",
+        explanation=_normalize_action_explanation(row.explanation),
         metadata=metadata,
     )
 
@@ -75,7 +87,7 @@ def _persisted_comment_to_generated(row: PersistedComment) -> GeneratedComment:
             text=row.text,
             created_at=row.created_at,
         ),
-        explanation=row.explanation or "",
+        explanation=_normalize_action_explanation(row.explanation),
         metadata=metadata,
     )
 
@@ -99,7 +111,7 @@ def _persisted_follow_to_generated(row: PersistedFollow) -> GeneratedFollow:
             user_id=row.user_id,
             created_at=row.created_at,
         ),
-        explanation=row.explanation or "",
+        explanation=_normalize_action_explanation(row.explanation),
         metadata=metadata,
     )
 

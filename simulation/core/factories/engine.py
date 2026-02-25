@@ -14,9 +14,12 @@ from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
 from db.repositories.interfaces import (
+    CommentRepository,
     FeedPostRepository,
+    FollowRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
+    LikeRepository,
     MetricsRepository,
     ProfileRepository,
     RunRepository,
@@ -47,6 +50,9 @@ def create_engine(
     feed_post_repo: FeedPostRepository | None = None,
     generated_bio_repo: GeneratedBioRepository | None = None,
     generated_feed_repo: GeneratedFeedRepository | None = None,
+    like_repo: LikeRepository | None = None,
+    comment_repo: CommentRepository | None = None,
+    follow_repo: FollowRepository | None = None,
     agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     transaction_provider: TransactionProvider | None = None,
@@ -63,6 +69,9 @@ def create_engine(
         feed_post_repo: Optional. Feed post repository. Defaults to SQLite implementation.
         generated_bio_repo: Optional. Generated bio repository. Defaults to SQLite implementation.
         generated_feed_repo: Optional. Generated feed repository. Defaults to SQLite implementation.
+        like_repo: Optional. Like repository. Defaults to SQLite implementation.
+        comment_repo: Optional. Comment repository. Defaults to SQLite implementation.
+        follow_repo: Optional. Follow repository. Defaults to SQLite implementation.
         agent_factory: Optional. Agent factory function. Defaults to create_default_agent_factory().
         transaction_provider: Optional. Provider for persistence transactions. Defaults to SQLite.
 
@@ -113,13 +122,18 @@ def create_engine(
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
 
-    like_repo = create_sqlite_like_repository(transaction_provider=transaction_provider)
-    comment_repo = create_sqlite_comment_repository(
-        transaction_provider=transaction_provider
-    )
-    follow_repo = create_sqlite_follow_repository(
-        transaction_provider=transaction_provider
-    )
+    if like_repo is None:
+        like_repo = create_sqlite_like_repository(
+            transaction_provider=transaction_provider
+        )
+    if comment_repo is None:
+        comment_repo = create_sqlite_comment_repository(
+            transaction_provider=transaction_provider
+        )
+    if follow_repo is None:
+        follow_repo = create_sqlite_follow_repository(
+            transaction_provider=transaction_provider
+        )
     query_service = create_query_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,

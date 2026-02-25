@@ -23,9 +23,9 @@ def create_simulation_persistence_service(
     metrics_repo: MetricsRepository,
     *,
     transaction_provider: TransactionProvider,
-    like_repo: LikeRepository | None = None,
-    comment_repo: CommentRepository | None = None,
-    follow_repo: FollowRepository | None = None,
+    like_repo: LikeRepository,
+    comment_repo: CommentRepository,
+    follow_repo: FollowRepository,
 ) -> SimulationPersistenceService:
     """Create a SimulationPersistenceService with the given repositories and transaction provider."""
     return SimulationPersistenceService(
@@ -47,9 +47,9 @@ class SimulationPersistenceService:
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
         transaction_provider: TransactionProvider,
-        like_repo: LikeRepository | None = None,
-        comment_repo: CommentRepository | None = None,
-        follow_repo: FollowRepository | None = None,
+        like_repo: LikeRepository,
+        comment_repo: CommentRepository,
+        follow_repo: FollowRepository,
     ):
         self._run_repo = run_repo
         self._metrics_repo = metrics_repo
@@ -77,13 +77,13 @@ class SimulationPersistenceService:
         with self._transaction_provider.run_transaction() as conn:
             self._run_repo.write_turn_metadata(turn_metadata, conn=conn)
             self._metrics_repo.write_turn_metrics(turn_metrics, conn=conn)
-            if self._like_repo is not None and likes:
+            if likes:
                 self._like_repo.write_likes(run_id, turn_number, likes, conn=conn)
-            if self._comment_repo is not None and comments:
+            if comments:
                 self._comment_repo.write_comments(
                     run_id, turn_number, comments, conn=conn
                 )
-            if self._follow_repo is not None and follows:
+            if follows:
                 self._follow_repo.write_follows(run_id, turn_number, follows, conn=conn)
 
     def write_run(self, run_id: str, run_metrics: RunMetrics) -> None:
