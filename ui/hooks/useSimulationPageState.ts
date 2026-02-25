@@ -111,7 +111,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const agentsLoadMoreRequestIdRef = useRef<number>(0);
   const agentsOffsetRef = useRef<number>(0);
   const runsRequestIdRef = useRef<number>(0);
-  const runDetailsRequestIdRef = useRef<number>(0);
+  const runDetailsRequestIdMapRef = useRef<Map<string, number>>(new Map());
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -245,23 +245,24 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       return;
     }
 
-    let isMounted = true;
-    runDetailsRequestIdRef.current += 1;
-    const requestId = runDetailsRequestIdRef.current;
-    const runId = selectedRunId;
+    const runId: string = selectedRunId;
+    const nextRequestId: number = (runDetailsRequestIdMapRef.current.get(runId) ?? 0) + 1;
+    runDetailsRequestIdMapRef.current.set(runId, nextRequestId);
     setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
     setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: null }));
 
     const loadRunDetails = async (): Promise<void> => {
       try {
         const details = await getRunDetails(runId);
-        const isStale = !isMounted || requestId !== runDetailsRequestIdRef.current;
+        const isStale =
+          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
         if (!isStale) {
           setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
         }
       } catch (error: unknown) {
         console.error(`Failed to fetch run details for ${runId}:`, error);
-        const isStale = !isMounted || requestId !== runDetailsRequestIdRef.current;
+        const isStale =
+          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
         if (!isStale) {
           const apiError: ApiError =
             error instanceof ApiError
@@ -270,18 +271,18 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
           setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
         }
       } finally {
-        const isStale = !isMounted || requestId !== runDetailsRequestIdRef.current;
+        const isStale =
+          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
         if (!isStale) {
           setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
+        }
+        if (runDetailsRequestIdMapRef.current.get(runId) === nextRequestId) {
+          runDetailsRequestIdMapRef.current.delete(runId);
         }
       }
     };
 
     void loadRunDetails();
-
-    return () => {
-      isMounted = false;
-    };
   }, [selectedRunId, runConfigs]);
 
   const runsWithStatus: Run[] = useMemo(
