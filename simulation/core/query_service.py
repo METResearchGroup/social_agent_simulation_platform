@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 
 from db.repositories.interfaces import (
@@ -14,106 +13,19 @@ from db.repositories.interfaces import (
 )
 from lib.validation_decorators import validate_inputs
 from simulation.core.exceptions import RunNotFoundError
-from simulation.core.models.actions import Comment, Follow, Like
-from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.persisted_actions import (
-    PersistedComment,
-    PersistedFollow,
-    PersistedLike,
-)
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
+from simulation.core.utils.turn_data_hydration import (
+    persisted_comment_to_generated,
+    persisted_follow_to_generated,
+    persisted_like_to_generated,
+)
 from simulation.core.validators import validate_run_id, validate_turn_number
-
-DEFAULT_ACTION_EXPLANATION: str = "No explanation provided."
-
-
-def _normalize_action_explanation(explanation: str | None) -> str:
-    """Normalize a persisted explanation into a non-empty string.
-
-    Persisted rows may have NULL (or whitespace-only) explanation values; generated
-    action models require a non-empty explanation.
-    """
-    normalized = (explanation or "").strip()
-    return normalized or DEFAULT_ACTION_EXPLANATION
-
-
-def _persisted_like_to_generated(row: PersistedLike) -> GeneratedLike:
-    """Build GeneratedLike from a PersistedLike row."""
-    meta_dict = (
-        json.loads(row.generation_metadata_json)
-        if row.generation_metadata_json
-        else None
-    )
-    metadata = GenerationMetadata(
-        model_used=row.model_used,
-        generation_metadata=meta_dict,
-        created_at=row.generation_created_at or row.created_at,
-    )
-    return GeneratedLike(
-        like=Like(
-            like_id=row.like_id,
-            agent_id=row.agent_handle,
-            post_id=row.post_id,
-            created_at=row.created_at,
-        ),
-        explanation=_normalize_action_explanation(row.explanation),
-        metadata=metadata,
-    )
-
-
-def _persisted_comment_to_generated(row: PersistedComment) -> GeneratedComment:
-    """Build GeneratedComment from a PersistedComment row."""
-    meta_dict = (
-        json.loads(row.generation_metadata_json)
-        if row.generation_metadata_json
-        else None
-    )
-    metadata = GenerationMetadata(
-        model_used=row.model_used,
-        generation_metadata=meta_dict,
-        created_at=row.generation_created_at or row.created_at,
-    )
-    return GeneratedComment(
-        comment=Comment(
-            comment_id=row.comment_id,
-            agent_id=row.agent_handle,
-            post_id=row.post_id,
-            text=row.text,
-            created_at=row.created_at,
-        ),
-        explanation=_normalize_action_explanation(row.explanation),
-        metadata=metadata,
-    )
-
-
-def _persisted_follow_to_generated(row: PersistedFollow) -> GeneratedFollow:
-    """Build GeneratedFollow from a PersistedFollow row."""
-    meta_dict = (
-        json.loads(row.generation_metadata_json)
-        if row.generation_metadata_json
-        else None
-    )
-    metadata = GenerationMetadata(
-        model_used=row.model_used,
-        generation_metadata=meta_dict,
-        created_at=row.generation_created_at or row.created_at,
-    )
-    return GeneratedFollow(
-        follow=Follow(
-            follow_id=row.follow_id,
-            agent_id=row.agent_handle,
-            user_id=row.user_id,
-            created_at=row.created_at,
-        ),
-        explanation=_normalize_action_explanation(row.explanation),
-        metadata=metadata,
-    )
 
 
 class SimulationQueryService:
@@ -208,19 +120,19 @@ class SimulationQueryService:
         if self._like_repo is not None:
             for row in self._like_repo.read_likes_by_run_turn(run_id, turn_number):
                 actions_by_agent[row.agent_handle].append(
-                    _persisted_like_to_generated(row)
+                    persisted_like_to_generated(row)
                 )
         if self._comment_repo is not None:
             for row in self._comment_repo.read_comments_by_run_turn(
                 run_id, turn_number
             ):
                 actions_by_agent[row.agent_handle].append(
-                    _persisted_comment_to_generated(row)
+                    persisted_comment_to_generated(row)
                 )
         if self._follow_repo is not None:
             for row in self._follow_repo.read_follows_by_run_turn(run_id, turn_number):
                 actions_by_agent[row.agent_handle].append(
-                    _persisted_follow_to_generated(row)
+                    persisted_follow_to_generated(row)
                 )
 
         def _action_sort_key(
