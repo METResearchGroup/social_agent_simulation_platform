@@ -944,37 +944,6 @@
         ]
       }
     },
-    "/v1/simulations/agents/mock": {
-      "get": {
-        "description": "Return dummy agent list for run-detail context (mock runs).",
-        "operationId": "get_simulation_agents_mock_v1_simulations_agents_mock_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AgentSchema"
-                  },
-                  "title": "Response Get Simulation Agents Mock V1 Simulations Agents Mock Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "List mock simulation agents",
-        "tags": [
-          "simulation"
-        ]
-      }
-    },
     "/v1/simulations/config/default": {
       "get": {
         "description": "Return default config for simulation start form (num_agents, num_turns).",

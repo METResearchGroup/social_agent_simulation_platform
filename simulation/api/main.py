@@ -5,6 +5,7 @@ Run from repository root with PYTHONPATH set to project root, e.g.:
 """
 
 import asyncio
+import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -18,7 +19,8 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from db.adapters.sqlite.sqlite import initialize_database
+from db.adapters.sqlite.sqlite import get_db_path, initialize_database
+from lib.env_utils import is_local_mode, parse_bool_env
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
 from lib.security_headers import SecurityHeadersMiddleware
@@ -28,15 +30,48 @@ from simulation.api.dependencies.auth import (
 )
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.core.factories import create_engine
+from simulation.local_dev.local_mode import disallow_local_mode_in_production
+from simulation.local_dev.seed_loader import seed_local_db_if_needed
 
 DEFAULT_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+logger = logging.getLogger(__name__)
+
+
+def _reset_local_db_if_requested() -> None:
+    """When LOCAL_RESET_DB=1 in local mode, delete the local dummy DB file."""
+    db_path = get_db_path()
+    if os.path.exists(db_path):
+        logger.warning("LOCAL_RESET_DB=1: deleting local dummy DB at %s", db_path)
+        os.remove(db_path)
+    else:
+        logger.info(
+            "LOCAL_RESET_DB=1: dummy DB did not exist (nothing to delete): %s",
+            db_path,
+        )
+
+
+def _ensure_local_seed_data() -> None:
+    """When in local mode, ensure seed data is loaded in the dummy DB."""
+    db_path = get_db_path()
+    logger.info("LOCAL=true: ensuring seed data in dummy DB at %s", db_path)
+    seed_local_db_if_needed(db_path=db_path)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database and simulation engine on startup."""
     await asyncio.to_thread(disallow_auth_bypass_in_production)
+    await asyncio.to_thread(disallow_local_mode_in_production)
+
+    if is_local_mode() and parse_bool_env("LOCAL_RESET_DB"):
+        await asyncio.to_thread(_reset_local_db_if_requested)
+
     await asyncio.to_thread(initialize_database)
+
+    if is_local_mode():
+        await asyncio.to_thread(_ensure_local_seed_data)
+
     app.state.engine = await asyncio.to_thread(create_engine)
     yield
 

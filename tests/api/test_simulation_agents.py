@@ -3,7 +3,6 @@
 import uuid
 
 from simulation.api.constants import DEFAULT_AGENT_LIST_LIMIT
-from simulation.api.dummy_data import DUMMY_AGENTS
 from simulation.core.models.agent import Agent, PersonaSource
 
 
@@ -18,17 +17,43 @@ def test_get_simulations_agents_returns_list(simulation_client, temp_db):
     assert isinstance(data, list)
 
 
-def test_get_simulations_agents_ordering_deterministic(simulation_client, temp_db):
-    """Result is sorted by handle when non-empty."""
+def test_get_simulations_agents_matches_db_and_sorted(
+    simulation_client, temp_db, agent_repo
+):
+    """GET /v1/simulations/agents returns DB-backed agents sorted by handle."""
+    # Seed the temp DB in non-sorted order so ordering assertions are meaningful.
+    agent_repo.create_or_update_agent(
+        Agent(
+            agent_id="did:plc:z",
+            handle="@z.bsky.social",
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name="@z.bsky.social",
+            created_at="2026_02_24-10:00:00",
+            updated_at="2026_02_24-10:00:00",
+        )
+    )
+    agent_repo.create_or_update_agent(
+        Agent(
+            agent_id="did:plc:a",
+            handle="@a.bsky.social",
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name="@a.bsky.social",
+            created_at="2026_02_24-10:00:00",
+            updated_at="2026_02_24-10:00:00",
+        )
+    )
+
     client, _ = simulation_client
     response = client.get("/v1/simulations/agents")
+    assert response.status_code == 200
 
-    expected_result = {"status_code": 200}
-    assert response.status_code == expected_result["status_code"]
     data = response.json()
+    assert isinstance(data, list)
     handles = [a["handle"] for a in data]
-    expected_result = sorted(handles)
-    assert handles == expected_result
+
+    expected_handles = ["@a.bsky.social", "@z.bsky.social"]
+    assert handles == expected_handles
+    assert handles == sorted(handles)
 
 
 def test_get_simulations_agents_fields_present(simulation_client, temp_db):
@@ -51,21 +76,6 @@ def test_get_simulations_agents_fields_present(simulation_client, temp_db):
     for agent in data:
         for field in expected_result:
             assert field in agent, f"Agent missing field {field}"
-
-
-def test_get_simulations_agents_mock_returns_dummy(simulation_client):
-    """GET /v1/simulations/agents/mock returns dummy agents."""
-    client, _ = simulation_client
-    response = client.get("/v1/simulations/agents/mock")
-
-    expected_result = {"status_code": 200, "count": len(DUMMY_AGENTS)}
-    assert response.status_code == expected_result["status_code"]
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == expected_result["count"]
-    handles = [a["handle"] for a in data]
-    expected_result = sorted(handles)
-    assert handles == expected_result
 
 
 def test_post_simulations_agents_success(simulation_client, temp_db):

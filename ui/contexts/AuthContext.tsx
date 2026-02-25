@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(DISABLE_AUTH ? MOCK_DEV_USER : null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(
-    !DISABLE_AUTH && isSupabaseConfigured,
+    () => !DISABLE_AUTH && isSupabaseConfigured,
   );
 
   const updateAuthState = useCallback((sess: Session | null) => {
@@ -59,7 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (DISABLE_AUTH || !isSupabaseConfigured) {
+    if (DISABLE_AUTH) {
+      setAuthTokenGetter(null);
+      setOnUnauthorized(null);
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
       setAuthTokenGetter(null);
       setOnUnauthorized(null);
       return;
