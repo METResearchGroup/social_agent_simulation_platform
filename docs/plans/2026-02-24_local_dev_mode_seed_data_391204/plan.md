@@ -66,7 +66,7 @@ Rewired these from `simulation/api/dummy_data.py` to DB reads so local mode vali
 - `GET /v1/simulations/runs/{run_id}/turns`
 - `GET /v1/simulations/posts`
 
-Keep `GET /v1/simulations/agents/mock` for UI compatibility, but have it return the same DB-backed agents as `GET /v1/simulations/agents` (seeded real agents).
+All simulation agent reads now go through `GET /v1/simulations/agents` (DB-backed).
 
 ## Happy Flow (end-to-end with file references)
 1. Developer starts backend with `LOCAL=true`.
@@ -138,7 +138,7 @@ Dummy DB forced path:
 11. Follow-up: retire Python dummy sources and seed generator (JSON fixtures canonical):
    - Remove: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/api/dummy_data.py`
    - Remove: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/scripts/update_seed_data.py`
-   - Update `GET /v1/simulations/agents/mock` to use DB-backed agents (same as `/v1/simulations/agents`)
+   - Remove `GET /v1/simulations/agents/mock` (no dummy/legacy endpoints)
 
 ## Manual Verification (checklist)
 - Backend startup (local mode)

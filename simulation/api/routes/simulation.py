@@ -53,7 +53,6 @@ SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
-SIMULATION_AGENTS_MOCK_ROUTE: str = "GET /v1/simulations/agents/mock"
 SIMULATION_AGENTS_CREATE_ROUTE: str = "POST /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
@@ -108,21 +107,6 @@ async def get_simulation_config_default(
 ) -> DefaultConfigSchema | Response:
     """Return default config for simulation start form."""
     return await _execute_get_default_config(request)
-
-
-@router.get(
-    "/simulations/agents/mock",
-    response_model=list[AgentSchema],
-    status_code=200,
-    summary="List simulation agents (legacy alias)",
-    description="Legacy alias for /simulations/agents. Returns DB-backed agents for run-detail context.",
-)
-@log_route_completion_decorator(route=SIMULATION_AGENTS_MOCK_ROUTE, success_type=list)
-async def get_simulation_agents_mock(
-    request: Request,
-) -> list[AgentSchema] | Response:
-    """Return simulation agents from the database (legacy alias)."""
-    return await _execute_get_simulation_agents_mock(request)
 
 
 @router.post(
@@ -362,27 +346,6 @@ async def _execute_get_simulation_runs(
         return await asyncio.to_thread(list_runs, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
-        return _error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
-
-
-@timed(attach_attr="duration_ms", log_level=None)
-async def _execute_get_simulation_agents_mock(
-    request: Request,
-) -> list[AgentSchema] | Response:
-    """Fetch agent list from DB for legacy /agents/mock endpoint."""
-    try:
-        return await asyncio.to_thread(
-            list_agents,
-            limit=DEFAULT_AGENT_LIST_LIMIT,
-            offset=DEFAULT_AGENT_LIST_OFFSET,
-        )
-    except Exception:
-        logger.exception("Unexpected error while listing mock agents")
         return _error_response(
             status_code=500,
             code="INTERNAL_ERROR",

@@ -48,26 +48,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/simulations/agents/mock": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List mock simulation agents
-         * @description Return dummy agent list for run-detail context (mock runs).
-         */
-        get: operations["get_simulation_agents_mock_v1_simulations_agents_mock_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/simulations/config/default": {
         parameters: {
             query?: never;
@@ -674,26 +654,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_simulation_agents_mock_v1_simulations_agents_mock_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentSchema"][];
                 };
             };
         };

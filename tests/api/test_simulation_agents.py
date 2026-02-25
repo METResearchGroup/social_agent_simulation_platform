@@ -52,26 +52,6 @@ def test_get_simulations_agents_fields_present(simulation_client, temp_db):
             assert field in agent, f"Agent missing field {field}"
 
 
-def test_get_simulations_agents_mock_returns_dummy(simulation_client):
-    """GET /v1/simulations/agents/mock is a legacy alias for DB-backed /agents."""
-    client, _ = simulation_client
-    mock_resp = client.get("/v1/simulations/agents/mock")
-    agents_resp = client.get("/v1/simulations/agents")
-
-    assert mock_resp.status_code == 200
-    assert agents_resp.status_code == 200
-    mock_data = mock_resp.json()
-    agents_data = agents_resp.json()
-
-    assert isinstance(mock_data, list)
-    assert isinstance(agents_data, list)
-
-    mock_handles = [a["handle"] for a in mock_data]
-    agents_handles = [a["handle"] for a in agents_data]
-    assert mock_handles == agents_handles
-    assert mock_handles == sorted(mock_handles)
-
-
 def test_post_simulations_agents_success(simulation_client, temp_db):
     """POST /v1/simulations/agents returns 201 with created agent."""
     client, _ = simulation_client
