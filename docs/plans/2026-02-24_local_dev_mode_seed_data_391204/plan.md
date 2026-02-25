@@ -13,7 +13,7 @@
   - After: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/`
 
 ## Overview
-Introduce a single local dev mode flag (`LOCAL=true`) that makes local development “just work” by (1) bypassing auth in both backend and frontend automatically, and (2) forcing the backend to use a clearly-named local SQLite DB (`db/dev_dummy_data_db.sqlite`) populated from committed JSON seed fixtures (including runs with turn metrics + run metrics). Also add a runbook (`docs/runbooks/UPDATE_SEED_DATA.md`) describing how to update the seed fixtures whenever new fields/features land.
+Introduce a single local dev mode flag (`LOCAL=true`) that makes local development “just work” by (1) bypassing auth in both backend and frontend automatically, and (2) forcing the backend to use a clearly-named local SQLite DB (`db/dev_dummy_data_db.sqlite`) populated from committed JSON seed fixtures (including runs with turn metrics + run metrics). Treat the JSON fixtures as the canonical seed source (edit fixtures directly; retire Python dummy data + generator script).
 
 ## Goals / Success Criteria
 - `LOCAL=true` is the only required switch to:
@@ -21,7 +21,7 @@ Introduce a single local dev mode flag (`LOCAL=true`) that makes local developme
   - make the UI usable immediately with seeded runs/posts/feeds/agents and runs that include metrics
 - Backend uses and clearly logs that it is using: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/db/dev_dummy_data_db.sqlite`
 - Seed data is deterministic, committed as JSON fixtures in backend, and loaded into the dummy DB automatically (seed-once policy).
-- `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/runbooks/UPDATE_SEED_DATA.md` exists and is actionable.
+- Seed fixture update workflow is documented and actionable (edit JSON fixtures directly; reset/reseed and verify).
 
 ## Non-Goals (this iteration)
 - Persisting per-agent action-event rows (current DB schema does not store agent actions; we’ll return empty `agent_actions` in seeded `TurnSchema` for now).
@@ -31,7 +31,7 @@ Introduce a single local dev mode flag (`LOCAL=true`) that makes local developme
 - `LOCAL=true` **always** forces the dummy DB file (`/Users/mark/.codex/worktrees/710f/agent_simulation_platform/db/dev_dummy_data_db.sqlite`) even if `SIM_DB_PATH` is set; `SIM_DB_PATH` is ignored in local mode.
 - When `SIM_DB_PATH` is provided but `LOCAL=true`, log a warning that `LOCAL` overrides it.
 - Seeding policy: seed once when DB is unseeded/empty; preserve developer-modified dummy DB unless explicitly reset.
-- Seed storage: JSON fixtures (committed) + deterministic generator script.
+- Seed storage: JSON fixtures (committed) are canonical and edited directly (no generator script).
 
 ## Public Interfaces / Behavior Changes
 
@@ -66,7 +66,7 @@ Rewired these from `simulation/api/dummy_data.py` to DB reads so local mode vali
 - `GET /v1/simulations/runs/{run_id}/turns`
 - `GET /v1/simulations/posts`
 
-Keep `GET /v1/simulations/agents/mock` temporarily (UI uses it today), but seeded real agents exist so we can later migrate the UI off mock agents.
+Keep `GET /v1/simulations/agents/mock` for UI compatibility, but have it return the same DB-backed agents as `GET /v1/simulations/agents` (seeded real agents).
 
 ## Happy Flow (end-to-end with file references)
 1. Developer starts backend with `LOCAL=true`.
@@ -116,27 +116,29 @@ Dummy DB forced path:
 4. Implement seed fixture loader (seed-once + reset flag):
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/local_dev/seed_loader.py`
    - Fixtures: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/local_dev/seed_fixtures/`
-5. Implement deterministic fixture generator:
-   - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/scripts/update_seed_data.py`
-6. Wire seed loader into FastAPI startup:
+5. Wire seed loader into FastAPI startup:
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/api/main.py`
-7. Rewire routes to DB-backed reads (routes thin; services do the work):
+6. Rewire routes to DB-backed reads (routes thin; services do the work):
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/api/routes/simulation.py`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/api/services/run_query_service.py`
-8. Frontend: auto auth bypass from `LOCAL=true`:
+7. Frontend: auto auth bypass from `LOCAL=true`:
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/ui/next.config.ts`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/ui/contexts/AuthContext.tsx`
-9. Documentation:
+8. Documentation:
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/runbooks/UPDATE_SEED_DATA.md`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/runbooks/LOCAL_DEVELOPMENT.md`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/runbooks/LOCAL_DEV_AUTH.md`
-10. Tests (pytest):
+9. Tests (pytest):
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/tests/local_dev/test_local_mode_seed.py`
-11. Take **after** screenshots of UI happy flow:
+10. Take **after** screenshots of UI happy flow:
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/01-runs-list.png`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/02-run-summary.png`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/03-turn-detail.png`
    - `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/plans/2026-02-24_local_dev_mode_seed_data_391204/images/after/04-seeded-run-metrics.png` (API response proof: seeded `run_metrics` + per-turn `metrics`)
+11. Follow-up: retire Python dummy sources and seed generator (JSON fixtures canonical):
+   - Remove: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/api/dummy_data.py`
+   - Remove: `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/scripts/update_seed_data.py`
+   - Update `GET /v1/simulations/agents/mock` to use DB-backed agents (same as `/v1/simulations/agents`)
 
 ## Manual Verification (checklist)
 - Backend startup (local mode)
@@ -163,7 +165,7 @@ Dummy DB forced path:
   - Confirm runs list matches deterministic fixtures again
 - Tests
   - `cd /Users/mark/.codex/worktrees/710f/agent_simulation_platform && uv run pytest`
-    - Expected: `571 passed, 2 skipped` (current observed: `571 passed, 2 skipped, 3 warnings in 8.13s`)
+    - Expected: `>= 571 passed, 2 skipped` (current observed: `575 passed, 2 skipped, 3 warnings in ~8s`)
 - Optional quality gates
   - `cd /Users/mark/.codex/worktrees/710f/agent_simulation_platform && uv run ruff check .` → expected `All checks passed!`
   - `cd /Users/mark/.codex/worktrees/710f/agent_simulation_platform && uv run pyright .` → expected `0 errors, 0 warnings, 0 informations`
@@ -171,8 +173,9 @@ Dummy DB forced path:
 
 ## `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/docs/runbooks/UPDATE_SEED_DATA.md` (required contents)
 - When to update seed data (new API fields, new tables, new UI expectations, new metric keys)
-- How to regenerate fixtures:
-  - `cd /Users/mark/.codex/worktrees/710f/agent_simulation_platform && PYTHONPATH=. uv run python scripts/update_seed_data.py`
+- How to update fixtures (JSON is canonical):
+  - Edit JSON fixtures directly in `/Users/mark/.codex/worktrees/710f/agent_simulation_platform/simulation/local_dev/seed_fixtures/*.json`
+  - Reset local dummy DB: restart backend with `LOCAL=true LOCAL_RESET_DB=1 ...` to force reseed
 - How to validate:
   - run backend with `LOCAL=true` and verify endpoints
   - run `cd /Users/mark/.codex/worktrees/710f/agent_simulation_platform && uv run pytest`

@@ -12,10 +12,10 @@ from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.constants import (
     DEFAULT_AGENT_LIST_LIMIT,
     DEFAULT_AGENT_LIST_OFFSET,
+    DEFAULT_SIMULATION_CONFIG,
     MAX_AGENT_LIST_LIMIT,
 )
 from simulation.api.dependencies.auth import require_auth
-from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
     CreateAgentRequest,
@@ -30,7 +30,7 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.api.services.agent_command_service import create_agent
-from simulation.api.services.agent_query_service import list_agents, list_agents_dummy
+from simulation.api.services.agent_query_service import list_agents
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
     get_posts_by_uris,
@@ -114,14 +114,14 @@ async def get_simulation_config_default(
     "/simulations/agents/mock",
     response_model=list[AgentSchema],
     status_code=200,
-    summary="List mock simulation agents",
-    description="Return dummy agent list for run-detail context (mock runs).",
+    summary="List simulation agents (legacy alias)",
+    description="Legacy alias for /simulations/agents. Returns DB-backed agents for run-detail context.",
 )
 @log_route_completion_decorator(route=SIMULATION_AGENTS_MOCK_ROUTE, success_type=list)
 async def get_simulation_agents_mock(
     request: Request,
 ) -> list[AgentSchema] | Response:
-    """Return mock agents for run detail view."""
+    """Return simulation agents from the database (legacy alias)."""
     return await _execute_get_simulation_agents_mock(request)
 
 
@@ -320,7 +320,7 @@ async def _execute_get_default_config(
 ) -> DefaultConfigSchema | Response:
     """Fetch default config and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_default_config_dummy)
+        return DEFAULT_SIMULATION_CONFIG
     except Exception:
         logger.exception("Unexpected error while fetching default config")
         return _error_response(
@@ -374,9 +374,13 @@ async def _execute_get_simulation_runs(
 async def _execute_get_simulation_agents_mock(
     request: Request,
 ) -> list[AgentSchema] | Response:
-    """Fetch mock agent list for run-detail context."""
+    """Fetch agent list from DB for legacy /agents/mock endpoint."""
     try:
-        return await asyncio.to_thread(list_agents_dummy)
+        return await asyncio.to_thread(
+            list_agents,
+            limit=DEFAULT_AGENT_LIST_LIMIT,
+            offset=DEFAULT_AGENT_LIST_OFFSET,
+        )
     except Exception:
         logger.exception("Unexpected error while listing mock agents")
         return _error_response(

@@ -32,16 +32,15 @@ If you add new features and the local UI feels “stuck” or missing data, it u
 
 ## How to regenerate fixtures
 
-From repo root:
+Seed fixtures are **canonical JSON** files committed in:
 
-```bash
-PYTHONPATH=. uv run python scripts/update_seed_data.py
-```
+- `simulation/local_dev/seed_fixtures/*.json`
 
-Expected output:
+To update seed data:
 
-- A message like `Wrote seed fixtures to .../simulation/local_dev/seed_fixtures`
-- Updated JSON files in `simulation/local_dev/seed_fixtures/` (review diffs in git)
+1. Edit the relevant JSON fixture(s) directly.
+2. Review the diffs in git.
+3. Reset and re-seed your local dummy DB (see below) to apply the new fixtures.
 
 ---
 

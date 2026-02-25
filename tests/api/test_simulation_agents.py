@@ -3,7 +3,6 @@
 import uuid
 
 from simulation.api.constants import DEFAULT_AGENT_LIST_LIMIT
-from simulation.api.dummy_data import DUMMY_AGENTS
 from simulation.core.models.agent import Agent, PersonaSource
 
 
@@ -54,18 +53,23 @@ def test_get_simulations_agents_fields_present(simulation_client, temp_db):
 
 
 def test_get_simulations_agents_mock_returns_dummy(simulation_client):
-    """GET /v1/simulations/agents/mock returns dummy agents."""
+    """GET /v1/simulations/agents/mock is a legacy alias for DB-backed /agents."""
     client, _ = simulation_client
-    response = client.get("/v1/simulations/agents/mock")
+    mock_resp = client.get("/v1/simulations/agents/mock")
+    agents_resp = client.get("/v1/simulations/agents")
 
-    expected_result = {"status_code": 200, "count": len(DUMMY_AGENTS)}
-    assert response.status_code == expected_result["status_code"]
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == expected_result["count"]
-    handles = [a["handle"] for a in data]
-    expected_result = sorted(handles)
-    assert handles == expected_result
+    assert mock_resp.status_code == 200
+    assert agents_resp.status_code == 200
+    mock_data = mock_resp.json()
+    agents_data = agents_resp.json()
+
+    assert isinstance(mock_data, list)
+    assert isinstance(agents_data, list)
+
+    mock_handles = [a["handle"] for a in mock_data]
+    agents_handles = [a["handle"] for a in agents_data]
+    assert mock_handles == agents_handles
+    assert mock_handles == sorted(mock_handles)
 
 
 def test_post_simulations_agents_success(simulation_client, temp_db):
