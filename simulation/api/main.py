@@ -38,6 +38,26 @@ DEFAULT_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 logger = logging.getLogger(__name__)
 
 
+def _reset_local_db_if_requested() -> None:
+    """When LOCAL_RESET_DB=1 in local mode, delete the local dummy DB file."""
+    db_path = get_db_path()
+    if os.path.exists(db_path):
+        logger.warning("LOCAL_RESET_DB=1: deleting local dummy DB at %s", db_path)
+        os.remove(db_path)
+    else:
+        logger.info(
+            "LOCAL_RESET_DB=1: dummy DB did not exist (nothing to delete): %s",
+            db_path,
+        )
+
+
+def _ensure_local_seed_data() -> None:
+    """When in local mode, ensure seed data is loaded in the dummy DB."""
+    db_path = get_db_path()
+    logger.info("LOCAL=true: ensuring seed data in dummy DB at %s", db_path)
+    seed_local_db_if_needed(db_path=db_path)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database and simulation engine on startup."""
@@ -45,22 +65,12 @@ async def lifespan(app: FastAPI):
     await asyncio.to_thread(disallow_local_mode_in_production)
 
     if is_local_mode() and parse_bool_env("LOCAL_RESET_DB"):
-        db_path = get_db_path()
-        if os.path.exists(db_path):
-            logger.warning("LOCAL_RESET_DB=1: deleting local dummy DB at %s", db_path)
-            os.remove(db_path)
-        else:
-            logger.info(
-                "LOCAL_RESET_DB=1: dummy DB did not exist (nothing to delete): %s",
-                db_path,
-            )
+        await asyncio.to_thread(_reset_local_db_if_requested)
 
     await asyncio.to_thread(initialize_database)
 
     if is_local_mode():
-        db_path = get_db_path()
-        logger.info("LOCAL=true: ensuring seed data in dummy DB at %s", db_path)
-        await asyncio.to_thread(seed_local_db_if_needed, db_path=db_path)
+        await asyncio.to_thread(_ensure_local_seed_data)
 
     app.state.engine = await asyncio.to_thread(create_engine)
     yield
