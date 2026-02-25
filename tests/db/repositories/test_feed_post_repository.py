@@ -25,7 +25,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             transaction_provider=make_mock_transaction_provider(),
         )
         post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
@@ -56,7 +56,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             transaction_provider=make_mock_transaction_provider(),
         )
         post = PostFactory.create(
-            id="at://did:plc:another456/app.bsky.feed.post/another",
+            post_id="at://did:plc:another456/app.bsky.feed.post/another",
             uri="at://did:plc:another456/app.bsky.feed.post/another",
             author_display_name="Another User",
             author_handle="another.bsky.social",
@@ -89,7 +89,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             transaction_provider=make_mock_transaction_provider(),
         )
         post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
@@ -169,7 +169,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             transaction_provider=make_mock_transaction_provider(),
         )
         post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
@@ -205,7 +205,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
         )
         posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
@@ -310,7 +310,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
         )
         posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
@@ -343,7 +343,7 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
@@ -434,7 +434,7 @@ class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
@@ -544,7 +544,7 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
@@ -579,7 +579,7 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",

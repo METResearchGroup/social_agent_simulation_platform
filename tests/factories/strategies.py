@@ -53,14 +53,17 @@ def run_config_strategy() -> SearchStrategy[RunConfig]:
     Use a known-good feed_algorithm to satisfy feeds.algorithms validators.
     """
     default_metric_keys = get_default_metric_keys()
-    metric_keys = st.one_of(
-        st.none(),
-        st.lists(
-            st.sampled_from(default_metric_keys),
-            min_size=1,
-            unique=True,
-        ),
-    )
+    if default_metric_keys:
+        metric_keys = st.one_of(
+            st.none(),
+            st.lists(
+                st.sampled_from(default_metric_keys),
+                min_size=1,
+                unique=True,
+            ),
+        )
+    else:
+        metric_keys = st.none()
     return st.builds(
         RunConfig,
         num_agents=st.integers(min_value=1, max_value=50),

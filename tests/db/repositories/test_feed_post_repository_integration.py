@@ -16,7 +16,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         """Test creating a feed post and reading it back from the database."""
         repo = feed_post_repo
         post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
@@ -58,7 +58,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo = feed_post_repo
         posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
@@ -91,7 +91,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Create initial post
         initial_post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Initial Name",
             author_handle="test.bsky.social",
@@ -107,7 +107,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Update the post
         updated_post = PostFactory.create(
-            id="at://did:plc:test123/app.bsky.feed.post/test",
+            post_id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Updated Name",
             author_handle="test.bsky.social",
@@ -145,7 +145,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Create posts by different authors
         post1 = PostFactory.create(
-            id="at://did:plc:alice/app.bsky.feed.post/post1",
+            post_id="at://did:plc:alice/app.bsky.feed.post/post1",
             uri="at://did:plc:alice/app.bsky.feed.post/post1",
             author_display_name="Alice",
             author_handle="alice.bsky.social",
@@ -158,7 +158,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
         post2 = PostFactory.create(
-            id="at://did:plc:alice/app.bsky.feed.post/post2",
+            post_id="at://did:plc:alice/app.bsky.feed.post/post2",
             uri="at://did:plc:alice/app.bsky.feed.post/post2",
             author_display_name="Alice",
             author_handle="alice.bsky.social",
@@ -171,7 +171,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             created_at="2024-01-02T00:00:00Z",
         )
         post3 = PostFactory.create(
-            id="at://did:plc:bob/app.bsky.feed.post/post1",
+            post_id="at://did:plc:bob/app.bsky.feed.post/post1",
             uri="at://did:plc:bob/app.bsky.feed.post/post1",
             author_display_name="Bob",
             author_handle="bob.bsky.social",
@@ -209,7 +209,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # Create multiple posts
         posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
@@ -312,7 +312,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         long_text = "This is a very long post. " * 100  # 2500+ characters
         post = PostFactory.create(
-            id="at://did:plc:longpost/app.bsky.feed.post/test",
+            post_id="at://did:plc:longpost/app.bsky.feed.post/test",
             uri="at://did:plc:longpost/app.bsky.feed.post/test",
             author_display_name="Long Post User",
             author_handle="longpost.bsky.social",
@@ -341,7 +341,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # Create multiple posts
         posts = [
             PostFactory.create(
-                id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
@@ -406,7 +406,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Create some posts
         post1 = PostFactory.create(
-            id="at://did:plc:test1/app.bsky.feed.post/test1",
+            post_id="at://did:plc:test1/app.bsky.feed.post/test1",
             uri="at://did:plc:test1/app.bsky.feed.post/test1",
             author_display_name="User 1",
             author_handle="user1.bsky.social",
@@ -419,7 +419,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
         post2 = PostFactory.create(
-            id="at://did:plc:test2/app.bsky.feed.post/test2",
+            post_id="at://did:plc:test2/app.bsky.feed.post/test2",
             uri="at://did:plc:test2/app.bsky.feed.post/test2",
             author_display_name="User 2",
             author_handle="user2.bsky.social",

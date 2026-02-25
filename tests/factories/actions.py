@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Final
+
 from simulation.core.models.actions import Comment, Follow, Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
@@ -14,6 +16,13 @@ from tests.factories._helpers import _timestamp_utc_compact
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
 from tests.factories.generated import GenerationMetadataFactory
+
+
+class _UnsetType:
+    pass
+
+
+UNSET: Final[_UnsetType] = _UnsetType()
 
 
 class LikeFactory(BaseFactory[Like]):
@@ -202,10 +211,10 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
         agent_handle: str | None = None,
         post_id: str | None = None,
         created_at: str | None = None,
-        explanation: str | None = None,
-        model_used: str | None = None,
-        generation_metadata_json: str | None = None,
-        generation_created_at: str | None = None,
+        explanation: str | None | _UnsetType = UNSET,
+        model_used: str | None | _UnsetType = UNSET,
+        generation_metadata_json: str | None | _UnsetType = UNSET,
+        generation_created_at: str | None | _UnsetType = UNSET,
     ) -> PersistedLike:
         fake = get_faker()
         run_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
@@ -218,6 +227,29 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
         like_id_value = (
             like_id if like_id is not None else f"like_{agent_value}_{post_value}"
         )
+        explanation_value: str | None
+        if isinstance(explanation, _UnsetType):
+            explanation_value = fake.sentence(nb_words=8)
+        else:
+            explanation_value = explanation
+
+        model_used_value: str | None
+        if isinstance(model_used, _UnsetType):
+            model_used_value = "test-model"
+        else:
+            model_used_value = model_used
+
+        generation_metadata_json_value: str | None
+        if isinstance(generation_metadata_json, _UnsetType):
+            generation_metadata_json_value = '{"seed": 1}'
+        else:
+            generation_metadata_json_value = generation_metadata_json
+
+        generation_created_at_value: str | None
+        if isinstance(generation_created_at, _UnsetType):
+            generation_created_at_value = _timestamp_utc_compact()
+        else:
+            generation_created_at_value = generation_created_at
         return PersistedLike(
             like_id=like_id_value,
             run_id=run_value,
@@ -227,16 +259,10 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
             created_at=created_at
             if created_at is not None
             else _timestamp_utc_compact(),
-            explanation=explanation
-            if explanation is not None
-            else fake.sentence(nb_words=8),
-            model_used=model_used if model_used is not None else "test-model",
-            generation_metadata_json=generation_metadata_json
-            if generation_metadata_json is not None
-            else '{"seed": 1}',
-            generation_created_at=generation_created_at
-            if generation_created_at is not None
-            else _timestamp_utc_compact(),
+            explanation=explanation_value,
+            model_used=model_used_value,
+            generation_metadata_json=generation_metadata_json_value,
+            generation_created_at=generation_created_at_value,
         )
 
 
@@ -252,10 +278,10 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
         post_id: str | None = None,
         text: str | None = None,
         created_at: str | None = None,
-        explanation: str | None = None,
-        model_used: str | None = None,
-        generation_metadata_json: str | None = None,
-        generation_created_at: str | None = None,
+        explanation: str | None | _UnsetType = UNSET,
+        model_used: str | None | _UnsetType = UNSET,
+        generation_metadata_json: str | None | _UnsetType = UNSET,
+        generation_created_at: str | None | _UnsetType = UNSET,
     ) -> PersistedComment:
         fake = get_faker()
         run_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
@@ -270,6 +296,29 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
             if comment_id is not None
             else f"comment_{agent_value}_{post_value}"
         )
+        explanation_value: str | None
+        if isinstance(explanation, _UnsetType):
+            explanation_value = fake.sentence(nb_words=8)
+        else:
+            explanation_value = explanation
+
+        model_used_value: str | None
+        if isinstance(model_used, _UnsetType):
+            model_used_value = "test-model"
+        else:
+            model_used_value = model_used
+
+        generation_metadata_json_value: str | None
+        if isinstance(generation_metadata_json, _UnsetType):
+            generation_metadata_json_value = '{"seed": 1}'
+        else:
+            generation_metadata_json_value = generation_metadata_json
+
+        generation_created_at_value: str | None
+        if isinstance(generation_created_at, _UnsetType):
+            generation_created_at_value = _timestamp_utc_compact()
+        else:
+            generation_created_at_value = generation_created_at
         return PersistedComment(
             comment_id=comment_id_value,
             run_id=run_value,
@@ -280,16 +329,10 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
             created_at=created_at
             if created_at is not None
             else _timestamp_utc_compact(),
-            explanation=explanation
-            if explanation is not None
-            else fake.sentence(nb_words=8),
-            model_used=model_used if model_used is not None else "test-model",
-            generation_metadata_json=generation_metadata_json
-            if generation_metadata_json is not None
-            else '{"seed": 1}',
-            generation_created_at=generation_created_at
-            if generation_created_at is not None
-            else _timestamp_utc_compact(),
+            explanation=explanation_value,
+            model_used=model_used_value,
+            generation_metadata_json=generation_metadata_json_value,
+            generation_created_at=generation_created_at_value,
         )
 
 
@@ -304,10 +347,10 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
         agent_handle: str | None = None,
         user_id: str | None = None,
         created_at: str | None = None,
-        explanation: str | None = None,
-        model_used: str | None = None,
-        generation_metadata_json: str | None = None,
-        generation_created_at: str | None = None,
+        explanation: str | None | _UnsetType = UNSET,
+        model_used: str | None | _UnsetType = UNSET,
+        generation_metadata_json: str | None | _UnsetType = UNSET,
+        generation_created_at: str | None | _UnsetType = UNSET,
     ) -> PersistedFollow:
         fake = get_faker()
         run_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
@@ -322,6 +365,29 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
         follow_id_value = (
             follow_id if follow_id is not None else f"follow_{agent_value}_{user_value}"
         )
+        explanation_value: str | None
+        if isinstance(explanation, _UnsetType):
+            explanation_value = fake.sentence(nb_words=8)
+        else:
+            explanation_value = explanation
+
+        model_used_value: str | None
+        if isinstance(model_used, _UnsetType):
+            model_used_value = "test-model"
+        else:
+            model_used_value = model_used
+
+        generation_metadata_json_value: str | None
+        if isinstance(generation_metadata_json, _UnsetType):
+            generation_metadata_json_value = '{"seed": 1}'
+        else:
+            generation_metadata_json_value = generation_metadata_json
+
+        generation_created_at_value: str | None
+        if isinstance(generation_created_at, _UnsetType):
+            generation_created_at_value = _timestamp_utc_compact()
+        else:
+            generation_created_at_value = generation_created_at
         return PersistedFollow(
             follow_id=follow_id_value,
             run_id=run_value,
@@ -331,14 +397,8 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
             created_at=created_at
             if created_at is not None
             else _timestamp_utc_compact(),
-            explanation=explanation
-            if explanation is not None
-            else fake.sentence(nb_words=8),
-            model_used=model_used if model_used is not None else "test-model",
-            generation_metadata_json=generation_metadata_json
-            if generation_metadata_json is not None
-            else '{"seed": 1}',
-            generation_created_at=generation_created_at
-            if generation_created_at is not None
-            else _timestamp_utc_compact(),
+            explanation=explanation_value,
+            model_used=model_used_value,
+            generation_metadata_json=generation_metadata_json_value,
+            generation_created_at=generation_created_at_value,
         )

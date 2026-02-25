@@ -28,7 +28,7 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
     def create(
         cls,
         *,
-        id: str | None = None,
+        post_id: str | None = None,
         uri: str | None = None,
         author_handle: str | None = None,
         author_display_name: str | None = None,
@@ -73,7 +73,7 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_iso()
         )
-        id_value = id if id is not None else uri_value
+        id_value = post_id if post_id is not None else uri_value
         return BlueskyFeedPost(
             id=id_value,
             uri=uri_value,
