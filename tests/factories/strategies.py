@@ -23,8 +23,9 @@ def bluesky_post_strategy() -> SearchStrategy[BlueskyFeedPost]:
         r"[a-z][a-z0-9_]{2,20}\.bsky\.social",
         fullmatch=True,
     )
-    display_name = st.text(min_size=1, max_size=40)
-    text = st.text(min_size=1, max_size=240)
+    printable = st.characters(whitelist_categories=("L", "N", "P", "Z"))
+    display_name = st.text(alphabet=printable, min_size=1, max_size=40)
+    text = st.text(alphabet=printable, min_size=1, max_size=240)
     count = st.integers(min_value=0, max_value=10_000)
     created_at = st.datetimes(timezones=st.just(timezone.utc)).map(
         lambda dt: dt.isoformat().replace("+00:00", "Z")

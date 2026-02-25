@@ -26,7 +26,7 @@ def get_faker() -> Faker:
     fake = _FAKER.get()
     if fake is None:
         raise RuntimeError(
-            "tests.factories.get_faker() called without a configured Faker instance. "
+            "tests.factories.context.get_faker() called without a configured Faker instance. "
             "Ensure pytest is running with the autouse `fake` fixture from "
             "tests/conftest.py."
         )

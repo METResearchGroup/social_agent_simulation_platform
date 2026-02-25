@@ -22,28 +22,46 @@ from tests.factories import (
 )
 
 
-def test_factories_create_smoke():
-    """Factories create valid models with defaults."""
+def test_post_factory_smoke():
     assert PostFactory.create().uri
+
+
+def test_generation_metadata_factory_smoke():
     assert GenerationMetadataFactory.create().created_at
+
+
+def test_generated_bio_factory_smoke():
     assert GeneratedBioFactory.create().handle
 
+
+def test_action_factories_smoke():
     assert LikeFactory.create().like_id
     assert CommentFactory.create().comment_id
     assert FollowFactory.create().follow_id
 
+
+def test_generated_action_factories_smoke():
     assert GeneratedLikeFactory.create().like.like_id
     assert GeneratedCommentFactory.create().comment.comment_id
     assert GeneratedFollowFactory.create().follow.follow_id
 
+
+def test_persisted_action_factories_smoke():
     assert PersistedLikeFactory.create().like_id
     assert PersistedCommentFactory.create().comment_id
     assert PersistedFollowFactory.create().follow_id
 
+
+def test_agent_factory_smoke():
     assert AgentFactory.create().handle
+
+
+def test_run_factories_smoke():
     assert RunConfigFactory.create().feed_algorithm == "chronological"
     assert RunFactory.create().run_id
 
+
+def test_turn_factories_smoke():
     assert TurnMetadataFactory.create().run_id
     assert TurnMetricsFactory.create().run_id
     assert RunMetricsFactory.create().run_id

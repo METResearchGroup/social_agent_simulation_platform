@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
 
-class BaseFactory(Generic[T]):
+class BaseFactory(ABC, Generic[T]):
     """Base factory providing a common create_batch implementation."""
 
     @classmethod
+    @abstractmethod
     def create(cls, **kwargs: object) -> T:
         raise NotImplementedError
 

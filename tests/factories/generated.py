@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-from datetime import timezone
+from typing import Any
 
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
+from tests.factories._helpers import _timestamp_utc_compact
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
-
-
-def _timestamp_utc_compact() -> str:
-    fake = get_faker()
-    dt = fake.date_time(tzinfo=timezone.utc)
-    return dt.strftime("%Y_%m_%d-%H:%M:%S")
 
 
 class GenerationMetadataFactory(BaseFactory[GenerationMetadata]):
@@ -21,7 +16,7 @@ class GenerationMetadataFactory(BaseFactory[GenerationMetadata]):
         *,
         created_at: str | None = None,
         model_used: str | None = None,
-        generation_metadata: dict[str, object] | None = None,
+        generation_metadata: dict[str, Any] | None = None,
     ) -> GenerationMetadata:
         return GenerationMetadata(
             created_at=created_at

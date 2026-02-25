@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import timezone
-
 from simulation.core.models.actions import Comment, Follow, Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
@@ -12,15 +10,10 @@ from simulation.core.models.persisted_actions import (
     PersistedFollow,
     PersistedLike,
 )
+from tests.factories._helpers import _timestamp_utc_compact
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
 from tests.factories.generated import GenerationMetadataFactory
-
-
-def _timestamp_utc_compact() -> str:
-    fake = get_faker()
-    dt = fake.date_time(tzinfo=timezone.utc)
-    return dt.strftime("%Y_%m_%d-%H:%M:%S")
 
 
 class LikeFactory(BaseFactory[Like]):
@@ -125,7 +118,11 @@ class GeneratedLikeFactory(BaseFactory[GeneratedLike]):
         post_id: str | None = None,
     ) -> GeneratedLike:
         fake = get_faker()
-        like_value = like or LikeFactory.create(agent_id=agent_id, post_id=post_id)
+        like_value = (
+            like
+            if like is not None
+            else LikeFactory.create(agent_id=agent_id, post_id=post_id)
+        )
         return GeneratedLike(
             like=like_value,
             explanation=explanation
@@ -150,8 +147,10 @@ class GeneratedCommentFactory(BaseFactory[GeneratedComment]):
         text: str | None = None,
     ) -> GeneratedComment:
         fake = get_faker()
-        comment_value = comment or CommentFactory.create(
-            agent_id=agent_id, post_id=post_id, text=text
+        comment_value = (
+            comment
+            if comment is not None
+            else CommentFactory.create(agent_id=agent_id, post_id=post_id, text=text)
         )
         return GeneratedComment(
             comment=comment_value,
@@ -176,8 +175,10 @@ class GeneratedFollowFactory(BaseFactory[GeneratedFollow]):
         user_id: str | None = None,
     ) -> GeneratedFollow:
         fake = get_faker()
-        follow_value = follow or FollowFactory.create(
-            agent_id=agent_id, user_id=user_id
+        follow_value = (
+            follow
+            if follow is not None
+            else FollowFactory.create(agent_id=agent_id, user_id=user_id)
         )
         return GeneratedFollow(
             follow=follow_value,

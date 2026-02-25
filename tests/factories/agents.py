@@ -23,6 +23,8 @@ class AgentFactory(BaseFactory[SocialMediaAgent]):
         )
         if posts is not None:
             agent.posts = list(posts)
+            if posts_count is None:
+                agent.posts_count = len(agent.posts)
         if followers is not None:
             agent.followers = followers
         if following is not None:

@@ -73,24 +73,9 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_iso()
         )
-
-        if id is None:
-            return BlueskyFeedPost(
-                id=uri_value,
-                uri=uri_value,
-                author_handle=author_handle_value,
-                author_display_name=author_display_name_value,
-                text=text_value,
-                like_count=like_count_value,
-                bookmark_count=bookmark_count_value,
-                quote_count=quote_count_value,
-                reply_count=reply_count_value,
-                repost_count=repost_count_value,
-                created_at=created_at_value,
-            )
-
+        id_value = id if id is not None else uri_value
         return BlueskyFeedPost(
-            id=id,
+            id=id_value,
             uri=uri_value,
             author_handle=author_handle_value,
             author_display_name=author_display_name_value,

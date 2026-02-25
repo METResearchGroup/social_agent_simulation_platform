@@ -32,9 +32,6 @@ db/repositories/comment_repository.py:10:from simulation.core.models.persisted_a
 db/repositories/comment_repository.py:40:    ) -> list[PersistedComment]:
 db/repositories/follow_repository.py:10:from simulation.core.models.persisted_actions import PersistedFollow
 db/repositories/follow_repository.py:40:    ) -> list[PersistedFollow]:
-simulation/core/models/persisted_actions.py:12:class PersistedLike(BaseModel):
-simulation/core/models/persisted_actions.py:32:class PersistedComment(BaseModel):
-simulation/core/models/persisted_actions.py:53:class PersistedFollow(BaseModel):
 db/repositories/interfaces.py:20:    PersistedComment,
 db/repositories/interfaces.py:21:    PersistedFollow,
 db/repositories/interfaces.py:22:    PersistedLike,
