@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from lib.validation_decorators import validate_inputs
-from simulation.api.dummy_data import DUMMY_POSTS, DUMMY_RUNS, DUMMY_TURNS
 from simulation.api.schemas.simulation import (
     FeedSchema,
     PostSchema,
@@ -109,33 +108,6 @@ def get_posts_by_uris(
         posts = engine.feed_post_repo.read_feed_posts_by_uris(uris)
 
     return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.uri)]
-
-
-def list_runs_dummy() -> list[RunListItem]:
-    """Return deterministic dummy run list for UI integration."""
-    return sorted(
-        DUMMY_RUNS,
-        key=lambda run: run.created_at,
-        reverse=True,
-    )
-
-
-def get_turns_for_run_dummy(*, run_id: str) -> dict[str, TurnSchema]:
-    """Return deterministic dummy turns for a run ID."""
-    validated_run_id: str = validate_run_id(run_id)
-    turns: dict[str, TurnSchema] | None = DUMMY_TURNS.get(validated_run_id)
-    if turns is None:
-        raise RunNotFoundError(validated_run_id)
-    return dict(sorted(turns.items(), key=lambda item: int(item[0])))
-
-
-def get_posts_by_uris_dummy(*, uris: list[str] | None = None) -> list[PostSchema]:
-    """Return dummy posts, optionally filtered by URIs. Sorted by uri for determinism."""
-    if uris is None or len(uris) == 0:
-        return sorted(DUMMY_POSTS, key=lambda p: p.uri)
-    uri_set: set[str] = set(uris)
-    filtered: list[PostSchema] = [p for p in DUMMY_POSTS if p.uri in uri_set]
-    return sorted(filtered, key=lambda p: p.uri)
 
 
 @validate_inputs((validate_run_id, "run_id"))
