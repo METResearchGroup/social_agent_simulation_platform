@@ -40,6 +40,7 @@ def _const_metric_class(
         VALUE = value
         DESCRIPTION = "Test metric."
         AUTHOR = "test"
+        DISPLAY_NAME = "Const (test)"
 
         @property
         def output_adapter(self):
@@ -65,6 +66,7 @@ def _sum_metric_class(
         REQUIRES = requires_keys
         DESCRIPTION = "Test metric."
         AUTHOR = "test"
+        DISPLAY_NAME = "Sum (test)"
 
         @property
         def output_adapter(self):
@@ -92,6 +94,7 @@ class _BoomMetric(Metric):
     SCOPE = MetricScope.TURN
     DESCRIPTION = "Test metric."
     AUTHOR = "test"
+    DISPLAY_NAME = "Boom (test)"
 
     @property
     def output_adapter(self):
@@ -234,6 +237,7 @@ class TestMetricsCollectorFailures:
             SCOPE = MetricScope.TURN
             DESCRIPTION = "Test metric."
             AUTHOR = "test"
+            DISPLAY_NAME = "Bad JSON (test)"
 
             @property
             def output_adapter(self):
@@ -271,6 +275,7 @@ class TestMetricsCollectorFailures:
             SCOPE = MetricScope.TURN
             DESCRIPTION = "Test metric."
             AUTHOR = "test"
+            DISPLAY_NAME = "Wrong shape (test)"
 
             @property
             def output_adapter(self):

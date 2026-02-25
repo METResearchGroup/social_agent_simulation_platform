@@ -24,6 +24,7 @@ class TurnActionCountsByTypeMetric(Metric):
     SCOPE = MetricScope.TURN
     DESCRIPTION = "Count of actions per turn, by action type."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Actions by type (turn)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -50,6 +51,7 @@ class TurnActionTotalMetric(Metric):
     SCOPE = MetricScope.TURN
     DESCRIPTION = "Total number of actions in a turn."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Total actions (turn)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -92,6 +94,7 @@ class RunActionTotalsByTypeMetric(Metric):
     SCOPE = MetricScope.RUN
     DESCRIPTION = "Aggregated action counts across all turns, by type."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Actions by type (run)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -118,6 +121,7 @@ class RunActionTotalMetric(Metric):
     SCOPE = MetricScope.RUN
     DESCRIPTION = "Total number of actions in the run."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Total actions (run)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:

@@ -360,6 +360,8 @@ export interface components {
             author: string;
             /** Description */
             description: string;
+            /** Display Name */
+            display_name: string;
             /** Key */
             key: string;
             scope: components["schemas"]["MetricScope"];
@@ -611,7 +613,12 @@ export interface operations {
     };
     get_simulation_agents_v1_simulations_agents_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Maximum number of agents to return (ordered by handle). */
+                limit?: number;
+                /** @description Number of agents to skip before returning results (ordered by handle). */
+                offset?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -625,6 +632,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentSchema"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

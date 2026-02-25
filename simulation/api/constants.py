@@ -1,0 +1,9 @@
+"""Shared constants for the simulation API.
+
+Keep API defaults as named constants so behavior is explicit and can be reused
+across routes, services, and tests.
+"""
+
+DEFAULT_AGENT_LIST_LIMIT: int = 100
+MAX_AGENT_LIST_LIMIT: int = 500
+DEFAULT_AGENT_LIST_OFFSET: int = 0

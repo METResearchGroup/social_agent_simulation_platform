@@ -42,6 +42,7 @@ def test_defaults_duplicate_key_validation_raises():
         SCOPE = MetricScope.TURN
         DESCRIPTION = "Test metric."
         AUTHOR = "test"
+        DISPLAY_NAME = "M1 (test)"
 
         @property
         def output_adapter(self):
@@ -57,6 +58,7 @@ def test_defaults_duplicate_key_validation_raises():
         SCOPE = MetricScope.TURN
         DESCRIPTION = "Test metric."
         AUTHOR = "test"
+        DISPLAY_NAME = "M2 (test)"
 
         @property
         def output_adapter(self):

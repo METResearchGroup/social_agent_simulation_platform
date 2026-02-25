@@ -106,10 +106,16 @@ def resolve_metric_keys_by_scope(
     return (sorted(turn_keys), sorted(run_keys))
 
 
-def get_registered_metrics_metadata() -> list[tuple[str, str, MetricScope, str]]:
-    """Return (key, description, scope, author) for all builtin metrics, sorted by key."""
-    result: list[tuple[str, str, MetricScope, str]] = [
-        (metric_cls.KEY, metric_cls.DESCRIPTION, metric_cls.SCOPE, metric_cls.AUTHOR)
+def get_registered_metrics_metadata() -> list[tuple[str, str, str, MetricScope, str]]:
+    """Return (key, display_name, description, scope, author) for all builtin metrics, sorted by key."""
+    result: list[tuple[str, str, str, MetricScope, str]] = [
+        (
+            metric_cls.KEY,
+            metric_cls.DISPLAY_NAME,
+            metric_cls.DESCRIPTION,
+            metric_cls.SCOPE,
+            metric_cls.AUTHOR,
+        )
         for metric_cls in BUILTIN_METRICS
     ]
     return sorted(result, key=lambda t: t[0])

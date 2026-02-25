@@ -59,6 +59,7 @@ class MetricSchema(BaseModel):
     """API response for GET /v1/simulations/metrics."""
 
     key: str
+    display_name: str
     description: str
     scope: MetricScope
     author: str
