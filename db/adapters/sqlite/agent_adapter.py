@@ -93,3 +93,26 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             self._validate_agent_row(row)
             result.append(self._row_to_agent(row))
         return result
+
+    def read_agents_page_by_handle_like(
+        self,
+        *,
+        handle_like: str,
+        limit: int,
+        offset: int,
+        conn: sqlite3.Connection,
+    ) -> list[Agent]:
+        """Read a page of agents filtered by handle LIKE (case-insensitive)."""
+        rows = conn.execute(
+            (
+                "SELECT * FROM agent "
+                "WHERE handle LIKE ? ESCAPE '\\' COLLATE NOCASE "
+                "ORDER BY handle LIMIT ? OFFSET ?"
+            ),
+            (handle_like, limit, offset),
+        ).fetchall()
+        result: list[Agent] = []
+        for row in rows:
+            self._validate_agent_row(row)
+            result.append(self._row_to_agent(row))
+        return result

@@ -47,6 +47,7 @@ function AuthenticatedApp() {
     agentsLoadingMore,
     agentsError,
     agentsHasMore,
+    agentsQuery,
     turnsLoadingByRunId,
     turnsErrorByRunId,
     viewMode,
@@ -69,6 +70,7 @@ function AuthenticatedApp() {
     handleRetryRuns,
     handleRetryAgents,
     handleLoadMoreAgents,
+    handleSetAgentsQuery,
     handleRetryTurns,
     runDetailsLoading,
     runDetailsError,
@@ -151,8 +153,10 @@ function AuthenticatedApp() {
         agentsLoadingMore={agentsLoadingMore}
         agentsHasMore={agentsHasMore}
         agentsError={agentsError}
+        agentsQuery={agentsQuery}
         onRetryAgents={handleRetryAgents}
         onLoadMoreAgents={handleLoadMoreAgents}
+        onAgentsQueryChange={handleSetAgentsQuery}
         selectedAgentHandle={selectedAgentHandle}
         onSelectAgent={handleSelectAgent}
       />
@@ -161,8 +165,13 @@ function AuthenticatedApp() {
         <CreateAgentView
           agents={agents}
           agentsLoading={agentsLoading}
+          agentsLoadingMore={agentsLoadingMore}
           agentsError={agentsError}
+          agentsHasMore={agentsHasMore}
+          agentsQuery={agentsQuery}
           onRetryAgents={handleRetryAgents}
+          onLoadMoreAgents={handleLoadMoreAgents}
+          onAgentsQueryChange={handleSetAgentsQuery}
           onSubmit={handleCreateAgent}
         />
       ) : viewMode === 'agents' ? (
