@@ -350,7 +350,10 @@ export async function getAgents(params?: {
   const qs = new URLSearchParams();
   if (limit != null) qs.set('limit', String(limit));
   if (offset != null) qs.set('offset', String(offset));
-  if (q != null && q.trim() !== '') qs.set('q', q);
+  if (q != null) {
+    const trimmedQ = q.trim();
+    if (trimmedQ !== '') qs.set('q', trimmedQ);
+  }
   const url: string = qs.size > 0 ? `${baseUrl}?${qs}` : baseUrl;
 
   const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(url);
