@@ -282,6 +282,11 @@ export async function postRun(config: RunConfig): Promise<Run> {
   };
 }
 
+// NOTE: `getRunDetails` intentionally returns only `{ runId, config }`, where `config` is mapped via
+// `mapRunDetailsConfig`. `mapRunDetailsConfig` intentionally sets `feedAlgorithmConfig` to null
+// because `ApiRunConfigDetail` (RunConfigDetail) does not include `feed_algorithm_config`. Other
+// fields available on `ApiRunDetailsResponse` (status, turns, run_metrics, etc.) are deliberately
+// omitted in this PR scope to avoid callers assuming they’re available without a separate fetch.
 function mapRunDetailsConfig(apiConfig: ApiRunConfigDetail): RunConfig {
   return {
     numAgents: apiConfig.num_agents,
