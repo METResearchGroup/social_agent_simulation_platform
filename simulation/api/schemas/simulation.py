@@ -111,9 +111,10 @@ class DefaultConfigSchema(BaseModel):
     @field_validator("metric_keys")
     @classmethod
     def _validate_metric_keys(cls, v: list[str]) -> list[str]:
-        validated: list[str] | None = validate_metric_keys(v)
-        if validated is None:
-            raise ValueError("metric_keys must be provided")
+        validated = validate_metric_keys(v)
+        assert (
+            validated is not None
+        )  # v is required list[str], so result will be the list
         return validated
 
 
