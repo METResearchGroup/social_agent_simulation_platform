@@ -32,39 +32,7 @@ This automatically enables frontend auth bypass (no `.env.local` required).
 
 ---
 
-## Option 2: Bypass auth (legacy flags)
-
-Use this when you want to work on the app without configuring OAuth (e.g. for UI work, API integration).
-
-### Backend (DISABLE_AUTH=1)
-
-Set `DISABLE_AUTH=1` (or `true`) before starting the API:
-
-```bash
-DISABLE_AUTH=1 PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload --port 8000
-```
-
-Or add to `.env` in the project root (if your runner loads it):
-
-```dotenv
-DISABLE_AUTH=1
-```
-
-### Frontend (NEXT_PUBLIC_DISABLE_AUTH=true)
-
-Add to `ui/.env.local`:
-
-```dotenv
-NEXT_PUBLIC_DISABLE_AUTH=true
-```
-
-Restart the Next.js dev server. The app will render without showing the Sign-In screen, and API requests will succeed without a Bearer token.
-
-**Security:** Do not use these flags in production or committed config. They are for local development only.
-
----
-
-## Option 3: Real OAuth with persistent session
+## Option 2: Real OAuth with persistent session
 
 Use this when you need to test the full auth flow or session persistence.
 
