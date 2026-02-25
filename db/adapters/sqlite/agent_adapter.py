@@ -20,6 +20,13 @@ _INSERT_AGENT_SQL = (
 class SQLiteAgentAdapter(AgentDatabaseAdapter):
     """SQLite implementation of AgentDatabaseAdapter."""
 
+    def _map_rows_to_agents(self, rows: list[sqlite3.Row]) -> list[Agent]:
+        result: list[Agent] = []
+        for row in rows:
+            self._validate_agent_row(row)
+            result.append(self._row_to_agent(row))
+        return result
+
     def _validate_agent_row(self, row: sqlite3.Row) -> None:
         """Validate that all required agent fields are not NULL."""
         validate_required_fields(row, AGENT_REQUIRED_FIELDS)
@@ -75,11 +82,7 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
     def read_all_agents(self, *, conn: sqlite3.Connection) -> list[Agent]:
         """Read all agents, ordered by handle for deterministic output."""
         rows = conn.execute("SELECT * FROM agent ORDER BY handle").fetchall()
-        result: list[Agent] = []
-        for row in rows:
-            self._validate_agent_row(row)
-            result.append(self._row_to_agent(row))
-        return result
+        return self._map_rows_to_agents(rows)
 
     def read_agents_page(
         self, *, limit: int, offset: int, conn: sqlite3.Connection
@@ -88,11 +91,7 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
         rows = conn.execute(
             "SELECT * FROM agent ORDER BY handle LIMIT ? OFFSET ?", (limit, offset)
         ).fetchall()
-        result: list[Agent] = []
-        for row in rows:
-            self._validate_agent_row(row)
-            result.append(self._row_to_agent(row))
-        return result
+        return self._map_rows_to_agents(rows)
 
     def read_agents_page_by_handle_like(
         self,
@@ -111,8 +110,4 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             ),
             (handle_like, limit, offset),
         ).fetchall()
-        result: list[Agent] = []
-        for row in rows:
-            self._validate_agent_row(row)
-            result.append(self._row_to_agent(row))
-        return result
+        return self._map_rows_to_agents(rows)

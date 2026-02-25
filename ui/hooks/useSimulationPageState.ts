@@ -21,6 +21,7 @@ const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
 const EMPTY_RUN_DETAILS_LOADING: Record<string, boolean> = {};
 const EMPTY_RUN_DETAILS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
+const AGENTS_QUERY_MAX_LENGTH: number = 200;
 
 /**
  * Result of useSimulationPageState.
@@ -477,7 +478,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   };
 
   const handleSetAgentsQuery = (query: string): void => {
-    setAgentsQuery(query);
+    const cappedQuery: string = query.slice(0, AGENTS_QUERY_MAX_LENGTH);
+    setAgentsQuery(cappedQuery);
   };
 
   return {
