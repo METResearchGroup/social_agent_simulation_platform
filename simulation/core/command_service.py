@@ -16,12 +16,11 @@ from db.services.simulation_persistence_service import SimulationPersistenceServ
 from feeds.interfaces import FeedGenerator
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.action_history import ActionHistoryStore
-from simulation.core.agent_action_feed_filter import (
+from simulation.core.action_history import ActionHistoryStore, record_action_targets
+from simulation.core.action_policy import (
     AgentActionFeedFilter,
+    AgentActionRulesValidator,
 )
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
@@ -68,7 +67,6 @@ class SimulationCommandService:
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
         agent_action_rules_validator: AgentActionRulesValidator,
-        agent_action_history_recorder: AgentActionHistoryRecorder,
         agent_action_feed_filter: AgentActionFeedFilter,
     ):
         self.run_repo = run_repo
@@ -83,7 +81,6 @@ class SimulationCommandService:
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
         self.agent_action_rules_validator = agent_action_rules_validator
-        self.agent_action_history_recorder = agent_action_history_recorder
         self.agent_action_feed_filter = agent_action_feed_filter
 
     def execute_run(self, run_config: RunConfig) -> Run:
@@ -316,8 +313,8 @@ class SimulationCommandService:
                 )
             )
 
-            # Record the action targets into the DB.
-            self.agent_action_history_recorder.record(
+            # Record the action targets into action history.
+            record_action_targets(
                 run_id=run_id,
                 agent_handle=agent.handle,
                 like_post_ids=like_post_ids,

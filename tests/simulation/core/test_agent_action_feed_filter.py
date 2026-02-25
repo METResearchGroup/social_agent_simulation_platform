@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock
 
-from simulation.core.agent_action_feed_filter import HistoryAwareActionFeedFilter
+from simulation.core.action_policy import HistoryAwareActionFeedFilter
 from simulation.core.models.posts import BlueskyFeedPost
 
 

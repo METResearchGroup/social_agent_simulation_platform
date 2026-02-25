@@ -7,12 +7,11 @@ import pytest
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
 from simulation.core.action_history import InMemoryActionHistoryStore
-from simulation.core.agent_action_feed_filter import (
+from simulation.core.action_policy import (
     ActionCandidateFeeds,
+    AgentActionRulesValidator,
     HistoryAwareActionFeedFilter,
 )
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
@@ -66,7 +65,6 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
     )
     agent_action_rules_validator = Mock(spec=AgentActionRulesValidator)
     agent_action_rules_validator.validate.return_value = ([], [], [])
-    agent_action_history_recorder = Mock(spec=AgentActionHistoryRecorder)
     metrics_collector = Mock(spec=MetricsCollector)
     metrics_collector.collect_turn_metrics.return_value = {}
     metrics_collector.collect_run_metrics.return_value = {}
@@ -84,7 +82,6 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         action_history_store_factory=action_history_store_factory,
         feed_generator=mock_feed_generator,
         agent_action_rules_validator=agent_action_rules_validator,
-        agent_action_history_recorder=agent_action_history_recorder,
         agent_action_feed_filter=agent_action_feed_filter,
     )
 
@@ -206,7 +203,6 @@ class TestSimulationCommandServiceExecuteRun:
         self, command_service, mock_repos, sample_run
     ):
         command_service.agent_action_rules_validator = Mock()
-        command_service.agent_action_history_recorder = Mock()
         agent = SocialMediaAgent("agent1.bsky.social")
         feed_post = BlueskyFeedPost(
             id="post_1",
@@ -292,7 +288,21 @@ class TestSimulationCommandServiceExecuteRun:
         assert result.total_actions[TurnAction.COMMENT] == 1
         assert result.total_actions[TurnAction.FOLLOW] == 1
         command_service.agent_action_rules_validator.validate.assert_called_once()
-        command_service.agent_action_history_recorder.record.assert_called_once()
+        action_history_store.record_like.assert_called_once_with(
+            sample_run.run_id,
+            agent.handle,
+            "post_1",
+        )
+        action_history_store.record_comment.assert_called_once_with(
+            sample_run.run_id,
+            agent.handle,
+            "post_1",
+        )
+        action_history_store.record_follow.assert_called_once_with(
+            sample_run.run_id,
+            agent.handle,
+            "user_1",
+        )
 
     def test_simulate_turn_uses_action_specific_filtered_candidates(
         self, command_service, mock_repos, sample_run
@@ -357,7 +367,6 @@ class TestSimulationCommandServiceExecuteRun:
             [],
             [],
         )
-        command_service.agent_action_history_recorder = Mock()
         mock_repos["run_repo"].get_run.return_value = sample_run
         command_service.feed_generator.generate_feeds.return_value = {
             agent.handle: full_feed

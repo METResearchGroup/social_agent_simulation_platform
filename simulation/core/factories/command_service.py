@@ -17,17 +17,16 @@ from db.services.simulation_persistence_service import (
 )
 from feeds.feed_generator_adapter import FeedGeneratorAdapter
 from feeds.interfaces import FeedGenerator
-from simulation.core.action_history import ActionHistoryStore
-from simulation.core.agent_action_feed_filter import (
-    AgentActionFeedFilter,
-    HistoryAwareActionFeedFilter,
-)
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.command_service import SimulationCommandService
-from simulation.core.factories.action_history_store import (
+from simulation.core.action_history import (
+    ActionHistoryStore,
     create_default_action_history_store_factory,
 )
+from simulation.core.action_policy import (
+    AgentActionFeedFilter,
+    AgentActionRulesValidator,
+    HistoryAwareActionFeedFilter,
+)
+from simulation.core.command_service import SimulationCommandService
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
     DEFAULT_RUN_METRIC_KEYS,
@@ -53,7 +52,6 @@ def create_command_service(
     feed_generator: FeedGenerator | None = None,
     metrics_collector: MetricsCollector | None = None,
     agent_action_rules_validator: AgentActionRulesValidator | None = None,
-    agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
     agent_action_feed_filter: AgentActionFeedFilter | None = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
@@ -97,8 +95,6 @@ def create_command_service(
         feed_generator=feed_generator,
         agent_action_rules_validator=agent_action_rules_validator
         or AgentActionRulesValidator(),
-        agent_action_history_recorder=agent_action_history_recorder
-        or AgentActionHistoryRecorder(),
         agent_action_feed_filter=agent_action_feed_filter
         or HistoryAwareActionFeedFilter(),
     )

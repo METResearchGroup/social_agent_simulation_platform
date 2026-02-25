@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
+from __future__ import annotations
+
 from dataclasses import dataclass
 
-from simulation.core.action_history import ActionHistoryStore
+from simulation.core.action_history.interfaces import ActionHistoryStore
+from simulation.core.action_policy.interfaces import AgentActionFeedFilter
 from simulation.core.models.posts import BlueskyFeedPost
 
 
@@ -12,21 +14,6 @@ class ActionCandidateFeeds:
     like_candidates: list[BlueskyFeedPost]
     comment_candidates: list[BlueskyFeedPost]
     follow_candidates: list[BlueskyFeedPost]
-
-
-class AgentActionFeedFilter(ABC):
-    """Filters a hydrated feed into action-specific eligible candidates."""
-
-    @abstractmethod
-    def filter_candidates(
-        self,
-        *,
-        run_id: str,
-        agent_handle: str,
-        feed: list[BlueskyFeedPost],
-        action_history_store: ActionHistoryStore,
-    ) -> ActionCandidateFeeds:
-        raise NotImplementedError
 
 
 class HistoryAwareActionFeedFilter(AgentActionFeedFilter):

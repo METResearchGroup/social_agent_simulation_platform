@@ -25,11 +25,11 @@ from db.repositories.run_repository import create_sqlite_repository
 from db.services.simulation_persistence_service import (
     create_simulation_persistence_service,
 )
-from simulation.core.action_history import ActionHistoryStore
-from simulation.core.engine import SimulationEngine
-from simulation.core.factories.action_history_store import (
+from simulation.core.action_history import (
+    ActionHistoryStore,
     create_default_action_history_store_factory,
 )
+from simulation.core.engine import SimulationEngine
 from simulation.core.factories.agent import create_default_agent_factory
 from simulation.core.factories.command_service import create_command_service
 from simulation.core.factories.query_service import create_query_service

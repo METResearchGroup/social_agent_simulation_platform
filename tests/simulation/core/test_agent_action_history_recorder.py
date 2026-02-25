@@ -1,14 +1,14 @@
-"""Tests for simulation.core.agent_action_history_recorder module."""
+"""Tests for action history recording helper."""
 
-from simulation.core.action_history import InMemoryActionHistoryStore
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
+from simulation.core.action_history import (
+    InMemoryActionHistoryStore,
+    record_action_targets,
+)
 
 
 def test_records_like_comment_follow_targets():
     history = InMemoryActionHistoryStore()
-    recorder = AgentActionHistoryRecorder()
-
-    recorder.record(
+    record_action_targets(
         run_id="run_123",
         agent_handle="agent1.bsky.social",
         like_post_ids=["post_1"],

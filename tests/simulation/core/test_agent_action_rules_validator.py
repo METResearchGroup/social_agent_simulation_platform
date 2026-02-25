@@ -3,7 +3,7 @@
 import pytest
 
 from simulation.core.action_history import InMemoryActionHistoryStore
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
+from simulation.core.action_policy import AgentActionRulesValidator
 from simulation.core.models.actions import Comment, Follow, Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
