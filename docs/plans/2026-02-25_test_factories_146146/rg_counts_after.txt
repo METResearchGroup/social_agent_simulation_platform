@@ -1,0 +1,12 @@
+# Constructor counts (after factories migration)
+
+BlueskyFeedPost(	      24
+RunConfig(	      15
+GenerationMetadata(	       9
+SocialMediaAgent(	      21
+GeneratedLike(	       4
+GeneratedComment(	       4
+GeneratedFollow(	       4
+PersistedLike(	       2
+PersistedComment(	       1
+PersistedFollow(	       1
