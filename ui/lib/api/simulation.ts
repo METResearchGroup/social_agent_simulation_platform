@@ -350,14 +350,6 @@ export async function getAgents(params?: {
   return apiAgents.map(mapAgent);
 }
 
-/** Returns mock agents for run-detail context (dummy runs). */
-export async function getMockAgents(): Promise<Agent[]> {
-  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
-    buildApiUrl('/simulations/agents/mock'),
-  );
-  return apiAgents.map(mapAgent);
-}
-
 export async function postAgent(body: {
   handle: string;
   display_name: string;

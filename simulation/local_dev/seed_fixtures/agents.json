@@ -1,0 +1,66 @@
+[
+  {
+    "agent_id": "agent_0240dc0d4a4c7e73",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Alice Chen",
+    "handle": "@alice.bsky.social",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_0c75608c7dd8e6c7",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Bob Martinez",
+    "handle": "@bob.tech",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_7b3e5a6b1b0394d1",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Charlie Kim",
+    "handle": "@charlie.dev",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_c2cf0fd46387f19a",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Diana Park",
+    "handle": "@diana.design",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_d5aaff22974ebc2c",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Edward Wu",
+    "handle": "@edward.data",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_ce3084ff7dd186dc",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Fiona Lee",
+    "handle": "@fiona.frontend",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_98a2ebefd3059f7e",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "George Thompson",
+    "handle": "@george.backend",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  },
+  {
+    "agent_id": "agent_10c2fc5dda9f71dc",
+    "created_at": "2025-01-01T00:00:00",
+    "display_name": "Hannah Rodriguez",
+    "handle": "@hannah.ai",
+    "persona_source": "sync_bluesky",
+    "updated_at": "2025-01-01T00:00:00"
+  }
+]
