@@ -255,17 +255,25 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     const loadRunDetails = async (): Promise<void> => {
       try {
         const details = await getRunDetails(runId);
-        if (!isMounted || requestId !== runDetailsRequestIdRef.current) return;
-        setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
+        const isStale = !isMounted || requestId !== runDetailsRequestIdRef.current;
+        if (!isStale) {
+          setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
+        }
       } catch (error: unknown) {
         console.error(`Failed to fetch run details for ${runId}:`, error);
-        if (!isMounted || requestId !== runDetailsRequestIdRef.current) return;
-        const apiError: ApiError =
-          error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
-        setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
+        const isStale = !isMounted || requestId !== runDetailsRequestIdRef.current;
+        if (!isStale) {
+          const apiError: ApiError =
+            error instanceof ApiError
+              ? error
+              : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+          setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
+        }
       } finally {
-        if (!isMounted || requestId !== runDetailsRequestIdRef.current) return;
-        setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
+        const isStale = !isMounted || requestId !== runDetailsRequestIdRef.current;
+        if (!isStale) {
+          setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
+        }
       }
     };
 
