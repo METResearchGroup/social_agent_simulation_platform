@@ -9,9 +9,9 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
 from feeds.algorithms.interfaces import FeedAlgorithmResult
 from feeds.feed_generator import _generate_feed, generate_feeds
-from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
+from tests.factories import AgentFactory, PostFactory
 
 
 @pytest.fixture
@@ -29,15 +29,14 @@ def mock_feed_post_repo():
 @pytest.fixture
 def sample_agent():
     """Fixture providing a sample SocialMediaAgent."""
-    return SocialMediaAgent(handle="test.bsky.social")
+    return AgentFactory.create(handle="test.bsky.social")
 
 
 @pytest.fixture
 def sample_posts():
     """Fixture providing sample BlueskyFeedPost objects."""
     return [
-        BlueskyFeedPost(
-            id="at://did:plc:test1/app.bsky.feed.post/post1",
+        PostFactory.create(
             uri="at://did:plc:test1/app.bsky.feed.post/post1",
             author_handle="author1.bsky.social",
             author_display_name="Author One",
@@ -49,8 +48,7 @@ def sample_posts():
             repost_count=0,
             created_at="2024-01-01T00:00:00Z",
         ),
-        BlueskyFeedPost(
-            id="at://did:plc:test2/app.bsky.feed.post/post2",
+        PostFactory.create(
             uri="at://did:plc:test2/app.bsky.feed.post/post2",
             author_handle="author2.bsky.social",
             author_display_name="Author Two",
@@ -62,8 +60,7 @@ def sample_posts():
             repost_count=2,
             created_at="2024-01-02T00:00:00Z",
         ),
-        BlueskyFeedPost(
-            id="at://did:plc:test3/app.bsky.feed.post/post3",
+        PostFactory.create(
             uri="at://did:plc:test3/app.bsky.feed.post/post3",
             author_handle="author3.bsky.social",
             author_display_name="Author Three",
@@ -120,8 +117,7 @@ class TestGenerateFeed:
         """Test that posts with identical created_at are ordered by uri (ascending)."""
         same_timestamp = "2024-01-02T00:00:00Z"
         posts_same_created_at = [
-            BlueskyFeedPost(
-                id="at://did:plc:z/app.bsky.feed.post/post_z",
+            PostFactory.create(
                 uri="at://did:plc:z/app.bsky.feed.post/post_z",
                 author_handle="author.bsky.social",
                 author_display_name="Author",
@@ -133,8 +129,7 @@ class TestGenerateFeed:
                 repost_count=0,
                 created_at=same_timestamp,
             ),
-            BlueskyFeedPost(
-                id="at://did:plc:a/app.bsky.feed.post/post_a",
+            PostFactory.create(
                 uri="at://did:plc:a/app.bsky.feed.post/post_a",
                 author_handle="author.bsky.social",
                 author_display_name="Author",
@@ -243,8 +238,8 @@ class TestGenerateFeeds:
         """Test that generate_feeds generates feeds for all agents."""
         # Arrange
         agents = [
-            SocialMediaAgent(handle="agent1.bsky.social"),
-            SocialMediaAgent(handle="agent2.bsky.social"),
+            AgentFactory.create(handle="agent1.bsky.social"),
+            AgentFactory.create(handle="agent2.bsky.social"),
         ]
         run_id = "run_123"
         turn_number = 0

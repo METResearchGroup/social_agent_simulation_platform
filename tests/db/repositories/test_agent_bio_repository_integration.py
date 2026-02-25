@@ -1,6 +1,7 @@
 """Integration tests for db.repositories.agent_bio_repository module."""
 
-from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
+from simulation.core.models.agent_bio import PersonaBioSource
+from tests.factories import AgentBioFactory
 
 
 class TestSQLiteAgentBioRepositoryIntegration:
@@ -9,8 +10,8 @@ class TestSQLiteAgentBioRepositoryIntegration:
     def test_create_and_get_latest_bio(self, agent_bio_repo, agent_in_db):
         """Test creating a bio and retrieving it as latest."""
         repo = agent_bio_repo
-        bio = AgentBio(
-            id="bio1",
+        bio = AgentBioFactory.create(
+            bio_id="bio1",
             agent_id=agent_in_db,
             persona_bio="AI-generated persona bio.",
             persona_bio_source=PersonaBioSource.AI_GENERATED,
@@ -28,24 +29,24 @@ class TestSQLiteAgentBioRepositoryIntegration:
         """Test that get_latest returns the most recent by created_at."""
         repo = agent_bio_repo
         repo.create_agent_bio(
-            AgentBio(
-                id="bio1",
+            AgentBioFactory.create(
+                bio_id="bio1",
                 agent_id=agent_in_db,
                 persona_bio="First bio",
                 persona_bio_source=PersonaBioSource.USER_PROVIDED,
                 created_at="2026_02_19-09:00:00",
                 updated_at="2026_02_19-09:00:00",
-            )
+            ),
         )
         repo.create_agent_bio(
-            AgentBio(
-                id="bio2",
+            AgentBioFactory.create(
+                bio_id="bio2",
                 agent_id=agent_in_db,
                 persona_bio="Second bio",
                 persona_bio_source=PersonaBioSource.AI_GENERATED,
                 created_at="2026_02_19-10:00:00",
                 updated_at="2026_02_19-10:00:00",
-            )
+            ),
         )
 
         latest = repo.get_latest_agent_bio(agent_in_db)
@@ -59,24 +60,24 @@ class TestSQLiteAgentBioRepositoryIntegration:
         """Test list_agent_bios returns bios in created_at DESC order."""
         repo = agent_bio_repo
         repo.create_agent_bio(
-            AgentBio(
-                id="first",
+            AgentBioFactory.create(
+                bio_id="first",
                 agent_id=agent_in_db,
                 persona_bio="First",
                 persona_bio_source=PersonaBioSource.USER_PROVIDED,
                 created_at="2026_02_19-09:00:00",
                 updated_at="2026_02_19-09:00:00",
-            )
+            ),
         )
         repo.create_agent_bio(
-            AgentBio(
-                id="second",
+            AgentBioFactory.create(
+                bio_id="second",
                 agent_id=agent_in_db,
                 persona_bio="Second",
                 persona_bio_source=PersonaBioSource.AI_GENERATED,
                 created_at="2026_02_19-10:00:00",
                 updated_at="2026_02_19-10:00:00",
-            )
+            ),
         )
 
         bios = repo.list_agent_bios(agent_in_db)

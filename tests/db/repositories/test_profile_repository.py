@@ -9,6 +9,7 @@ from db.adapters.base import ProfileDatabaseAdapter
 from db.repositories.profile_repository import SQLiteProfileRepository
 from simulation.core.models.profiles import BlueskyProfile
 from tests.db.repositories.conftest import make_mock_transaction_provider
+from tests.factories import BlueskyProfileFactory
 
 
 class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
@@ -22,7 +23,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Test User",
@@ -49,7 +50,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="another.bsky.social",
             did="did:plc:another456",
             display_name="Another User",
@@ -78,7 +79,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Test User",
@@ -105,7 +106,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="",
                 did="did:plc:test123",
                 display_name="Test User",
@@ -122,7 +123,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="   ",
                 did="did:plc:test123",
                 display_name="Test User",
@@ -143,7 +144,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Test User",
@@ -170,7 +171,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="specific.bsky.social",
             did="did:plc:test123",
             display_name="Test User",
@@ -197,7 +198,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Test User",
@@ -227,7 +228,7 @@ class TestSQLiteProfileRepositoryGetProfile:
             transaction_provider=make_mock_transaction_provider(),
         )
         handle = "test.bsky.social"
-        expected = BlueskyProfile(
+        expected = BlueskyProfileFactory.create(
             handle=handle,
             did="did:plc:test123",
             display_name="Test User",
@@ -302,7 +303,7 @@ class TestSQLiteProfileRepositoryGetProfile:
             transaction_provider=make_mock_transaction_provider(),
         )
         handle = "test.bsky.social"
-        expected = BlueskyProfile(
+        expected = BlueskyProfileFactory.create(
             handle=handle,
             did="did:plc:test123",
             display_name="Test User With Long Name",
@@ -393,7 +394,7 @@ class TestSQLiteProfileRepositoryListProfiles:
             transaction_provider=make_mock_transaction_provider(),
         )
         expected = [
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="user1.bsky.social",
                 did="did:plc:user1",
                 display_name="User 1",
@@ -402,7 +403,7 @@ class TestSQLiteProfileRepositoryListProfiles:
                 follows_count=50,
                 posts_count=25,
             ),
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="user2.bsky.social",
                 did="did:plc:user2",
                 display_name="User 2",
@@ -433,7 +434,7 @@ class TestSQLiteProfileRepositoryListProfiles:
             transaction_provider=make_mock_transaction_provider(),
         )
         expected = [
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="first.bsky.social",
                 did="did:plc:first",
                 display_name="First User",
@@ -442,7 +443,7 @@ class TestSQLiteProfileRepositoryListProfiles:
                 follows_count=50,
                 posts_count=25,
             ),
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="second.bsky.social",
                 did="did:plc:second",
                 display_name="Second User",
@@ -487,7 +488,7 @@ class TestSQLiteProfileRepositoryListProfiles:
             transaction_provider=make_mock_transaction_provider(),
         )
         expected = [
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle=f"user{i}.bsky.social",
                 did=f"did:plc:user{i}",
                 display_name=f"User {i}",

@@ -20,9 +20,8 @@ from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import (
     ComputedMetricResult,
     ComputedMetrics,
-    TurnMetrics,
 )
-from simulation.core.models.turns import TurnMetadata
+from tests.factories import TurnMetadataFactory, TurnMetricsFactory
 
 _INT_ADAPTER = TypeAdapter(int)
 _COUNTS_ADAPTER = TypeAdapter(dict[str, int])
@@ -315,7 +314,7 @@ def test_built_in_metrics_validate_and_serialize():
 
     run_id = "run_x"
     run_repo.get_run.return_value = object()
-    run_repo.get_turn_metadata.return_value = TurnMetadata(
+    run_repo.get_turn_metadata.return_value = TurnMetadataFactory.create(
         run_id=run_id,
         turn_number=0,
         total_actions={
@@ -341,7 +340,7 @@ def test_built_in_metrics_validate_and_serialize():
         turn_metric_keys=["turn.actions.total"],
     )
     json.dumps(turn_metrics_dict)  # should not raise
-    TurnMetrics(
+    TurnMetricsFactory.create(
         run_id=run_id,
         turn_number=0,
         metrics=turn_metrics_dict,

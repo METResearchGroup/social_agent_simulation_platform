@@ -10,9 +10,8 @@ from db.services.simulation_persistence_service import (
     create_simulation_persistence_service,
 )
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import RunStatus
-from simulation.core.models.turns import TurnMetadata
+from tests.factories import RunMetricsFactory, TurnMetadataFactory, TurnMetricsFactory
 
 
 @pytest.fixture
@@ -55,7 +54,7 @@ def mock_follow_repo():
 
 @pytest.fixture
 def sample_turn_metadata():
-    return TurnMetadata(
+    return TurnMetadataFactory.create(
         run_id="run_1",
         turn_number=0,
         total_actions={
@@ -69,7 +68,7 @@ def sample_turn_metadata():
 
 @pytest.fixture
 def sample_turn_metrics():
-    return TurnMetrics(
+    return TurnMetricsFactory.create(
         run_id="run_1",
         turn_number=0,
         metrics={"turn.actions.total": 1},
@@ -79,7 +78,7 @@ def sample_turn_metrics():
 
 @pytest.fixture
 def sample_run_metrics():
-    return RunMetrics(
+    return RunMetricsFactory.create(
         run_id="run_1",
         metrics={"run.actions.total": 10},
         created_at="2026-01-01T00:00:00",

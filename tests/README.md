@@ -74,6 +74,20 @@ tests/
 └── README.md
 ```
 
+## Factories (recommended)
+
+Reusable factories live in `tests/factories/`.
+
+Examples:
+
+```python
+from tests.factories import PostFactory, RunConfigFactory
+
+post = PostFactory.create()
+posts = PostFactory.create_batch(10)
+config = RunConfigFactory.create(num_agents=5, num_turns=10)
+```
+
 ## Test Standards
 
 All tests follow the project's testing standards:
