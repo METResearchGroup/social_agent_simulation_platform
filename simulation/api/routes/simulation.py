@@ -28,10 +28,10 @@ from simulation.api.services.agent_command_service import create_agent
 from simulation.api.services.agent_query_service import list_agents, list_agents_dummy
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
-    get_posts_by_uris_db,
+    get_posts_by_uris,
     get_run_details,
-    get_turns_for_run_db,
-    list_runs_db,
+    get_turns_for_run,
+    list_runs,
 )
 from simulation.core.exceptions import (
     HandleAlreadyExistsError,
@@ -320,7 +320,8 @@ async def _execute_get_simulation_posts(
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_posts_by_uris_db, uris=uris)
+        engine = request.app.state.engine
+        return await asyncio.to_thread(get_posts_by_uris, uris=uris, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")
         return _error_response(
@@ -339,7 +340,7 @@ async def _execute_get_simulation_runs(
     try:
         engine = request.app.state.engine
         # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(list_runs_db, engine=engine)
+        return await asyncio.to_thread(list_runs, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
         return _error_response(
@@ -452,8 +453,8 @@ async def _execute_get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
     try:
-        # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(get_turns_for_run_db, run_id=run_id)
+        engine = request.app.state.engine
+        return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
     except RunNotFoundError as e:
         return _error_response(
             status_code=404,

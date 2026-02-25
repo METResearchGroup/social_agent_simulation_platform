@@ -2,12 +2,6 @@
 
 from __future__ import annotations
 
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider
-from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
-from db.repositories.generated_feed_repository import (
-    create_sqlite_generated_feed_repository,
-)
-from db.repositories.run_repository import create_sqlite_repository
 from lib.validation_decorators import validate_inputs
 from simulation.api.dummy_data import DUMMY_POSTS, DUMMY_RUNS, DUMMY_TURNS
 from simulation.api.schemas.simulation import (
@@ -30,7 +24,7 @@ from simulation.core.validators import validate_run_exists, validate_run_id
 MAX_UNFILTERED_POSTS: int = 500
 
 
-def list_runs_db(*, engine: SimulationEngine) -> list[RunListItem]:
+def list_runs(*, engine: SimulationEngine) -> list[RunListItem]:
     """List persisted runs from the database, newest first."""
     runs: list[Run] = engine.list_runs()
     runs_sorted = sorted(runs, key=lambda r: r.created_at, reverse=True)
@@ -46,27 +40,27 @@ def list_runs_db(*, engine: SimulationEngine) -> list[RunListItem]:
     ]
 
 
-def get_turns_for_run_db(*, run_id: str) -> dict[str, TurnSchema]:
+def get_turns_for_run(
+    *, run_id: str, engine: SimulationEngine
+) -> dict[str, TurnSchema]:
     """Build TurnSchema payloads from persisted turn metadata + generated feeds.
 
     Note: agent_actions are currently not persisted in SQLite. This endpoint returns
     an empty agent_actions mapping for now.
     """
-    provider = SqliteTransactionProvider()
-    run_repo = create_sqlite_repository(transaction_provider=provider)
-    feed_repo = create_sqlite_generated_feed_repository(transaction_provider=provider)
-
     validated_run_id = validate_run_id(run_id)
-    run = run_repo.get_run(validated_run_id)
+    run = engine.run_repo.get_run(validated_run_id)
     if run is None:
         raise RunNotFoundError(validated_run_id)
 
-    metadata_list = run_repo.list_turn_metadata(validated_run_id)
+    metadata_list = engine.run_repo.list_turn_metadata(validated_run_id)
     metadata_sorted = sorted(metadata_list, key=lambda m: m.turn_number)
 
     turns: dict[str, TurnSchema] = {}
     for item in metadata_sorted:
-        feeds = feed_repo.read_feeds_for_turn(validated_run_id, item.turn_number)
+        feeds = engine.generated_feed_repo.read_feeds_for_turn(
+            validated_run_id, item.turn_number
+        )
         agent_feeds = {
             feed.agent_handle: FeedSchema(
                 feed_id=feed.feed_id,
@@ -101,19 +95,18 @@ def _post_to_schema(post: BlueskyFeedPost) -> PostSchema:
     )
 
 
-def get_posts_by_uris_db(*, uris: list[str] | None = None) -> list[PostSchema]:
+def get_posts_by_uris(
+    *, uris: list[str] | None = None, engine: SimulationEngine
+) -> list[PostSchema]:
     """Return posts from the database.
 
     If uris is None/empty, returns up to MAX_UNFILTERED_POSTS posts.
     """
-    provider = SqliteTransactionProvider()
-    post_repo = create_sqlite_feed_post_repository(transaction_provider=provider)
-
     posts: list[BlueskyFeedPost]
     if not uris:
-        posts = post_repo.list_all_feed_posts()[:MAX_UNFILTERED_POSTS]
+        posts = engine.feed_post_repo.list_all_feed_posts()[:MAX_UNFILTERED_POSTS]
     else:
-        posts = post_repo.read_feed_posts_by_uris(uris)
+        posts = engine.feed_post_repo.read_feed_posts_by_uris(uris)
 
     return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.uri)]
 
