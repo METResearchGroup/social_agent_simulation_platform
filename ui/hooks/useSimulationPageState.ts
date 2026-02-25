@@ -18,6 +18,8 @@ const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_TURNS_LOADING: Record<string, boolean> = {};
 const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
+const EMPTY_RUN_DETAILS_LOADING: Record<string, boolean> = {};
+const EMPTY_RUN_DETAILS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
 
 /**
@@ -96,10 +98,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [runConfigs, setRunConfigs] = useState<Record<string, RunConfig>>(EMPTY_RUN_CONFIGS);
   const [runDetailsLoadingByRunId, setRunDetailsLoadingByRunId] = useState<
     Record<string, boolean>
-  >({});
+  >(EMPTY_RUN_DETAILS_LOADING);
   const [runDetailsErrorByRunId, setRunDetailsErrorByRunId] = useState<
     Record<string, ApiError | null>
-  >({});
+  >(EMPTY_RUN_DETAILS_ERROR);
   const [newRunTurns] = useState<Record<string, Record<string, Turn>>>(EMPTY_NEW_RUN_TURNS);
   const [fallbackTurns, setFallbackTurns] = useState<Record<string, Record<string, Turn>>>(
     EMPTY_FALLBACK_TURNS,
