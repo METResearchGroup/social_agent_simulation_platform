@@ -12,10 +12,10 @@ from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.constants import (
     DEFAULT_AGENT_LIST_LIMIT,
     DEFAULT_AGENT_LIST_OFFSET,
+    DEFAULT_SIMULATION_CONFIG,
     MAX_AGENT_LIST_LIMIT,
 )
 from simulation.api.dependencies.auth import require_auth
-from simulation.api.dummy_data import get_default_config_dummy
 from simulation.api.schemas.simulation import (
     AgentSchema,
     CreateAgentRequest,
@@ -30,13 +30,13 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.api.services.agent_command_service import create_agent
-from simulation.api.services.agent_query_service import list_agents, list_agents_dummy
+from simulation.api.services.agent_query_service import list_agents
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
-    get_posts_by_uris_dummy,
+    get_posts_by_uris,
     get_run_details,
-    get_turns_for_run_dummy,
-    list_runs_dummy,
+    get_turns_for_run,
+    list_runs,
 )
 from simulation.core.exceptions import (
     HandleAlreadyExistsError,
@@ -53,7 +53,6 @@ SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
-SIMULATION_AGENTS_MOCK_ROUTE: str = "GET /v1/simulations/agents/mock"
 SIMULATION_AGENTS_CREATE_ROUTE: str = "POST /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
@@ -110,21 +109,6 @@ async def get_simulation_config_default(
     return await _execute_get_default_config(request)
 
 
-@router.get(
-    "/simulations/agents/mock",
-    response_model=list[AgentSchema],
-    status_code=200,
-    summary="List mock simulation agents",
-    description="Return dummy agent list for run-detail context (mock runs).",
-)
-@log_route_completion_decorator(route=SIMULATION_AGENTS_MOCK_ROUTE, success_type=list)
-async def get_simulation_agents_mock(
-    request: Request,
-) -> list[AgentSchema] | Response:
-    """Return mock agents for run detail view."""
-    return await _execute_get_simulation_agents_mock(request)
-
-
 @router.post(
     "/simulations/agents",
     response_model=AgentSchema,
@@ -178,7 +162,7 @@ async def get_simulation_agents(
 )
 @log_route_completion_decorator(route=SIMULATION_RUNS_ROUTE, success_type=list)
 async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
-    """Return all simulation runs from the backend dummy source."""
+    """Return all simulation runs from the database (app engine backed by SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_runs(request)
 
 
@@ -233,7 +217,7 @@ async def get_simulation_posts(
     request: Request,
     uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
 ) -> list[PostSchema] | Response:
-    """Return posts from the backend dummy source."""
+    """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_posts(request, uris=uris)
 
 
@@ -250,7 +234,7 @@ async def get_simulation_posts(
 async def get_simulation_run_turns(
     request: Request, run_id: str
 ) -> dict[str, TurnSchema] | Response:
-    """Return turn payload for a run from the backend dummy source."""
+    """Return turn payload for a run from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_run_turns(request, run_id=run_id)
 
 
@@ -320,7 +304,7 @@ async def _execute_get_default_config(
 ) -> DefaultConfigSchema | Response:
     """Fetch default config and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_default_config_dummy)
+        return DEFAULT_SIMULATION_CONFIG
     except Exception:
         logger.exception("Unexpected error while fetching default config")
         return _error_response(
@@ -339,7 +323,8 @@ async def _execute_get_simulation_posts(
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_posts_by_uris_dummy, uris=uris)
+        engine = request.app.state.engine
+        return await asyncio.to_thread(get_posts_by_uris, uris=uris, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")
         return _error_response(
@@ -354,29 +339,13 @@ async def _execute_get_simulation_posts(
 async def _execute_get_simulation_runs(
     request: Request,
 ) -> list[RunListItem] | Response:
-    """Fetch run summaries and convert unexpected failures to HTTP responses."""
+    """Fetch run summaries from the database and convert failures to HTTP responses."""
     try:
+        engine = request.app.state.engine
         # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(list_runs_dummy)
+        return await asyncio.to_thread(list_runs, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
-        return _error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
-
-
-@timed(attach_attr="duration_ms", log_level=None)
-async def _execute_get_simulation_agents_mock(
-    request: Request,
-) -> list[AgentSchema] | Response:
-    """Fetch mock agent list for run-detail context."""
-    try:
-        return await asyncio.to_thread(list_agents_dummy)
-    except Exception:
-        logger.exception("Unexpected error while listing mock agents")
         return _error_response(
             status_code=500,
             code="INTERNAL_ERROR",
@@ -473,8 +442,8 @@ async def _execute_get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
     try:
-        # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(get_turns_for_run_dummy, run_id=run_id)
+        engine = request.app.state.engine
+        return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
     except RunNotFoundError as e:
         return _error_response(
             status_code=404,

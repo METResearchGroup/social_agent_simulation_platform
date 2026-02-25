@@ -7,19 +7,27 @@ This module provides SQLite-specific infrastructure functions:
 """
 
 import contextlib
+import logging
 import os
 import sqlite3
 from typing import Any
 
 from db.adapters.base import TransactionProvider
 from lib.constants import REPO_ROOT
+from lib.env_utils import is_local_mode
 
 SIM_DB_PATH_ENV: str = "SIM_DB_PATH"
 DB_PATH = os.path.join(REPO_ROOT, "db", "db.sqlite")
+LOCAL_DEV_DB_FILENAME: str = "dev_dummy_data_db.sqlite"
+LOCAL_DEV_DB_PATH: str = os.path.join(REPO_ROOT, "db", LOCAL_DEV_DB_FILENAME)
+
+logger = logging.getLogger(__name__)
 
 
 def get_db_path() -> str:
-    """Return the runtime SQLite path, preferring SIM_DB_PATH when set."""
+    """Return the runtime SQLite path."""
+    if is_local_mode():
+        return _override_custom_db_path()
     configured_path = os.environ.get(SIM_DB_PATH_ENV)
     if configured_path:
         return configured_path
@@ -171,9 +179,25 @@ def initialize_database() -> None:
 
     old_sim_db_path = os.environ.get("SIM_DB_PATH")
     old_sim_db_url = os.environ.get("SIM_DATABASE_URL")
-    if old_sim_db_url is None and old_sim_db_path is None:
+    if is_local_mode():
+        _override_custom_db_path()
+    elif old_sim_db_url is None and old_sim_db_path is None:
         os.environ["SIM_DB_PATH"] = db_path
     try:
         _apply_migrations(cfg, has_version, has_tables)
     finally:
         _restore_sim_db_env(old_sim_db_path, old_sim_db_url)
+
+
+def _override_custom_db_path():
+    configured_path = os.environ.get(SIM_DB_PATH_ENV)
+    if configured_path:
+        logger.warning(
+            "LOCAL=true overrides %s=%s; using %s",
+            SIM_DB_PATH_ENV,
+            configured_path,
+            LOCAL_DEV_DB_PATH,
+        )
+    os.environ["SIM_DB_PATH"] = LOCAL_DEV_DB_PATH
+    os.environ.pop("SIM_DATABASE_URL", None)
+    return LOCAL_DEV_DB_PATH

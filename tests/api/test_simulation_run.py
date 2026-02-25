@@ -1,13 +1,13 @@
 """Tests for POST /v1/simulations/run endpoint."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from lib.timestamp_utils import get_current_timestamp
-from simulation.api.dummy_data import DUMMY_RUNS, DUMMY_TURNS
 from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
+from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.runs import Run, RunStatus
+from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 
 
@@ -363,43 +363,90 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     assert data["error"]["detail"] is expected_result["error_detail"]
 
 
-def test_get_simulations_runs_returns_dummy_run_list(simulation_client):
-    """GET /v1/simulations/runs returns dummy run summaries from backend."""
+def test_get_simulations_runs_returns_persisted_runs_newest_first(
+    simulation_client,
+    run_repo,
+):
+    """GET /v1/simulations/runs returns persisted run summaries, newest first."""
+    import db.repositories.run_repository as run_repository_module
+
+    with patch.object(
+        run_repository_module,
+        "get_current_timestamp",
+        side_effect=["2026_01_01-00:00:00", "2026_01_02-00:00:00"],
+    ):
+        older_run = run_repo.create_run(
+            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+        )
+        newer_run = run_repo.create_run(
+            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+        )
+
     client, _ = simulation_client
     response = client.get("/v1/simulations/runs")
 
     expected_result = {"status_code": 200}
     assert response.status_code == expected_result["status_code"]
     data = response.json()
-    sorted_run_ids = [
-        run.run_id
-        for run in sorted(
-            DUMMY_RUNS,
-            key=lambda run: run.created_at,
-            reverse=True,
-        )
-    ]
-    expected_result = {
-        "count": len(DUMMY_RUNS),
-        "first_run_id": sorted_run_ids[0],
-    }
-    assert len(data) == expected_result["count"]
-    assert data[0]["run_id"] == expected_result["first_run_id"]
+    assert len(data) == 2
+    assert data[0]["run_id"] == newer_run.run_id
+    assert data[1]["run_id"] == older_run.run_id
     assert "total_turns" in data[0]
     assert "total_agents" in data[0]
 
 
-def test_get_simulations_run_turns_returns_turn_map(simulation_client):
+def test_get_simulations_run_turns_returns_turn_map(
+    simulation_client,
+    run_repo,
+    generated_feed_repo,
+):
     """GET /v1/simulations/runs/{run_id}/turns returns turn payload map."""
+    run = run_repo.create_run(
+        RunConfig(num_agents=1, num_turns=2, feed_algorithm="chronological")
+    )
+    run_repo.write_turn_metadata(
+        TurnMetadata(
+            run_id=run.run_id,
+            turn_number=0,
+            total_actions={
+                TurnAction.LIKE: 1,
+                TurnAction.COMMENT: 0,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at="2026-01-01T00:00:00.000Z",
+        )
+    )
+    run_repo.write_turn_metadata(
+        TurnMetadata(
+            run_id=run.run_id,
+            turn_number=1,
+            total_actions={
+                TurnAction.LIKE: 0,
+                TurnAction.COMMENT: 0,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at="2026-01-01T00:01:00.000Z",
+        )
+    )
+    generated_feed_repo.write_generated_feed(
+        GeneratedFeed(
+            feed_id="feed-1",
+            run_id=run.run_id,
+            turn_number=0,
+            agent_handle="test.agent",
+            post_uris=["at://did:plc:example1/post1"],
+            created_at="2026-01-01T00:00:00.000Z",
+        )
+    )
+
     client, _ = simulation_client
-    run_id = DUMMY_RUNS[0].run_id
-    response = client.get(f"/v1/simulations/runs/{run_id}/turns")
+    response = client.get(f"/v1/simulations/runs/{run.run_id}/turns")
 
     expected_result = {"status_code": 200}
     assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
-        "turn_count": len(DUMMY_TURNS[run_id]),
+        "turn_count": 2,
         "first_turn_key": "0",
     }
     assert len(data) == expected_result["turn_count"]

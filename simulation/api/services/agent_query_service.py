@@ -11,7 +11,6 @@ from db.repositories.interfaces import (
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
-from simulation.api.dummy_data import DUMMY_AGENTS
 from simulation.api.schemas.simulation import AgentSchema
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
@@ -94,8 +93,3 @@ def _agent_to_schema(
         following=follows,
         posts_count=posts_count,
     )
-
-
-def list_agents_dummy() -> list[AgentSchema]:
-    """Return deterministic dummy agent list for run-detail mock endpoint, sorted by handle."""
-    return sorted(DUMMY_AGENTS, key=lambda a: a.handle)
