@@ -2,14 +2,16 @@
 
 from jobs.migrate_agents_to_new_schema import main
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.models.generated.base import GenerationMetadata
-from simulation.core.models.generated.bio import GeneratedBio
-from simulation.core.models.profiles import BlueskyProfile
+from tests.factories import (
+    BlueskyProfileFactory,
+    GeneratedBioFactory,
+    GenerationMetadataFactory,
+)
 
 
 def _seed_legacy_data(profile_repo, generated_bio_repo) -> None:
     """Populate bluesky_profiles and agent_bios (legacy) for migration."""
-    profile1 = BlueskyProfile(
+    profile1 = BlueskyProfileFactory.create(
         handle="alice.bsky.social",
         did="did:plc:alice123",
         display_name="Alice",
@@ -20,7 +22,7 @@ def _seed_legacy_data(profile_repo, generated_bio_repo) -> None:
     )
     profile_repo.create_or_update_profile(profile1)
 
-    profile2 = BlueskyProfile(
+    profile2 = BlueskyProfileFactory.create(
         handle="bob.bsky.social",
         did="did:plc:bob456",
         display_name="Bob",
@@ -32,10 +34,10 @@ def _seed_legacy_data(profile_repo, generated_bio_repo) -> None:
     profile_repo.create_or_update_profile(profile2)
 
     generated_bio_repo.create_or_update_generated_bio(
-        GeneratedBio(
+        GeneratedBioFactory.create(
             handle="alice.bsky.social",
             generated_bio="AI-generated comprehensive bio for Alice.",
-            metadata=GenerationMetadata(
+            metadata=GenerationMetadataFactory.create(
                 model_used=None,
                 generation_metadata=None,
                 created_at=get_current_timestamp(),

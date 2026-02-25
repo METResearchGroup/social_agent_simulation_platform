@@ -8,8 +8,7 @@ from simulation.api.schemas.simulation import RunRequest
 from simulation.api.services.run_execution_service import execute
 from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.metrics import TurnMetrics
-from simulation.core.models.turns import TurnMetadata
+from tests.factories import TurnMetadataFactory, TurnMetricsFactory
 
 
 def test_execute_raises_inconsistent_turn_data_on_mismatched_turn_sets():
@@ -23,7 +22,7 @@ def test_execute_raises_inconsistent_turn_data_on_mismatched_turn_sets():
     )
     # Metadata for turns 0 and 1, metrics only for turn 0 -> mismatch
     metadata_list = [
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id="run-mismatch-1",
             turn_number=0,
             total_actions={
@@ -33,7 +32,7 @@ def test_execute_raises_inconsistent_turn_data_on_mismatched_turn_sets():
             },
             created_at="2026-01-01T00:00:00",
         ),
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id="run-mismatch-1",
             turn_number=1,
             total_actions={
@@ -45,7 +44,7 @@ def test_execute_raises_inconsistent_turn_data_on_mismatched_turn_sets():
         ),
     ]
     turn_metrics_list = [
-        TurnMetrics(
+        TurnMetricsFactory.create(
             run_id="run-mismatch-1",
             turn_number=0,
             metrics={"turn.actions.total": 0},

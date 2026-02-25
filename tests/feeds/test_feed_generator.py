@@ -9,10 +9,9 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
 from feeds.algorithms.interfaces import FeedAlgorithmResult
 from feeds.feed_generator import _generate_feed, generate_feeds
-from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import BlueskyFeedPost
-from tests.factories import PostFactory
+from tests.factories import AgentFactory, PostFactory
 
 
 @pytest.fixture
@@ -30,7 +29,7 @@ def mock_feed_post_repo():
 @pytest.fixture
 def sample_agent():
     """Fixture providing a sample SocialMediaAgent."""
-    return SocialMediaAgent(handle="test.bsky.social")
+    return AgentFactory.create(handle="test.bsky.social")
 
 
 @pytest.fixture
@@ -239,8 +238,8 @@ class TestGenerateFeeds:
         """Test that generate_feeds generates feeds for all agents."""
         # Arrange
         agents = [
-            SocialMediaAgent(handle="agent1.bsky.social"),
-            SocialMediaAgent(handle="agent2.bsky.social"),
+            AgentFactory.create(handle="agent1.bsky.social"),
+            AgentFactory.create(handle="agent2.bsky.social"),
         ]
         run_id = "run_123"
         turn_number = 0

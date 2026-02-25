@@ -119,8 +119,8 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyFeedPost(
-                id="",
+            PostFactory.create(
+                post_id="",
                 uri="",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
@@ -140,8 +140,8 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyFeedPost(
-                id="   ",
+            PostFactory.create(
+                post_id="   ",
                 uri="   ",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
@@ -267,24 +267,11 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
         """Test that creating BlueskyFeedPost with empty uri raises ValidationError from Pydantic."""
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
-        # The second post will fail validation when created
+        # The post will fail validation when created
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyFeedPost(
-                id="at://did:plc:test1/app.bsky.feed.post/test1",
-                uri="at://did:plc:test1/app.bsky.feed.post/test1",
-                author_display_name="User 1",
-                author_handle="user1.bsky.social",
-                text="Post 1 content",
-                bookmark_count=1,
-                like_count=10,
-                quote_count=2,
-                reply_count=3,
-                repost_count=1,
-                created_at="2024-01-01T00:00:00Z",
-            )
-            BlueskyFeedPost(
-                id="",  # Empty URI
-                uri="",  # Empty URI
+            PostFactory.create(
+                post_id="",
+                uri="",
                 author_display_name="User 2",
                 author_handle="user2.bsky.social",
                 text="Post 2 content",

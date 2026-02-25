@@ -2,131 +2,29 @@
 
 from unittest.mock import MagicMock, patch
 
-from lib.timestamp_utils import get_current_timestamp
 from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.runs import RunStatus
 from tests.factories import (
+    EngineFactory,
+    GeneratedFeedFactory,
     RunConfigFactory,
     RunFactory,
-    RunMetricsFactory,
     TurnMetadataFactory,
     TurnMetricsFactory,
 )
 
 
-def _make_mock_engine_for_completed_run(
-    *,
-    fastapi_app,
-    run_id: str,
-    total_turns: int,
-    total_agents: int,
-) -> MagicMock:
-    created_at = get_current_timestamp()
-    run = RunFactory.create(
-        run_id=run_id,
-        created_at=created_at,
-        total_turns=total_turns,
-        total_agents=total_agents,
-        feed_algorithm="chronological",
-        metric_keys=[
-            "run.actions.total",
-            "run.actions.total_by_type",
-            "turn.actions.counts_by_type",
-            "turn.actions.total",
-        ],
-        started_at=created_at,
-        status=RunStatus.COMPLETED,
-        completed_at=created_at,
-    )
-    metadata_list = [
-        TurnMetadataFactory.create(
-            run_id=run_id,
-            turn_number=i,
-            total_actions={
-                TurnAction.LIKE: 0,
-                TurnAction.COMMENT: 0,
-                TurnAction.FOLLOW: 0,
-            },
-            created_at=created_at,
-        )
-        for i in range(total_turns)
-    ]
-    turn_metrics_list = [
-        TurnMetricsFactory.create(
-            run_id=run_id,
-            turn_number=i,
-            metrics={"turn.actions.total": 0},
-            created_at=created_at,
-        )
-        for i in range(total_turns)
-    ]
-    run_metrics = RunMetricsFactory.create(
-        run_id=run_id,
-        metrics={"run.actions.total": 0},
-        created_at=created_at,
-    )
-    mock_engine = MagicMock()
-    mock_engine.execute_run.return_value = run
-    mock_engine.list_turn_metadata.return_value = metadata_list
-    mock_engine.list_turn_metrics.return_value = turn_metrics_list
-    mock_engine.get_run_metrics.return_value = run_metrics
-    fastapi_app.state.engine = mock_engine
-    return mock_engine
-
-
 def test_post_simulations_run_success_returns_completed_and_metrics(simulation_client):
     """Success run returns 200 with status completed and per-turn metrics."""
     client, fastapi_app = simulation_client
-    created_at = get_current_timestamp()
-    run = RunFactory.create(
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-success-1",
-        created_at=created_at,
         total_turns=1,
         total_agents=1,
-        feed_algorithm="chronological",
-        metric_keys=[
-            "run.actions.total",
-            "run.actions.total_by_type",
-            "turn.actions.counts_by_type",
-            "turn.actions.total",
-        ],
-        started_at=created_at,
-        status=RunStatus.COMPLETED,
-        completed_at=created_at,
     )
-    metadata_list = [
-        TurnMetadataFactory.create(
-            run_id=run.run_id,
-            turn_number=0,
-            total_actions={
-                TurnAction.LIKE: 0,
-                TurnAction.COMMENT: 0,
-                TurnAction.FOLLOW: 0,
-            },
-            created_at=run.created_at,
-        ),
-    ]
-    turn_metrics_list = [
-        TurnMetricsFactory.create(
-            run_id=run.run_id,
-            turn_number=0,
-            metrics={"turn.actions.total": 0},
-            created_at=run.created_at,
-        )
-    ]
-    run_metrics = RunMetricsFactory.create(
-        run_id=run.run_id,
-        metrics={"run.actions.total": 0},
-        created_at=run.created_at,
-    )
-    mock_engine = MagicMock()
-    mock_engine.execute_run.return_value = run
-    mock_engine.list_turn_metadata.return_value = metadata_list
-    mock_engine.list_turn_metrics.return_value = turn_metrics_list
-    mock_engine.get_run_metrics.return_value = run_metrics
     fastapi_app.state.engine = mock_engine
+    run = mock_engine.execute_run.return_value
     response = client.post(
         "/v1/simulations/run",
         json={"num_agents": 1, "num_turns": 1},
@@ -162,12 +60,12 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
 def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_client):
     """Request with only num_agents uses default num_turns=10 and feed_algorithm=chronological."""
     client, fastapi_app = simulation_client
-    mock_engine = _make_mock_engine_for_completed_run(
-        fastapi_app=fastapi_app,
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-defaults-1",
         total_turns=10,
         total_agents=1,
     )
+    fastapi_app.state.engine = mock_engine
     run = mock_engine.execute_run.return_value
     response = client.post(
         "/v1/simulations/run",
@@ -190,12 +88,12 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
 def test_post_simulations_run_passes_feed_algorithm_config_to_engine(simulation_client):
     """Request with feed_algorithm_config passes config into RunConfig used by engine."""
     client, fastapi_app = simulation_client
-    mock_engine = _make_mock_engine_for_completed_run(
-        fastapi_app=fastapi_app,
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-config-1",
         total_turns=10,
         total_agents=1,
     )
+    fastapi_app.state.engine = mock_engine
 
     feed_algorithm_config = {"order": "oldest_first"}
     response = client.post(
@@ -441,7 +339,7 @@ def test_get_simulations_run_turns_returns_turn_map(
         )
     )
     generated_feed_repo.write_generated_feed(
-        GeneratedFeed(
+        GeneratedFeedFactory.create(
             feed_id="feed-1",
             run_id=run.run_id,
             turn_number=0,

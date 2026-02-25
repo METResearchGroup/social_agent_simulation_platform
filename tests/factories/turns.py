@@ -1,9 +1,25 @@
 from __future__ import annotations
 
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.turns import TurnMetadata, TurnResult
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
+
+
+class TurnResultFactory(BaseFactory[TurnResult]):
+    @classmethod
+    def create(
+        cls,
+        *,
+        turn_number: int = 0,
+        total_actions: dict[TurnAction, int] | None = None,
+        execution_time_ms: int | None = None,
+    ) -> TurnResult:
+        return TurnResult(
+            turn_number=turn_number,
+            total_actions=total_actions or {},
+            execution_time_ms=execution_time_ms,
+        )
 
 
 class TurnMetadataFactory(BaseFactory[TurnMetadata]):

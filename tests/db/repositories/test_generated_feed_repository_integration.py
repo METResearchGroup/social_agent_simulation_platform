@@ -6,8 +6,8 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 from pydantic import ValidationError
 
-from simulation.core.models.feeds import GeneratedFeed
 from tests.db.repositories.conftest import ensure_run_exists
+from tests.factories import GeneratedFeedFactory
 
 
 class TestSQLiteGeneratedFeedRepositoryIntegration:
@@ -17,7 +17,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         """Test creating a generated feed and reading it back from the database."""
         repo = generated_feed_repo
         ensure_run_exists("run_123")
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="feed_test123",
             run_id="run_123",
             turn_number=1,
@@ -48,7 +48,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         ensure_run_exists("run_123")
 
         # Create initial feed
-        initial_feed = GeneratedFeed(
+        initial_feed = GeneratedFeedFactory.create(
             feed_id="feed_initial",
             run_id="run_123",
             turn_number=1,
@@ -59,7 +59,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         repo.write_generated_feed(initial_feed)
 
         # Update the feed (same composite key, different feed_id and post_uris)
-        updated_feed = GeneratedFeed(
+        updated_feed = GeneratedFeedFactory.create(
             feed_id="feed_updated",
             run_id="run_123",
             turn_number=1,
@@ -101,7 +101,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         for i in range(1, 4):
             ensure_run_exists(f"run_{i}")
         feeds = [
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id=f"feed_test{i}",
                 run_id=f"run_{i}",
                 turn_number=i,
@@ -153,7 +153,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         ensure_run_exists("run_1")
         ensure_run_exists("run_2")
 
-        feed1 = GeneratedFeed(
+        feed1 = GeneratedFeedFactory.create(
             feed_id="feed_1",
             run_id="run_1",
             turn_number=1,
@@ -161,7 +161,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
-        feed2 = GeneratedFeed(
+        feed2 = GeneratedFeedFactory.create(
             feed_id="feed_2",
             run_id="run_1",
             turn_number=2,
@@ -169,7 +169,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_uris=["at://did:plc:test2/app.bsky.feed.post/post2"],
             created_at="2024-01-02T00:00:00Z",
         )
-        feed3 = GeneratedFeed(
+        feed3 = GeneratedFeedFactory.create(
             feed_id="feed_3",
             run_id="run_2",
             turn_number=1,
@@ -203,7 +203,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         """Test that creating GeneratedFeed with empty agent_handle raises ValidationError from Pydantic."""
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            GeneratedFeed(
+            GeneratedFeedFactory.create(
                 feed_id="feed_test123",
                 run_id="run_123",
                 turn_number=1,
@@ -231,7 +231,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         post_uris = [
             f"at://did:plc:test{i}/app.bsky.feed.post/post{i}" for i in range(1, 11)
         ]
-        feed = GeneratedFeed(
+        feed = GeneratedFeedFactory.create(
             feed_id="feed_many_posts",
             run_id="run_123",
             turn_number=1,
@@ -256,7 +256,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         ensure_run_exists("run_456")
 
         # Create feeds for different turns
-        feed1 = GeneratedFeed(
+        feed1 = GeneratedFeedFactory.create(
             feed_id="feed_turn0_agent1",
             run_id="run_123",
             turn_number=0,
@@ -264,7 +264,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
-        feed2 = GeneratedFeed(
+        feed2 = GeneratedFeedFactory.create(
             feed_id="feed_turn0_agent2",
             run_id="run_123",
             turn_number=0,
@@ -272,7 +272,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_uris=["at://did:plc:test2/app.bsky.feed.post/post2"],
             created_at="2024-01-01T00:00:01Z",
         )
-        feed3 = GeneratedFeed(
+        feed3 = GeneratedFeedFactory.create(
             feed_id="feed_turn1_agent1",
             run_id="run_123",
             turn_number=1,
@@ -280,7 +280,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_uris=["at://did:plc:test3/app.bsky.feed.post/post3"],
             created_at="2024-01-01T00:00:02Z",
         )
-        feed4 = GeneratedFeed(
+        feed4 = GeneratedFeedFactory.create(
             feed_id="feed_different_run",
             run_id="run_456",
             turn_number=0,

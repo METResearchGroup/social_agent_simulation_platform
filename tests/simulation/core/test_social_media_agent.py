@@ -2,8 +2,8 @@
 
 from unittest.mock import Mock, patch
 
-from simulation.core.models.agents import SocialMediaAgent
 from tests.factories import (
+    AgentFactory,
     FollowFactory,
     GeneratedFollowFactory,
     GenerationMetadataFactory,
@@ -13,7 +13,7 @@ from tests.factories import (
 
 def test_follow_users_returns_empty_for_empty_feed():
     """follow_users returns [] when feed is empty and does not resolve generator."""
-    agent = SocialMediaAgent("agent1.bsky.social")
+    agent = AgentFactory.create(handle="agent1.bsky.social")
     with patch("simulation.core.action_generators.get_follow_generator") as mock_get:
         result = agent.follow_users(
             [],
@@ -28,7 +28,7 @@ def test_follow_users_returns_empty_for_empty_feed():
 
 def test_follow_users_delegates_to_follow_generator():
     """follow_users delegates candidate generation to configured follow generator."""
-    agent = SocialMediaAgent("agent1.bsky.social")
+    agent = AgentFactory.create(handle="agent1.bsky.social")
     feed = [
         PostFactory.create(
             uri="post_1",

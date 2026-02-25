@@ -1,8 +1,7 @@
 """Integration tests for db.repositories.metrics_repository module."""
 
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.runs import RunConfig
+from tests.factories import RunConfigFactory, RunMetricsFactory, TurnMetricsFactory
 
 
 class TestSQLiteMetricsRepositoryIntegration:
@@ -11,11 +10,13 @@ class TestSQLiteMetricsRepositoryIntegration:
     def test_write_and_read_turn_metrics(self, run_repo, metrics_repo):
         """write_turn_metrics then get_turn_metrics round-trips."""
         run = run_repo.create_run(
-            RunConfig(num_agents=2, num_turns=2, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=2, feed_algorithm="chronological"
+            )
         )
 
         created_at = get_current_timestamp()
-        turn_metrics = TurnMetrics(
+        turn_metrics = TurnMetricsFactory.create(
             run_id=run.run_id,
             turn_number=0,
             metrics={"turn.actions.total": 3},
@@ -34,11 +35,13 @@ class TestSQLiteMetricsRepositoryIntegration:
     def test_list_turn_metrics_is_ordered_by_turn_number(self, run_repo, metrics_repo):
         """list_turn_metrics returns items ordered by turn_number ascending."""
         run = run_repo.create_run(
-            RunConfig(num_agents=2, num_turns=3, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=2, num_turns=3, feed_algorithm="chronological"
+            )
         )
 
         metrics_repo.write_turn_metrics(
-            TurnMetrics(
+            TurnMetricsFactory.create(
                 run_id=run.run_id,
                 turn_number=2,
                 metrics={"k": 2},
@@ -46,7 +49,7 @@ class TestSQLiteMetricsRepositoryIntegration:
             )
         )
         metrics_repo.write_turn_metrics(
-            TurnMetrics(
+            TurnMetricsFactory.create(
                 run_id=run.run_id,
                 turn_number=0,
                 metrics={"k": 0},
@@ -54,7 +57,7 @@ class TestSQLiteMetricsRepositoryIntegration:
             )
         )
         metrics_repo.write_turn_metrics(
-            TurnMetrics(
+            TurnMetricsFactory.create(
                 run_id=run.run_id,
                 turn_number=1,
                 metrics={"k": 1},
@@ -70,11 +73,13 @@ class TestSQLiteMetricsRepositoryIntegration:
     def test_write_and_read_run_metrics(self, run_repo, metrics_repo):
         """write_run_metrics then get_run_metrics round-trips."""
         run = run_repo.create_run(
-            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
         )
 
         created_at = get_current_timestamp()
-        run_metrics = RunMetrics(
+        run_metrics = RunMetricsFactory.create(
             run_id=run.run_id,
             metrics={"run.actions.total": 7},
             created_at=created_at,

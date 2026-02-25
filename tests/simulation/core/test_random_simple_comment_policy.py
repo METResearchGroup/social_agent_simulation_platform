@@ -6,6 +6,7 @@ from simulation.core.action_generators.comment.algorithms.random_simple import (
     RandomSimpleCommentGenerator,
 )
 from simulation.core.models.posts import BlueskyFeedPost
+from tests.factories import PostFactory
 
 
 def _post(
@@ -17,8 +18,8 @@ def _post(
     created_at: str = "2024_01_01-12:00:00",
 ) -> BlueskyFeedPost:
     """Build a BlueskyFeedPost for tests."""
-    return BlueskyFeedPost(
-        id=post_id,
+    return PostFactory.create(
+        post_id=post_id,
         uri=post_id,
         author_handle=f"author-{post_id}.bsky.social",
         author_display_name=f"Author {post_id}",

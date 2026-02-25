@@ -5,7 +5,6 @@ These tests use a real SQLite database to test end-to-end functionality.
 
 import pytest
 
-from simulation.core.models.posts import BlueskyFeedPost
 from tests.factories import PostFactory
 
 
@@ -274,8 +273,8 @@ class TestSQLiteFeedPostRepositoryIntegration:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyFeedPost(
-                id="",
+            PostFactory.create(
+                post_id="",
                 uri="",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",

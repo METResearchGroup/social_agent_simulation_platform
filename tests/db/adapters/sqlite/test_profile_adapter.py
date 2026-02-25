@@ -7,6 +7,7 @@ import pytest
 from db.adapters.sqlite.profile_adapter import SQLiteProfileAdapter
 from simulation.core.models.profiles import BlueskyProfile
 from tests.db.adapters.sqlite.conftest import create_mock_row
+from tests.factories import BlueskyProfileFactory
 
 
 @pytest.fixture
@@ -21,7 +22,7 @@ class TestSQLiteProfileAdapterWriteProfile:
     def test_writes_profile_successfully(self, adapter, mock_db_connection):
         """Test that write_profile executes INSERT OR REPLACE correctly."""
         with mock_db_connection() as (mock_conn, mock_cursor):
-            profile = BlueskyProfile(
+            profile = BlueskyProfileFactory.create(
                 handle="test.bsky.social",
                 did="did:plc:test123",
                 display_name="Test User",
@@ -53,7 +54,7 @@ class TestSQLiteProfileAdapterWriteProfile:
                 "Constraint violation"
             )
 
-            profile = BlueskyProfile(
+            profile = BlueskyProfileFactory.create(
                 handle="test.bsky.social",
                 did="did:plc:test123",
                 display_name="Test User",

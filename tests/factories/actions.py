@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Final
+from collections.abc import Callable
+from typing import Final, TypeVar, cast
 
 from simulation.core.models.actions import Comment, Follow, Like
 from simulation.core.models.generated.base import GenerationMetadata
@@ -23,6 +24,14 @@ class _UnsetType:
 
 
 UNSET: Final[_UnsetType] = _UnsetType()
+
+_T = TypeVar("_T")
+
+
+def _resolve_unset(value: _T | _UnsetType, default: Callable[[], _T]) -> _T:
+    if isinstance(value, _UnsetType):
+        return default()
+    return cast(_T, value)
 
 
 class LikeFactory(BaseFactory[Like]):
@@ -227,29 +236,19 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
         like_id_value = (
             like_id if like_id is not None else f"like_{agent_value}_{post_value}"
         )
-        explanation_value: str | None
-        if isinstance(explanation, _UnsetType):
-            explanation_value = fake.sentence(nb_words=8)
-        else:
-            explanation_value = explanation
-
-        model_used_value: str | None
-        if isinstance(model_used, _UnsetType):
-            model_used_value = "test-model"
-        else:
-            model_used_value = model_used
-
-        generation_metadata_json_value: str | None
-        if isinstance(generation_metadata_json, _UnsetType):
-            generation_metadata_json_value = '{"seed": 1}'
-        else:
-            generation_metadata_json_value = generation_metadata_json
-
-        generation_created_at_value: str | None
-        if isinstance(generation_created_at, _UnsetType):
-            generation_created_at_value = _timestamp_utc_compact()
-        else:
-            generation_created_at_value = generation_created_at
+        explanation_value = _resolve_unset(
+            explanation,
+            lambda: fake.sentence(nb_words=8),
+        )
+        model_used_value = _resolve_unset(model_used, lambda: "test-model")
+        generation_metadata_json_value = _resolve_unset(
+            generation_metadata_json,
+            lambda: '{"seed": 1}',
+        )
+        generation_created_at_value = _resolve_unset(
+            generation_created_at,
+            lambda: _timestamp_utc_compact(),
+        )
         return PersistedLike(
             like_id=like_id_value,
             run_id=run_value,
@@ -296,29 +295,19 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
             if comment_id is not None
             else f"comment_{agent_value}_{post_value}"
         )
-        explanation_value: str | None
-        if isinstance(explanation, _UnsetType):
-            explanation_value = fake.sentence(nb_words=8)
-        else:
-            explanation_value = explanation
-
-        model_used_value: str | None
-        if isinstance(model_used, _UnsetType):
-            model_used_value = "test-model"
-        else:
-            model_used_value = model_used
-
-        generation_metadata_json_value: str | None
-        if isinstance(generation_metadata_json, _UnsetType):
-            generation_metadata_json_value = '{"seed": 1}'
-        else:
-            generation_metadata_json_value = generation_metadata_json
-
-        generation_created_at_value: str | None
-        if isinstance(generation_created_at, _UnsetType):
-            generation_created_at_value = _timestamp_utc_compact()
-        else:
-            generation_created_at_value = generation_created_at
+        explanation_value = _resolve_unset(
+            explanation,
+            lambda: fake.sentence(nb_words=8),
+        )
+        model_used_value = _resolve_unset(model_used, lambda: "test-model")
+        generation_metadata_json_value = _resolve_unset(
+            generation_metadata_json,
+            lambda: '{"seed": 1}',
+        )
+        generation_created_at_value = _resolve_unset(
+            generation_created_at,
+            lambda: _timestamp_utc_compact(),
+        )
         return PersistedComment(
             comment_id=comment_id_value,
             run_id=run_value,
@@ -365,29 +354,19 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
         follow_id_value = (
             follow_id if follow_id is not None else f"follow_{agent_value}_{user_value}"
         )
-        explanation_value: str | None
-        if isinstance(explanation, _UnsetType):
-            explanation_value = fake.sentence(nb_words=8)
-        else:
-            explanation_value = explanation
-
-        model_used_value: str | None
-        if isinstance(model_used, _UnsetType):
-            model_used_value = "test-model"
-        else:
-            model_used_value = model_used
-
-        generation_metadata_json_value: str | None
-        if isinstance(generation_metadata_json, _UnsetType):
-            generation_metadata_json_value = '{"seed": 1}'
-        else:
-            generation_metadata_json_value = generation_metadata_json
-
-        generation_created_at_value: str | None
-        if isinstance(generation_created_at, _UnsetType):
-            generation_created_at_value = _timestamp_utc_compact()
-        else:
-            generation_created_at_value = generation_created_at
+        explanation_value = _resolve_unset(
+            explanation,
+            lambda: fake.sentence(nb_words=8),
+        )
+        model_used_value = _resolve_unset(model_used, lambda: "test-model")
+        generation_metadata_json_value = _resolve_unset(
+            generation_metadata_json,
+            lambda: '{"seed": 1}',
+        )
+        generation_created_at_value = _resolve_unset(
+            generation_created_at,
+            lambda: _timestamp_utc_compact(),
+        )
         return PersistedFollow(
             follow_id=follow_id_value,
             run_id=run_value,

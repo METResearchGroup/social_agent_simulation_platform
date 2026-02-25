@@ -1,16 +1,9 @@
 from __future__ import annotations
 
-from datetime import timezone
-
 from simulation.core.models.posts import BlueskyFeedPost
+from tests.factories._helpers import _timestamp_utc_iso
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
-
-
-def _timestamp_utc_iso() -> str:
-    fake = get_faker()
-    dt = fake.date_time(tzinfo=timezone.utc)
-    return dt.isoformat().replace("+00:00", "Z")
 
 
 def _did_plc() -> str:

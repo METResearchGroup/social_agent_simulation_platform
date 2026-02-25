@@ -26,6 +26,7 @@ from simulation.core.action_generators.like.algorithms.naive_llm.response_models
     LikePrediction,
 )
 from simulation.core.models.posts import BlueskyFeedPost
+from tests.factories import PostFactory
 
 
 def _post(
@@ -41,8 +42,8 @@ def _post(
     handle = (
         author_handle if author_handle is not None else f"author-{post_id}.bsky.social"
     )
-    return BlueskyFeedPost(
-        id=post_id,
+    return PostFactory.create(
+        post_id=post_id,
         uri=post_id,
         author_handle=handle,
         author_display_name=f"Author {post_id}",

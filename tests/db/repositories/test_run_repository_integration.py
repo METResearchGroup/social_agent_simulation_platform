@@ -13,8 +13,8 @@ from simulation.core.exceptions import (
     InvalidTransitionError,
     RunNotFoundError,
 )
-from simulation.core.models.runs import Run, RunStatus
-from tests.factories import RunConfigFactory
+from simulation.core.models.runs import RunStatus
+from tests.factories import RunConfigFactory, RunFactory, TurnMetadataFactory
 
 
 class TestSQLiteRunRepositoryIntegration:
@@ -128,7 +128,7 @@ class TestRunStatusEnumSerialization:
 
         adapter = SQLiteRunAdapter()
 
-        run = Run(
+        run = RunFactory.create(
             run_id="test_run_1",
             created_at="2024_01_01-12:00:00",
             total_turns=5,
@@ -482,7 +482,6 @@ class TestTurnMetadataIntegration:
         """Test writing turn metadata using repository and reading it back."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run first
         repo = run_repo
@@ -493,7 +492,7 @@ class TestTurnMetadataIntegration:
 
         # Write turn metadata using repository
         turn_number = 0
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=turn_number,
             total_actions={
@@ -694,7 +693,6 @@ class TestTurnMetadataIntegration:
         """Test writing turn metadata using repository.write_turn_metadata method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
@@ -704,7 +702,7 @@ class TestTurnMetadataIntegration:
         run = repo.create_run(config)
 
         # Write turn metadata using repository method
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -732,7 +730,6 @@ class TestTurnMetadataIntegration:
         """Test writing multiple turns using repository.write_turn_metadata method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
@@ -743,7 +740,7 @@ class TestTurnMetadataIntegration:
 
         # Write metadata for multiple turns
         for turn_number in range(3):
-            turn_metadata = TurnMetadata(
+            turn_metadata = TurnMetadataFactory.create(
                 run_id=run.run_id,
                 turn_number=turn_number,
                 total_actions={
@@ -770,7 +767,6 @@ class TestTurnMetadataIntegration:
         """Test writing turn metadata with zero actions using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
@@ -780,7 +776,7 @@ class TestTurnMetadataIntegration:
         run = repo.create_run(config)
 
         # Write metadata with zero actions
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -807,7 +803,6 @@ class TestTurnMetadataIntegration:
         """Test that turn metadata is correctly isolated per run using repository method."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create two runs
         repo = run_repo
@@ -823,7 +818,7 @@ class TestTurnMetadataIntegration:
         )
 
         # Write metadata for turn 0 in both runs with different values
-        turn_metadata_1 = TurnMetadata(
+        turn_metadata_1 = TurnMetadataFactory.create(
             run_id=run1.run_id,
             turn_number=0,
             total_actions={
@@ -835,7 +830,7 @@ class TestTurnMetadataIntegration:
         )
         repo.write_turn_metadata(turn_metadata_1)
 
-        turn_metadata_2 = TurnMetadata(
+        turn_metadata_2 = TurnMetadataFactory.create(
             run_id=run2.run_id,
             turn_number=0,
             total_actions={
@@ -860,7 +855,6 @@ class TestTurnMetadataIntegration:
         """Test that writing duplicate turn metadata raises DuplicateTurnMetadataError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run
         repo = run_repo
@@ -870,7 +864,7 @@ class TestTurnMetadataIntegration:
         run = repo.create_run(config)
 
         # Write turn metadata once
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -891,12 +885,11 @@ class TestTurnMetadataIntegration:
         """Test that writing turn metadata for non-existent run raises RunNotFoundError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         repo = run_repo
 
         # Try to write metadata for a non-existent run
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id="nonexistent_run",
             turn_number=0,
             total_actions={TurnAction.LIKE: 5},
@@ -914,7 +907,6 @@ class TestTurnMetadataIntegration:
         """Test that writing turn metadata with out-of-bounds turn_number raises ValueError."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         # Create a run with 5 turns (0-4)
         repo = run_repo
@@ -924,7 +916,7 @@ class TestTurnMetadataIntegration:
         run = repo.create_run(config)
 
         # Try to write metadata for turn 5 (out of bounds)
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=5,  # Out of bounds (should be 0-4)
             total_actions={TurnAction.LIKE: 5},
@@ -941,7 +933,6 @@ class TestTurnMetadataIntegration:
         """Test listing turn metadata returns all rows ordered by turn_number."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         repo = run_repo
         config = RunConfigFactory.create(
@@ -951,7 +942,7 @@ class TestTurnMetadataIntegration:
 
         for turn_number in [0, 1, 2]:
             repo.write_turn_metadata(
-                TurnMetadata(
+                TurnMetadataFactory.create(
                     run_id=run.run_id,
                     turn_number=turn_number,
                     total_actions={TurnAction.LIKE: turn_number + 1},
@@ -982,7 +973,6 @@ class TestTurnMetadataIntegration:
         """Test listing turn metadata only returns rows for the requested run."""
         from lib.timestamp_utils import get_current_timestamp
         from simulation.core.models.actions import TurnAction
-        from simulation.core.models.turns import TurnMetadata
 
         repo = run_repo
         run_1 = repo.create_run(
@@ -997,7 +987,7 @@ class TestTurnMetadataIntegration:
         )
 
         repo.write_turn_metadata(
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id=run_1.run_id,
                 turn_number=0,
                 total_actions={TurnAction.LIKE: 10},
@@ -1005,7 +995,7 @@ class TestTurnMetadataIntegration:
             )
         )
         repo.write_turn_metadata(
-            TurnMetadata(
+            TurnMetadataFactory.create(
                 run_id=run_2.run_id,
                 turn_number=0,
                 total_actions={TurnAction.LIKE: 20},
