@@ -20,6 +20,16 @@ repos:
         args: ["--config", ".markdownlint.yml"]
         types: [markdown]
         exclude: ^docs/plans/
+      - id: db-schema-docs-check
+        name: db schema docs (check latest)
+        entry: bash -lc "uv run python scripts/generate_db_schema_docs.py --check"
+        language: system
+        pass_filenames: false
+      - id: db-schema-drift
+        name: db schema drift (migrations vs metadata)
+        entry: bash -lc "uv run python scripts/check_db_schema_drift.py"
+        language: system
+        pass_filenames: false
       - id: complexipy
         name: complexipy
         entry: bash -lc "uv run --extra test complexipy . --max-complexity-allowed 999"

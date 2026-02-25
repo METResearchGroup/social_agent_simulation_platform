@@ -12,6 +12,21 @@ This repo uses **Alembic** to manage schema changes for the SQLite database.
 - **Migration schema metadata** (for Alembic autogenerate) lives in `db/schema.py`.
 - **Bootstrap**: `db/adapters/sqlite/sqlite.py::initialize_database()` applies Alembic migrations to `head`.
 
+### Schema docs (versioned)
+
+This repo keeps versioned, human-readable database schema docs under:
+
+- `docs/db/YYYY_MM_DD-HHMMSS-{branch_token}/`
+
+Regenerate after any migration changes:
+
+```bash
+uv run python scripts/generate_db_schema_docs.py --update
+```
+
+Pre-commit enforces that the latest committed schema docs folder matches migrations at
+`head`.
+
 ### Common commands (use uv)
 
 Run these from the repo root:

@@ -26,7 +26,12 @@ runs = sa.Table(
     sa.Column("created_at", sa.Text(), nullable=False),
     sa.Column("total_turns", sa.Integer(), nullable=False),
     sa.Column("total_agents", sa.Integer(), nullable=False),
-    sa.Column("feed_algorithm", sa.Text(), nullable=False),
+    sa.Column(
+        "feed_algorithm",
+        sa.Text(),
+        nullable=False,
+        server_default=sa.text("'chronological'"),
+    ),
     sa.Column("metric_keys", sa.Text(), nullable=True),
     sa.Column("started_at", sa.Text(), nullable=False),
     sa.Column("status", sa.Text(), nullable=False),
