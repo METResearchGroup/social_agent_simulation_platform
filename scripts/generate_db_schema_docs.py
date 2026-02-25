@@ -453,6 +453,13 @@ def _load_snapshot(path: Path) -> dict[str, Any]:
         raise RuntimeError(f"Missing schema snapshot: {path}") from e
 
 
+def _load_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError as e:
+        raise RuntimeError(f"Missing schema markdown: {path}") from e
+
+
 def _generate_to_temp(repo_root: Path) -> _SchemaArtifacts:
     with tempfile.TemporaryDirectory(prefix="sim-schema-docs-") as tmpdir:
         sqlite_path = Path(tmpdir) / "schema.sqlite"
@@ -531,11 +538,14 @@ def main() -> int:
 
     baseline_snapshot_path = latest_dir / "schema.snapshot.json"
     baseline_snapshot = _load_snapshot(baseline_snapshot_path)
+    baseline_md_path = latest_dir / "schema.md"
+    baseline_md = _load_text(baseline_md_path)
     if args.keep_temp_db:
         tmpdir = Path(tempfile.mkdtemp(prefix="sim-schema-docs-check-"))
         sqlite_path = tmpdir / "schema.sqlite"
         _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
-        generated_snapshot = _artifacts_from_sqlite(sqlite_path).schema_snapshot
+        generated_artifacts = _artifacts_from_sqlite(sqlite_path)
+        generated_snapshot = generated_artifacts.schema_snapshot
         print(
             f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
             f"Temp directory: {tmpdir}",
@@ -545,10 +555,17 @@ def main() -> int:
         generated_artifacts = _generate_to_temp(repo_root)
         generated_snapshot = generated_artifacts.schema_snapshot
 
-    if baseline_snapshot == generated_snapshot:
+    md_matches = baseline_md == generated_artifacts.schema_md
+    snapshot_matches = baseline_snapshot == generated_snapshot
+    if snapshot_matches and md_matches:
         return 0
 
-    summary = _diff_summary(baseline_snapshot, generated_snapshot)
+    summary_lines: list[str] = []
+    if not snapshot_matches:
+        summary_lines.append(_diff_summary(baseline_snapshot, generated_snapshot))
+    if not md_matches:
+        summary_lines.append("`schema.md` differs from the generated output.")
+    summary = "\n".join(summary_lines) if summary_lines else "Schema differs."
     print(
         "ERROR: Database schema docs are out of date (migrations != latest docs).\n\n"
         f"{summary}\n\n"
