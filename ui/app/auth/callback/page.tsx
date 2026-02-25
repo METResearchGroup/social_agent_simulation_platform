@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-
-const DEFAULT_MISSING_CODE_MESSAGE: string = 'Missing authorization code';
 
 const loadingView = (
   <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-beige-600">
@@ -15,72 +13,40 @@ const loadingView = (
   </div>
 );
 
-function _errorMessageFromHash(hash: string): string | null {
-  // Supabase may redirect back with error info in the URL hash fragment.
-  // Example: #error=access_denied&error_description=...
-  const raw = hash.startsWith('#') ? hash.slice(1) : hash;
-  if (!raw) return null;
-  const params = new URLSearchParams(raw);
-  const errorDescription = params.get('error_description');
-  const errorCode = params.get('error');
-  if (errorDescription) return errorDescription;
-  if (errorCode) return `OAuth error: ${errorCode}`;
-  return null;
-}
-
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { completeOAuthCallback } = useAuth();
   const code = searchParams.get('code');
   const oauthError = searchParams.get('error');
   const oauthErrorDescription = searchParams.get('error_description');
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef<number>(0);
 
   useEffect(() => {
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+
     const run = async (): Promise<void> => {
-      if (!isSupabaseConfigured) {
-        setError(
-          'Supabase OAuth is not configured for this deployment. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY and redeploy.',
-        );
-        return;
-      }
+      const result = await completeOAuthCallback({
+        code,
+        oauthError,
+        oauthErrorDescription,
+        hash: typeof window === 'undefined' ? '' : window.location.hash,
+      });
 
-      // Some providers (or user cancel) return errors as query params.
-      if (oauthErrorDescription || oauthError) {
-        setError(oauthErrorDescription ?? `OAuth error: ${oauthError}`);
-        return;
-      }
+      if (requestId !== requestIdRef.current) return;
 
-      // PKCE flow: Supabase returns ?code=... which must be exchanged for a session.
-      if (code) {
-        const { error: exchangeError } =
-          await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          setError(exchangeError.message);
-          return;
-        }
+      if (result.ok) {
         router.replace('/');
         return;
       }
 
-      // Implicit/hash flow: allow supabase-js to detect session from URL hash.
-      // If tokens are present, getSession() should populate local storage.
-      const { data, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        setError(sessionError.message);
-        return;
-      }
-      if (data.session) {
-        router.replace('/');
-        return;
-      }
-
-      const hashError = _errorMessageFromHash(window.location.hash);
-      setError(hashError ?? DEFAULT_MISSING_CODE_MESSAGE);
+      setError(result.message);
     };
 
     void run();
-  }, [code, oauthError, oauthErrorDescription, router]);
+  }, [code, completeOAuthCallback, oauthError, oauthErrorDescription, router]);
 
   if (!code && error == null) {
     return loadingView;

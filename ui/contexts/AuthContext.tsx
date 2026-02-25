@@ -10,11 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { setAuthTokenGetter, setOnUnauthorized } from '@/lib/api/simulation';
-
-/** When true, bypass OAuth and treat as authenticated. Use only for local dev. */
-const DISABLE_AUTH: boolean =
-  process.env.NODE_ENV !== 'production' &&
-  process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
+import { DISABLE_AUTH } from '@/lib/env';
 
 /** Mock user when DISABLE_AUTH is set. */
 const MOCK_DEV_USER: User = {
@@ -32,6 +28,12 @@ interface AuthContextValue {
   isAuthConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
+  completeOAuthCallback: (input: {
+    code: string | null;
+    oauthError: string | null;
+    oauthErrorDescription: string | null;
+    hash: string;
+  }) => Promise<{ ok: true } | { ok: false; message: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -140,6 +142,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const completeOAuthCallback = useCallback(
+    async (input: {
+      code: string | null;
+      oauthError: string | null;
+      oauthErrorDescription: string | null;
+      hash: string;
+    }): Promise<{ ok: true } | { ok: false; message: string }> => {
+      if (input.oauthErrorDescription || input.oauthError) {
+        return {
+          ok: false,
+          message: input.oauthErrorDescription ?? `OAuth error: ${input.oauthError}`,
+        };
+      }
+
+      const rawHash = input.hash.startsWith('#') ? input.hash.slice(1) : input.hash;
+      if (rawHash) {
+        const params = new URLSearchParams(rawHash);
+        const hashErrorDescription = params.get('error_description');
+        const hashErrorCode = params.get('error');
+        if (hashErrorDescription) return { ok: false, message: hashErrorDescription };
+        if (hashErrorCode) return { ok: false, message: `OAuth error: ${hashErrorCode}` };
+      }
+
+      if (DISABLE_AUTH) {
+        return { ok: true };
+      }
+
+      if (!isSupabaseConfigured) {
+        return {
+          ok: false,
+          message:
+            'Supabase OAuth is not configured for this deployment. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY and redeploy.',
+        };
+      }
+
+      if (input.code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(input.code);
+        if (exchangeError) {
+          return { ok: false, message: exchangeError.message };
+        }
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          return { ok: false, message: sessionError.message };
+        }
+        updateAuthState(data.session);
+        return { ok: true };
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        return { ok: false, message: sessionError.message };
+      }
+      if (data.session) {
+        updateAuthState(data.session);
+        return { ok: true };
+      }
+
+      return { ok: false, message: 'Missing authorization code' };
+    },
+    [updateAuthState],
+  );
+
   const value: AuthContextValue = {
     user,
     session,
@@ -147,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthConfigured,
     signInWithGoogle,
     signInWithGitHub,
+    completeOAuthCallback,
     signOut,
   };
 
