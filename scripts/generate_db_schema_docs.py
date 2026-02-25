@@ -100,10 +100,8 @@ def _latest_version_dir(out_root: Path) -> Path | None:
     return sorted(candidates, key=lambda p: p.name)[-1]
 
 
-from datetime import datetime, timezone
-
 def _now_version_prefix() -> str:
-    return datetime.now(timezone.utc).strftime("%Y_%m_%d-%H%M%S")
+    return datetime.now().strftime("%Y_%m_%d-%H%M%S")
 
 
 @dataclass(frozen=True)
