@@ -209,13 +209,12 @@ export async function getDefaultConfig(): Promise<RunConfig> {
   const api: ApiDefaultConfig = await fetchJson<ApiDefaultConfig>(
     buildApiUrl('/simulations/config/default'),
   );
-  const apiWithMetrics = api as ApiDefaultConfig & { metric_keys?: string[] };
   return {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
     feedAlgorithmConfig: null,
-    metricKeys: apiWithMetrics.metric_keys,
+    metricKeys: api.metric_keys,
   };
 }
 

@@ -240,8 +240,11 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
   }, [selectedRunId, retryTurnsTrigger]);
 
+  const selectedRunHasConfig: boolean =
+    selectedRunId !== null ? runConfigs[selectedRunId] !== undefined : false;
+
   useEffect(() => {
-    if (!selectedRunId || runConfigs[selectedRunId] !== undefined) {
+    if (!selectedRunId || selectedRunHasConfig) {
       return;
     }
 
@@ -283,7 +286,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
 
     void loadRunDetails();
-  }, [selectedRunId, runConfigs]);
+  }, [selectedRunId, selectedRunHasConfig]);
 
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
@@ -325,7 +328,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const runDetailsError: ApiError | null =
     selectedRunId !== null ? (runDetailsErrorByRunId[selectedRunId] ?? null) : null;
 
-  const handleRetryRunDetails = (): void => {
+  const handleRetryRunDetails = useCallback((): void => {
     if (selectedRunId === null) return;
     setRunDetailsErrorByRunId((prev) => {
       const next = { ...prev };
@@ -337,7 +340,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       delete next[selectedRunId];
       return next;
     });
-  };
+  }, [selectedRunId]);
 
   const handleConfigSubmit = (config: RunConfig): void => {
     setRunsError(null); // Clear stale run errors before starting a new run.

@@ -106,6 +106,15 @@ class DefaultConfigSchema(BaseModel):
 
     num_agents: int
     num_turns: int
+    metric_keys: list[str]
+
+    @field_validator("metric_keys")
+    @classmethod
+    def _validate_metric_keys(cls, v: list[str]) -> list[str]:
+        validated: list[str] | None = validate_metric_keys(v)
+        if validated is None:
+            raise ValueError("metric_keys must be provided")
+        return validated
 
 
 class RunConfigDetail(BaseModel):
