@@ -122,6 +122,13 @@
       "DefaultConfigSchema": {
         "description": "Default config for simulation start form.",
         "properties": {
+          "metric_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Metric Keys",
+            "type": "array"
+          },
           "num_agents": {
             "title": "Num Agents",
             "type": "integer"
@@ -133,7 +140,8 @@
         },
         "required": [
           "num_agents",
-          "num_turns"
+          "num_turns",
+          "metric_keys"
         ],
         "title": "DefaultConfigSchema",
         "type": "object"
@@ -946,7 +954,7 @@
     },
     "/v1/simulations/config/default": {
       "get": {
-        "description": "Return default config for simulation start form (num_agents, num_turns).",
+        "description": "Return default config for simulation start form (num_agents, num_turns, metric_keys).",
         "operationId": "get_simulation_config_default_v1_simulations_config_default_get",
         "responses": {
           "200": {
