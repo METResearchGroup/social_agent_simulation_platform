@@ -479,7 +479,7 @@ class TestSimulationCommandServiceActionPersistence:
         from db.services.simulation_persistence_service import (
             create_simulation_persistence_service,
         )
-        from simulation.core.factories.action_history_store import (
+        from simulation.core.action_history import (
             create_default_action_history_store_factory,
         )
 
@@ -569,7 +569,6 @@ class TestSimulationCommandServiceActionPersistence:
         action_history_store = action_history_store_factory()
         agent_action_feed_filter = HistoryAwareActionFeedFilter()
         agent_action_rules_validator = AgentActionRulesValidator()
-        agent_action_history_recorder = AgentActionHistoryRecorder()
         metrics_collector = Mock(spec=MetricsCollector)
         metrics_collector.collect_turn_metrics.return_value = {}
 
@@ -586,7 +585,6 @@ class TestSimulationCommandServiceActionPersistence:
             action_history_store_factory=lambda: action_history_store,
             feed_generator=feed_generator,
             agent_action_rules_validator=agent_action_rules_validator,
-            agent_action_history_recorder=agent_action_history_recorder,
             agent_action_feed_filter=agent_action_feed_filter,
         )
 
