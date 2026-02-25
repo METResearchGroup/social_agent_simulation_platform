@@ -6,8 +6,7 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.models.generated.base import GenerationMetadata
-from simulation.core.models.generated.bio import GeneratedBio
+from tests.factories import GeneratedBioFactory, GenerationMetadataFactory
 
 
 class TestSQLiteGeneratedBioRepositoryIntegration:
@@ -18,13 +17,11 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
     ):
         """Test that create_or_update_generated_bio persists a bio to the database."""
         repo = generated_bio_repo
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="test.bsky.social",
             generated_bio="This is a test bio for the profile.",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
 
@@ -43,13 +40,11 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
     def test_get_generated_bio_retrieves_from_database(self, generated_bio_repo):
         """Test that get_generated_bio retrieves a bio from the database."""
         repo = generated_bio_repo
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="retrieve.bsky.social",
             generated_bio="This bio should be retrievable.",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
 
@@ -67,31 +62,25 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         repo = generated_bio_repo
 
         # Create multiple bios
-        bio1 = GeneratedBio(
+        bio1 = GeneratedBioFactory.create(
             handle="user1.bsky.social",
             generated_bio="Bio 1",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
-        bio2 = GeneratedBio(
+        bio2 = GeneratedBioFactory.create(
             handle="user2.bsky.social",
             generated_bio="Bio 2",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
-        bio3 = GeneratedBio(
+        bio3 = GeneratedBioFactory.create(
             handle="user3.bsky.social",
             generated_bio="Bio 3",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
 
@@ -124,25 +113,21 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         repo = generated_bio_repo
 
         # Create initial bio
-        initial_bio = GeneratedBio(
+        initial_bio = GeneratedBioFactory.create(
             handle="update.bsky.social",
             generated_bio="Initial bio text",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
         repo.create_or_update_generated_bio(initial_bio)
 
         # Update the bio (same handle, different content)
-        updated_bio = GeneratedBio(
+        updated_bio = GeneratedBioFactory.create(
             handle="update.bsky.social",
             generated_bio="Updated bio text with more information",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
         repo.create_or_update_generated_bio(updated_bio)
@@ -168,13 +153,11 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         repo = generated_bio_repo
 
         long_bio_text = "This is a very long bio. " * 100  # 2500 characters
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="longbio.bsky.social",
             generated_bio=long_bio_text,
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
 
@@ -190,22 +173,18 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         """Test that multiple bios with different handles can coexist."""
         repo = generated_bio_repo
 
-        bio1 = GeneratedBio(
+        bio1 = GeneratedBioFactory.create(
             handle="alice.bsky.social",
             generated_bio="Alice's bio",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
-        bio2 = GeneratedBio(
+        bio2 = GeneratedBioFactory.create(
             handle="bob.bsky.social",
             generated_bio="Bob's bio",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
 
@@ -245,13 +224,11 @@ class TestSQLiteGeneratedBioRepositoryIntegration:
         repo = generated_bio_repo
 
         bio_text = "Bio with special chars: !@#$%^&*() and unicode: 🚀✨"
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="special.bsky.social",
             generated_bio=bio_text,
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at=get_current_timestamp(),
+            metadata=GenerationMetadataFactory.create(
+                created_at=get_current_timestamp()
             ),
         )
 

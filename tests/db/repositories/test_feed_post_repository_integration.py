@@ -6,6 +6,7 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 
 from simulation.core.models.posts import BlueskyFeedPost
+from tests.factories import PostFactory
 
 
 class TestSQLiteFeedPostRepositoryIntegration:
@@ -14,7 +15,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
     def test_create_and_read_feed_post(self, feed_post_repo):
         """Test creating a feed post and reading it back from the database."""
         repo = feed_post_repo
-        post = BlueskyFeedPost(
+        post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
@@ -56,7 +57,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         """Test that create_or_update_feed_posts (batch) persists multiple posts to the database."""
         repo = feed_post_repo
         posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
@@ -89,7 +90,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo = feed_post_repo
 
         # Create initial post
-        initial_post = BlueskyFeedPost(
+        initial_post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Initial Name",
@@ -105,7 +106,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo.create_or_update_feed_post(initial_post)
 
         # Update the post
-        updated_post = BlueskyFeedPost(
+        updated_post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Updated Name",
@@ -143,7 +144,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo = feed_post_repo
 
         # Create posts by different authors
-        post1 = BlueskyFeedPost(
+        post1 = PostFactory.create(
             id="at://did:plc:alice/app.bsky.feed.post/post1",
             uri="at://did:plc:alice/app.bsky.feed.post/post1",
             author_display_name="Alice",
@@ -156,7 +157,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             repost_count=1,
             created_at="2024-01-01T00:00:00Z",
         )
-        post2 = BlueskyFeedPost(
+        post2 = PostFactory.create(
             id="at://did:plc:alice/app.bsky.feed.post/post2",
             uri="at://did:plc:alice/app.bsky.feed.post/post2",
             author_display_name="Alice",
@@ -169,7 +170,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             repost_count=2,
             created_at="2024-01-02T00:00:00Z",
         )
-        post3 = BlueskyFeedPost(
+        post3 = PostFactory.create(
             id="at://did:plc:bob/app.bsky.feed.post/post1",
             uri="at://did:plc:bob/app.bsky.feed.post/post1",
             author_display_name="Bob",
@@ -207,7 +208,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Create multiple posts
         posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
@@ -310,7 +311,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo = feed_post_repo
 
         long_text = "This is a very long post. " * 100  # 2500+ characters
-        post = BlueskyFeedPost(
+        post = PostFactory.create(
             id="at://did:plc:longpost/app.bsky.feed.post/test",
             uri="at://did:plc:longpost/app.bsky.feed.post/test",
             author_display_name="Long Post User",
@@ -339,7 +340,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Create multiple posts
         posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
@@ -404,7 +405,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo = feed_post_repo
 
         # Create some posts
-        post1 = BlueskyFeedPost(
+        post1 = PostFactory.create(
             id="at://did:plc:test1/app.bsky.feed.post/test1",
             uri="at://did:plc:test1/app.bsky.feed.post/test1",
             author_display_name="User 1",
@@ -417,7 +418,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             repost_count=1,
             created_at="2024-01-01T00:00:00Z",
         )
-        post2 = BlueskyFeedPost(
+        post2 = PostFactory.create(
             id="at://did:plc:test2/app.bsky.feed.post/test2",
             uri="at://did:plc:test2/app.bsky.feed.post/test2",
             author_display_name="User 2",

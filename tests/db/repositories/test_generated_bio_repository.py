@@ -7,9 +7,9 @@ from pydantic import ValidationError
 
 from db.adapters.base import GeneratedBioDatabaseAdapter
 from db.repositories.generated_bio_repository import SQLiteGeneratedBioRepository
-from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
 from tests.db.repositories.conftest import make_mock_transaction_provider
+from tests.factories import GeneratedBioFactory, GenerationMetadataFactory
 
 
 class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
@@ -23,13 +23,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="test.bsky.social",
             generated_bio="This is a test bio for the profile.",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-01-01T00:00:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-01-01T00:00:00Z"
             ),
         )
 
@@ -50,13 +48,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="another.bsky.social",
             generated_bio="This is a longer bio with more detailed information about the user and their interests.",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-02-01T12:30:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-02-01T12:30:00Z"
             ),
         )
 
@@ -78,13 +74,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="test.bsky.social",
             generated_bio="Test bio text",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-01-01T00:00:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-01-01T00:00:00Z"
             ),
         )
 
@@ -108,13 +102,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
         # Act & Assert
         # Model creation should fail with ValidationError due to empty handle
         with pytest.raises(ValidationError) as exc_info:
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle="",
                 generated_bio="Bio text",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at="2024-01-01T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at="2024-01-01T00:00:00Z"
                 ),
             )
 
@@ -133,13 +125,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
         # Act & Assert
         # Model creation should fail with ValidationError due to empty generated_bio
         with pytest.raises(ValidationError) as exc_info:
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle="test.bsky.social",
                 generated_bio="",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at="2024-01-01T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at="2024-01-01T00:00:00Z"
                 ),
             )
 
@@ -167,13 +157,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="test.bsky.social",
             generated_bio="Test bio",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-01-01T00:00:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-01-01T00:00:00Z"
             ),
         )
 
@@ -196,13 +184,11 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        bio = GeneratedBio(
+        bio = GeneratedBioFactory.create(
             handle="test.bsky.social",
             generated_bio="Test bio",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-01-01T00:00:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-01-01T00:00:00Z"
             ),
         )
 
@@ -225,13 +211,11 @@ class TestSQLiteGeneratedBioRepositoryGetGeneratedBio:
             transaction_provider=make_mock_transaction_provider(),
         )
         handle = "test.bsky.social"
-        expected = GeneratedBio(
+        expected = GeneratedBioFactory.create(
             handle=handle,
             generated_bio="This is a test bio.",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-01-01T00:00:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-01-01T00:00:00Z"
             ),
         )
         mock_adapter.read_generated_bio.return_value = expected
@@ -296,13 +280,11 @@ class TestSQLiteGeneratedBioRepositoryGetGeneratedBio:
             transaction_provider=make_mock_transaction_provider(),
         )
         handle = "test.bsky.social"
-        expected = GeneratedBio(
+        expected = GeneratedBioFactory.create(
             handle=handle,
             generated_bio="This is a longer bio with multiple sentences and detailed information about the user's interests and background.",
-            metadata=GenerationMetadata(
-                model_used=None,
-                generation_metadata=None,
-                created_at="2024-03-15T14:30:00Z",
+            metadata=GenerationMetadataFactory.create(
+                created_at="2024-03-15T14:30:00Z"
             ),
         )
         mock_adapter.read_generated_bio.return_value = expected
@@ -380,22 +362,18 @@ class TestSQLiteGeneratedBioRepositoryListAllGeneratedBios:
             transaction_provider=make_mock_transaction_provider(),
         )
         expected = [
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle="user1.bsky.social",
                 generated_bio="Bio 1",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at="2024-01-01T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at="2024-01-01T00:00:00Z"
                 ),
             ),
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle="user2.bsky.social",
                 generated_bio="Bio 2",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at="2024-01-02T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at="2024-01-02T00:00:00Z"
                 ),
             ),
         ]
@@ -420,22 +398,18 @@ class TestSQLiteGeneratedBioRepositoryListAllGeneratedBios:
             transaction_provider=make_mock_transaction_provider(),
         )
         expected = [
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle="first.bsky.social",
                 generated_bio="First bio",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at="2024-01-01T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at="2024-01-01T00:00:00Z"
                 ),
             ),
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle="second.bsky.social",
                 generated_bio="Second bio",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at="2024-01-02T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at="2024-01-02T00:00:00Z"
                 ),
             ),
         ]
@@ -474,13 +448,11 @@ class TestSQLiteGeneratedBioRepositoryListAllGeneratedBios:
             transaction_provider=make_mock_transaction_provider(),
         )
         expected = [
-            GeneratedBio(
+            GeneratedBioFactory.create(
                 handle=f"user{i}.bsky.social",
                 generated_bio=f"Bio {i}",
-                metadata=GenerationMetadata(
-                    model_used=None,
-                    generation_metadata=None,
-                    created_at=f"2024-01-{i + 1:02d}T00:00:00Z",
+                metadata=GenerationMetadataFactory.create(
+                    created_at=f"2024-01-{i + 1:02d}T00:00:00Z"
                 ),
             )
             for i in range(100)

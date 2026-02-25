@@ -2,28 +2,13 @@
 
 from unittest.mock import Mock, patch
 
-from simulation.core.models.actions import Follow
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.generated.base import GenerationMetadata
-from simulation.core.models.generated.follow import GeneratedFollow
-from simulation.core.models.posts import BlueskyFeedPost
-
-
-def _post(post_id: str, *, author_handle: str) -> BlueskyFeedPost:
-    """Build a BlueskyFeedPost for tests."""
-    return BlueskyFeedPost(
-        id=post_id,
-        uri=post_id,
-        author_handle=author_handle,
-        author_display_name=f"Author {post_id}",
-        text="content",
-        like_count=0,
-        bookmark_count=0,
-        quote_count=0,
-        reply_count=0,
-        repost_count=0,
-        created_at="2024_01_01-12:00:00",
-    )
+from tests.factories import (
+    FollowFactory,
+    GeneratedFollowFactory,
+    GenerationMetadataFactory,
+    PostFactory,
+)
 
 
 def test_follow_users_returns_empty_for_empty_feed():
@@ -44,16 +29,29 @@ def test_follow_users_returns_empty_for_empty_feed():
 def test_follow_users_delegates_to_follow_generator():
     """follow_users delegates candidate generation to configured follow generator."""
     agent = SocialMediaAgent("agent1.bsky.social")
-    feed = [_post("post_1", author_handle="author1.bsky.social")]
-    generated_follow = GeneratedFollow(
-        follow=Follow(
+    feed = [
+        PostFactory.create(
+            uri="post_1",
+            author_handle="author1.bsky.social",
+            author_display_name="Author post_1",
+            text="content",
+            like_count=0,
+            bookmark_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2024_01_01-12:00:00",
+        )
+    ]
+    generated_follow = GeneratedFollowFactory.create(
+        follow=FollowFactory.create(
             follow_id="follow_1",
             agent_id=agent.handle,
             user_id="author1.bsky.social",
             created_at="2024_01_01-12:00:00",
         ),
         explanation="reason",
-        metadata=GenerationMetadata(created_at="2024_01_01-12:00:00"),
+        metadata=GenerationMetadataFactory.create(created_at="2024_01_01-12:00:00"),
     )
     mock_generator = Mock()
     mock_generator.generate.return_value = [generated_follow]

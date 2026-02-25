@@ -9,9 +9,13 @@ from simulation.core.metrics.defaults import (
     get_default_metric_keys,
 )
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.runs import Run, RunStatus
-from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.runs import RunStatus
+from tests.factories import (
+    RunFactory,
+    RunMetricsFactory,
+    TurnMetadataFactory,
+    TurnMetricsFactory,
+)
 
 
 def _make_mock_engine_with_metric_keys(
@@ -21,19 +25,20 @@ def _make_mock_engine_with_metric_keys(
     keys = run_metric_keys or sorted(
         set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS)
     )
-    run = Run(
+    created_at = get_current_timestamp()
+    run = RunFactory.create(
         run_id="run-metrics-test",
-        created_at=get_current_timestamp(),
+        created_at=created_at,
         total_turns=1,
         total_agents=1,
         feed_algorithm="chronological",
         metric_keys=keys,
-        started_at=get_current_timestamp(),
+        started_at=created_at,
         status=RunStatus.COMPLETED,
-        completed_at=get_current_timestamp(),
+        completed_at=created_at,
     )
     metadata_list = [
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -45,14 +50,14 @@ def _make_mock_engine_with_metric_keys(
         ),
     ]
     turn_metrics_list = [
-        TurnMetrics(
+        TurnMetricsFactory.create(
             run_id=run.run_id,
             turn_number=0,
             metrics={"turn.actions.total": 0},
             created_at=run.created_at,
         )
     ]
-    run_metrics = RunMetrics(
+    run_metrics = RunMetricsFactory.create(
         run_id=run.run_id,
         metrics={"run.actions.total": 0},
         created_at=run.created_at,

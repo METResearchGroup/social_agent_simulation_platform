@@ -18,6 +18,7 @@ from simulation.core.exceptions import (
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from tests.factories import TurnMetadataFactory
 
 DEFAULT_TEST_METRIC_KEYS: list[str] = [
     "run.actions.total",
@@ -74,33 +75,6 @@ class SQLiteRunRepository(_SQLiteRunRepository):
             self._mock_get_timestamp,
         ):
             return super().update_run_status(run_id, status, conn=conn)
-
-
-def make_turn_metadata(
-    run_id: str = "run_123",
-    turn_number: int = 0,
-    total_actions: dict[TurnAction, int] | None = None,
-    created_at: str = "2024_01_01-12:00:00",
-) -> TurnMetadata:
-    """Helper factory to create TurnMetadata instances for testing.
-
-    Args:
-        run_id: The run ID (default: "run_123")
-        turn_number: The turn number (default: 0)
-        total_actions: Dictionary mapping action types to counts (default: empty dict)
-        created_at: Creation timestamp (default: "2024_01_01-12:00:00")
-
-    Returns:
-        TurnMetadata instance with specified values
-    """
-    if total_actions is None:
-        total_actions = {}
-    return TurnMetadata(
-        run_id=run_id,
-        turn_number=turn_number,
-        total_actions=total_actions,
-        created_at=created_at,
-    )
 
 
 class TestSQLiteRunRepositoryCreateRun:
@@ -1456,7 +1430,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         run_id = "run_123"
         turn_number = 0
 
-        expected = make_turn_metadata(
+        expected = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -1491,7 +1465,7 @@ class TestSQLiteRunRepositoryGetTurnMetadata:
         run_id = "run_123"
         turn_number = 0
 
-        expected = make_turn_metadata(
+        expected = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -1527,12 +1501,12 @@ class TestSQLiteRunRepositoryListTurnMetadata:
         )
         run_id = "run_123"
         expected_result = [
-            make_turn_metadata(
+            TurnMetadataFactory.create(
                 run_id=run_id,
                 turn_number=0,
                 total_actions={TurnAction.LIKE: 1},
             ),
-            make_turn_metadata(
+            TurnMetadataFactory.create(
                 run_id=run_id,
                 turn_number=1,
                 total_actions={TurnAction.LIKE: 2},

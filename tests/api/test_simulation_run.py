@@ -6,9 +6,14 @@ from lib.timestamp_utils import get_current_timestamp
 from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.runs import Run, RunConfig, RunStatus
-from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.runs import RunStatus
+from tests.factories import (
+    RunConfigFactory,
+    RunFactory,
+    RunMetricsFactory,
+    TurnMetadataFactory,
+    TurnMetricsFactory,
+)
 
 
 def _make_mock_engine_for_completed_run(
@@ -19,7 +24,7 @@ def _make_mock_engine_for_completed_run(
     total_agents: int,
 ) -> MagicMock:
     created_at = get_current_timestamp()
-    run = Run(
+    run = RunFactory.create(
         run_id=run_id,
         created_at=created_at,
         total_turns=total_turns,
@@ -36,31 +41,31 @@ def _make_mock_engine_for_completed_run(
         completed_at=created_at,
     )
     metadata_list = [
-        TurnMetadata(
-            run_id=run.run_id,
+        TurnMetadataFactory.create(
+            run_id=run_id,
             turn_number=i,
             total_actions={
                 TurnAction.LIKE: 0,
                 TurnAction.COMMENT: 0,
                 TurnAction.FOLLOW: 0,
             },
-            created_at=run.created_at,
+            created_at=created_at,
         )
         for i in range(total_turns)
     ]
     turn_metrics_list = [
-        TurnMetrics(
-            run_id=run.run_id,
+        TurnMetricsFactory.create(
+            run_id=run_id,
             turn_number=i,
             metrics={"turn.actions.total": 0},
-            created_at=run.created_at,
+            created_at=created_at,
         )
         for i in range(total_turns)
     ]
-    run_metrics = RunMetrics(
-        run_id=run.run_id,
+    run_metrics = RunMetricsFactory.create(
+        run_id=run_id,
         metrics={"run.actions.total": 0},
-        created_at=run.created_at,
+        created_at=created_at,
     )
     mock_engine = MagicMock()
     mock_engine.execute_run.return_value = run
@@ -74,9 +79,10 @@ def _make_mock_engine_for_completed_run(
 def test_post_simulations_run_success_returns_completed_and_metrics(simulation_client):
     """Success run returns 200 with status completed and per-turn metrics."""
     client, fastapi_app = simulation_client
-    run = Run(
+    created_at = get_current_timestamp()
+    run = RunFactory.create(
         run_id="run-success-1",
-        created_at=get_current_timestamp(),
+        created_at=created_at,
         total_turns=1,
         total_agents=1,
         feed_algorithm="chronological",
@@ -86,12 +92,12 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
             "turn.actions.counts_by_type",
             "turn.actions.total",
         ],
-        started_at=get_current_timestamp(),
+        started_at=created_at,
         status=RunStatus.COMPLETED,
-        completed_at=get_current_timestamp(),
+        completed_at=created_at,
     )
     metadata_list = [
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -103,14 +109,14 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
         ),
     ]
     turn_metrics_list = [
-        TurnMetrics(
+        TurnMetricsFactory.create(
             run_id=run.run_id,
             turn_number=0,
             metrics={"turn.actions.total": 0},
             created_at=run.created_at,
         )
     ]
-    run_metrics = RunMetrics(
+    run_metrics = RunMetricsFactory.create(
         run_id=run.run_id,
         metrics={"run.actions.total": 0},
         created_at=run.created_at,
@@ -276,7 +282,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     """Mid-run failure returns 200 with status failed and partial per-turn metrics."""
     client, fastapi_app = simulation_client
     partial_metadata = [
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id="run-partial-1",
             turn_number=0,
             total_actions={
@@ -288,14 +294,14 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         ),
     ]
     partial_turn_metrics = [
-        TurnMetrics(
+        TurnMetricsFactory.create(
             run_id="run-partial-1",
             turn_number=0,
             metrics={"turn.actions.total": 3},
             created_at="2026-01-01T00:00:00",
         )
     ]
-    failed_run = Run(
+    failed_run = RunFactory.create(
         run_id="run-partial-1",
         created_at="2026-01-01T00:00:00",
         total_turns=2,
@@ -376,10 +382,14 @@ def test_get_simulations_runs_returns_persisted_runs_newest_first(
         side_effect=["2026_01_01-00:00:00", "2026_01_02-00:00:00"],
     ):
         older_run = run_repo.create_run(
-            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
         )
         newer_run = run_repo.create_run(
-            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
         )
 
     client, _ = simulation_client
@@ -402,10 +412,12 @@ def test_get_simulations_run_turns_returns_turn_map(
 ):
     """GET /v1/simulations/runs/{run_id}/turns returns turn payload map."""
     run = run_repo.create_run(
-        RunConfig(num_agents=1, num_turns=2, feed_algorithm="chronological")
+        RunConfigFactory.create(
+            num_agents=1, num_turns=2, feed_algorithm="chronological"
+        )
     )
     run_repo.write_turn_metadata(
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -417,7 +429,7 @@ def test_get_simulations_run_turns_returns_turn_map(
         )
     )
     run_repo.write_turn_metadata(
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=1,
             total_actions={

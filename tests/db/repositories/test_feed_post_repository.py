@@ -10,6 +10,7 @@ from db.adapters.base import FeedPostDatabaseAdapter
 from db.repositories.feed_post_repository import SQLiteFeedPostRepository
 from simulation.core.models.posts import BlueskyFeedPost
 from tests.db.repositories.conftest import make_mock_transaction_provider
+from tests.factories import PostFactory
 
 
 class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
@@ -23,7 +24,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        post = BlueskyFeedPost(
+        post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
@@ -54,7 +55,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        post = BlueskyFeedPost(
+        post = PostFactory.create(
             id="at://did:plc:another456/app.bsky.feed.post/another",
             uri="at://did:plc:another456/app.bsky.feed.post/another",
             author_display_name="Another User",
@@ -87,7 +88,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        post = BlueskyFeedPost(
+        post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
@@ -167,7 +168,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
-        post = BlueskyFeedPost(
+        post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
@@ -203,7 +204,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
             transaction_provider=make_mock_transaction_provider(),
         )
         posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
@@ -308,7 +309,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
             transaction_provider=make_mock_transaction_provider(),
         )
         posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
@@ -341,7 +342,7 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         """Test that get_feed_post returns a post when found."""
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
-        expected_post = BlueskyFeedPost(
+        expected_post = PostFactory.create(
             id="at://did:plc:test123/app.bsky.feed.post/test",
             uri="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
@@ -432,7 +433,7 @@ class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name="Test User",
@@ -542,7 +543,7 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
@@ -577,7 +578,7 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_posts = [
-            BlueskyFeedPost(
+            PostFactory.create(
                 id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
