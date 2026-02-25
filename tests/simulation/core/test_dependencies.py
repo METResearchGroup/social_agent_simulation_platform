@@ -151,6 +151,9 @@ class TestServiceBuilders:
             metrics_repo=Mock(spec=MetricsRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
+            like_repo=Mock(spec=LikeRepository),
+            comment_repo=Mock(spec=CommentRepository),
+            follow_repo=Mock(spec=FollowRepository),
         )
         assert isinstance(service, SimulationQueryService)
 

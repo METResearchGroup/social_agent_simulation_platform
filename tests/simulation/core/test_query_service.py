@@ -22,6 +22,9 @@ def query_service(mock_repos):
         metrics_repo=mock_repos["metrics_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
+        like_repo=mock_repos["like_repo"],
+        comment_repo=mock_repos["comment_repo"],
+        follow_repo=mock_repos["follow_repo"],
     )
 
 

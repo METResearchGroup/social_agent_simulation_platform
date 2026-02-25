@@ -18,9 +18,9 @@ def create_query_service(
     metrics_repo: MetricsRepository,
     feed_post_repo: FeedPostRepository,
     generated_feed_repo: GeneratedFeedRepository,
-    like_repo: LikeRepository | None = None,
-    comment_repo: CommentRepository | None = None,
-    follow_repo: FollowRepository | None = None,
+    like_repo: LikeRepository,
+    comment_repo: CommentRepository,
+    follow_repo: FollowRepository,
 ) -> SimulationQueryService:
     """Create query-side service with read dependencies."""
     return SimulationQueryService(

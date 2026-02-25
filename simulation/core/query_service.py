@@ -37,9 +37,9 @@ class SimulationQueryService:
         metrics_repo: MetricsRepository,
         feed_post_repo: FeedPostRepository,
         generated_feed_repo: GeneratedFeedRepository,
-        like_repo: LikeRepository | None = None,
-        comment_repo: CommentRepository | None = None,
-        follow_repo: FollowRepository | None = None,
+        like_repo: LikeRepository,
+        comment_repo: CommentRepository,
+        follow_repo: FollowRepository,
     ):
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
@@ -117,23 +117,16 @@ class SimulationQueryService:
         actions_by_agent: dict[
             str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
         ] = defaultdict(list)
-        if self._like_repo is not None:
-            for row in self._like_repo.read_likes_by_run_turn(run_id, turn_number):
-                actions_by_agent[row.agent_handle].append(
-                    persisted_like_to_generated(row)
-                )
-        if self._comment_repo is not None:
-            for row in self._comment_repo.read_comments_by_run_turn(
-                run_id, turn_number
-            ):
-                actions_by_agent[row.agent_handle].append(
-                    persisted_comment_to_generated(row)
-                )
-        if self._follow_repo is not None:
-            for row in self._follow_repo.read_follows_by_run_turn(run_id, turn_number):
-                actions_by_agent[row.agent_handle].append(
-                    persisted_follow_to_generated(row)
-                )
+        for row in self._like_repo.read_likes_by_run_turn(run_id, turn_number):
+            actions_by_agent[row.agent_handle].append(persisted_like_to_generated(row))
+        for row in self._comment_repo.read_comments_by_run_turn(run_id, turn_number):
+            actions_by_agent[row.agent_handle].append(
+                persisted_comment_to_generated(row)
+            )
+        for row in self._follow_repo.read_follows_by_run_turn(run_id, turn_number):
+            actions_by_agent[row.agent_handle].append(
+                persisted_follow_to_generated(row)
+            )
 
         def _action_sort_key(
             a: GeneratedLike | GeneratedComment | GeneratedFollow,
