@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Iterable
 
 from db.adapters.base import LikeDatabaseAdapter
@@ -10,6 +9,7 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.persisted_actions import PersistedLike
 
 from ._serialization import _metadata_to_json
+from ._validation import _require_sqlite_connection
 
 
 class SQLiteLikeAdapter(LikeDatabaseAdapter):
@@ -24,8 +24,7 @@ class SQLiteLikeAdapter(LikeDatabaseAdapter):
         conn: object,
     ) -> None:
         """Insert like rows for the given run and turn."""
-        if not isinstance(conn, sqlite3.Connection):
-            raise TypeError("SQLite adapter requires sqlite3.Connection")
+        conn = _require_sqlite_connection(conn)
         for g in likes:
             meta = g.metadata
             gen_meta_json = _metadata_to_json(meta) if meta else None
@@ -57,8 +56,7 @@ class SQLiteLikeAdapter(LikeDatabaseAdapter):
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedLike]:
         """Read all like rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
-        if not isinstance(conn, sqlite3.Connection):
-            raise TypeError("SQLite adapter requires sqlite3.Connection")
+        conn = _require_sqlite_connection(conn)
         rows = conn.execute(
             """
             SELECT like_id, run_id, turn_number, agent_handle, post_id, created_at,

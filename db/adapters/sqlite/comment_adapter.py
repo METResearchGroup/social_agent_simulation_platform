@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from collections.abc import Iterable
 
 from db.adapters.base import CommentDatabaseAdapter
@@ -10,6 +9,7 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.persisted_actions import PersistedComment
 
 from ._serialization import _metadata_to_json
+from ._validation import _require_sqlite_connection
 
 
 class SQLiteCommentAdapter(CommentDatabaseAdapter):
@@ -24,8 +24,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
         conn: object,
     ) -> None:
         """Insert comment rows for the given run and turn."""
-        if not isinstance(conn, sqlite3.Connection):
-            raise TypeError("SQLite adapter requires sqlite3.Connection")
+        conn = _require_sqlite_connection(conn)
         for g in comments:
             meta = g.metadata
             gen_meta_json = _metadata_to_json(meta) if meta else None
@@ -58,8 +57,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedComment]:
         """Read all comment rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
-        if not isinstance(conn, sqlite3.Connection):
-            raise TypeError("SQLite adapter requires sqlite3.Connection")
+        conn = _require_sqlite_connection(conn)
         rows = conn.execute(
             """
             SELECT comment_id, run_id, turn_number, agent_handle, post_id, text,
