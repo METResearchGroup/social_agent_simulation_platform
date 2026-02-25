@@ -24,6 +24,12 @@ Regenerate after any migration changes:
 uv run python scripts/generate_db_schema_docs.py --update
 ```
 
+Verify the committed docs match migrations at `head` (same check as pre-commit/CI):
+
+```bash
+uv run python scripts/generate_db_schema_docs.py --check
+```
+
 Pre-commit enforces that the latest committed schema docs folder matches migrations at
 `head`.
 
