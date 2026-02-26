@@ -3,7 +3,7 @@
 from db.adapters.base import ProfileDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import ProfileRepository
 from simulation.core.models.profiles import BlueskyProfile
-from simulation.core.validators import validate_handle_exists
+from simulation.core.utils.validators import validate_handle_exists
 
 
 class SQLiteProfileRepository(ProfileRepository):

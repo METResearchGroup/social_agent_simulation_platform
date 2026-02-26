@@ -83,6 +83,7 @@ class SeedFixtures:
 
 
 def _read_json_list(path: Path) -> list[dict]:
+    """Read and validate a fixture file containing a JSON array."""
     raw = path.read_text(encoding="utf-8")
     data = json.loads(raw)
     if not isinstance(data, list):
@@ -107,10 +108,12 @@ def _fixtures_digest(fixtures_dir: Path) -> str:
 
 
 def _ensure_seed_meta(conn: sqlite3.Connection) -> None:
+    """Ensure the local_seed_meta table exists before seeding."""
     conn.execute(_SEED_META_TABLE_SQL)
 
 
 def _get_seed_meta(conn: sqlite3.Connection, key: str) -> str | None:
+    """Return a stored seed metadata value if present."""
     row = conn.execute(
         "SELECT value FROM local_seed_meta WHERE key = ?",
         (key,),
@@ -121,6 +124,7 @@ def _get_seed_meta(conn: sqlite3.Connection, key: str) -> str | None:
 
 
 def _set_seed_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
+    """Persist a metadata key/value pair for the local seed."""
     conn.execute(
         "INSERT OR REPLACE INTO local_seed_meta (key, value) VALUES (?, ?)",
         (key, value),
@@ -128,6 +132,7 @@ def _set_seed_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
 
 
 def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
+    """Load all local seed fixtures and convert them into models."""
     runs_raw = _read_json_list(fixtures_dir / "runs.json")
     agents_raw = _read_json_list(fixtures_dir / "agents.json")
     bios_raw = _read_json_list(fixtures_dir / "agent_persona_bios.json")
@@ -219,6 +224,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
 def _write_persisted_likes(
     *, conn: sqlite3.Connection, likes: list[PersistedLike]
 ) -> None:
+    """Insert persisted like records into the likes table."""
     if not likes:
         return
     conn.executemany(
@@ -250,6 +256,7 @@ def _write_persisted_likes(
 def _write_persisted_comments(
     *, conn: sqlite3.Connection, comments: list[PersistedComment]
 ) -> None:
+    """Insert persisted comment records into the comments table."""
     if not comments:
         return
     conn.executemany(
@@ -282,6 +289,7 @@ def _write_persisted_comments(
 def _write_persisted_follows(
     *, conn: sqlite3.Connection, follows: list[PersistedFollow]
 ) -> None:
+    """Insert persisted follow records into the follows table."""
     if not follows:
         return
     conn.executemany(

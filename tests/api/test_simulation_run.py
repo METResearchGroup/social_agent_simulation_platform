@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock, patch
 
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.base import GenerationMetadata
@@ -13,6 +12,7 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import SimulationRunFailure
 from tests.factories import (
     EngineFactory,
     GeneratedFeedFactory,

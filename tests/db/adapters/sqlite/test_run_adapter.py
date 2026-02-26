@@ -467,7 +467,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
     ):
         """Test that write_turn_metadata raises DuplicateTurnMetadataError when metadata already exists."""
         # Arrange
-        from simulation.core.exceptions import DuplicateTurnMetadataError
+        from simulation.core.utils.exceptions import DuplicateTurnMetadataError
 
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
@@ -612,7 +612,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         but the INSERT fails due to a PRIMARY KEY constraint violation.
         """
         # Arrange
-        from simulation.core.exceptions import DuplicateTurnMetadataError
+        from simulation.core.utils.exceptions import DuplicateTurnMetadataError
 
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
@@ -653,7 +653,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
     ):
         """Test that commit is not called when IntegrityError is raised."""
         # Arrange
-        from simulation.core.exceptions import DuplicateTurnMetadataError
+        from simulation.core.utils.exceptions import DuplicateTurnMetadataError
 
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]

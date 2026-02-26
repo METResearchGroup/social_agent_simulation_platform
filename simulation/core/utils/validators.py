@@ -7,14 +7,14 @@ from lib.validation_utils import (
     validate_not_none,
     validate_turn_number,  # noqa: F401
 )
-from simulation.core.exceptions import (
+from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.runs import Run, RunStatus
+from simulation.core.utils.exceptions import (
     InsufficientAgentsError,
     InvalidTransitionError,
     RunNotFoundError,
 )
-from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.models.runs import Run, RunStatus
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 

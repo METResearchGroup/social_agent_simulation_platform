@@ -30,7 +30,6 @@ from simulation.core.agent_actions import (
     generate_follows,
     generate_likes,
 )
-from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
     resolve_metric_keys_by_scope,
@@ -44,7 +43,8 @@ from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetr
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
-from simulation.core.validators import (
+from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
+from simulation.core.utils.validators import (
     validate_agents_without_feeds,
     validate_duplicate_agent_handles,
     validate_insufficient_agents,

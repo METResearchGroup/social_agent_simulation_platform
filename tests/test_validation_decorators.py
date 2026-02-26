@@ -3,7 +3,7 @@ import inspect
 import pytest
 
 from lib.validation_decorators import validate_inputs
-from simulation.core.validators import validate_run_id, validate_turn_number
+from simulation.core.utils.validators import validate_run_id, validate_turn_number
 
 
 def test_validate_inputs_rebinds_normalized_values() -> None:

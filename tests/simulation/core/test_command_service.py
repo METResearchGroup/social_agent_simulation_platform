@@ -13,7 +13,6 @@ from simulation.core.action_policy import (
     HistoryAwareActionFeedFilter,
 )
 from simulation.core.command_service import SimulationCommandService
-from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
 from simulation.core.models.actions import TurnAction
@@ -24,6 +23,7 @@ from simulation.core.models.agent_seed_actions import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.runs import RunStatus
+from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from tests.factories import (
     AgentFactory,
     CommentFactory,
