@@ -13,12 +13,12 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
-from simulation.core.validators import validate_run_exists, validate_run_id
+from simulation.core.utils.exceptions import RunNotFoundError
+from simulation.core.utils.validators import validate_run_exists, validate_run_id
 
 MAX_UNFILTERED_POSTS: int = 500
 

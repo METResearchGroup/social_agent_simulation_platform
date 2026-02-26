@@ -9,7 +9,7 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import generated_feeds
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_handle_exists,
     validate_run_id,
     validate_turn_number,

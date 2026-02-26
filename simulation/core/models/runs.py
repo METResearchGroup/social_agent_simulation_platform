@@ -24,7 +24,7 @@ class RunConfig(BaseModel):
     @classmethod
     def validate_metric_keys_config(cls, v: list[str] | None) -> list[str] | None:
         """Validate that metric_keys, when provided, contains only registered keys."""
-        from simulation.core.validators import validate_metric_keys
+        from simulation.core.utils.validators import validate_metric_keys
 
         return validate_metric_keys(v)
 
@@ -85,7 +85,7 @@ class Run(BaseModel):
     @classmethod
     def validate_metric_keys_run(cls, v: list[str]) -> list[str]:
         """Validate that metric_keys is non-empty and contains only registered keys."""
-        from simulation.core.validators import validate_metric_keys
+        from simulation.core.utils.validators import validate_metric_keys
 
         validate_non_empty_iterable(v, "metric_keys")
         result = validate_metric_keys(v)

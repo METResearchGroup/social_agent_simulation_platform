@@ -1,5 +1,5 @@
-from .exceptions import InsufficientAgentsError, SimulationError
 from .models.turns import TurnResult
+from .utils.exceptions import InsufficientAgentsError, SimulationError
 
 
 # Lazy import to avoid circular dependency

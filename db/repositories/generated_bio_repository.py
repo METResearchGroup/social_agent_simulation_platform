@@ -3,7 +3,7 @@
 from db.adapters.base import GeneratedBioDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import GeneratedBioRepository
 from simulation.core.models.generated.bio import GeneratedBio
-from simulation.core.validators import validate_handle_exists
+from simulation.core.utils.validators import validate_handle_exists
 
 
 class SQLiteGeneratedBioRepository(GeneratedBioRepository):

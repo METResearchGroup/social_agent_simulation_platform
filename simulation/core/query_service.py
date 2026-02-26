@@ -12,7 +12,6 @@ from db.repositories.interfaces import (
     RunRepository,
 )
 from lib.validation_decorators import validate_inputs
-from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
@@ -20,12 +19,13 @@ from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
+from simulation.core.utils.exceptions import RunNotFoundError
 from simulation.core.utils.turn_data_hydration import (
     persisted_comment_to_generated,
     persisted_follow_to_generated,
     persisted_like_to_generated,
 )
-from simulation.core.validators import validate_run_id, validate_turn_number
+from simulation.core.utils.validators import validate_run_id, validate_turn_number
 
 
 class SimulationQueryService:

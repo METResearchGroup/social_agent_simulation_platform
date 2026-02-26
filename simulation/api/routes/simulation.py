@@ -38,7 +38,7 @@ from simulation.api.services.run_query_service import (
     get_turns_for_run,
     list_runs,
 )
-from simulation.core.exceptions import (
+from simulation.core.utils.exceptions import (
     HandleAlreadyExistsError,
     RunNotFoundError,
     SimulationRunFailure,

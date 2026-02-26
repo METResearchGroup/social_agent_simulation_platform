@@ -8,7 +8,7 @@ from db.adapters.sqlite.schema_utils import ordered_column_names, required_colum
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import bluesky_feed_posts
 from simulation.core.models.posts import BlueskyFeedPost
-from simulation.core.validators import validate_handle_exists, validate_uri_exists
+from simulation.core.utils.validators import validate_handle_exists, validate_uri_exists
 
 FEED_POST_COLUMNS = ordered_column_names(bluesky_feed_posts)
 FEED_POST_REQUIRED_FIELDS = required_column_names(bluesky_feed_posts)

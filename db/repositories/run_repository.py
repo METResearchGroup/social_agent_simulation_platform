@@ -6,16 +6,16 @@ from db.adapters.base import RunDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import RunRepository
 from lib.timestamp_utils import get_current_timestamp
 from lib.validation_decorators import validate_inputs
-from simulation.core.exceptions import (
+from simulation.core.metrics.defaults import get_default_metric_keys
+from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import (
     InvalidTransitionError,
     RunCreationError,
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from simulation.core.metrics.defaults import get_default_metric_keys
-from simulation.core.models.runs import Run, RunConfig, RunStatus
-from simulation.core.models.turns import TurnMetadata
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_run_exists,
     validate_run_id,
     validate_run_status_transition,

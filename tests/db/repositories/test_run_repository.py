@@ -8,16 +8,16 @@ import pytest
 
 from db.adapters.base import RunDatabaseAdapter, TransactionProvider
 from db.repositories.run_repository import SQLiteRunRepository as _SQLiteRunRepository
-from simulation.core.exceptions import (
+from simulation.core.models.actions import TurnAction
+from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
     RunCreationError,
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from simulation.core.models.actions import TurnAction
-from simulation.core.models.runs import Run, RunConfig, RunStatus
-from simulation.core.models.turns import TurnMetadata
 from tests.factories import RunConfigFactory, RunFactory, TurnMetadataFactory
 
 DEFAULT_TEST_METRIC_KEYS: list[str] = [

@@ -5,9 +5,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from simulation.api.services.run_query_service import get_run_details
-from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
+from simulation.core.utils.exceptions import RunNotFoundError
 from tests.factories import RunFactory, TurnMetadataFactory
 
 
