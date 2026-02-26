@@ -6,7 +6,6 @@ from unittest.mock import Mock
 import pytest
 from pydantic import TypeAdapter
 
-from simulation.core.exceptions import MetricsComputationError
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import create_default_metrics_registry
 from simulation.core.metrics.interfaces import (
@@ -21,6 +20,7 @@ from simulation.core.models.metrics import (
     ComputedMetricResult,
     ComputedMetrics,
 )
+from simulation.core.utils.exceptions import MetricsComputationError
 from tests.factories import TurnMetadataFactory, TurnMetricsFactory
 
 _INT_ADAPTER = TypeAdapter(int)

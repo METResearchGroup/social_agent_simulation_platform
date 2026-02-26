@@ -52,8 +52,8 @@ repos:
         language: system
         pass_filenames: false
       - id: oxlint
-        name: oxlint + React Doctor (ui)
-        entry: bash -lc "cd ui && (test -d node_modules || npm install) && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
+        name: eslint (custom rules) + oxlint (ui)
+        entry: bash -lc "cd ui && if [ -d node_modules ] && [ -f node_modules/.package-lock.json ] && cmp -s package-lock.json node_modules/.package-lock.json; then npm run lint:ci; else npm ci && npm run lint:ci; fi"
         language: system
         pass_filenames: false
         files: ^ui/

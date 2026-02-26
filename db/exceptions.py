@@ -1,9 +1,11 @@
 """Database-specific exceptions only.
 
 Domain exceptions (RunNotFoundError, InvalidTransitionError, RunCreationError,
-RunStatusUpdateError, DuplicateTurnMetadataError) live in simulation.core.exceptions.
+RunStatusUpdateError, DuplicateTurnMetadataError) live in
+simulation.core.utils.exceptions.
+
 The DB layer (adapters, repositories) maps low-level DB failures to those domain
-exceptions; use simulation.core.exceptions for imports.
+exceptions; use simulation.core.utils.exceptions for imports.
 """
 
 

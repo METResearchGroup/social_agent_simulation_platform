@@ -8,12 +8,12 @@ import time
 import pytest
 
 from db.adapters.sqlite.sqlite import get_connection, run_transaction
-from simulation.core.exceptions import (
+from simulation.core.models.runs import RunStatus
+from simulation.core.utils.exceptions import (
     DuplicateTurnMetadataError,
     InvalidTransitionError,
     RunNotFoundError,
 )
-from simulation.core.models.runs import RunStatus
 from tests.factories import RunConfigFactory, RunFactory, TurnMetadataFactory
 
 

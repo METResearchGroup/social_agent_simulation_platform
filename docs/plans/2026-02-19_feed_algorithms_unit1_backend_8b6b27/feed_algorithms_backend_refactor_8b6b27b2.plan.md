@@ -113,9 +113,9 @@ feeds/
 ### 5. Update validators and models
 
 - [simulation/core/validators.py](simulation/core/validators.py): change `validate_feed_algorithm` to import from `feeds.algorithms.validators` (or `feeds.algorithms.registry`) instead of `feeds.feed_generator`.
-- [simulation/core/models/runs.py](simulation/core/models/runs.py): change `RunConfig` and `Run` field validators to import `validate_feed_algorithm` from `feeds.algorithms.validators` (or keep using `simulation.core.validators.validate_feed_algorithm` if that re-exports from feeds).
+- [simulation/core/models/runs.py](simulation/core/models/runs.py): change `RunConfig` and `Run` field validators to import `validate_feed_algorithm` from `feeds.algorithms.validators` (or keep using `simulation.core.utils.validators.validate_feed_algorithm` if that re-exports from feeds).
 
-Prefer: keep `simulation.core.validators.validate_feed_algorithm` as the public API and have it call `feeds.algorithms.validators.validate_feed_algorithm` to avoid coupling simulation to feeds structure.
+Prefer: keep `simulation.core.utils.validators.validate_feed_algorithm` as the public API and have it call `feeds.algorithms.validators.validate_feed_algorithm` to avoid coupling simulation to feeds structure.
 
 ### 6. Add GET /v1/simulations/feed-algorithms
 

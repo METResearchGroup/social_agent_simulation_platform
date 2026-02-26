@@ -7,7 +7,7 @@ from db.adapters.sqlite.schema_utils import ordered_column_names, required_colum
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import bluesky_profiles
 from simulation.core.models.profiles import BlueskyProfile
-from simulation.core.validators import validate_handle_exists
+from simulation.core.utils.validators import validate_handle_exists
 
 PROFILE_COLUMNS = ordered_column_names(bluesky_profiles)
 PROFILE_REQUIRED_FIELDS = required_column_names(bluesky_profiles)

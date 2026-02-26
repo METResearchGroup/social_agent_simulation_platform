@@ -3,7 +3,7 @@
 from collections.abc import Callable
 
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_duplicate_agent_handles,
     validate_insufficient_agents,
 )

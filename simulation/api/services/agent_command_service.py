@@ -17,10 +17,10 @@ from db.repositories.user_agent_profile_metadata_repository import (
 from lib.timestamp_utils import get_current_timestamp
 from simulation.api.errors import ApiHandleAlreadyExistsError
 from simulation.api.schemas.simulation import AgentSchema, CreateAgentRequest
-from simulation.core.handle_utils import normalize_handle
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+from simulation.core.utils.handle_utils import normalize_handle
 
 
 def create_agent(
