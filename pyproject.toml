@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.17.2",
     "fastapi>=0.115.0",
+    "httpx>=0.27.0",
     "uvicorn>=0.32.0",
     "pyyaml>=6.0",
     "litellm>=1.59.10",
@@ -96,7 +97,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.ruff.lint.isort]
-known-first-party = ["simulation", "db", "ai", "lib", "feeds", "jobs", "ml_tooling"]
+known-first-party = ["simulation", "db", "ai", "lib", "feeds", "jobs", "ml_tooling", "gateway"]
 
 [tool.pyright]
 include = ["."]
@@ -110,7 +111,7 @@ typeCheckingMode = "basic"
 reportMissingTypeStubs = false
 
 [tool.importlinter]
-root_packages = ["simulation", "db", "lib", "feeds", "ai", "jobs", "ml_tooling"]
+root_packages = ["simulation", "db", "lib", "feeds", "ai", "jobs", "ml_tooling", "gateway"]
 include_external_packages = false
 exclude_type_checking_imports = true
 
