@@ -113,7 +113,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const agentsLoadMoreRequestIdRef = useRef<number>(0);
   const agentsOffsetRef = useRef<number>(0);
   const runsRequestIdRef = useRef<number>(0);
-  const runDetailsRequestIdRef = useRef<number>(0);
+  const runDetailsRequestIdRef = useRef<Map<string, number>>(new Map());
   const turnsRequestIdRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
 
@@ -263,8 +263,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     }
 
     const runId: string = selectedRunId;
-    runDetailsRequestIdRef.current += 1;
-    const requestId: number = runDetailsRequestIdRef.current;
+    const requestId: number = (runDetailsRequestIdRef.current.get(runId) ?? 0) + 1;
+    runDetailsRequestIdRef.current.set(runId, requestId);
     setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
     setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: null }));
 
@@ -272,17 +272,18 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       try {
         const details = await getRunDetails(runId);
         if (!isMountedRef.current) return;
-        if (requestId !== runDetailsRequestIdRef.current) return;
+        if (requestId !== runDetailsRequestIdRef.current.get(runId)) return;
         setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
       } catch (error: unknown) {
         console.error(`Failed to fetch run details for ${runId}:`, error);
         if (!isMountedRef.current) return;
-        if (requestId !== runDetailsRequestIdRef.current) return;
+        if (requestId !== runDetailsRequestIdRef.current.get(runId)) return;
         const apiError: ApiError =
           error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
         setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
       } finally {
-        const isStale = !isMountedRef.current || requestId !== runDetailsRequestIdRef.current;
+        const isStale =
+          !isMountedRef.current || requestId !== runDetailsRequestIdRef.current.get(runId);
         if (!isStale) {
           setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
         }

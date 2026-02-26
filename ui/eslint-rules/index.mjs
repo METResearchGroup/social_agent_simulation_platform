@@ -157,6 +157,8 @@ function _hasRequestIdGuard(effectCallbackBodyNode) {
   const capturedRefs = new Set();
   const incrementedRefs = new Set();
   const guardedRefs = new Set();
+  const mapSetRefs = new Set();
+  const mapGuardedRefs = new Set();
 
   _walk(effectCallbackBodyNode, (node) => {
     if (
@@ -226,6 +228,39 @@ function _hasRequestIdGuard(effectCallbackBodyNode) {
         ) {
           guardedRefs.add(b.object.name);
         }
+
+        if (
+          b?.type === 'CallExpression' &&
+          b.callee?.type === 'MemberExpression' &&
+          b.callee.computed === false &&
+          b.callee.object?.type === 'MemberExpression' &&
+          b.callee.object.computed === false &&
+          b.callee.object.object?.type === 'Identifier' &&
+          b.callee.object.property?.type === 'Identifier' &&
+          b.callee.object.property.name === 'current' &&
+          b.callee.property?.type === 'Identifier' &&
+          b.callee.property.name === 'get'
+        ) {
+          mapGuardedRefs.add(b.callee.object.object.name);
+        }
+      }
+    }
+
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'MemberExpression' &&
+      node.callee.computed === false &&
+      node.callee.object?.type === 'MemberExpression' &&
+      node.callee.object.computed === false &&
+      node.callee.object.object?.type === 'Identifier' &&
+      node.callee.object.property?.type === 'Identifier' &&
+      node.callee.object.property.name === 'current' &&
+      node.callee.property?.type === 'Identifier' &&
+      node.callee.property.name === 'set'
+    ) {
+      const args = node.arguments ?? [];
+      if (args.length >= 2 && args[1]?.type === 'Identifier' && args[1].name === 'requestId') {
+        mapSetRefs.add(node.callee.object.object.name);
       }
     }
   });
@@ -234,6 +269,9 @@ function _hasRequestIdGuard(effectCallbackBodyNode) {
     if (incrementedRefs.has(refName) && guardedRefs.has(refName)) {
       return true;
     }
+  }
+  for (const refName of mapSetRefs) {
+    if (mapGuardedRefs.has(refName)) return true;
   }
   return false;
 }
