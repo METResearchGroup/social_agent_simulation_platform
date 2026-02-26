@@ -9,7 +9,8 @@ import {
 
 function _walk(node, visitor) {
   if (!node || typeof node.type !== 'string') return;
-  visitor(node);
+  const shouldDescend = visitor(node);
+  if (shouldDescend === false) return;
 
   for (const key of Object.keys(node)) {
     if (key === 'parent') continue;
@@ -92,8 +93,12 @@ function _containsAwaitAndSetStateCall(asyncFnNode) {
   let hasSetStateCall = false;
 
   _walk(asyncFnNode.body, (node) => {
-    if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
-      if (node !== asyncFnNode) return;
+    if (
+      node.type === 'FunctionDeclaration' ||
+      node.type === 'FunctionExpression' ||
+      node.type === 'ArrowFunctionExpression'
+    ) {
+      if (node !== asyncFnNode) return false;
     }
 
     if (node.type === 'AwaitExpression') {
@@ -112,8 +117,7 @@ function _containsAwaitAndSetStateCall(asyncFnNode) {
 }
 
 function _effectNeedsRequestIdGuard(effectCallbackBodyNode, depsNode) {
-  if (!depsNode) return false;
-  if (depsNode.type === 'ArrayExpression' && depsNode.elements.length === 0) return false;
+  if (depsNode?.type === 'ArrayExpression' && depsNode.elements.length === 0) return false;
   if (!effectCallbackBodyNode || effectCallbackBodyNode.type !== 'BlockStatement') return false;
 
   const asyncFns = [];
@@ -288,10 +292,11 @@ const rules = {
           const sourceValue = _getImportSourceValue(node);
           if (sourceValue == null) return;
 
-          const isSupabaseModule =
-            sourceValue === '@/lib/supabase' ||
-            sourceValue === './lib/supabase' ||
-            sourceValue.endsWith('/lib/supabase');
+          const abs = resolveImportToUiPath({ filename, importPath: sourceValue });
+          if (!abs) return;
+          const resolved = resolveExistingFile(abs);
+          const rel = getUiRelativePathFromAbsolute(resolved);
+          const isSupabaseModule = rel != null && /^lib\/supabase(\.[cm]?[jt]sx?)?$/.test(rel);
           if (!isSupabaseModule) return;
 
           const importsSupabase = node.specifiers.some(

@@ -8,9 +8,30 @@ function _toPosixPath(p) {
 export function getUiRootFromFilename(filename) {
   const normalized = filename.replaceAll('\\', '/');
   const marker = '/ui/';
-  const idx = normalized.lastIndexOf(marker);
-  if (idx === -1) return null;
-  return normalized.slice(0, idx + marker.length - 1);
+  const candidates = [...normalized.matchAll(/\/ui\//g)].map((m) => m.index ?? -1);
+  const validNext = new Set([
+    'types',
+    'lib',
+    'hooks',
+    'contexts',
+    'components',
+    'app',
+    'eslint-rules',
+    'scripts',
+    'next.config.ts',
+    'eslint.config.mjs',
+  ]);
+
+  for (const idx of candidates) {
+    if (idx < 0) continue;
+    const after = normalized.slice(idx + marker.length);
+    const next = after.split('/')[0] ?? '';
+    if (validNext.has(next)) {
+      return normalized.slice(0, idx + marker.length - 1);
+    }
+  }
+
+  return null;
 }
 
 export function normalizeFilename(filename) {
@@ -93,4 +114,3 @@ export function getUiLayerFromUiRelativePath(uiRelPath) {
   }
   return null;
 }
-
