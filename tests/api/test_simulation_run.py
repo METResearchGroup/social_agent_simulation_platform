@@ -13,6 +13,14 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+from tests.factories import (
+    EngineFactory,
+    GeneratedFeedFactory,
+    RunConfigFactory,
+    RunFactory,
+    TurnMetadataFactory,
+    TurnMetricsFactory,
+)
 
 
 def _make_mock_engine_for_completed_run(
@@ -78,53 +86,13 @@ def _make_mock_engine_for_completed_run(
 def test_post_simulations_run_success_returns_completed_and_metrics(simulation_client):
     """Success run returns 200 with status completed and per-turn metrics."""
     client, fastapi_app = simulation_client
-    run = Run(
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-success-1",
-        created_at=get_current_timestamp(),
         total_turns=1,
         total_agents=1,
-        feed_algorithm="chronological",
-        metric_keys=[
-            "run.actions.total",
-            "run.actions.total_by_type",
-            "turn.actions.counts_by_type",
-            "turn.actions.total",
-        ],
-        started_at=get_current_timestamp(),
-        status=RunStatus.COMPLETED,
-        completed_at=get_current_timestamp(),
     )
-    metadata_list = [
-        TurnMetadata(
-            run_id=run.run_id,
-            turn_number=0,
-            total_actions={
-                TurnAction.LIKE: 0,
-                TurnAction.COMMENT: 0,
-                TurnAction.FOLLOW: 0,
-            },
-            created_at=run.created_at,
-        ),
-    ]
-    turn_metrics_list = [
-        TurnMetrics(
-            run_id=run.run_id,
-            turn_number=0,
-            metrics={"turn.actions.total": 0},
-            created_at=run.created_at,
-        )
-    ]
-    run_metrics = RunMetrics(
-        run_id=run.run_id,
-        metrics={"run.actions.total": 0},
-        created_at=run.created_at,
-    )
-    mock_engine = MagicMock()
-    mock_engine.execute_run.return_value = run
-    mock_engine.list_turn_metadata.return_value = metadata_list
-    mock_engine.list_turn_metrics.return_value = turn_metrics_list
-    mock_engine.get_run_metrics.return_value = run_metrics
     fastapi_app.state.engine = mock_engine
+    run = mock_engine.execute_run.return_value
     response = client.post(
         "/v1/simulations/run",
         json={"num_agents": 1, "num_turns": 1},
@@ -160,12 +128,12 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
 def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_client):
     """Request with only num_agents uses default num_turns=10 and feed_algorithm=chronological."""
     client, fastapi_app = simulation_client
-    mock_engine = _make_mock_engine_for_completed_run(
-        fastapi_app=fastapi_app,
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-defaults-1",
         total_turns=10,
         total_agents=1,
     )
+    fastapi_app.state.engine = mock_engine
     run = mock_engine.execute_run.return_value
     response = client.post(
         "/v1/simulations/run",
@@ -188,12 +156,12 @@ def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_c
 def test_post_simulations_run_passes_feed_algorithm_config_to_engine(simulation_client):
     """Request with feed_algorithm_config passes config into RunConfig used by engine."""
     client, fastapi_app = simulation_client
-    mock_engine = _make_mock_engine_for_completed_run(
-        fastapi_app=fastapi_app,
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-config-1",
         total_turns=10,
         total_agents=1,
     )
+    fastapi_app.state.engine = mock_engine
 
     feed_algorithm_config = {"order": "oldest_first"}
     response = client.post(
@@ -280,7 +248,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     """Mid-run failure returns 200 with status failed and partial per-turn metrics."""
     client, fastapi_app = simulation_client
     partial_metadata = [
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id="run-partial-1",
             turn_number=0,
             total_actions={
@@ -292,14 +260,14 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         ),
     ]
     partial_turn_metrics = [
-        TurnMetrics(
+        TurnMetricsFactory.create(
             run_id="run-partial-1",
             turn_number=0,
             metrics={"turn.actions.total": 3},
             created_at="2026-01-01T00:00:00",
         )
     ]
-    failed_run = Run(
+    failed_run = RunFactory.create(
         run_id="run-partial-1",
         created_at="2026-01-01T00:00:00",
         total_turns=2,
@@ -380,10 +348,14 @@ def test_get_simulations_runs_returns_persisted_runs_newest_first(
         side_effect=["2026_01_01-00:00:00", "2026_01_02-00:00:00"],
     ):
         older_run = run_repo.create_run(
-            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
         )
         newer_run = run_repo.create_run(
-            RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
         )
 
     client, _ = simulation_client
@@ -406,10 +378,12 @@ def test_get_simulations_run_turns_returns_turn_map(
 ):
     """GET /v1/simulations/runs/{run_id}/turns returns turn payload map."""
     run = run_repo.create_run(
-        RunConfig(num_agents=1, num_turns=2, feed_algorithm="chronological")
+        RunConfigFactory.create(
+            num_agents=1, num_turns=2, feed_algorithm="chronological"
+        )
     )
     run_repo.write_turn_metadata(
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -421,7 +395,7 @@ def test_get_simulations_run_turns_returns_turn_map(
         )
     )
     run_repo.write_turn_metadata(
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=1,
             total_actions={
@@ -433,7 +407,7 @@ def test_get_simulations_run_turns_returns_turn_map(
         )
     )
     generated_feed_repo.write_generated_feed(
-        GeneratedFeed(
+        GeneratedFeedFactory.create(
             feed_id="feed-1",
             run_id=run.run_id,
             turn_number=0,

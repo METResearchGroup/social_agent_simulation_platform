@@ -727,6 +727,23 @@ class AgentDatabaseAdapter(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def read_agents_page_by_handle_like(
+        self, *, handle_like: str, limit: int, offset: int, conn: object
+    ) -> list[Agent]:
+        """Read a page of agents filtered by handle LIKE, ordered by handle.
+
+        Args:
+            handle_like: SQL LIKE pattern for matching agent.handle.
+            limit: Maximum number of agents to return.
+            offset: Number of agents to skip.
+            conn: Connection.
+
+        Returns:
+            List of Agent models (possibly empty).
+        """
+        raise NotImplementedError
+
 
 class AgentBioDatabaseAdapter(ABC):
     """Abstract interface for agent persona bio database operations."""

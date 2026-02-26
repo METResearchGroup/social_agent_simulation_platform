@@ -10,6 +10,7 @@ from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.turns import TurnMetadata
 from tests.db.adapters.sqlite.conftest import create_mock_row
+from tests.factories import TurnMetadataFactory
 
 
 @pytest.fixture
@@ -405,7 +406,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -446,7 +447,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         """When conn is passed, write_turn_metadata uses it and does not call commit."""
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 1},
@@ -471,7 +472,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 5},
@@ -479,7 +480,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         )
 
         # Mock read_turn_metadata to return existing metadata (duplicate)
-        existing_metadata = TurnMetadata(
+        existing_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 3},
@@ -508,7 +509,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 5},
@@ -534,7 +535,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={
@@ -568,7 +569,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = "run_456"
         turn_number = 3
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 7},
@@ -616,7 +617,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 5},
@@ -657,7 +658,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        turn_metadata = TurnMetadata(
+        turn_metadata = TurnMetadataFactory.create(
             run_id=run_id,
             turn_number=turn_number,
             total_actions={TurnAction.LIKE: 5},

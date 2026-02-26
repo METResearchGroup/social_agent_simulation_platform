@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import SearchInput from '@/components/ui/SearchInput';
 import type { ViewMode } from '@/hooks/useSimulationPageState';
 import { Agent, Run } from '@/types';
 
@@ -20,8 +21,10 @@ interface RunHistorySidebarProps {
   agentsLoadingMore: boolean;
   agentsHasMore: boolean;
   agentsError: Error | null;
+  agentsQuery: string;
   onRetryAgents: () => void;
   onLoadMoreAgents: () => void;
+  onAgentsQueryChange: (query: string) => void;
   selectedAgentHandle: string | null;
   onSelectAgent: (handle: string | null) => void;
 }
@@ -41,8 +44,10 @@ export default function RunHistorySidebar({
   agentsLoadingMore,
   agentsHasMore,
   agentsError,
+  agentsQuery,
   onRetryAgents,
   onLoadMoreAgents,
+  onAgentsQueryChange,
   selectedAgentHandle,
   onSelectAgent,
 }: RunHistorySidebarProps) {
@@ -206,6 +211,16 @@ export default function RunHistorySidebar({
               ? 'Create New Agent'
               : 'Agents'}
         </h2>
+        {viewMode !== 'runs' ? (
+          <div className="mb-3">
+            <SearchInput
+              value={agentsQuery}
+              onChange={onAgentsQueryChange}
+              placeholder="Search by handle (supports * and ?)"
+              ariaLabel="Search agents by handle"
+            />
+          </div>
+        ) : null}
         {viewMode === 'runs' && (
           <button
             type="button"

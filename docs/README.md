@@ -15,6 +15,7 @@ Quick lookup table of contents for project documentation.
 | [runbooks/SMOKE_TEST.md](runbooks/SMOKE_TEST.md) | Run smoke tests against a live API |
 | [runbooks/LOAD_TESTING.md](runbooks/LOAD_TESTING.md) | Run load tests with scripts |
 | [runbooks/PRE_COMMIT_AND_LINTING.md](runbooks/PRE_COMMIT_AND_LINTING.md) | Pre-commit, Ruff, Pyright, complexipy |
+| [runbooks/CREATE_NEW_PYTHON_TESTS.md](runbooks/CREATE_NEW_PYTHON_TESTS.md) | Add new Python tests (pytest) using factories + Hypothesis |
 | [runbooks/HOW_TO_CREATE_NEW_METRIC.md](runbooks/HOW_TO_CREATE_NEW_METRIC.md) | Add a new metric to the simulation |
 
 ## Other docs

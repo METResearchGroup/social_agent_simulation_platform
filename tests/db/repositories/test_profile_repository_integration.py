@@ -6,7 +6,7 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 from pydantic import ValidationError
 
-from simulation.core.models.profiles import BlueskyProfile
+from tests.factories import BlueskyProfileFactory
 
 
 class TestSQLiteProfileRepositoryIntegration:
@@ -15,7 +15,7 @@ class TestSQLiteProfileRepositoryIntegration:
     def test_create_and_read_profile(self, profile_repo):
         """Test creating a profile and reading it back from the database."""
         repo = profile_repo
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Test User",
@@ -47,7 +47,7 @@ class TestSQLiteProfileRepositoryIntegration:
         repo = profile_repo
 
         # Create initial profile
-        initial_profile = BlueskyProfile(
+        initial_profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Initial Name",
@@ -59,7 +59,7 @@ class TestSQLiteProfileRepositoryIntegration:
         repo.create_or_update_profile(initial_profile)
 
         # Update the profile
-        updated_profile = BlueskyProfile(
+        updated_profile = BlueskyProfileFactory.create(
             handle="test.bsky.social",
             did="did:plc:test123",
             display_name="Updated Name",
@@ -100,7 +100,7 @@ class TestSQLiteProfileRepositoryIntegration:
         repo = profile_repo
 
         # Create multiple profiles
-        profile1 = BlueskyProfile(
+        profile1 = BlueskyProfileFactory.create(
             handle="user1.bsky.social",
             did="did:plc:user1",
             display_name="User 1",
@@ -109,7 +109,7 @@ class TestSQLiteProfileRepositoryIntegration:
             follows_count=50,
             posts_count=25,
         )
-        profile2 = BlueskyProfile(
+        profile2 = BlueskyProfileFactory.create(
             handle="user2.bsky.social",
             did="did:plc:user2",
             display_name="User 2",
@@ -118,7 +118,7 @@ class TestSQLiteProfileRepositoryIntegration:
             follows_count=100,
             posts_count=50,
         )
-        profile3 = BlueskyProfile(
+        profile3 = BlueskyProfileFactory.create(
             handle="user3.bsky.social",
             did="did:plc:user3",
             display_name="User 3",
@@ -156,7 +156,7 @@ class TestSQLiteProfileRepositoryIntegration:
         """Test that creating BlueskyProfile with empty handle raises ValidationError from Pydantic."""
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
-            BlueskyProfile(
+            BlueskyProfileFactory.create(
                 handle="",
                 did="did:plc:test123",
                 display_name="Test User",
@@ -179,7 +179,7 @@ class TestSQLiteProfileRepositoryIntegration:
         """Test that multiple profiles with different handles can coexist."""
         repo = profile_repo
 
-        profile1 = BlueskyProfile(
+        profile1 = BlueskyProfileFactory.create(
             handle="alice.bsky.social",
             did="did:plc:alice",
             display_name="Alice",
@@ -188,7 +188,7 @@ class TestSQLiteProfileRepositoryIntegration:
             follows_count=500,
             posts_count=100,
         )
-        profile2 = BlueskyProfile(
+        profile2 = BlueskyProfileFactory.create(
             handle="bob.bsky.social",
             did="did:plc:bob",
             display_name="Bob",
@@ -219,7 +219,7 @@ class TestSQLiteProfileRepositoryIntegration:
         repo = profile_repo
 
         long_bio = "This is a very long bio. " * 50  # 1000+ characters
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="longbio.bsky.social",
             did="did:plc:longbio",
             display_name="Long Bio User",
@@ -241,7 +241,7 @@ class TestSQLiteProfileRepositoryIntegration:
         repo = profile_repo
 
         # Note: Bluesky handles typically don't have special chars, but test edge cases
-        profile = BlueskyProfile(
+        profile = BlueskyProfileFactory.create(
             handle="user-name.bsky.social",
             did="did:plc:username",
             display_name="User Name",

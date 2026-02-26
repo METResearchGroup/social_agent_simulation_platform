@@ -21,6 +21,7 @@ const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
 const EMPTY_RUN_DETAILS_LOADING: Record<string, boolean> = {};
 const EMPTY_RUN_DETAILS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
+const AGENTS_QUERY_MAX_LENGTH: number = 200;
 
 /**
  * Result of useSimulationPageState.
@@ -45,6 +46,7 @@ interface UseSimulationPageStateResult {
   agentsLoadingMore: boolean;
   agentsError: Error | null;
   agentsHasMore: boolean;
+  agentsQuery: string;
   turnsLoadingByRunId: Record<string, boolean>;
   turnsErrorByRunId: Record<string, ApiError | null>;
   viewMode: ViewMode;
@@ -70,6 +72,7 @@ interface UseSimulationPageStateResult {
   handleRetryRuns: () => void;
   handleRetryAgents: () => void;
   handleLoadMoreAgents: () => void;
+  handleSetAgentsQuery: (query: string) => void;
   handleRetryTurns: (runId: string) => void;
 }
 
@@ -83,6 +86,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [agentsError, setAgentsError] = useState<Error | null>(null);
   const [retryAgentsTrigger, setRetryAgentsTrigger] = useState<number>(0);
   const [agentsHasMore, setAgentsHasMore] = useState<boolean>(false);
+  const [agentsQuery, setAgentsQuery] = useState<string>('');
+  const [agentsQueryDebounced, setAgentsQueryDebounced] = useState<string>('');
   const [turnsLoadingByRunId, setTurnsLoadingByRunId] = useState<Record<string, boolean>>(
     EMPTY_TURNS_LOADING,
   );
@@ -112,6 +117,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const agentsRequestIdRef = useRef<number>(0);
   const agentsLoadMoreRequestIdRef = useRef<number>(0);
   const agentsOffsetRef = useRef<number>(0);
+  const lastAgentsQueryRef = useRef<string>('');
+  const selectedAgentHandleRef = useRef<string | null>(null);
   const runsRequestIdRef = useRef<number>(0);
   const runDetailsRequestIdMapRef = useRef<Map<string, number>>(new Map());
   const isMountedRef = useRef<boolean>(true);
@@ -121,6 +128,19 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    selectedAgentHandleRef.current = selectedAgentHandle;
+  }, [selectedAgentHandle]);
+
+  useEffect(() => {
+    const timeoutId: number = window.setTimeout(() => {
+      setAgentsQueryDebounced(agentsQuery.trim());
+    }, 250);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [agentsQuery]);
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -155,22 +175,32 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     let isMounted: boolean = true;
     agentsRequestIdRef.current += 1;
     const requestId: number = agentsRequestIdRef.current;
+    const didQueryChange: boolean = lastAgentsQueryRef.current !== agentsQueryDebounced;
+    lastAgentsQueryRef.current = agentsQueryDebounced;
     setAgentsLoading(true);
     setAgentsError(null);
     setAgentsHasMore(false);
     agentsOffsetRef.current = 0;
     setAgentsLoadingMore(false);
+    if (didQueryChange) {
+      setSelectedAgentHandle(null);
+    }
 
     const loadAgents = async (): Promise<void> => {
       try {
         const apiAgents: Agent[] = await getAgents({
           limit: DEFAULT_AGENT_PAGE_SIZE,
           offset: 0,
+          q: agentsQueryDebounced !== '' ? agentsQueryDebounced : undefined,
         });
         if (!isMounted || requestId !== agentsRequestIdRef.current) return;
         setAgents(apiAgents);
         agentsOffsetRef.current = apiAgents.length;
         setAgentsHasMore(apiAgents.length === DEFAULT_AGENT_PAGE_SIZE);
+        const currentSelection: string | null = selectedAgentHandleRef.current;
+        if (currentSelection != null && !apiAgents.some((a) => a.handle === currentSelection)) {
+          setSelectedAgentHandle(null);
+        }
       } catch (error: unknown) {
         console.error('Failed to fetch agents:', error);
         if (!isMounted || requestId !== agentsRequestIdRef.current) return;
@@ -186,7 +216,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     return () => {
       isMounted = false;
     };
-  }, [retryAgentsTrigger]);
+  }, [agentsQueryDebounced, retryAgentsTrigger]);
 
   useEffect(() => {
     if (!selectedRunId || loadedTurnsRunIdsRef.current.has(selectedRunId)) {
@@ -401,6 +431,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
         const nextPage: Agent[] = await getAgents({
           limit: DEFAULT_AGENT_PAGE_SIZE,
           offset: agentsOffsetRef.current,
+          q: agentsQueryDebounced !== '' ? agentsQueryDebounced : undefined,
         });
         if (!isMountedRef.current || requestId !== agentsLoadMoreRequestIdRef.current) {
           return;
@@ -420,7 +451,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
 
     void loadMore();
-  }, [agentsHasMore, agentsLoading, agentsLoadingMore]);
+  }, [agentsHasMore, agentsLoading, agentsLoadingMore, agentsQueryDebounced]);
 
   const handleRetryTurns = (runId: string): void => {
     setTurnsErrorByRunId((prev) => {
@@ -435,6 +466,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
 
   const handleSetViewMode = (mode: ViewMode): void => {
     setViewMode(mode);
+    setAgentsQuery('');
+    setAgentsQueryDebounced('');
     if (mode === 'create-agent') {
       setSelectedAgentHandle(null);
     }
@@ -443,6 +476,11 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const handleSelectAgent = (handle: string | null): void => {
     setSelectedAgentHandle(handle);
   };
+
+  const handleSetAgentsQuery = useCallback((query: string): void => {
+    const cappedQuery: string = query.slice(0, AGENTS_QUERY_MAX_LENGTH);
+    setAgentsQuery(cappedQuery);
+  }, []);
 
   return {
     runsWithStatus,
@@ -453,6 +491,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     agentsLoadingMore,
     agentsError,
     agentsHasMore,
+    agentsQuery,
     turnsLoadingByRunId,
     turnsErrorByRunId,
     viewMode,
@@ -477,6 +516,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     handleRetryRuns,
     handleRetryAgents,
     handleLoadMoreAgents,
+    handleSetAgentsQuery,
     handleRetryTurns,
     handleRetryRunDetails,
   };

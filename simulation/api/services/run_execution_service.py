@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 
 from lib.timestamp_utils import get_current_timestamp
+from simulation.api.errors import ApiRunCreationFailedError
 from simulation.api.schemas.simulation import (
     ErrorDetail,
     RunRequest,
@@ -38,7 +39,8 @@ def execute(
         run: Run = engine.execute_run(run_config=run_config)
     except SimulationRunFailure as e:
         if e.run_id is None:
-            raise
+            message = e.args[0] if e.args else "Run creation or status update failed"
+            raise ApiRunCreationFailedError(message) from e
         metadata_list = engine.list_turn_metadata(e.run_id)
         turn_metrics_list = engine.list_turn_metrics(e.run_id)
         _validate_turn_data_consistency(

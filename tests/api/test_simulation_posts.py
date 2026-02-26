@@ -1,11 +1,11 @@
 """Tests for GET /v1/simulations/posts endpoint."""
 
-from simulation.core.models.posts import BlueskyFeedPost
+from tests.factories import PostFactory
 
 
-def _make_post(*, uri: str, text: str) -> BlueskyFeedPost:
-    return BlueskyFeedPost(
-        id=uri,
+def _make_post(*, uri: str, text: str):
+    return PostFactory.create(
+        post_id=uri,
         uri=uri,
         author_display_name="Test Author",
         author_handle="test.author",

@@ -3,13 +3,19 @@
 import { useRef, useState } from 'react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import CollapsibleSection from '@/components/details/CollapsibleSection';
+import SearchInput from '@/components/ui/SearchInput';
 import { Agent } from '@/types';
 
 interface CreateAgentViewProps {
   agents: Agent[];
   agentsLoading: boolean;
+  agentsLoadingMore: boolean;
   agentsError: Error | null;
+  agentsHasMore: boolean;
+  agentsQuery: string;
   onRetryAgents?: () => void;
+  onLoadMoreAgents: () => void;
+  onAgentsQueryChange: (query: string) => void;
   onSubmit: (payload: {
     handle: string;
     displayName: string;
@@ -37,8 +43,13 @@ function createCommentEntry(): CommentEntry {
 export default function CreateAgentView({
   agents,
   agentsLoading,
+  agentsLoadingMore,
   agentsError,
+  agentsHasMore,
+  agentsQuery,
   onRetryAgents,
+  onLoadMoreAgents,
+  onAgentsQueryChange,
   onSubmit,
 }: CreateAgentViewProps) {
   const [handle, setHandle] = useState('');
@@ -249,6 +260,12 @@ export default function CreateAgentView({
             onToggle={() => setLinkOpen(!linkOpen)}
           >
             <div className="p-3 bg-beige-50 rounded-lg space-y-2">
+              <SearchInput
+                value={agentsQuery}
+                onChange={onAgentsQueryChange}
+                placeholder="Search by handle (supports * and ?)"
+                ariaLabel="Search linkable agents by handle"
+              />
               {agentsLoading && agents.length === 0 ? (
                 <div className="flex items-center gap-2 text-beige-600">
                   <LoadingSpinner />
@@ -270,22 +287,35 @@ export default function CreateAgentView({
               ) : agents.length === 0 ? (
                 <p className="text-sm text-beige-600">No agents available</p>
               ) : (
-                agents.map((agent) => (
-                  <label
-                    key={agent.handle}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-beige-100 p-2 rounded"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={linkedAgentHandles.includes(agent.handle)}
-                      onChange={() => handleLinkedAgentToggle(agent.handle)}
-                      className="rounded border-beige-300"
-                    />
-                    <span className="text-sm text-beige-900">
-                      {agent.name} <span className="text-beige-600">({agent.handle})</span>
-                    </span>
-                  </label>
-                ))
+                <>
+                  {agents.map((agent) => (
+                    <label
+                      key={agent.handle}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-beige-100 p-2 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={linkedAgentHandles.includes(agent.handle)}
+                        onChange={() => handleLinkedAgentToggle(agent.handle)}
+                        className="rounded border-beige-300"
+                      />
+                      <span className="text-sm text-beige-900">
+                        {agent.name}{' '}
+                        <span className="text-beige-600">({agent.handle})</span>
+                      </span>
+                    </label>
+                  ))}
+                  {agentsHasMore ? (
+                    <button
+                      type="button"
+                      onClick={onLoadMoreAgents}
+                      disabled={agentsLoadingMore}
+                      className="w-full px-3 py-2 text-sm font-medium text-accent hover:text-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {agentsLoadingMore ? 'Loading…' : 'Load more'}
+                    </button>
+                  ) : null}
+                </>
               )}
             </div>
           </CollapsibleSection>

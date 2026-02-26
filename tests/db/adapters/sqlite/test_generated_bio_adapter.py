@@ -5,9 +5,9 @@ import sqlite3
 import pytest
 
 from db.adapters.sqlite.generated_bio_adapter import SQLiteGeneratedBioAdapter
-from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
 from tests.db.adapters.sqlite.conftest import create_mock_row
+from tests.factories import GeneratedBioFactory, GenerationMetadataFactory
 
 
 @pytest.fixture
@@ -22,10 +22,10 @@ class TestSQLiteGeneratedBioAdapterWriteGeneratedBio:
     def test_writes_bio_successfully(self, adapter, mock_db_connection):
         """Test that write_generated_bio executes INSERT OR REPLACE correctly."""
         with mock_db_connection() as (mock_conn, mock_cursor):
-            bio = GeneratedBio(
+            bio = GeneratedBioFactory.create(
                 handle="test.bsky.social",
                 generated_bio="AI-generated bio text",
-                metadata=GenerationMetadata(
+                metadata=GenerationMetadataFactory.create(
                     model_used=None,
                     generation_metadata=None,
                     created_at="2024_01_01-12:00:00",
@@ -50,10 +50,10 @@ class TestSQLiteGeneratedBioAdapterWriteGeneratedBio:
                 "Constraint violation"
             )
 
-            bio = GeneratedBio(
+            bio = GeneratedBioFactory.create(
                 handle="test.bsky.social",
                 generated_bio="AI-generated bio text",
-                metadata=GenerationMetadata(
+                metadata=GenerationMetadataFactory.create(
                     model_used=None,
                     generation_metadata=None,
                     created_at="2024_01_01-12:00:00",

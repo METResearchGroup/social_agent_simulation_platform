@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from lib.validation_decorators import validate_inputs
+from simulation.api.errors import ApiRunNotFoundError
 from simulation.api.schemas.simulation import (
     AgentActionSchema,
     FeedSchema,
@@ -14,7 +15,6 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
@@ -23,7 +23,7 @@ from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
-from simulation.core.validators import validate_run_exists, validate_run_id
+from simulation.core.validators import validate_run_id
 
 MAX_UNFILTERED_POSTS: int = 500
 
@@ -51,7 +51,7 @@ def get_turns_for_run(
     validated_run_id = validate_run_id(run_id)
     run = engine.get_run(validated_run_id)
     if run is None:
-        raise RunNotFoundError(validated_run_id)
+        raise ApiRunNotFoundError(validated_run_id)
 
     metadata_list = engine.list_turn_metadata(validated_run_id)
     metadata_sorted = sorted(metadata_list, key=lambda m: m.turn_number)
@@ -171,7 +171,8 @@ def get_run_details(*, run_id: str, engine: SimulationEngine) -> RunDetailsRespo
         RunNotFoundError: If the run does not exist.
     """
     run = engine.get_run(run_id)
-    run = validate_run_exists(run=run, run_id=run_id)
+    if run is None:
+        raise ApiRunNotFoundError(run_id)
 
     metadata_list: list[TurnMetadata] = engine.list_turn_metadata(run_id)
     turn_metrics_list: list[TurnMetrics] = engine.list_turn_metrics(run_id)
