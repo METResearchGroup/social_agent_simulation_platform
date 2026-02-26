@@ -48,7 +48,7 @@ const lines: string[] = [
   '',
   'type Camelize<T> = T extends Primitive',
   '  ? T',
-  '  : T extends readonly any[]',
+  '  : T extends readonly unknown[]',
   '  ? CamelizeArray<T>',
   '  : CamelizeObject<T>;',
   '',
