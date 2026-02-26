@@ -28,21 +28,30 @@ function AuthCallbackContent() {
     const requestId = requestIdRef.current;
 
     const run = async (): Promise<void> => {
-      const result = await completeOAuthCallback({
-        code,
-        oauthError,
-        oauthErrorDescription,
-        hash: typeof window === 'undefined' ? '' : window.location.hash,
-      });
+      try {
+        const result = await completeOAuthCallback({
+          code,
+          oauthError,
+          oauthErrorDescription,
+          hash: typeof window === 'undefined' ? '' : window.location.hash,
+        });
 
-      if (requestId !== requestIdRef.current) return;
+        if (requestId !== requestIdRef.current) return;
 
-      if (result.ok) {
-        router.replace('/');
-        return;
+        if (result.ok) {
+          router.replace('/');
+          return;
+        }
+
+        setError(result.message);
+      } catch (err) {
+        if (requestId !== requestIdRef.current) return;
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : 'Unexpected error completing sign-in';
+        setError(message);
       }
-
-      setError(result.message);
     };
 
     void run();
