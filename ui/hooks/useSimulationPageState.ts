@@ -477,10 +477,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setSelectedAgentHandle(handle);
   };
 
-  const handleSetAgentsQuery = (query: string): void => {
+  const handleSetAgentsQuery = useCallback((query: string): void => {
     const cappedQuery: string = query.slice(0, AGENTS_QUERY_MAX_LENGTH);
     setAgentsQuery(cappedQuery);
-  };
+  }, []);
 
   return {
     runsWithStatus,
