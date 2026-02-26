@@ -1,3 +1,12 @@
+---
+name: UI schema source plan assets
+description: Docs describing how the UI derives camelCased aliases from the backend OpenAPI spec, plus the workflow for regenerating these contracts.
+tags:
+  - docs
+  - ui
+  - schema
+---
+
 # UI schema source plan assets
 
 This folder documents the work that treats the backend OpenAPI spec as the primary source of truth for the UI contracts.
