@@ -41,8 +41,8 @@ export interface Feed {
 export interface AgentAction {
   actionId: string;
   agentHandle: string;
-  postUri?: string;
-  userId?: string;
+  postUri?: string | null;
+  userId?: string | null;
   type: 'like' | 'comment' | 'follow';
   createdAt: string;
 }
@@ -58,7 +58,7 @@ export interface FeedAlgorithm {
   id: string;
   displayName: string;
   description: string;
-  configSchema: Record<string, unknown> | null;
+  configSchema?: Record<string, unknown> | null;
 }
 
 /** Maps to MetricSchema from GET /v1/simulations/metrics. */
