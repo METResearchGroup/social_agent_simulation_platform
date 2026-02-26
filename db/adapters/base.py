@@ -45,10 +45,10 @@ class AppUserDatabaseAdapter(ABC):
         self,
         app_user_id: str,
         last_seen_at: str,
-        email: str | None = None,
-        display_name: str | None = None,
+        email: str,
+        display_name: str,
     ) -> None:
-        """Update last_seen_at and optionally email, display_name."""
+        """Update last_seen_at along with required email/display_name."""
         raise NotImplementedError
 
 

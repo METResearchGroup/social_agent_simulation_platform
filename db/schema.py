@@ -24,8 +24,8 @@ app_users = sa.Table(
     metadata,
     sa.Column("id", sa.Text(), primary_key=True),
     sa.Column("auth_provider_id", sa.Text(), nullable=False),
-    sa.Column("email", sa.Text(), nullable=True),
-    sa.Column("display_name", sa.Text(), nullable=True),
+    sa.Column("email", sa.Text(), nullable=False),
+    sa.Column("display_name", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
     sa.Column("last_seen_at", sa.Text(), nullable=False),
 )

@@ -18,8 +18,8 @@ class SQLiteAppUserRepository(AppUserRepository):
         self,
         *,
         auth_provider_id: str,
-        email: str | None = None,
-        display_name: str | None = None,
+        email: str,
+        display_name: str,
     ) -> AppUser:
         """Create or update app_user from auth claims; return the app_user."""
         ts = get_current_timestamp()
