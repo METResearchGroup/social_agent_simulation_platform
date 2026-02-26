@@ -3,8 +3,7 @@ from collections.abc import Mapping
 
 from pydantic import JsonValue
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
+from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
 from feeds.algorithms import FeedAlgorithmResult, get_feed_generator
 from feeds.candidate_generation import load_candidate_posts
 from feeds.constants import MAX_POSTS_PER_FEED
@@ -45,6 +44,8 @@ def generate_feeds(
         agents=agents,
         run_id=run_id,
         turn_number=turn_number,
+        generated_feed_repo=generated_feed_repo,
+        feed_post_repo=feed_post_repo,
         feed_algorithm=feed_algorithm,
         feed_algorithm_config=feed_algorithm_config,
     )
@@ -61,6 +62,8 @@ def _generate_feeds(
     agents: list[SocialMediaAgent],
     run_id: str,
     turn_number: int,
+    generated_feed_repo: GeneratedFeedRepository,
+    feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
 ) -> dict[str, GeneratedFeed]:
@@ -73,6 +76,8 @@ def _generate_feeds(
             agent=agent,
             run_id=run_id,
             turn_number=turn_number,
+            generated_feed_repo=generated_feed_repo,
+            feed_post_repo=feed_post_repo,
             feed_algorithm=feed_algorithm,
             feed_algorithm_config=feed_algorithm_config,
         )
@@ -197,12 +202,17 @@ def _generate_single_agent_feed(
     agent: SocialMediaAgent,
     run_id: str,
     turn_number: int,
+    generated_feed_repo: GeneratedFeedRepository,
+    feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
 ) -> GeneratedFeed:
     """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
     candidate_posts: list[BlueskyFeedPost] = load_candidate_posts(
-        agent=agent, run_id=run_id
+        agent=agent,
+        run_id=run_id,
+        feed_post_repo=feed_post_repo,
+        generated_feed_repo=generated_feed_repo,
     )
     return _generate_feed(
         agent=agent,

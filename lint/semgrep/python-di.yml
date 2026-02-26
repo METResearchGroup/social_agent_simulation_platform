@@ -1,0 +1,71 @@
+rules:
+  # PY-2: No concrete infra instantiation outside composition roots.
+  - id: python.di.no-sqlite-wiring-outside-composition-roots
+    languages: [python]
+    message: >
+      PY-2: Do not construct SQLite infrastructure here. Wire concrete infra only
+      in composition roots (simulation/core/factories/**, simulation/api/main.py,
+      db/**, jobs/**, simulation/local_dev/**, tests/**) and inject ports into
+      business logic.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: SqliteTransactionProvider(...)
+          - patterns:
+              - pattern: $F(...)
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: "^create_sqlite_.*"
+          - patterns:
+              - pattern: $C(...)
+              - metavariable-regex:
+                  metavariable: $C
+                  regex: "^SQLite.*Adapter$"
+    paths:
+      exclude:
+        - /simulation/core/factories/
+        - /simulation/api/main.py
+        - /db/
+        - /jobs/
+        - /simulation/local_dev/
+        - /tests/
+
+  # PY-10: No infra exceptions outside infra/composition roots.
+  - id: python.di.no-sqlite3-exceptions-outside-infra
+    languages: [python]
+    message: >
+      PY-10: Do not catch or raise sqlite3 exceptions outside infra/composition
+      roots. Translate infra exceptions at the infra boundary to stable
+      domain/repo errors.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern-regex: "except\\s+sqlite3\\.[A-Za-z_][A-Za-z0-9_]*(\\s+as\\s+[A-Za-z_][A-Za-z0-9_]*)?\\s*:"
+          - pattern-regex: "raise\\s+sqlite3\\.[A-Za-z_][A-Za-z0-9_]*\\b"
+    paths:
+      exclude:
+        - /simulation/core/factories/
+        - /simulation/api/main.py
+        - /db/
+        - /jobs/
+        - /simulation/local_dev/
+        - /tests/
+
+  # PY-12: No calling global dependency providers outside composition roots.
+  - id: python.di.no-global-provider-calls-outside-composition-roots
+    languages: [python]
+    message: >
+      PY-12: Do not call global dependency providers here (e.g. get_llm_service()).
+      Require the dependency as an input and apply defaults only in factories or
+      other composition roots.
+    severity: ERROR
+    patterns:
+      - pattern: get_llm_service(...)
+    paths:
+      exclude:
+        - /simulation/core/factories/
+        - /simulation/api/main.py
+        - /db/
+        - /jobs/
+        - /simulation/local_dev/
+        - /tests/
