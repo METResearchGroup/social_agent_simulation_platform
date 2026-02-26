@@ -1,6 +1,12 @@
 ---
 name: auth-phase2-user-attribution
 overview: "Implement Phase 2 of auth migration: create an app-level `app_users` table, upsert/update an app_user row from Supabase JWT claims on authenticated requests, and attribute newly-created simulation runs to that app_user via a nullable `runs.app_user_id` column—without enforcing per-app_user access control yet."
+description: "Document the steps required to persist Supabase-authenticated app users and attribute runs to them."
+tags:
+  - auth
+  - database
+  - attribution
+  - plan
 todos:
   - id: tdd-tests
     content: "Add failing tests for Phase 2 behavior: (a) authenticated request upserts an app_user row keyed by JWT sub, (b) `POST /v1/simulations/run` persists `runs.app_user_id` when authenticated. Likely files: `tests/api/test_app_user_attribution.py` (new) plus minimal fixtures updates in `tests/api/conftest.py`."
@@ -31,7 +37,7 @@ isProject: false
 
 ## Overview
 
-Phase 2 adds **user identity persistence + activity attribution** on top of Phase 1's "gate the app" JWT verification. Concretely: introduce an `app_users` table, add a nullable `runs.app_user_id`, and ensure each authenticated request resolves the Supabase `sub` (auth user id) to an internal app_user row (upsert + `last_seen_at`). When a run is created, persist the current internal `app_user_id` on the run.
+Phase 2 adds **user identity persistence + activity attribution** on top of Phase 1’s “gate the app” JWT verification. Concretely: introduce an `app_users` table, add a nullable `runs.app_user_id`, and ensure each authenticated request resolves the Supabase `sub` (auth user id) to an internal app_user row (upsert + `last_seen_at`). When a run is created, persist the current internal `app_user_id` on the run.
 
 **Assumptions (since questions were skipped):**
 
@@ -148,10 +154,11 @@ flowchart TD
 
 ## Alternative approaches
 
-- **Store Phase 2 tables in Supabase Postgres now**: Implement `public.users`, use RLS, and upsert via PostgREST with the end-user JWT. This aligns with "Auth + DB in one place" but is a larger architectural jump than the repo's current production posture (persistent SQLite on Railway).
+- **Store Phase 2 tables in Supabase Postgres now**: Implement `public.users`, use RLS, and upsert via PostgREST with the end-user JWT. This aligns with “Auth + DB in one place” but is a larger architectural jump than the repo’s current production posture (persistent SQLite on Railway).
 - **No new user table; store `runs.auth_provider_id` only**: Smallest change, but you lose stable internal user ids and any place to track `last_seen_at`/display names cleanly.
 
 ## Assets
 
 - Store Phase 2 notes/migration rationale in: `docs/plans/2026-02-20_auth_phase2_user_attribution_739214/`
   - Suggested: `docs/plans/2026-02-20_auth_phase2_user_attribution_739214/plan.md` with schema sketch + example JWT claim mapping.
+
