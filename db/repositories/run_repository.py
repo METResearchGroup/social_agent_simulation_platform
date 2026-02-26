@@ -2,19 +2,20 @@
 
 import uuid
 
-from db.adapters.base import RunDatabaseAdapter
+from db.adapters.base import RunDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import RunRepository
 from lib.timestamp_utils import get_current_timestamp
 from lib.validation_decorators import validate_inputs
-from simulation.core.exceptions import (
+from simulation.core.metrics.defaults import get_default_metric_keys
+from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import (
     InvalidTransitionError,
     RunCreationError,
     RunNotFoundError,
     RunStatusUpdateError,
 )
-from simulation.core.models.runs import Run, RunConfig, RunStatus
-from simulation.core.models.turns import TurnMetadata
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_run_exists,
     validate_run_id,
     validate_run_status_transition,
@@ -36,13 +37,20 @@ class SQLiteRunRepository(RunRepository):
         RunStatus.FAILED: set(),  # Terminal state
     }
 
-    def __init__(self, db_adapter: RunDatabaseAdapter):
+    def __init__(
+        self,
+        *,
+        db_adapter: RunDatabaseAdapter,
+        transaction_provider: TransactionProvider,
+    ):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for run operations
+            transaction_provider: Provider for transactions when conn is not passed
         """
         self._db_adapter = db_adapter
+        self._transaction_provider = transaction_provider
 
     def create_run(
         self, config: RunConfig, created_by_app_user_id: str | None = None
@@ -64,6 +72,12 @@ class SQLiteRunRepository(RunRepository):
             ts = get_current_timestamp()
             run_id = f"run_{ts}_{uuid.uuid4()}"
 
+            metric_keys: list[str]
+            if config.metric_keys is None or len(config.metric_keys) == 0:
+                metric_keys = get_default_metric_keys()
+            else:
+                metric_keys = config.metric_keys
+
             run = Run(
                 run_id=run_id,
                 app_user_id=created_by_app_user_id,
@@ -71,10 +85,12 @@ class SQLiteRunRepository(RunRepository):
                 total_turns=config.num_turns,
                 total_agents=config.num_agents,
                 feed_algorithm=config.feed_algorithm,
+                metric_keys=metric_keys,
                 started_at=ts,
                 status=RunStatus.RUNNING,
             )
-            self._db_adapter.write_run(run)
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.write_run(run, conn=c)
             return run
         except Exception as e:
             raise RunCreationError(run_id, str(e)) from e
@@ -92,11 +108,13 @@ class SQLiteRunRepository(RunRepository):
         Raises:
             ValueError: If run_id is empty or None
         """
-        return self._db_adapter.read_run(run_id)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_run(run_id, conn=c)
 
     def list_runs(self) -> list[Run]:
         """List all runs from SQLite."""
-        return self._db_adapter.read_all_runs()
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_all_runs(conn=c)
 
     def update_run_status(
         self,
@@ -138,9 +156,21 @@ class SQLiteRunRepository(RunRepository):
             # Update the run status, once validated.
             ts = get_current_timestamp()
             completed_at = ts if status == RunStatus.COMPLETED else None
-            self._db_adapter.update_run_status(
-                validated_run_id, status.value, completed_at, conn=conn
-            )
+            if conn is not None:
+                self._db_adapter.update_run_status(
+                    validated_run_id,
+                    status.value,
+                    completed_at=completed_at,
+                    conn=conn,
+                )
+            else:
+                with self._transaction_provider.run_transaction() as c:
+                    self._db_adapter.update_run_status(
+                        validated_run_id,
+                        status.value,
+                        completed_at=completed_at,
+                        conn=c,
+                    )
 
         except (RunNotFoundError, InvalidTransitionError):
             # Re-raise domain exceptions as-is
@@ -165,7 +195,8 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        return self._db_adapter.read_turn_metadata(run_id, turn_number)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_turn_metadata(run_id, turn_number, conn=c)
 
     @validate_inputs((validate_run_id, "run_id"))
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
@@ -184,7 +215,8 @@ class SQLiteRunRepository(RunRepository):
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exceptions from the adapter
         """
-        return self._db_adapter.read_turn_metadata_for_run(run_id=run_id)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_turn_metadata_for_run(run_id, conn=c)
 
     def write_turn_metadata(
         self,
@@ -226,10 +258,17 @@ class SQLiteRunRepository(RunRepository):
             max_turns=run.total_turns,  # type: ignore
         )
 
-        self._db_adapter.write_turn_metadata(turn_metadata, conn=conn)
+        if conn is not None:
+            self._db_adapter.write_turn_metadata(turn_metadata, conn=conn)
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.write_turn_metadata(turn_metadata, conn=c)
 
 
-def create_sqlite_repository() -> SQLiteRunRepository:
+def create_sqlite_repository(
+    *,
+    transaction_provider: TransactionProvider,
+) -> SQLiteRunRepository:
     """Factory function to create a SQLiteRunRepository with default dependencies.
 
     Returns:
@@ -237,4 +276,7 @@ def create_sqlite_repository() -> SQLiteRunRepository:
     """
     from db.adapters.sqlite import SQLiteRunAdapter
 
-    return SQLiteRunRepository(db_adapter=SQLiteRunAdapter())
+    return SQLiteRunRepository(
+        db_adapter=SQLiteRunAdapter(),
+        transaction_provider=transaction_provider,
+    )

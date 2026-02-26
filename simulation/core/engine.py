@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from db.repositories.interfaces import (
     FeedPostRepository,
@@ -12,11 +12,29 @@ from simulation.core.action_history import (
     ActionHistoryStore,
 )
 from simulation.core.command_service import SimulationCommandService
+from simulation.core.metrics.defaults import (
+    get_default_metric_keys,
+    resolve_metric_keys_by_scope,
+)
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
+from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
+
+
+def _get_turn_keys(run_config: RunConfig) -> list[str]:
+    """Resolve metric keys from run config and return turn-scoped keys."""
+    config_metric_keys = getattr(run_config, "metric_keys", None)
+    metric_keys: list[str] = (
+        config_metric_keys
+        if config_metric_keys and len(config_metric_keys) > 0
+        else get_default_metric_keys()
+    )
+    turn_keys, _ = resolve_metric_keys_by_scope(metric_keys)
+    return turn_keys
 
 
 class SimulationEngine:
@@ -77,6 +95,15 @@ class SimulationEngine:
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
         return self.query_service.get_turn_data(run_id, turn_number)
 
+    def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
+        return self.generated_feed_repo.read_feeds_for_turn(run_id, turn_number)
+
+    def read_all_feed_posts(self) -> list[BlueskyFeedPost]:
+        return self.feed_post_repo.list_all_feed_posts()
+
+    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
+        return self.feed_post_repo.read_feed_posts_by_uris(uris)
+
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         self.command_service.update_run_status(run, status)
 
@@ -87,12 +114,14 @@ class SimulationEngine:
         turn_number: int,
         agents: list[SocialMediaAgent],
     ) -> None:
+        turn_keys = _get_turn_keys(run_config)
         self.command_service.simulate_turn(
             run,
             run_config,
             turn_number,
             agents,
             action_history_store=self.action_history_store_factory(),
+            turn_metric_keys=turn_keys,
         )
 
     def simulate_turns(
@@ -102,12 +131,14 @@ class SimulationEngine:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
     ) -> None:
+        turn_keys = _get_turn_keys(run_config)
         self.command_service.simulate_turns(
             total_turns,
             run,
             run_config,
             agents,
             action_history_store=self.action_history_store_factory(),
+            turn_metric_keys=turn_keys,
         )
 
     def create_agents_for_run(

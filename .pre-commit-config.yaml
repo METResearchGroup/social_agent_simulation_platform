@@ -2,7 +2,7 @@
 # Ruff hooks mirror CI (.github/workflows/ci.yml): ruff check + ruff format --check
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+    rev: v0.15.2
     hooks:
       # Same as CI: uv run ruff check .
       - id: ruff-check
@@ -12,19 +12,53 @@ repos:
         args: [--check]
   - repo: local
     hooks:
+      - id: markdownlint
+        name: markdownlint (markdownlint-cli2)
+        entry: markdownlint-cli2
+        language: node
+        additional_dependencies: [markdownlint-cli2@0.21.0]
+        args: ["--config", ".markdownlint.yml"]
+        types: [markdown]
+        exclude: ^docs/plans/
+      - id: docs-metadata
+        name: docs metadata
+        entry: bash -lc "uv run python scripts/check_docs_metadata.py"
+        language: system
+        pass_filenames: true
+        files: ^docs/(runbooks|plans)/.*\.md$
+      - id: db-schema-docs-check
+        name: db schema docs (check latest)
+        entry: bash -lc "uv run python scripts/generate_db_schema_docs.py --check"
+        language: system
+        pass_filenames: false
+      - id: db-schema-drift
+        name: db schema drift (migrations vs metadata)
+        entry: bash -lc "uv run python scripts/check_db_schema_drift.py"
+        language: system
+        pass_filenames: false
       - id: complexipy
         name: complexipy
-        entry: bash -lc "uv run complexipy . --max-complexity-allowed 999"
+        entry: bash -lc "uv run --extra test complexipy . --max-complexity-allowed 999"
         language: system
         pass_filenames: false
       - id: pyright
         name: pyright
-        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run pyright ."
+        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test pyright ."
+        language: system
+        pass_filenames: false
+      - id: python_lint_import_dependency_boundaries
+        name: python_lint_import_dependency_boundaries
+        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test lint-imports --config pyproject.toml"
+        language: system
+        pass_filenames: false
+      - id: python_dependency_injection_guard
+        name: python_dependency_injection_guard (PY-2,3,5,6,7,8,9,10,12)
+        entry: bash -lc "set -euo pipefail; root=$(git rev-parse --show-toplevel); cd \"$root\"; uv tool run semgrep --config lint/semgrep --error; PYTHONPATH=\"$root\" uv run --extra test python scripts/lint_architecture.py"
         language: system
         pass_filenames: false
       - id: oxlint
-        name: oxlint + React Doctor (ui)
-        entry: bash -lc "cd ui && (test -d node_modules || npm install) && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
+        name: eslint (custom rules) + oxlint (ui)
+        entry: bash -lc "cd ui && if [ -d node_modules ] && [ -f node_modules/.package-lock.json ] && cmp -s package-lock.json node_modules/.package-lock.json; then npm run lint:ci; else npm ci && npm run lint:ci; fi"
         language: system
         pass_filenames: false
         files: ^ui/

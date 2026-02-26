@@ -8,7 +8,7 @@ import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 import { getPosts } from '@/lib/api/simulation';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { getTurnsErrorMessage } from '@/lib/error-messages';
-import { Agent, Post, Turn } from '@/types';
+import { Agent, ApiError, Post, RunConfig, Turn } from '@/types';
 
 export default function DetailsPanel() {
   const {
@@ -20,7 +20,10 @@ export default function DetailsPanel() {
     completedTurnsCount,
     turnsLoading,
     turnsError,
+    runDetailsLoading,
+    runDetailsError,
     onRetryTurns,
+    onRetryRunDetails,
   } = useRunDetail();
 
   if (!selectedRun) {
@@ -79,6 +82,9 @@ export default function DetailsPanel() {
       currentTurn={currentTurn}
       currentRunConfig={currentRunConfig}
       runAgents={runAgents}
+      runDetailsLoading={runDetailsLoading}
+      runDetailsError={runDetailsError}
+      onRetryRunDetails={onRetryRunDetails}
     />
   );
 }
@@ -94,31 +100,34 @@ function getPostUrisFromTurn(turn: Turn): string[] {
       }
     }
   }
+  for (const actions of Object.values(turn.agentActions)) {
+    for (const action of actions) {
+      if (!action.postUri) continue;
+      if (!seen.has(action.postUri)) {
+        seen.add(action.postUri);
+        uris.push(action.postUri);
+      }
+    }
+  }
   return uris;
-}
-
-function getAllPostsForTurn(
-  turn: Turn,
-  postsByUri: Record<string, Post>,
-): Post[] {
-  return Object.values(turn.agentFeeds)
-    .flatMap((feed) =>
-      feed.postUris
-        .map((uri) => postsByUri[uri])
-        .filter((post): post is Post => post !== undefined),
-    );
 }
 
 interface TurnDetailContentProps {
   currentTurn: Turn;
-  currentRunConfig: { numAgents: number; numTurns: number } | null;
+  currentRunConfig: RunConfig | null;
   runAgents: Agent[];
+  runDetailsLoading: boolean;
+  runDetailsError: ApiError | null;
+  onRetryRunDetails: () => void;
 }
 
 function TurnDetailContent({
   currentTurn,
   currentRunConfig,
   runAgents,
+  runDetailsLoading,
+  runDetailsError,
+  onRetryRunDetails,
 }: TurnDetailContentProps) {
   const postUris: string[] = useMemo(
     () => getPostUrisFromTurn(currentTurn),
@@ -154,8 +163,9 @@ function TurnDetailContent({
         error instanceof Error ? error : new Error(String(error)),
       );
     } finally {
-      if (requestId !== requestIdRef.current) return;
-      setPostsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setPostsLoading(false);
+      }
     }
   }, [postUris]);
 
@@ -187,7 +197,6 @@ function TurnDetailContent({
     );
   }
 
-  const allPosts: Post[] = getAllPostsForTurn(currentTurn, postsByUri);
   const participatingAgents: Agent[] = getParticipatingAgents(
     currentTurn,
     runAgents,
@@ -195,7 +204,12 @@ function TurnDetailContent({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <RunParametersBlock config={currentRunConfig} />
+      <RunParametersBlock
+        config={currentRunConfig}
+        runDetailsLoading={runDetailsLoading}
+        runDetailsError={runDetailsError}
+        onRetryRunDetails={onRetryRunDetails}
+      />
       <div className="flex-1 overflow-y-auto p-6">
         <h3 className="text-lg font-medium text-beige-900 mb-4">Agents</h3>
         <div className="space-y-4">
@@ -217,7 +231,7 @@ function TurnDetailContent({
                   agent={agent}
                   feed={feedPosts}
                   actions={agentActions}
-                  allPosts={allPosts}
+                  postsByUri={postsByUri}
                 />
               </div>
             );

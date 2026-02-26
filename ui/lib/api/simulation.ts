@@ -4,27 +4,21 @@ import {
   ApiError,
   Feed,
   FeedAlgorithm,
+  Metric,
   Post,
   Run,
   RunConfig,
   Turn,
 } from '@/types';
 import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
+import type { components } from '@/types/api.generated';
 
 const DEFAULT_SIMULATION_API_BASE_URL: string = 'http://localhost:8000/v1';
 const SIMULATION_API_BASE_URL: string = (
   process.env.NEXT_PUBLIC_SIMULATION_API_URL || DEFAULT_SIMULATION_API_BASE_URL
 ).replace(/\/$/, '');
 
-interface ApiAgent {
-  handle: string;
-  name: string;
-  bio: string;
-  generated_bio: string;
-  followers: number;
-  following: number;
-  posts_count: number;
-}
+type ApiAgent = components['schemas']['AgentSchema'];
 
 function mapAgent(apiAgent: ApiAgent): Agent {
   return {
@@ -38,77 +32,25 @@ function mapAgent(apiAgent: ApiAgent): Agent {
   };
 }
 
-interface ApiRunListItem {
-  run_id: string;
-  created_at: string;
-  total_turns: number;
-  total_agents: number;
-  status: Run['status'];
-}
+type ApiRunListItem = components['schemas']['RunListItem'];
 
-interface ApiFeed {
-  feed_id: string;
-  run_id: string;
-  turn_number: number;
-  agent_handle: string;
-  post_uris: string[];
-  created_at: string;
-}
+type ApiFeed = components['schemas']['FeedSchema'];
 
-interface ApiAgentAction {
-  action_id: string;
-  agent_handle: string;
-  post_uri?: string;
-  user_id?: string;
-  type: AgentAction['type'];
-  created_at: string;
-}
+type ApiAgentAction = components['schemas']['AgentActionSchema'];
 
-/** API response shape for default config. Matches DefaultConfigSchema. */
-interface ApiDefaultConfig {
-  num_agents: number;
-  num_turns: number;
-}
+type ApiDefaultConfig = components['schemas']['DefaultConfigSchema'];
 
-/** API response shape for feed algorithm. Matches FeedAlgorithmSchema. */
-interface ApiFeedAlgorithm {
-  id: string;
-  display_name: string;
-  description: string;
-  config_schema: Record<string, unknown> | null;
-}
+type ApiFeedAlgorithm = components['schemas']['FeedAlgorithmSchema'];
 
-/** API response shape for POST /simulations/run. Matches RunResponse. */
-interface ApiRunResponse {
-  run_id: string;
-  created_at: string;
-  status: 'completed' | 'failed';
-  num_agents: number;
-  num_turns: number;
-  turns: unknown[];
-  run_metrics?: unknown;
-  error?: { code: string; message: string; detail?: string | null };
-}
+type ApiRunResponse = components['schemas']['RunResponse'];
 
-/** API response shape for a post. Matches PostSchema in simulation/api/schemas/simulation.py */
-interface ApiPost {
-  uri: string;
-  author_display_name: string;
-  author_handle: string;
-  text: string;
-  bookmark_count: number;
-  like_count: number;
-  quote_count: number;
-  reply_count: number;
-  repost_count: number;
-  created_at: string;
-}
+type ApiRunConfigDetail = components['schemas']['RunConfigDetail'];
 
-interface ApiTurn {
-  turn_number: number;
-  agent_feeds: Record<string, ApiFeed>;
-  agent_actions: Record<string, ApiAgentAction[]>;
-}
+type ApiRunDetailsResponse = components['schemas']['RunDetailsResponse'];
+
+type ApiPost = components['schemas']['PostSchema'];
+
+type ApiTurn = components['schemas']['TurnSchema'];
 
 function buildApiUrl(path: string): string {
   return `${SIMULATION_API_BASE_URL}${path}`;
@@ -222,8 +164,8 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
   return {
     actionId: apiAction.action_id,
     agentHandle: apiAction.agent_handle,
-    postUri: apiAction.post_uri,
-    userId: apiAction.user_id,
+    postUri: apiAction.post_uri ?? undefined,
+    userId: apiAction.user_id ?? undefined,
     type: apiAction.type,
     createdAt: apiAction.created_at,
   };
@@ -271,6 +213,8 @@ export async function getDefaultConfig(): Promise<RunConfig> {
     numAgents: api.num_agents,
     numTurns: api.num_turns,
     feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
+    feedAlgorithmConfig: null,
+    metricKeys: api.metric_keys,
   };
 }
 
@@ -279,7 +223,7 @@ function mapFeedAlgorithm(api: ApiFeedAlgorithm): FeedAlgorithm {
     id: api.id,
     displayName: api.display_name,
     description: api.description,
-    configSchema: api.config_schema,
+    configSchema: api.config_schema ?? null,
   };
 }
 
@@ -290,12 +234,41 @@ export async function getFeedAlgorithms(): Promise<FeedAlgorithm[]> {
   return api.map(mapFeedAlgorithm);
 }
 
+type ApiMetric = components['schemas']['MetricSchema'];
+
+function mapMetric(api: ApiMetric): Metric {
+  return {
+    key: api.key,
+    displayName: api.display_name,
+    description: api.description,
+    scope: api.scope,
+    author: api.author,
+  };
+}
+
+export async function getAvailableMetrics(): Promise<Metric[]> {
+  const api: ApiMetric[] = await fetchJson<ApiMetric[]>(
+    buildApiUrl('/simulations/metrics'),
+  );
+  return api.map(mapMetric);
+}
+
 export async function postRun(config: RunConfig): Promise<Run> {
-  const body = {
+  const body: {
+    num_agents: number;
+    num_turns: number;
+    feed_algorithm: string;
+    feed_algorithm_config: Record<string, unknown> | null;
+    metric_keys?: string[];
+  } = {
     num_agents: config.numAgents,
     num_turns: config.numTurns,
     feed_algorithm: config.feedAlgorithm,
+    feed_algorithm_config: config.feedAlgorithmConfig,
   };
+  if (config.metricKeys != null && config.metricKeys.length > 0) {
+    body.metric_keys = config.metricKeys;
+  }
   const api: ApiRunResponse = await fetchPost<typeof body, ApiRunResponse>(
     buildApiUrl('/simulations/run'),
     body,
@@ -306,6 +279,34 @@ export async function postRun(config: RunConfig): Promise<Run> {
     totalTurns: api.num_turns,
     totalAgents: api.num_agents,
     status: api.status,
+  };
+}
+
+// NOTE: `getRunDetails` intentionally returns only `{ runId, config }`, where `config` is mapped via
+// `mapRunDetailsConfig`. `mapRunDetailsConfig` intentionally sets `feedAlgorithmConfig` to null
+// because `ApiRunConfigDetail` (RunConfigDetail) does not include `feed_algorithm_config`. Other
+// fields available on `ApiRunDetailsResponse` (status, turns, run_metrics, etc.) are deliberately
+// omitted in this PR scope to avoid callers assuming they’re available without a separate fetch.
+function mapRunDetailsConfig(apiConfig: ApiRunConfigDetail): RunConfig {
+  return {
+    numAgents: apiConfig.num_agents,
+    numTurns: apiConfig.num_turns,
+    feedAlgorithm: apiConfig.feed_algorithm,
+    feedAlgorithmConfig: null,
+    metricKeys: apiConfig.metric_keys,
+  };
+}
+
+export async function getRunDetails(runId: string): Promise<{
+  runId: string;
+  config: RunConfig;
+}> {
+  const api: ApiRunDetailsResponse = await fetchJson<ApiRunDetailsResponse>(
+    buildApiUrl(`/simulations/runs/${encodeURIComponent(runId)}`),
+  );
+  return {
+    runId: api.run_id,
+    config: mapRunDetailsConfig(api.config),
   };
 }
 
@@ -336,11 +337,39 @@ export async function getTurnsForRun(runId: string): Promise<Record<string, Turn
   return turnsById;
 }
 
-export async function getAgents(): Promise<Agent[]> {
-  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(
-    buildApiUrl('/simulations/agents'),
-  );
+export async function getAgents(params?: {
+  limit?: number;
+  offset?: number;
+  q?: string;
+}): Promise<Agent[]> {
+  const limit: number | undefined = params?.limit;
+  const offset: number | undefined = params?.offset;
+  const q: string | undefined = params?.q;
+
+  const baseUrl: string = buildApiUrl('/simulations/agents');
+  const qs = new URLSearchParams();
+  if (limit != null) qs.set('limit', String(limit));
+  if (offset != null) qs.set('offset', String(offset));
+  if (q != null) {
+    const trimmedQ = q.trim();
+    if (trimmedQ !== '') qs.set('q', trimmedQ);
+  }
+  const url: string = qs.size > 0 ? `${baseUrl}?${qs}` : baseUrl;
+
+  const apiAgents: ApiAgent[] = await fetchJson<ApiAgent[]>(url);
   return apiAgents.map(mapAgent);
+}
+
+export async function postAgent(body: {
+  handle: string;
+  display_name: string;
+  bio?: string;
+}): Promise<Agent> {
+  const api: ApiAgent = await fetchPost<typeof body, ApiAgent>(
+    buildApiUrl('/simulations/agents'),
+    body,
+  );
+  return mapAgent(api);
 }
 
 export async function getPosts(uris?: string[]): Promise<Post[]> {

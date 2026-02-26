@@ -6,7 +6,6 @@ from unittest.mock import Mock
 import pytest
 from pydantic import TypeAdapter
 
-from simulation.core.exceptions import MetricsComputationError
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import create_default_metrics_registry
 from simulation.core.metrics.interfaces import (
@@ -20,9 +19,9 @@ from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import (
     ComputedMetricResult,
     ComputedMetrics,
-    TurnMetrics,
 )
-from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import MetricsComputationError
+from tests.factories import TurnMetadataFactory, TurnMetricsFactory
 
 _INT_ADAPTER = TypeAdapter(int)
 _COUNTS_ADAPTER = TypeAdapter(dict[str, int])
@@ -40,6 +39,7 @@ def _const_metric_class(
         VALUE = value
         DESCRIPTION = "Test metric."
         AUTHOR = "test"
+        DISPLAY_NAME = "Const (test)"
 
         @property
         def output_adapter(self):
@@ -65,6 +65,7 @@ def _sum_metric_class(
         REQUIRES = requires_keys
         DESCRIPTION = "Test metric."
         AUTHOR = "test"
+        DISPLAY_NAME = "Sum (test)"
 
         @property
         def output_adapter(self):
@@ -92,6 +93,7 @@ class _BoomMetric(Metric):
     SCOPE = MetricScope.TURN
     DESCRIPTION = "Test metric."
     AUTHOR = "test"
+    DISPLAY_NAME = "Boom (test)"
 
     @property
     def output_adapter(self):
@@ -101,6 +103,65 @@ class _BoomMetric(Metric):
         self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
     ) -> ComputedMetricResult:
         raise ValueError("boom")
+
+
+class TestMetricsCollectorOptionalKeysOverride:
+    """Tests for optional turn_metric_keys/run_metric_keys override."""
+
+    def test_collect_turn_metrics_uses_override_when_provided(self):
+        """Passing turn_metric_keys overrides instance default."""
+        registry = MetricsRegistry(
+            metric_builders={
+                "turn.a": _const_metric_class(
+                    key="turn.a", scope=MetricScope.TURN, value=1
+                ),
+                "turn.b": _const_metric_class(
+                    key="turn.b", scope=MetricScope.TURN, value=2
+                ),
+            }
+        )
+        deps = MetricDeps(run_repo=Mock(), metrics_repo=Mock(), sql_executor=None)
+        collector = MetricsCollector(
+            registry=registry,
+            turn_metric_keys=["turn.a", "turn.b"],
+            run_metric_keys=[],
+            deps=deps,
+        )
+
+        result = collector.collect_turn_metrics(
+            run_id="run_x",
+            turn_number=0,
+            turn_metric_keys=["turn.a"],
+        )
+
+        assert result == {"turn.a": 1}
+
+    def test_collect_run_metrics_uses_override_when_provided(self):
+        """Passing run_metric_keys overrides instance default."""
+        registry = MetricsRegistry(
+            metric_builders={
+                "run.x": _const_metric_class(
+                    key="run.x", scope=MetricScope.RUN, value=10
+                ),
+                "run.y": _const_metric_class(
+                    key="run.y", scope=MetricScope.RUN, value=20
+                ),
+            }
+        )
+        deps = MetricDeps(run_repo=Mock(), metrics_repo=Mock(), sql_executor=None)
+        collector = MetricsCollector(
+            registry=registry,
+            turn_metric_keys=[],
+            run_metric_keys=["run.x", "run.y"],
+            deps=deps,
+        )
+
+        result = collector.collect_run_metrics(
+            run_id="run_x",
+            run_metric_keys=["run.y"],
+        )
+
+        assert result == {"run.y": 20}
 
 
 class TestMetricsCollectorResolveOrder:
@@ -132,7 +193,11 @@ class TestMetricsCollectorResolveOrder:
             deps=deps,
         )
 
-        result = collector.collect_turn_metrics(run_id="run_x", turn_number=0)
+        result = collector.collect_turn_metrics(
+            run_id="run_x",
+            turn_number=0,
+            turn_metric_keys=["turn.a", "turn.b", "turn.sum"],
+        )
 
         expected_result = {"turn.a": 1, "turn.b": 2, "turn.sum": 3}
         assert result == expected_result
@@ -153,7 +218,11 @@ class TestMetricsCollectorFailures:
         )
 
         with pytest.raises(MetricsComputationError) as exc_info:
-            collector.collect_turn_metrics(run_id="run_x", turn_number=0)
+            collector.collect_turn_metrics(
+                run_id="run_x",
+                turn_number=0,
+                turn_metric_keys=["turn.boom"],
+            )
 
         assert exc_info.value.metric_key == "turn.boom"
         assert exc_info.value.run_id == "run_x"
@@ -167,6 +236,7 @@ class TestMetricsCollectorFailures:
             SCOPE = MetricScope.TURN
             DESCRIPTION = "Test metric."
             AUTHOR = "test"
+            DISPLAY_NAME = "Bad JSON (test)"
 
             @property
             def output_adapter(self):
@@ -187,7 +257,11 @@ class TestMetricsCollectorFailures:
         )
 
         with pytest.raises(MetricsComputationError) as exc_info:
-            collector.collect_turn_metrics(run_id="run_x", turn_number=0)
+            collector.collect_turn_metrics(
+                run_id="run_x",
+                turn_number=0,
+                turn_metric_keys=["turn.bad_json"],
+            )
 
         assert exc_info.value.metric_key == "turn.bad_json"
         assert "schema validation" in str(exc_info.value).lower()
@@ -200,6 +274,7 @@ class TestMetricsCollectorFailures:
             SCOPE = MetricScope.TURN
             DESCRIPTION = "Test metric."
             AUTHOR = "test"
+            DISPLAY_NAME = "Wrong shape (test)"
 
             @property
             def output_adapter(self):
@@ -222,7 +297,11 @@ class TestMetricsCollectorFailures:
         )
 
         with pytest.raises(MetricsComputationError) as exc_info:
-            collector.collect_turn_metrics(run_id="run_x", turn_number=0)
+            collector.collect_turn_metrics(
+                run_id="run_x",
+                turn_number=0,
+                turn_metric_keys=["turn.wrong_shape"],
+            )
 
         assert exc_info.value.metric_key == "turn.wrong_shape"
         assert "expected_schema" in str(exc_info.value)
@@ -235,7 +314,7 @@ def test_built_in_metrics_validate_and_serialize():
 
     run_id = "run_x"
     run_repo.get_run.return_value = object()
-    run_repo.get_turn_metadata.return_value = TurnMetadata(
+    run_repo.get_turn_metadata.return_value = TurnMetadataFactory.create(
         run_id=run_id,
         turn_number=0,
         total_actions={
@@ -255,14 +334,21 @@ def test_built_in_metrics_validate_and_serialize():
         deps=deps,
     )
 
-    turn_metrics_dict = collector.collect_turn_metrics(run_id=run_id, turn_number=0)
+    turn_metrics_dict = collector.collect_turn_metrics(
+        run_id=run_id,
+        turn_number=0,
+        turn_metric_keys=["turn.actions.total"],
+    )
     json.dumps(turn_metrics_dict)  # should not raise
-    TurnMetrics(
+    TurnMetricsFactory.create(
         run_id=run_id,
         turn_number=0,
         metrics=turn_metrics_dict,
         created_at="2026-01-01T00:00:00",
     )
 
-    run_metrics_dict = collector.collect_run_metrics(run_id=run_id)
+    run_metrics_dict = collector.collect_run_metrics(
+        run_id=run_id,
+        run_metric_keys=["run.actions.total"],
+    )
     json.dumps(run_metrics_dict)  # should not raise

@@ -50,7 +50,7 @@ def _mock_require_auth() -> dict:
 
 
 @pytest.fixture
-def simulation_client():
+def simulation_client(temp_db):
     """TestClient for simulation API. Saves and restores app.state.engine after each test.
 
     Overrides require_auth to bypass JWT verification so simulation route tests

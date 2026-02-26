@@ -7,14 +7,26 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
-from lib.rate_limiting import limiter
+from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
+from simulation.api.constants import (
+    DEFAULT_AGENT_LIST_LIMIT,
+    DEFAULT_AGENT_LIST_OFFSET,
+    DEFAULT_SIMULATION_CONFIG,
+    MAX_AGENT_LIST_LIMIT,
+)
 from simulation.api.dependencies.app_user import require_current_app_user
-from simulation.api.dummy_data import get_default_config_dummy
+from simulation.api.errors import (
+    ApiHandleAlreadyExistsError,
+    ApiRunCreationFailedError,
+    ApiRunNotFoundError,
+)
 from simulation.api.schemas.simulation import (
     AgentSchema,
+    CreateAgentRequest,
     DefaultConfigSchema,
     FeedAlgorithmSchema,
+    MetricSchema,
     PostSchema,
     RunDetailsResponse,
     RunListItem,
@@ -22,15 +34,16 @@ from simulation.api.schemas.simulation import (
     RunResponse,
     TurnSchema,
 )
-from simulation.api.services.agent_query_service import list_agents_dummy
+from simulation.api.services.agent_command_service import create_agent
+from simulation.api.services.agent_query_service import list_agents
+from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
-    get_posts_by_uris_dummy,
+    get_posts_by_uris,
     get_run_details,
-    get_turns_for_run_dummy,
-    list_runs_dummy,
+    get_turns_for_run,
+    list_runs,
 )
-from simulation.core.exceptions import RunNotFoundError, SimulationRunFailure
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +56,10 @@ SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
 SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
+SIMULATION_AGENTS_CREATE_ROUTE: str = "POST /v1/simulations/agents"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
+SIMULATION_METRICS_ROUTE: str = "GET /v1/simulations/metrics"
 SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
 
 
@@ -66,11 +81,26 @@ async def get_simulation_feed_algorithms(
 
 
 @router.get(
+    "/simulations/metrics",
+    response_model=list[MetricSchema],
+    status_code=200,
+    summary="List metrics",
+    description="Return available metrics with metadata for the UI.",
+)
+@log_route_completion_decorator(route=SIMULATION_METRICS_ROUTE, success_type=list)
+async def get_simulation_metrics(
+    request: Request,
+) -> list[MetricSchema] | Response:
+    """Return registered metrics with metadata."""
+    return await _execute_get_metrics(request)
+
+
+@router.get(
     "/simulations/config/default",
     response_model=DefaultConfigSchema,
     status_code=200,
     summary="Get default simulation config",
-    description="Return default config for simulation start form (num_agents, num_turns).",
+    description="Return default config for simulation start form (num_agents, num_turns, metric_keys).",
 )
 @log_route_completion_decorator(
     route=SIMULATION_CONFIG_DEFAULT_ROUTE, success_type=DefaultConfigSchema
@@ -82,17 +112,58 @@ async def get_simulation_config_default(
     return await _execute_get_default_config(request)
 
 
+@router.post(
+    "/simulations/agents",
+    response_model=AgentSchema,
+    status_code=201,
+    summary="Create simulation agent",
+    description="Create a user-generated agent.",
+)
+@limiter.limit(RATE_LIMIT_AGENTS_CREATE)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENTS_CREATE_ROUTE, success_type=AgentSchema
+)
+async def post_simulation_agents(
+    request: Request, body: CreateAgentRequest
+) -> AgentSchema | Response:
+    """Create an agent and return it."""
+    return await _execute_post_simulation_agents(request, body=body)
+
+
 @router.get(
     "/simulations/agents",
     response_model=list[AgentSchema],
     status_code=200,
     summary="List simulation agents",
-    description="Return simulation agent profiles for the UI.",
+    description="Return simulation agent profiles from DB for View agents and Create form.",
 )
 @log_route_completion_decorator(route=SIMULATION_AGENTS_ROUTE, success_type=list)
-async def get_simulation_agents(request: Request) -> list[AgentSchema] | Response:
-    """Return all simulation agents from the backend dummy source."""
-    return await _execute_get_simulation_agents(request)
+async def get_simulation_agents(
+    request: Request,
+    q: str | None = Query(
+        default=None,
+        max_length=200,
+        description=(
+            "Optional handle search query (case-insensitive substring). "
+            "Supports '*' (any-length) and '?' (single-character) wildcards."
+        ),
+    ),
+    limit: int = Query(
+        default=DEFAULT_AGENT_LIST_LIMIT,
+        ge=1,
+        le=MAX_AGENT_LIST_LIMIT,
+        description="Maximum number of agents to return (ordered by handle).",
+    ),
+    offset: int = Query(
+        default=DEFAULT_AGENT_LIST_OFFSET,
+        ge=0,
+        description="Number of agents to skip before returning results (ordered by handle).",
+    ),
+) -> list[AgentSchema] | Response:
+    """Return all simulation agents from the database."""
+    return await _execute_get_simulation_agents(
+        request, q=q, limit=limit, offset=offset
+    )
 
 
 @router.get(
@@ -104,7 +175,7 @@ async def get_simulation_agents(request: Request) -> list[AgentSchema] | Respons
 )
 @log_route_completion_decorator(route=SIMULATION_RUNS_ROUTE, success_type=list)
 async def get_simulation_runs(request: Request) -> list[RunListItem] | Response:
-    """Return all simulation runs from the backend dummy source."""
+    """Return all simulation runs from the database (app engine backed by SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_runs(request)
 
 
@@ -159,7 +230,7 @@ async def get_simulation_posts(
     request: Request,
     uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
 ) -> list[PostSchema] | Response:
-    """Return posts from the backend dummy source."""
+    """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_posts(request, uris=uris)
 
 
@@ -176,18 +247,25 @@ async def get_simulation_posts(
 async def get_simulation_run_turns(
     request: Request, run_id: str
 ) -> dict[str, TurnSchema] | Response:
-    """Return turn payload for a run from the backend dummy source."""
+    """Return turn payload for a run from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_run_turns(request, run_id=run_id)
 
 
-def _get_feed_algorithms_list() -> list[FeedAlgorithmSchema]:
-    """Return feed algorithms with metadata for the API."""
-    from feeds.algorithms import get_registered_algorithms
-
-    return [
-        FeedAlgorithmSchema(id=alg_id, **meta.model_dump())
-        for alg_id, meta in get_registered_algorithms()
-    ]
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_metrics(
+    request: Request,
+) -> list[MetricSchema] | Response:
+    """Fetch metrics and convert unexpected failures to HTTP responses."""
+    try:
+        return await asyncio.to_thread(list_metrics)
+    except Exception:
+        logger.exception("Unexpected error while listing metrics")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -196,7 +274,7 @@ async def _execute_get_feed_algorithms(
 ) -> list[FeedAlgorithmSchema] | Response:
     """Fetch feed algorithms and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(_get_feed_algorithms_list)
+        return await asyncio.to_thread(list_feed_algorithms)
     except Exception:
         logger.exception("Unexpected error while listing feed algorithms")
         return _error_response(
@@ -213,7 +291,7 @@ async def _execute_get_default_config(
 ) -> DefaultConfigSchema | Response:
     """Fetch default config and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_default_config_dummy)
+        return DEFAULT_SIMULATION_CONFIG
     except Exception:
         logger.exception("Unexpected error while fetching default config")
         return _error_response(
@@ -232,7 +310,8 @@ async def _execute_get_simulation_posts(
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(get_posts_by_uris_dummy, uris=uris)
+        engine = request.app.state.engine
+        return await asyncio.to_thread(get_posts_by_uris, uris=uris, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")
         return _error_response(
@@ -247,10 +326,11 @@ async def _execute_get_simulation_posts(
 async def _execute_get_simulation_runs(
     request: Request,
 ) -> list[RunListItem] | Response:
-    """Fetch run summaries and convert unexpected failures to HTTP responses."""
+    """Fetch run summaries from the database and convert failures to HTTP responses."""
     try:
+        engine = request.app.state.engine
         # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(list_runs_dummy)
+        return await asyncio.to_thread(list_runs, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
         return _error_response(
@@ -262,12 +342,64 @@ async def _execute_get_simulation_runs(
 
 
 @timed(attach_attr="duration_ms", log_level=None)
+async def _execute_post_simulation_agents(
+    request: Request, *, body: CreateAgentRequest
+) -> AgentSchema | Response:
+    """Create agent and convert known failures to HTTP responses."""
+    try:
+        app_state = request.app.state
+        return await asyncio.to_thread(
+            create_agent,
+            body,
+            transaction_provider=app_state.transaction_provider,
+            agent_repo=app_state.agent_repo,
+            bio_repo=app_state.agent_bio_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+        )
+    except ApiHandleAlreadyExistsError as e:
+        return _error_response(
+            status_code=409,
+            code="HANDLE_ALREADY_EXISTS",
+            message="Agent with this handle already exists",
+            detail=e.handle,
+        )
+    except ValueError as e:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(e),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while creating agent")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_simulation_agents(
     request: Request,
+    *,
+    q: str | None,
+    limit: int,
+    offset: int,
 ) -> list[AgentSchema] | Response:
-    """Fetch agent list and convert unexpected failures to HTTP responses."""
+    """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(list_agents_dummy)
+        app_state = request.app.state
+        return await asyncio.to_thread(
+            list_agents,
+            agent_repo=app_state.agent_repo,
+            bio_repo=app_state.agent_bio_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+            q=q,
+            limit=limit,
+            offset=offset,
+        )
     except Exception:
         logger.exception("Unexpected error while listing simulation agents")
         return _error_response(
@@ -293,12 +425,12 @@ async def _execute_simulation_run(
             engine=engine,
             created_by_app_user_id=created_by_app_user_id,
         )
-    except SimulationRunFailure as e:
+    except ApiRunCreationFailedError as e:
         logger.exception("Simulation run failed before run creation")
         return _error_response(
             status_code=500,
             code="RUN_CREATION_FAILED",
-            message=e.args[0] if e.args else "Run creation or status update failed",
+            message=e.message,
             detail=None,
         )
     except Exception:
@@ -318,9 +450,9 @@ async def _execute_get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
     try:
-        # Use to_thread for consistency with other async routes and to prepare for real I/O later.
-        return await asyncio.to_thread(get_turns_for_run_dummy, run_id=run_id)
-    except RunNotFoundError as e:
+        engine = request.app.state.engine
+        return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
+    except ApiRunNotFoundError as e:
         return _error_response(
             status_code=404,
             code="RUN_NOT_FOUND",
@@ -356,7 +488,7 @@ async def _execute_get_simulation_run(
             run_id=run_id,
             engine=engine,
         )
-    except RunNotFoundError as e:
+    except ApiRunNotFoundError as e:
         return _error_response(
             status_code=404,
             code="RUN_NOT_FOUND",

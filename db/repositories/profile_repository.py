@@ -1,9 +1,9 @@
 """SQLite implementation of profile repositories."""
 
-from db.adapters.base import ProfileDatabaseAdapter
+from db.adapters.base import ProfileDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import ProfileRepository
 from simulation.core.models.profiles import BlueskyProfile
-from simulation.core.validators import validate_handle_exists
+from simulation.core.utils.validators import validate_handle_exists
 
 
 class SQLiteProfileRepository(ProfileRepository):
@@ -13,13 +13,20 @@ class SQLiteProfileRepository(ProfileRepository):
     decoupling it from concrete implementations.
     """
 
-    def __init__(self, db_adapter: ProfileDatabaseAdapter):
+    def __init__(
+        self,
+        *,
+        db_adapter: ProfileDatabaseAdapter,
+        transaction_provider: TransactionProvider,
+    ):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for profile operations
+            transaction_provider: Provider for transactions
         """
         self._db_adapter = db_adapter
+        self._transaction_provider = transaction_provider
 
     def create_or_update_profile(self, profile: BlueskyProfile) -> BlueskyProfile:
         """Create or update a profile in SQLite.
@@ -36,7 +43,8 @@ class SQLiteProfileRepository(ProfileRepository):
             sqlite3.OperationalError: If database operation fails (from adapter)
         """
         # Validation is handled by Pydantic model (BlueskyProfile.validate_handle)
-        self._db_adapter.write_profile(profile)
+        with self._transaction_provider.run_transaction() as c:
+            self._db_adapter.write_profile(profile, conn=c)
         return profile
 
     def get_profile(self, handle: str) -> BlueskyProfile | None:
@@ -56,7 +64,8 @@ class SQLiteProfileRepository(ProfileRepository):
             parameter (not a BlueskyProfile model), we validate handle here.
         """
         validate_handle_exists(handle=handle)
-        return self._db_adapter.read_profile(handle)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_profile(handle, conn=c)
 
     def list_profiles(self) -> list[BlueskyProfile]:
         """List all profiles from SQLite.
@@ -64,10 +73,14 @@ class SQLiteProfileRepository(ProfileRepository):
         Returns:
             List of all BlueskyProfile models.
         """
-        return self._db_adapter.read_all_profiles()
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_all_profiles(conn=c)
 
 
-def create_sqlite_profile_repository() -> SQLiteProfileRepository:
+def create_sqlite_profile_repository(
+    *,
+    transaction_provider: TransactionProvider,
+) -> SQLiteProfileRepository:
     """Factory function to create a SQLiteProfileRepository with default dependencies.
 
     Returns:
@@ -75,4 +88,7 @@ def create_sqlite_profile_repository() -> SQLiteProfileRepository:
     """
     from db.adapters.sqlite import SQLiteProfileAdapter
 
-    return SQLiteProfileRepository(db_adapter=SQLiteProfileAdapter())
+    return SQLiteProfileRepository(
+        db_adapter=SQLiteProfileAdapter(),
+        transaction_provider=transaction_provider,
+    )

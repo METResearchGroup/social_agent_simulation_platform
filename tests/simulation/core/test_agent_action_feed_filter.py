@@ -2,13 +2,13 @@
 
 from unittest.mock import Mock
 
-from simulation.core.agent_action_feed_filter import HistoryAwareActionFeedFilter
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.action_policy import HistoryAwareActionFeedFilter
+from tests.factories import PostFactory
 
 
-def _build_post(post_id: str, author_handle: str) -> BlueskyFeedPost:
-    return BlueskyFeedPost(
-        id=post_id,
+def _build_post(post_id: str, author_handle: str):
+    return PostFactory.create(
+        post_id=post_id,
         uri=post_id,
         author_display_name="Author",
         author_handle=author_handle,

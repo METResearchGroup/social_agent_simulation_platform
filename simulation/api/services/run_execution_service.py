@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 
 from lib.timestamp_utils import get_current_timestamp
+from simulation.api.errors import ApiRunCreationFailedError
 from simulation.api.schemas.simulation import (
     ErrorDetail,
     RunRequest,
@@ -11,10 +12,14 @@ from simulation.api.schemas.simulation import (
     TurnSummaryItem,
 )
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
+from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import (
+    InconsistentTurnDataError,
+    SimulationRunFailure,
+)
 
 DEFAULT_NUM_TURNS: int = 10
 DEFAULT_FEED_ALGORITHM: str = "chronological"
@@ -41,7 +46,8 @@ def execute(
         )
     except SimulationRunFailure as e:
         if e.run_id is None:
-            raise
+            message = e.args[0] if e.args else "Run creation or status update failed"
+            raise ApiRunCreationFailedError(message) from e
         metadata_list = engine.list_turn_metadata(e.run_id)
         turn_metrics_list = engine.list_turn_metrics(e.run_id)
         _validate_turn_data_consistency(
@@ -96,12 +102,20 @@ def execute(
 
 def _build_run_config(request: RunRequest) -> RunConfig:
     """Build RunConfig from request, applying API defaults."""
+    metric_keys: list[str]
+    if request.metric_keys is None or len(request.metric_keys) == 0:
+        metric_keys = get_default_metric_keys()
+    else:
+        metric_keys = request.metric_keys
+
     return RunConfig(
         num_agents=request.num_agents,
         num_turns=request.num_turns
         if request.num_turns is not None
         else DEFAULT_NUM_TURNS,
         feed_algorithm=request.feed_algorithm or DEFAULT_FEED_ALGORITHM,
+        feed_algorithm_config=request.feed_algorithm_config,
+        metric_keys=metric_keys,
     )
 
 

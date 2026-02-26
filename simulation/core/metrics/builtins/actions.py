@@ -11,7 +11,7 @@ from simulation.core.metrics.interfaces import (
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
-from simulation.core.validators import validate_run_exists
+from simulation.core.utils.validators import validate_run_exists
 
 TURN_ACTION_COUNTS_BY_TYPE_ADAPTER = TypeAdapter(dict[str, int])
 TURN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)
@@ -24,6 +24,7 @@ class TurnActionCountsByTypeMetric(Metric):
     SCOPE = MetricScope.TURN
     DESCRIPTION = "Count of actions per turn, by action type."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Actions by type (turn)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -50,6 +51,7 @@ class TurnActionTotalMetric(Metric):
     SCOPE = MetricScope.TURN
     DESCRIPTION = "Total number of actions in a turn."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Total actions (turn)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -92,6 +94,7 @@ class RunActionTotalsByTypeMetric(Metric):
     SCOPE = MetricScope.RUN
     DESCRIPTION = "Aggregated action counts across all turns, by type."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Actions by type (run)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:
@@ -118,6 +121,7 @@ class RunActionTotalMetric(Metric):
     SCOPE = MetricScope.RUN
     DESCRIPTION = "Total number of actions in the run."
     AUTHOR = "platform"
+    DISPLAY_NAME = "Total actions (run)"
 
     @property
     def output_adapter(self) -> MetricOutputAdapter:

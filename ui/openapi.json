@@ -1,0 +1,1306 @@
+{
+  "components": {
+    "schemas": {
+      "AgentActionSchema": {
+        "description": "Action event performed by an agent in a turn.",
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "agent_handle": {
+            "title": "Agent Handle",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "post_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Uri"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TurnAction"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "action_id",
+          "agent_handle",
+          "type",
+          "created_at"
+        ],
+        "title": "AgentActionSchema",
+        "type": "object"
+      },
+      "AgentSchema": {
+        "description": "Agent profile for the simulation UI.",
+        "properties": {
+          "bio": {
+            "title": "Bio",
+            "type": "string"
+          },
+          "followers": {
+            "title": "Followers",
+            "type": "integer"
+          },
+          "following": {
+            "title": "Following",
+            "type": "integer"
+          },
+          "generated_bio": {
+            "title": "Generated Bio",
+            "type": "string"
+          },
+          "handle": {
+            "title": "Handle",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "posts_count": {
+            "title": "Posts Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "name",
+          "bio",
+          "generated_bio",
+          "followers",
+          "following",
+          "posts_count"
+        ],
+        "title": "AgentSchema",
+        "type": "object"
+      },
+      "CreateAgentRequest": {
+        "description": "Request body for POST /v1/simulations/agents.\n\nFast-follows (not yet supported):\n- comments: list of {text, postUri}\n- likedPostUris: list of post URIs\n- linkedAgentHandles: list of agent handles to link",
+        "properties": {
+          "bio": {
+            "default": "",
+            "title": "Bio",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "handle": {
+            "title": "Handle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "display_name"
+        ],
+        "title": "CreateAgentRequest",
+        "type": "object"
+      },
+      "DefaultConfigSchema": {
+        "description": "Default config for simulation start form.",
+        "properties": {
+          "metric_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Metric Keys",
+            "type": "array"
+          },
+          "num_agents": {
+            "title": "Num Agents",
+            "type": "integer"
+          },
+          "num_turns": {
+            "title": "Num Turns",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "num_agents",
+          "num_turns",
+          "metric_keys"
+        ],
+        "title": "DefaultConfigSchema",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "description": "Error payload included when status is failed or on server error.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "FeedAlgorithmSchema": {
+        "description": "API response for GET /v1/simulations/feed-algorithms.",
+        "properties": {
+          "config_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Schema"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "description",
+          "id"
+        ],
+        "title": "FeedAlgorithmSchema",
+        "type": "object"
+      },
+      "FeedSchema": {
+        "description": "Feed metadata for one agent in a turn.",
+        "properties": {
+          "agent_handle": {
+            "title": "Agent Handle",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "feed_id": {
+            "title": "Feed Id",
+            "type": "string"
+          },
+          "post_uris": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Post Uris",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "turn_number": {
+            "title": "Turn Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "feed_id",
+          "run_id",
+          "turn_number",
+          "agent_handle",
+          "post_uris",
+          "created_at"
+        ],
+        "title": "FeedSchema",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JsonValue": {},
+      "MetricSchema": {
+        "description": "API response for GET /v1/simulations/metrics.",
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/MetricScope"
+          }
+        },
+        "required": [
+          "key",
+          "display_name",
+          "description",
+          "scope",
+          "author"
+        ],
+        "title": "MetricSchema",
+        "type": "object"
+      },
+      "MetricScope": {
+        "enum": [
+          "turn",
+          "run"
+        ],
+        "title": "MetricScope",
+        "type": "string"
+      },
+      "PostSchema": {
+        "description": "Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.",
+        "properties": {
+          "author_display_name": {
+            "title": "Author Display Name",
+            "type": "string"
+          },
+          "author_handle": {
+            "title": "Author Handle",
+            "type": "string"
+          },
+          "bookmark_count": {
+            "title": "Bookmark Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "like_count": {
+            "title": "Like Count",
+            "type": "integer"
+          },
+          "quote_count": {
+            "title": "Quote Count",
+            "type": "integer"
+          },
+          "reply_count": {
+            "title": "Reply Count",
+            "type": "integer"
+          },
+          "repost_count": {
+            "title": "Repost Count",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "uri": {
+            "title": "Uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri",
+          "author_display_name",
+          "author_handle",
+          "text",
+          "bookmark_count",
+          "like_count",
+          "quote_count",
+          "reply_count",
+          "repost_count",
+          "created_at"
+        ],
+        "title": "PostSchema",
+        "type": "object"
+      },
+      "RunConfigDetail": {
+        "description": "Configuration for a persisted run.",
+        "properties": {
+          "feed_algorithm": {
+            "title": "Feed Algorithm",
+            "type": "string"
+          },
+          "metric_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Metric Keys",
+            "type": "array"
+          },
+          "num_agents": {
+            "title": "Num Agents",
+            "type": "integer"
+          },
+          "num_turns": {
+            "title": "Num Turns",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "num_agents",
+          "num_turns",
+          "feed_algorithm",
+          "metric_keys"
+        ],
+        "title": "RunConfigDetail",
+        "type": "object"
+      },
+      "RunDetailsResponse": {
+        "description": "Response body for GET /v1/simulations/runs/{run_id}.",
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "config": {
+            "$ref": "#/components/schemas/RunConfigDetail"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "run_metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Metrics"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/TurnActionsItem"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "created_at",
+          "started_at",
+          "config",
+          "turns"
+        ],
+        "title": "RunDetailsResponse",
+        "type": "object"
+      },
+      "RunListItem": {
+        "description": "Summary item for listing simulation runs.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "total_agents": {
+            "title": "Total Agents",
+            "type": "integer"
+          },
+          "total_turns": {
+            "title": "Total Turns",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "created_at",
+          "total_turns",
+          "total_agents",
+          "status"
+        ],
+        "title": "RunListItem",
+        "type": "object"
+      },
+      "RunRequest": {
+        "description": "Request body for POST /v1/simulations/run.",
+        "properties": {
+          "feed_algorithm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feed Algorithm"
+          },
+          "feed_algorithm_config": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feed Algorithm Config"
+          },
+          "metric_keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric Keys"
+          },
+          "num_agents": {
+            "title": "Num Agents",
+            "type": "integer"
+          },
+          "num_turns": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Turns"
+          }
+        },
+        "required": [
+          "num_agents"
+        ],
+        "title": "RunRequest",
+        "type": "object"
+      },
+      "RunResponse": {
+        "description": "Response body for POST /v1/simulations/run.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "num_agents": {
+            "title": "Num Agents",
+            "type": "integer"
+          },
+          "num_turns": {
+            "title": "Num Turns",
+            "type": "integer"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "run_metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Metrics"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunResponseStatus"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/TurnSummaryItem"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "created_at",
+          "status",
+          "num_agents",
+          "num_turns",
+          "turns"
+        ],
+        "title": "RunResponse",
+        "type": "object"
+      },
+      "RunResponseStatus": {
+        "description": "Status of a simulation run as returned by the API.",
+        "enum": [
+          "completed",
+          "failed"
+        ],
+        "title": "RunResponseStatus",
+        "type": "string"
+      },
+      "RunStatus": {
+        "description": "Enum representing the state of a simulation run.\n\nState transitions:\n  - RUNNING: The run is actively in progress. All runs start in this state.\n  - COMPLETED: The run has finished successfully. Set when the simulation\n    completes all turns and agents have completed their actions.\n  - FAILED: The run has terminated abnormally due to an error or interruption.\n    No further progress will be made.\n\nValid transitions:\n  - RUNNING -> COMPLETED: Normal successful completion.\n  - RUNNING -> FAILED: Error or failure during simulation.",
+        "enum": [
+          "running",
+          "completed",
+          "failed"
+        ],
+        "title": "RunStatus",
+        "type": "string"
+      },
+      "TurnAction": {
+        "description": "Action types for a simulation turn.",
+        "enum": [
+          "like",
+          "comment",
+          "follow"
+        ],
+        "title": "TurnAction",
+        "type": "string"
+      },
+      "TurnActionsItem": {
+        "description": "One turn summary with aggregate action counts.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics"
+          },
+          "total_actions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Total Actions",
+            "type": "object"
+          },
+          "turn_number": {
+            "title": "Turn Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_number",
+          "created_at",
+          "total_actions"
+        ],
+        "title": "TurnActionsItem",
+        "type": "object"
+      },
+      "TurnSchema": {
+        "description": "Full turn payload consumed by the UI.",
+        "properties": {
+          "agent_actions": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/AgentActionSchema"
+              },
+              "type": "array"
+            },
+            "title": "Agent Actions",
+            "type": "object"
+          },
+          "agent_feeds": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FeedSchema"
+            },
+            "title": "Agent Feeds",
+            "type": "object"
+          },
+          "turn_number": {
+            "title": "Turn Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_number",
+          "agent_feeds",
+          "agent_actions"
+        ],
+        "title": "TurnSchema",
+        "type": "object"
+      },
+      "TurnSummaryItem": {
+        "description": "One turn summary with computed metrics.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Metrics",
+            "type": "object"
+          },
+          "total_actions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Total Actions",
+            "type": "object"
+          },
+          "turn_number": {
+            "title": "Turn Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_number",
+          "created_at",
+          "total_actions",
+          "metrics"
+        ],
+        "title": "TurnSummaryItem",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "description": "Bearer token required",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Agent Simulation Platform API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Health check endpoint. Returns 200 when the service is up.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/v1/simulations/agents": {
+      "get": {
+        "description": "Return simulation agent profiles from DB for View agents and Create form.",
+        "operationId": "get_simulation_agents_v1_simulations_agents_get",
+        "parameters": [
+          {
+            "description": "Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards.",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Maximum number of agents to return (ordered by handle).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Maximum number of agents to return (ordered by handle).",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of agents to skip before returning results (ordered by handle).",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of agents to skip before returning results (ordered by handle).",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentSchema"
+                  },
+                  "title": "Response Get Simulation Agents V1 Simulations Agents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List simulation agents",
+        "tags": [
+          "simulation"
+        ]
+      },
+      "post": {
+        "description": "Create a user-generated agent.",
+        "operationId": "post_simulation_agents_v1_simulations_agents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSchema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create simulation agent",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/config/default": {
+      "get": {
+        "description": "Return default config for simulation start form (num_agents, num_turns, metric_keys).",
+        "operationId": "get_simulation_config_default_v1_simulations_config_default_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultConfigSchema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get default simulation config",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/feed-algorithms": {
+      "get": {
+        "description": "Return available feed algorithms with metadata for the UI.",
+        "operationId": "get_simulation_feed_algorithms_v1_simulations_feed_algorithms_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeedAlgorithmSchema"
+                  },
+                  "title": "Response Get Simulation Feed Algorithms V1 Simulations Feed Algorithms Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List feed algorithms",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/metrics": {
+      "get": {
+        "description": "Return available metrics with metadata for the UI.",
+        "operationId": "get_simulation_metrics_v1_simulations_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MetricSchema"
+                  },
+                  "title": "Response Get Simulation Metrics V1 Simulations Metrics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List metrics",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/posts": {
+      "get": {
+        "description": "Return posts, optionally filtered by URIs. Batch lookup for feed resolution.",
+        "operationId": "get_simulation_posts_v1_simulations_posts_get",
+        "parameters": [
+          {
+            "description": "Filter by post URIs",
+            "in": "query",
+            "name": "uris",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by post URIs",
+              "title": "Uris"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PostSchema"
+                  },
+                  "title": "Response Get Simulation Posts V1 Simulations Posts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List simulation posts",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/run": {
+      "post": {
+        "description": "Execute a synchronous simulation run.",
+        "operationId": "post_simulations_run_v1_simulations_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run a simulation",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/runs": {
+      "get": {
+        "description": "Return simulation run summaries for the UI.",
+        "operationId": "get_simulation_runs_v1_simulations_runs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunListItem"
+                  },
+                  "title": "Response Get Simulation Runs V1 Simulations Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List simulation runs",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/runs/{run_id}": {
+      "get": {
+        "description": "Fetch run config and turn-by-turn action summary by run ID.",
+        "operationId": "get_simulation_run_v1_simulations_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetailsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get simulation run details",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/runs/{run_id}/turns": {
+      "get": {
+        "description": "Return full per-turn payload for a run ID.",
+        "operationId": "get_simulation_run_turns_v1_simulations_runs__run_id__turns_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/TurnSchema"
+                  },
+                  "title": "Response Get Simulation Run Turns V1 Simulations Runs  Run Id  Turns Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get simulation run turns",
+        "tags": [
+          "simulation"
+        ]
+      }
+    }
+  }
+}

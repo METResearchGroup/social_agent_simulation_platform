@@ -1,19 +1,17 @@
 """For each profile in the database, generate an AI-generated bio
 to use for the agent, and save to the database."""
 
-import os
-
-from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
-from db.adapters.sqlite.sqlite import initialize_database
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider, initialize_database
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.generated_bio_repository import (
     create_sqlite_generated_bio_repository,
 )
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from lib.langfuse_telemetry import get_langfuse_client, log_llm_request
+from lib.load_env_vars import EnvVarsContainer
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.posts import BlueskyFeedPost
@@ -57,11 +55,7 @@ GENERATE_BIO_PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-load_dotenv()
-
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("OPENAI_API_KEY is not set")
+api_key = EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
 
 MAX_POSTS_SAMPLE = 20
 
@@ -142,9 +136,10 @@ def generate_bio_for_profile(
 def main():
     initialize_database()
     print("Reading profiles and feed posts from database...")
-    profile_repo = create_sqlite_profile_repository()
-    feed_post_repo = create_sqlite_feed_post_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
+    tx = SqliteTransactionProvider()
+    profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
+    feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
+    generated_bio_repo = create_sqlite_generated_bio_repository(transaction_provider=tx)
     profiles: list[BlueskyProfile] = profile_repo.list_profiles()
     feed_posts: list[BlueskyFeedPost] = feed_post_repo.list_all_feed_posts()
     posts_by_author: dict[str, list[BlueskyFeedPost]] = {}

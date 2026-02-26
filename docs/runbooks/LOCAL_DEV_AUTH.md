@@ -1,38 +1,39 @@
+---
+description: Local development auth bypass (LOCAL=true) and real OAuth session persistence guidance.
+tags: [auth, local, oauth, testing]
+---
+
 # Local Development: Auth Bypass and Session Persistence
 
 This runbook covers how to bypass auth during local development and how to persist a real OAuth session for testing.
 
 ---
 
-## Option 1: Bypass auth (no sign-in)
+## Option 1 (recommended): Local dev mode (no sign-in)
 
-Use this when you want to work on the app without configuring OAuth (e.g. for UI work, API integration).
+Use this for most local development and UI work.
 
-### Backend
+### Backend (LOCAL=true)
 
-Set `DISABLE_AUTH=1` (or `true`) before starting the API:
+Run the API with `LOCAL=true`:
 
 ```bash
-DISABLE_AUTH=1 PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload --port 8000
+LOCAL=true PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload --port 8000
 ```
 
-Or add to `.env` in the project root (if your runner loads it):
+This enables auth bypass automatically and seeds a local dummy DB at `db/dev_dummy_data_db.sqlite`.
 
-```
-DISABLE_AUTH=1
-```
+### Frontend (LOCAL=true)
 
-### Frontend
+Run the UI with `LOCAL=true`:
 
-Add to `ui/.env.local`:
-
-```
-NEXT_PUBLIC_DISABLE_AUTH=true
+```bash
+cd ui && LOCAL=true npm run dev
 ```
 
-Restart the Next.js dev server. The app will render without showing the Sign-In screen, and API requests will succeed without a Bearer token.
+This automatically enables frontend auth bypass (no `.env.local` required).
 
-**Security:** Do not use these flags in production or committed config. They are for local development only.
+**Security:** Do not use `LOCAL=true` in production. The backend fails fast if `LOCAL=true` is enabled in production-like environments.
 
 ---
 
@@ -45,7 +46,7 @@ Use this when you need to test the full auth flow or session persistence.
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 3. Ensure the backend has `SUPABASE_JWT_SECRET` (from Supabase Project Settings → API → JWT Secret).
-4. **Do not** set `DISABLE_AUTH` or `NEXT_PUBLIC_DISABLE_AUTH`.
+4. **Do not** set `LOCAL`, `DISABLE_AUTH`, or `NEXT_PUBLIC_DISABLE_AUTH`.
 
 ### Signing in
 

@@ -1,10 +1,10 @@
 """SQLite implementation of generated feed repositories."""
 
-from db.adapters.base import GeneratedFeedDatabaseAdapter
+from db.adapters.base import GeneratedFeedDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import GeneratedFeedRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_handle_exists,
     validate_run_id,
     validate_turn_number,
@@ -18,13 +18,20 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
     decoupling it from concrete implementations.
     """
 
-    def __init__(self, db_adapter: GeneratedFeedDatabaseAdapter):
+    def __init__(
+        self,
+        *,
+        db_adapter: GeneratedFeedDatabaseAdapter,
+        transaction_provider: TransactionProvider,
+    ):
         """Initialize repository with injected dependencies.
 
         Args:
             db_adapter: Database adapter for generated feed operations
+            transaction_provider: Provider for transactions
         """
         self._db_adapter = db_adapter
+        self._transaction_provider = transaction_provider
 
     def write_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
         """Write a generated feed to SQLite (insert or replace by composite key).
@@ -49,7 +56,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             agent_handle and run_id are validated by Pydantic field validators.
         """
         # Validation is handled by Pydantic model (GeneratedFeed.validate_agent_handle, validate_run_id)
-        self._db_adapter.write_generated_feed(feed)
+        with self._transaction_provider.run_transaction() as c:
+            self._db_adapter.write_generated_feed(feed, conn=c)
         return feed
 
     @validate_inputs(
@@ -79,7 +87,10 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             Pydantic validators only run when creating models. Since this method accepts raw string
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
-        return self._db_adapter.read_generated_feed(agent_handle, run_id, turn_number)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_generated_feed(
+                agent_handle, run_id, turn_number, conn=c
+            )
 
     def list_all_generated_feeds(self) -> list[GeneratedFeed]:
         """List all generated feeds from SQLite.
@@ -87,7 +98,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         Returns:
             List of all GeneratedFeed models.
         """
-        return self._db_adapter.read_all_generated_feeds()
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_all_generated_feeds(conn=c)
 
     @validate_inputs(
         (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
@@ -110,7 +122,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             Pydantic validators only run when creating models. Since this method accepts raw string
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
-        return self._db_adapter.read_post_uris_for_run(agent_handle, run_id)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_post_uris_for_run(agent_handle, run_id, conn=c)
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
@@ -131,10 +144,14 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
                       Implementations should document the specific exception types
                       they raise.
         """
-        return self._db_adapter.read_feeds_for_turn(run_id, turn_number)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_feeds_for_turn(run_id, turn_number, conn=c)
 
 
-def create_sqlite_generated_feed_repository() -> SQLiteGeneratedFeedRepository:
+def create_sqlite_generated_feed_repository(
+    *,
+    transaction_provider: TransactionProvider,
+) -> SQLiteGeneratedFeedRepository:
     """Factory function to create a SQLiteGeneratedFeedRepository with default dependencies.
 
     Returns:
@@ -142,4 +159,7 @@ def create_sqlite_generated_feed_repository() -> SQLiteGeneratedFeedRepository:
     """
     from db.adapters.sqlite import SQLiteGeneratedFeedAdapter
 
-    return SQLiteGeneratedFeedRepository(db_adapter=SQLiteGeneratedFeedAdapter())
+    return SQLiteGeneratedFeedRepository(
+        db_adapter=SQLiteGeneratedFeedAdapter(),
+        transaction_provider=transaction_provider,
+    )

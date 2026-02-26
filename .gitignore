@@ -33,6 +33,9 @@ venv.bak/
 .uv/
 uv.lock
 
+# Generated OpenAPI artifacts (use ui/openapi.json instead)
+/openapi.json
+
 # IDE
 .vscode/
 .idea/
@@ -46,6 +49,7 @@ Thumbs.db
 
 # Testing
 .pytest_cache/
+.hypothesis/
 .coverage
 htmlcov/
 .tox/

@@ -1,12 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  getAgents,
-  getRuns,
-  getTurnsForRun,
-  postRun,
-} from '@/lib/api/simulation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getAgents, getRunDetails, getRuns, getTurnsForRun, postRun } from '@/lib/api/simulation';
 import {
   getAvailableTurns,
   getCompletedTurnsCount,
@@ -15,6 +10,7 @@ import {
   getRunConfig,
   withComputedRunStatuses,
 } from '@/lib/run-selectors';
+import { DEFAULT_AGENT_PAGE_SIZE } from '@/lib/constants';
 import { ApiError, Agent, Run, RunConfig, Turn } from '@/types';
 
 const EMPTY_RUN_CONFIGS: Record<string, RunConfig> = {};
@@ -22,7 +18,12 @@ const EMPTY_NEW_RUN_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_FALLBACK_TURNS: Record<string, Record<string, Turn>> = {};
 const EMPTY_TURNS_LOADING: Record<string, boolean> = {};
 const EMPTY_TURNS_ERROR: Record<string, ApiError | null> = {};
+const EMPTY_RUN_DETAILS_LOADING: Record<string, boolean> = {};
+const EMPTY_RUN_DETAILS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
+const AGENTS_QUERY_MAX_LENGTH: number = 200;
+const RUN_DETAILS_AUTO_RETRY_DELAY_MS: number = 1000;
+const RUN_DETAILS_AUTO_RETRY_MAX_ATTEMPTS: number = 2;
 
 /**
  * Result of useSimulationPageState.
@@ -32,17 +33,26 @@ const TURN_FETCH_THROTTLE_MS: number = 1500;
  * - runsError: set when runs fetch fails; cleared when handleRetryRuns is called.
  * - agentsLoading: true while getAgents() is in flight; false otherwise.
  * - agentsError: set when agents fetch fails; cleared when handleRetryAgents is called.
+ * - agentsLoadingMore: true while loading a subsequent agent page.
  * - turnsLoadingByRunId: runId -> true while turns for that run are loading.
  * - turnsErrorByRunId: runId -> Error when turns fetch fails; cleared when handleRetryTurns(runId) is called.
  */
+export type ViewMode = 'runs' | 'agents' | 'create-agent';
+
 interface UseSimulationPageStateResult {
   runsWithStatus: Run[];
   runsLoading: boolean;
   runsError: Error | null;
+  agents: Agent[];
   agentsLoading: boolean;
+  agentsLoadingMore: boolean;
   agentsError: Error | null;
+  agentsHasMore: boolean;
+  agentsQuery: string;
   turnsLoadingByRunId: Record<string, boolean>;
   turnsErrorByRunId: Record<string, ApiError | null>;
+  viewMode: ViewMode;
+  selectedAgentHandle: string | null;
   selectedRunId: string | null;
   selectedTurn: number | 'summary' | null;
   selectedRun: Run | null;
@@ -51,13 +61,20 @@ interface UseSimulationPageStateResult {
   completedTurnsCount: number;
   runAgents: Agent[];
   currentRunConfig: RunConfig | null;
+  runDetailsLoading: boolean;
+  runDetailsError: ApiError | null;
   isStartScreen: boolean;
   handleConfigSubmit: (config: RunConfig) => void;
+  handleRetryRunDetails: () => void;
+  handleSetViewMode: (mode: ViewMode) => void;
+  handleSelectAgent: (handle: string | null) => void;
   handleSelectRun: (runId: string) => void;
   handleSelectTurn: (turn: number | 'summary') => void;
   handleStartNewRun: () => void;
   handleRetryRuns: () => void;
   handleRetryAgents: () => void;
+  handleLoadMoreAgents: () => void;
+  handleSetAgentsQuery: (query: string) => void;
   handleRetryTurns: (runId: string) => void;
 }
 
@@ -67,8 +84,12 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const [runsError, setRunsError] = useState<Error | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentsLoading, setAgentsLoading] = useState<boolean>(true);
+  const [agentsLoadingMore, setAgentsLoadingMore] = useState<boolean>(false);
   const [agentsError, setAgentsError] = useState<Error | null>(null);
   const [retryAgentsTrigger, setRetryAgentsTrigger] = useState<number>(0);
+  const [agentsHasMore, setAgentsHasMore] = useState<boolean>(false);
+  const [agentsQuery, setAgentsQuery] = useState<string>('');
+  const [agentsQueryDebounced, setAgentsQueryDebounced] = useState<string>('');
   const [turnsLoadingByRunId, setTurnsLoadingByRunId] = useState<Record<string, boolean>>(
     EMPTY_TURNS_LOADING,
   );
@@ -77,9 +98,17 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   );
   const [retryRunsTrigger, setRetryRunsTrigger] = useState<number>(0);
   const [retryTurnsTrigger, setRetryTurnsTrigger] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('runs');
+  const [selectedAgentHandle, setSelectedAgentHandle] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedTurn, setSelectedTurn] = useState<number | 'summary' | null>(null);
   const [runConfigs, setRunConfigs] = useState<Record<string, RunConfig>>(EMPTY_RUN_CONFIGS);
+  const [runDetailsLoadingByRunId, setRunDetailsLoadingByRunId] = useState<
+    Record<string, boolean>
+  >(EMPTY_RUN_DETAILS_LOADING);
+  const [runDetailsErrorByRunId, setRunDetailsErrorByRunId] = useState<
+    Record<string, ApiError | null>
+  >(EMPTY_RUN_DETAILS_ERROR);
   const [newRunTurns] = useState<Record<string, Record<string, Turn>>>(EMPTY_NEW_RUN_TURNS);
   const [fallbackTurns, setFallbackTurns] = useState<Record<string, Record<string, Turn>>>(
     EMPTY_FALLBACK_TURNS,
@@ -88,25 +117,58 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const lastTurnsFetchAttemptAtMsRef = useRef<Map<string, number>>(new Map());
   const loadedTurnsRunIdsRef = useRef<Set<string>>(new Set());
   const agentsRequestIdRef = useRef<number>(0);
+  const agentsLoadMoreRequestIdRef = useRef<number>(0);
+  const agentsOffsetRef = useRef<number>(0);
+  const lastAgentsQueryRef = useRef<string>('');
+  const selectedAgentHandleRef = useRef<string | null>(null);
+  const runsRequestIdRef = useRef<number>(0);
+  const runDetailsRequestIdRef = useRef<Map<string, number>>(new Map());
+  const turnsRequestIdRef = useRef<Map<string, number>>(new Map());
+  const runDetailsAutoRetryAttemptsRef = useRef<Map<string, number>>(new Map());
+  const runDetailsAutoRetryTimerRef = useRef<Map<string, number>>(new Map());
+  const previousSelectedRunIdRef = useRef<string | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    selectedAgentHandleRef.current = selectedAgentHandle;
+  }, [selectedAgentHandle]);
+
+  useEffect(() => {
+    const timeoutId: number = window.setTimeout(() => {
+      setAgentsQueryDebounced(agentsQuery.trim());
+    }, 250);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [agentsQuery]);
 
   useEffect(() => {
     let isMounted: boolean = true;
+    runsRequestIdRef.current += 1;
+    const requestId: number = runsRequestIdRef.current;
     setRunsLoading(true);
     setRunsError(null);
 
     const loadRuns = async (): Promise<void> => {
       try {
         const apiRuns: Run[] = await getRuns();
-        if (isMounted) {
-          setRuns(apiRuns);
-        }
+        if (!isMounted) return;
+        if (requestId !== runsRequestIdRef.current) return;
+        setRuns(apiRuns);
       } catch (error: unknown) {
         console.error('Failed to fetch runs:', error);
-        if (isMounted) {
-          setRunsError(error instanceof Error ? error : new Error(String(error)));
-        }
+        if (!isMounted) return;
+        if (requestId !== runsRequestIdRef.current) return;
+        setRunsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (isMounted) {
+        const isStale = !isMounted || requestId !== runsRequestIdRef.current;
+        if (!isStale) {
           setRunsLoading(false);
         }
       }
@@ -119,29 +181,47 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     };
   }, [retryRunsTrigger]);
 
-  /**
-   * Loads turns for the selected run. On failure, sets turnsError (run is not marked loaded).
-   * User can retry via retryTurns(runId) or by reselecting the run after 1.5s (throttle window).
-   */
   useEffect(() => {
     let isMounted: boolean = true;
     agentsRequestIdRef.current += 1;
     const requestId: number = agentsRequestIdRef.current;
+    const didQueryChange: boolean = lastAgentsQueryRef.current !== agentsQueryDebounced;
+    lastAgentsQueryRef.current = agentsQueryDebounced;
     setAgentsLoading(true);
     setAgentsError(null);
+    setAgentsHasMore(false);
+    agentsOffsetRef.current = 0;
+    setAgentsLoadingMore(false);
+    if (didQueryChange) {
+      setSelectedAgentHandle(null);
+    }
 
     const loadAgents = async (): Promise<void> => {
       try {
-        const apiAgents: Agent[] = await getAgents();
-        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        const apiAgents: Agent[] = await getAgents({
+          limit: DEFAULT_AGENT_PAGE_SIZE,
+          offset: 0,
+          q: agentsQueryDebounced !== '' ? agentsQueryDebounced : undefined,
+        });
+        if (!isMounted) return;
+        if (requestId !== agentsRequestIdRef.current) return;
         setAgents(apiAgents);
+        agentsOffsetRef.current = apiAgents.length;
+        setAgentsHasMore(apiAgents.length === DEFAULT_AGENT_PAGE_SIZE);
+        const currentSelection: string | null = selectedAgentHandleRef.current;
+        if (currentSelection != null && !apiAgents.some((a) => a.handle === currentSelection)) {
+          setSelectedAgentHandle(null);
+        }
       } catch (error: unknown) {
         console.error('Failed to fetch agents:', error);
-        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        if (!isMounted) return;
+        if (requestId !== agentsRequestIdRef.current) return;
         setAgentsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
-        setAgentsLoading(false);
+        const isStale = !isMounted || requestId !== agentsRequestIdRef.current;
+        if (!isStale) {
+          setAgentsLoading(false);
+        }
       }
     };
 
@@ -150,7 +230,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     return () => {
       isMounted = false;
     };
-  }, [retryAgentsTrigger]);
+  }, [agentsQueryDebounced, retryAgentsTrigger]);
 
   useEffect(() => {
     if (!selectedRunId || loadedTurnsRunIdsRef.current.has(selectedRunId)) {
@@ -167,8 +247,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       return;
     }
 
-    let isMounted: boolean = true;
     const runId: string = selectedRunId;
+    let isMounted: boolean = true;
+    const requestId: number = (turnsRequestIdRef.current.get(runId) ?? 0) + 1;
+    turnsRequestIdRef.current.set(runId, requestId);
     turnsFetchInFlightRef.current.add(runId);
     lastTurnsFetchAttemptAtMsRef.current.set(runId, nowMs);
     setTurnsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
@@ -177,23 +259,24 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     const loadTurnsForRun = async (): Promise<void> => {
       try {
         const turnsForRun: Record<string, Turn> = await getTurnsForRun(runId);
+        if (!isMounted) return;
+        if (requestId !== turnsRequestIdRef.current.get(runId)) return;
         loadedTurnsRunIdsRef.current.add(runId);
-        if (isMounted) {
-          setFallbackTurns((previousTurns) => ({
-            ...previousTurns,
-            [runId]: turnsForRun,
-          }));
-        }
+        setFallbackTurns((previousTurns) => ({
+          ...previousTurns,
+          [runId]: turnsForRun,
+        }));
       } catch (error: unknown) {
         console.error(`Failed to fetch turns for ${runId}:`, error);
-        if (isMounted) {
-          const apiError: ApiError =
-            error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
-          setTurnsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
-        }
+        if (!isMounted) return;
+        if (requestId !== turnsRequestIdRef.current.get(runId)) return;
+        const apiError: ApiError =
+          error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+        setTurnsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
       } finally {
         turnsFetchInFlightRef.current.delete(runId);
-        if (isMounted) {
+        const isStale = !isMounted || requestId !== turnsRequestIdRef.current.get(runId);
+        if (!isStale) {
           setTurnsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
         }
       }
@@ -205,6 +288,110 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       isMounted = false;
     };
   }, [selectedRunId, retryTurnsTrigger]);
+
+  const selectedRunHasConfig: boolean =
+    selectedRunId !== null ? runConfigs[selectedRunId] !== undefined : false;
+
+  useEffect(() => {
+    if (!selectedRunId || selectedRunHasConfig) {
+      return;
+    }
+
+    const runId: string = selectedRunId;
+    const requestId: number = (runDetailsRequestIdRef.current.get(runId) ?? 0) + 1;
+    runDetailsRequestIdRef.current.set(runId, requestId);
+    setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
+    setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: null }));
+
+    const loadRunDetails = async (): Promise<void> => {
+      try {
+        const details = await getRunDetails(runId);
+        if (!isMountedRef.current) return;
+        if (requestId !== runDetailsRequestIdRef.current.get(runId)) return;
+        setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
+      } catch (error: unknown) {
+        console.error(`Failed to fetch run details for ${runId}:`, error);
+        if (!isMountedRef.current) return;
+        if (requestId !== runDetailsRequestIdRef.current.get(runId)) return;
+        const apiError: ApiError =
+          error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+        setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
+      } finally {
+        const isStale =
+          !isMountedRef.current || requestId !== runDetailsRequestIdRef.current.get(runId);
+        if (!isStale) {
+          setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
+        }
+      }
+    };
+
+    void loadRunDetails();
+  }, [selectedRunId, selectedRunHasConfig]);
+
+  const clearRunDetailsAutoRetryState = useCallback((runId: string | null): void => {
+    if (!runId) return;
+    const timerId = runDetailsAutoRetryTimerRef.current.get(runId);
+    if (timerId) {
+      window.clearTimeout(timerId);
+      runDetailsAutoRetryTimerRef.current.delete(runId);
+    }
+    runDetailsAutoRetryAttemptsRef.current.delete(runId);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedRunId) {
+      return;
+    }
+    const runError = runDetailsErrorByRunId[selectedRunId];
+    if (!runError) {
+      clearRunDetailsAutoRetryState(selectedRunId);
+      return;
+    }
+
+    const currentAttempts = runDetailsAutoRetryAttemptsRef.current.get(selectedRunId) ?? 0;
+    if (currentAttempts >= RUN_DETAILS_AUTO_RETRY_MAX_ATTEMPTS) {
+      return;
+    }
+
+    if (runDetailsAutoRetryTimerRef.current.has(selectedRunId)) {
+      return;
+    }
+
+    const runId = selectedRunId;
+    const autoRetryTimers = runDetailsAutoRetryTimerRef.current;
+    const timerId = window.setTimeout(() => {
+      runDetailsAutoRetryAttemptsRef.current.set(runId, currentAttempts + 1);
+      setRunDetailsErrorByRunId((prev) => {
+        const next = { ...prev };
+        delete next[runId];
+        return next;
+      });
+      setRunConfigs((prev) => {
+        const next = { ...prev };
+        delete next[runId];
+        return next;
+      });
+      autoRetryTimers.delete(runId);
+    }, RUN_DETAILS_AUTO_RETRY_DELAY_MS);
+
+    autoRetryTimers.set(runId, timerId);
+
+    return () => {
+      window.clearTimeout(timerId);
+      const pendingTimer = autoRetryTimers.get(runId);
+      if (pendingTimer === timerId) {
+        autoRetryTimers.delete(runId);
+      }
+    };
+  }, [selectedRunId, runDetailsErrorByRunId, clearRunDetailsAutoRetryState]);
+
+  useEffect(() => {
+    const previousRunId = previousSelectedRunIdRef.current;
+    if (previousRunId && previousRunId !== selectedRunId) {
+      clearRunDetailsAutoRetryState(previousRunId);
+    }
+    previousSelectedRunIdRef.current = selectedRunId;
+  }, [selectedRunId, clearRunDetailsAutoRetryState]);
 
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
@@ -240,6 +427,26 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     () => getRunConfig(selectedRun, runConfigs),
     [selectedRun, runConfigs],
   );
+
+  const runDetailsLoading: boolean =
+    selectedRunId !== null ? (runDetailsLoadingByRunId[selectedRunId] ?? false) : false;
+  const runDetailsError: ApiError | null =
+    selectedRunId !== null ? (runDetailsErrorByRunId[selectedRunId] ?? null) : null;
+
+  const handleRetryRunDetails = useCallback((): void => {
+    if (selectedRunId === null) return;
+    setRunDetailsErrorByRunId((prev) => {
+      const next = { ...prev };
+      delete next[selectedRunId];
+      return next;
+    });
+    setRunConfigs((prev) => {
+      const next = { ...prev };
+      delete next[selectedRunId];
+      return next;
+    });
+    clearRunDetailsAutoRetryState(selectedRunId);
+  }, [selectedRunId, clearRunDetailsAutoRetryState]);
 
   const handleConfigSubmit = (config: RunConfig): void => {
     setRunsError(null); // Clear stale run errors before starting a new run.
@@ -283,6 +490,43 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryAgentsTrigger((t) => t + 1);
   };
 
+  const handleLoadMoreAgents = useCallback((): void => {
+    if (agentsLoading || agentsLoadingMore || !agentsHasMore) {
+      return;
+    }
+
+    agentsLoadMoreRequestIdRef.current += 1;
+    const requestId: number = agentsLoadMoreRequestIdRef.current;
+    setAgentsLoadingMore(true);
+    setAgentsError(null);
+
+    const loadMore = async (): Promise<void> => {
+      try {
+        const nextPage: Agent[] = await getAgents({
+          limit: DEFAULT_AGENT_PAGE_SIZE,
+          offset: agentsOffsetRef.current,
+          q: agentsQueryDebounced !== '' ? agentsQueryDebounced : undefined,
+        });
+        if (!isMountedRef.current || requestId !== agentsLoadMoreRequestIdRef.current) {
+          return;
+        }
+        setAgents((prev) => [...prev, ...nextPage]);
+        agentsOffsetRef.current += nextPage.length;
+        setAgentsHasMore(nextPage.length === DEFAULT_AGENT_PAGE_SIZE);
+      } catch (error: unknown) {
+        console.error('Failed to load more agents:', error);
+        if (!isMountedRef.current || requestId !== agentsLoadMoreRequestIdRef.current) return;
+        setAgentsError(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        if (isMountedRef.current && requestId === agentsLoadMoreRequestIdRef.current) {
+          setAgentsLoadingMore(false);
+        }
+      }
+    };
+
+    void loadMore();
+  }, [agentsHasMore, agentsLoading, agentsLoadingMore, agentsQueryDebounced]);
+
   const handleRetryTurns = (runId: string): void => {
     setTurnsErrorByRunId((prev) => {
       const next: Record<string, ApiError | null> = { ...prev };
@@ -294,14 +538,38 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setRetryTurnsTrigger((t) => t + 1);
   };
 
+  const handleSetViewMode = (mode: ViewMode): void => {
+    setViewMode(mode);
+    setAgentsQuery('');
+    setAgentsQueryDebounced('');
+    if (mode === 'create-agent') {
+      setSelectedAgentHandle(null);
+    }
+  };
+
+  const handleSelectAgent = (handle: string | null): void => {
+    setSelectedAgentHandle(handle);
+  };
+
+  const handleSetAgentsQuery = useCallback((query: string): void => {
+    const cappedQuery: string = query.slice(0, AGENTS_QUERY_MAX_LENGTH);
+    setAgentsQuery(cappedQuery);
+  }, []);
+
   return {
     runsWithStatus,
     runsLoading,
     runsError,
+    agents,
     agentsLoading,
+    agentsLoadingMore,
     agentsError,
+    agentsHasMore,
+    agentsQuery,
     turnsLoadingByRunId,
     turnsErrorByRunId,
+    viewMode,
+    selectedAgentHandle,
     selectedRunId,
     selectedTurn,
     selectedRun,
@@ -310,13 +578,20 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     completedTurnsCount,
     runAgents,
     currentRunConfig,
+    runDetailsLoading,
+    runDetailsError,
     isStartScreen: selectedRunId === null,
     handleConfigSubmit,
+    handleSetViewMode,
+    handleSelectAgent,
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,
     handleRetryRuns,
     handleRetryAgents,
+    handleLoadMoreAgents,
+    handleSetAgentsQuery,
     handleRetryTurns,
+    handleRetryRunDetails,
   };
 }

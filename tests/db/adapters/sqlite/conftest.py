@@ -1,7 +1,9 @@
 """Shared pytest fixtures and utilities for SQLite adapter tests."""
 
 from contextlib import contextmanager
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
+
+import pytest
 
 
 def create_mock_row(row_data: dict) -> MagicMock:
@@ -19,27 +21,28 @@ def create_mock_row(row_data: dict) -> MagicMock:
     return mock_row
 
 
-def create_mock_db_connection(patch_target: str):
-    """Factory function to create a reusable mock database connection context manager.
+def create_mock_conn_context():
+    """Create a context manager yielding (mock_conn, mock_cursor) for adapter tests.
 
-    Args:
-        patch_target: The import path to patch for get_connection (e.g.,
-            "db.adapters.sqlite.profile_adapter.get_connection")
-
-    Returns:
-        A context manager that yields (mock_get_conn, mock_conn, mock_cursor)
+    Adapters receive conn from the repository (via run_transaction); they no longer
+    call get_connection. Tests pass conn=mock_conn to adapter methods directly.
     """
 
     @contextmanager
-    def _mock_db_connection():
-        # Patch where it's used, not where it's defined
-        with patch(patch_target) as mock_get_conn:
-            mock_conn = MagicMock()
-            mock_cursor = MagicMock()
-            mock_conn.__enter__ = Mock(return_value=mock_conn)
-            mock_conn.__exit__ = Mock(return_value=None)
-            mock_conn.execute.return_value = mock_cursor
-            mock_get_conn.return_value = mock_conn
-            yield mock_get_conn, mock_conn, mock_cursor
+    def _mock_conn_context():
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.execute.return_value = mock_cursor
+        yield mock_conn, mock_cursor
 
-    return _mock_db_connection
+    return _mock_conn_context
+
+
+@pytest.fixture
+def mock_db_connection(request: pytest.FixtureRequest):
+    """Return a context-manager factory yielding (mock_conn, mock_cursor).
+
+    Adapters no longer call get_connection; they receive conn as a parameter.
+    Tests should pass conn=mock_conn to adapter methods.
+    """
+    return create_mock_conn_context()

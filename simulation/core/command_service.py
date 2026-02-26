@@ -1,6 +1,8 @@
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+
+from pydantic import JsonValue
 
 from db.repositories.interfaces import (
     FeedPostRepository,
@@ -14,21 +16,31 @@ from db.services.simulation_persistence_service import SimulationPersistenceServ
 from feeds.interfaces import FeedGenerator
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.action_history import ActionHistoryStore
-from simulation.core.agent_action_feed_filter import (
+from simulation.core.action_history import ActionHistoryStore, record_action_targets
+from simulation.core.action_policy import (
     AgentActionFeedFilter,
+    AgentActionRulesValidator,
 )
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
+from simulation.core.agent_actions import (
+    generate_comments,
+    generate_follows,
+    generate_likes,
+)
 from simulation.core.metrics.collector import MetricsCollector
+from simulation.core.metrics.defaults import (
+    resolve_metric_keys_by_scope,
+)
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
-from simulation.core.validators import (
+from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
+from simulation.core.utils.validators import (
     validate_agents_without_feeds,
     validate_duplicate_agent_handles,
     validate_insufficient_agents,
@@ -63,7 +75,6 @@ class SimulationCommandService:
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
         agent_action_rules_validator: AgentActionRulesValidator,
-        agent_action_history_recorder: AgentActionHistoryRecorder,
         agent_action_feed_filter: AgentActionFeedFilter,
     ):
         self.run_repo = run_repo
@@ -78,7 +89,6 @@ class SimulationCommandService:
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
         self.agent_action_rules_validator = agent_action_rules_validator
-        self.agent_action_history_recorder = agent_action_history_recorder
         self.agent_action_feed_filter = agent_action_feed_filter
 
     def execute_run(
@@ -101,15 +111,20 @@ class SimulationCommandService:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
             action_history_store = self.action_history_store_factory()
 
+            turn_keys, run_keys = resolve_metric_keys_by_scope(run.metric_keys)
             self.simulate_turns(
                 total_turns=run.total_turns,
                 run=run,
                 run_config=run_config,
                 agents=agents,
                 action_history_store=action_history_store,
+                turn_metric_keys=turn_keys,
             )
             run_metrics_dict: ComputedMetrics = (
-                self.metrics_collector.collect_run_metrics(run_id=run.run_id)
+                self.metrics_collector.collect_run_metrics(
+                    run_id=run.run_id,
+                    run_metric_keys=run_keys,
+                )
             )
             run_metrics = RunMetrics(
                 run_id=run.run_id,
@@ -161,15 +176,21 @@ class SimulationCommandService:
         turn_number: int,
         agents: list[SocialMediaAgent],
         action_history_store: ActionHistoryStore,
+        turn_metric_keys: list[str],
     ) -> None:
         try:
             logger.info("Starting turn %d for run %s", turn_number, run.run_id)
+            feed_algorithm_config: Mapping[str, JsonValue] | None = (
+                run_config.feed_algorithm_config
+            )
             self._simulate_turn(
                 run.run_id,
                 turn_number,
                 agents,
                 run_config.feed_algorithm,
-                action_history_store=action_history_store,
+                action_history_store,
+                turn_metric_keys,
+                feed_algorithm_config=feed_algorithm_config,
             )
         except Exception as e:
             logger.error(
@@ -197,6 +218,7 @@ class SimulationCommandService:
         run_config: RunConfig,
         agents: list[SocialMediaAgent],
         action_history_store: ActionHistoryStore,
+        turn_metric_keys: list[str],
     ) -> None:
         for turn_number in range(total_turns):
             self.simulate_turn(
@@ -205,6 +227,7 @@ class SimulationCommandService:
                 turn_number=turn_number,
                 agents=agents,
                 action_history_store=action_history_store,
+                turn_metric_keys=turn_metric_keys,
             )
 
     def create_agents_for_run(
@@ -229,6 +252,8 @@ class SimulationCommandService:
         agents: list[SocialMediaAgent],
         feed_algorithm: str,
         action_history_store: ActionHistoryStore,
+        turn_metric_keys: list[str],
+        feed_algorithm_config: Mapping[str, JsonValue] | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
 
@@ -241,6 +266,7 @@ class SimulationCommandService:
                 run_id=run_id,
                 turn_number=turn_number,
                 feed_algorithm=feed_algorithm,
+                feed_algorithm_config=feed_algorithm_config,
             )
         )
 
@@ -252,6 +278,9 @@ class SimulationCommandService:
         total_actions: dict[str, int] = {
             action_key: 0 for action_key in ACTION_KEY_TO_TURN_ACTION
         }
+        turn_likes: list[GeneratedLike] = []
+        turn_comments: list[GeneratedComment] = []
+        turn_follows: list[GeneratedFollow] = []
 
         for agent in agents:
             feed = agent_to_hydrated_feeds.get(agent.handle, [])
@@ -270,20 +299,23 @@ class SimulationCommandService:
             )
 
             # Generate the actions.
-            likes = agent.like_posts(
+            likes = generate_likes(
                 action_candidates.like_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
+                agent_handle=agent.handle,
             )
-            comments = agent.comment_posts(
+            comments = generate_comments(
                 action_candidates.comment_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
+                agent_handle=agent.handle,
             )
-            follows = agent.follow_users(
+            follows = generate_follows(
                 action_candidates.follow_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
+                agent_handle=agent.handle,
             )
 
             # Validate the action rules.
@@ -299,8 +331,8 @@ class SimulationCommandService:
                 )
             )
 
-            # Record the action targets into the DB.
-            self.agent_action_history_recorder.record(
+            # Record the action targets into action history.
+            record_action_targets(
                 run_id=run_id,
                 agent_handle=agent.handle,
                 like_post_ids=like_post_ids,
@@ -309,6 +341,9 @@ class SimulationCommandService:
                 action_history_store=action_history_store,
             )
 
+            turn_likes.extend(likes)
+            turn_comments.extend(comments)
+            turn_follows.extend(follows)
             total_actions["likes"] += len(likes)
             total_actions["comments"] += len(comments)
             total_actions["follows"] += len(follows)
@@ -326,6 +361,7 @@ class SimulationCommandService:
         computed_metrics: ComputedMetrics = self.metrics_collector.collect_turn_metrics(
             run_id=run_id,
             turn_number=turn_number,
+            turn_metric_keys=turn_metric_keys,
         )
         turn_metrics = TurnMetrics(
             run_id=run_id,
@@ -337,6 +373,9 @@ class SimulationCommandService:
         self.simulation_persistence.write_turn(
             turn_metadata=turn_metadata,
             turn_metrics=turn_metrics,
+            likes=turn_likes,
+            comments=turn_comments,
+            follows=turn_follows,
         )
 
         return TurnResult(

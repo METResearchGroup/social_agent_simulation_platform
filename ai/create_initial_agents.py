@@ -1,22 +1,24 @@
 """Given the database of Bluesky profiles and feed posts, create a list of agents."""
 
-from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
-from db.repositories.generated_bio_repository import (
-    create_sqlite_generated_bio_repository,
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    ProfileRepository,
 )
-from db.repositories.profile_repository import create_sqlite_profile_repository
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.profiles import BlueskyProfile
 
 
-def create_initial_agents() -> list[SocialMediaAgent]:
+def create_initial_agents(
+    *,
+    profile_repo: ProfileRepository,
+    feed_post_repo: FeedPostRepository,
+    generated_bio_repo: GeneratedBioRepository,
+) -> list[SocialMediaAgent]:
     """Create a list of agents from the database of Bluesky profiles and feed
     posts and pass into the network."""
-    profile_repo = create_sqlite_profile_repository()
-    feed_post_repo = create_sqlite_feed_post_repository()
-    generated_bio_repo = create_sqlite_generated_bio_repository()
     profiles: list[BlueskyProfile] = profile_repo.list_profiles()
     feed_posts: list[BlueskyFeedPost] = feed_post_repo.list_all_feed_posts()
     generated_bios: list[GeneratedBio] = generated_bio_repo.list_all_generated_bios()

@@ -1,4 +1,5 @@
 import { Agent, Run, RunConfig, Turn } from '@/types';
+import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
 
 const MAX_VISIBLE_RUN_AGENTS: number = 8;
 const EMPTY_TURNS: Record<string, Turn> = {};
@@ -85,6 +86,9 @@ export function getRunConfig(
   return {
     numAgents: run.totalAgents,
     numTurns: run.totalTurns,
+    feedAlgorithm: FALLBACK_DEFAULT_CONFIG.feedAlgorithm,
+    feedAlgorithmConfig: null,
+    metricKeys: undefined,
   };
 }
 

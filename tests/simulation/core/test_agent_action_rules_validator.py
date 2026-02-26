@@ -1,58 +1,19 @@
-"""Tests for simulation.core.agent_action_rules_validator module."""
+"""Tests for simulation.core.action_policy.rules_validator module."""
 
 import pytest
 
 from simulation.core.action_history import InMemoryActionHistoryStore
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.models.actions import Comment, Follow, Like
-from simulation.core.models.generated.base import GenerationMetadata
-from simulation.core.models.generated.comment import GeneratedComment
-from simulation.core.models.generated.follow import GeneratedFollow
-from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.action_policy import AgentActionRulesValidator
+from tests.factories import (
+    GeneratedCommentFactory,
+    GeneratedFollowFactory,
+    GeneratedLikeFactory,
+    GenerationMetadataFactory,
+)
 
 
-def _meta() -> GenerationMetadata:
-    return GenerationMetadata(created_at="2024_01_01-12:00:00")
-
-
-def _like(agent_id: str, post_id: str) -> GeneratedLike:
-    return GeneratedLike(
-        like=Like(
-            like_id=f"like_{agent_id}_{post_id}",
-            agent_id=agent_id,
-            post_id=post_id,
-            created_at="2024_01_01-12:00:00",
-        ),
-        explanation="reason",
-        metadata=_meta(),
-    )
-
-
-def _comment(agent_id: str, post_id: str) -> GeneratedComment:
-    return GeneratedComment(
-        comment=Comment(
-            comment_id=f"comment_{agent_id}_{post_id}",
-            agent_id=agent_id,
-            post_id=post_id,
-            text="nice post",
-            created_at="2024_01_01-12:00:00",
-        ),
-        explanation="reason",
-        metadata=_meta(),
-    )
-
-
-def _follow(agent_id: str, user_id: str) -> GeneratedFollow:
-    return GeneratedFollow(
-        follow=Follow(
-            follow_id=f"follow_{agent_id}_{user_id}",
-            agent_id=agent_id,
-            user_id=user_id,
-            created_at="2024_01_01-12:00:00",
-        ),
-        explanation="reason",
-        metadata=_meta(),
-    )
+def _meta():
+    return GenerationMetadataFactory.create(created_at="2024_01_01-12:00:00")
 
 
 @pytest.fixture
@@ -71,7 +32,20 @@ def test_raises_for_duplicate_like_within_same_turn(policy, history):
             run_id="run_123",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            likes=[_like("agent1", "post_1"), _like("agent1", "post_1")],
+            likes=[
+                GeneratedLikeFactory.create(
+                    agent_id="agent1",
+                    post_id="post_1",
+                    explanation="reason",
+                    metadata=_meta(),
+                ),
+                GeneratedLikeFactory.create(
+                    agent_id="agent1",
+                    post_id="post_1",
+                    explanation="reason",
+                    metadata=_meta(),
+                ),
+            ],
             comments=[],
             follows=[],
             action_history_store=history,
@@ -85,7 +59,22 @@ def test_raises_for_duplicate_comment_within_same_turn(policy, history):
             turn_number=0,
             agent_handle="agent1.bsky.social",
             likes=[],
-            comments=[_comment("agent1", "post_1"), _comment("agent1", "post_1")],
+            comments=[
+                GeneratedCommentFactory.create(
+                    agent_id="agent1",
+                    post_id="post_1",
+                    text="nice post",
+                    explanation="reason",
+                    metadata=_meta(),
+                ),
+                GeneratedCommentFactory.create(
+                    agent_id="agent1",
+                    post_id="post_1",
+                    text="nice post",
+                    explanation="reason",
+                    metadata=_meta(),
+                ),
+            ],
             follows=[],
             action_history_store=history,
         )
@@ -99,7 +88,20 @@ def test_raises_for_duplicate_follow_within_same_turn(policy, history):
             agent_handle="agent1.bsky.social",
             likes=[],
             comments=[],
-            follows=[_follow("agent1", "user_1"), _follow("agent1", "user_1")],
+            follows=[
+                GeneratedFollowFactory.create(
+                    agent_id="agent1",
+                    user_id="user_1",
+                    explanation="reason",
+                    metadata=_meta(),
+                ),
+                GeneratedFollowFactory.create(
+                    agent_id="agent1",
+                    user_id="user_1",
+                    explanation="reason",
+                    metadata=_meta(),
+                ),
+            ],
             action_history_store=history,
         )
 
@@ -109,9 +111,31 @@ def test_raises_for_previously_seen_targets_across_turns(policy, history):
         run_id="run_123",
         turn_number=0,
         agent_handle="agent1.bsky.social",
-        likes=[_like("agent1", "post_1")],
-        comments=[_comment("agent1", "post_2")],
-        follows=[_follow("agent1", "user_3")],
+        likes=[
+            GeneratedLikeFactory.create(
+                agent_id="agent1",
+                post_id="post_1",
+                explanation="reason",
+                metadata=_meta(),
+            )
+        ],
+        comments=[
+            GeneratedCommentFactory.create(
+                agent_id="agent1",
+                post_id="post_2",
+                text="nice post",
+                explanation="reason",
+                metadata=_meta(),
+            )
+        ],
+        follows=[
+            GeneratedFollowFactory.create(
+                agent_id="agent1",
+                user_id="user_3",
+                explanation="reason",
+                metadata=_meta(),
+            )
+        ],
         action_history_store=history,
     )
     history.record_like("run_123", "agent1.bsky.social", like_post_ids[0])
@@ -123,7 +147,14 @@ def test_raises_for_previously_seen_targets_across_turns(policy, history):
             run_id="run_123",
             turn_number=1,
             agent_handle="agent1.bsky.social",
-            likes=[_like("agent1", "post_1")],
+            likes=[
+                GeneratedLikeFactory.create(
+                    agent_id="agent1",
+                    post_id="post_1",
+                    explanation="reason",
+                    metadata=_meta(),
+                )
+            ],
             comments=[],
             follows=[],
             action_history_store=history,
@@ -131,9 +162,25 @@ def test_raises_for_previously_seen_targets_across_turns(policy, history):
 
 
 def test_distinct_targets_pass_and_returns_identifiers(policy, history):
-    likes = [_like("agent1", "post_1")]
-    comments = [_comment("agent1", "post_2")]
-    follows = [_follow("agent1", "user_3")]
+    likes = [
+        GeneratedLikeFactory.create(
+            agent_id="agent1", post_id="post_1", explanation="reason", metadata=_meta()
+        )
+    ]
+    comments = [
+        GeneratedCommentFactory.create(
+            agent_id="agent1",
+            post_id="post_2",
+            text="nice post",
+            explanation="reason",
+            metadata=_meta(),
+        )
+    ]
+    follows = [
+        GeneratedFollowFactory.create(
+            agent_id="agent1", user_id="user_3", explanation="reason", metadata=_meta()
+        )
+    ]
 
     like_post_ids, comment_post_ids, follow_user_ids = policy.validate(
         run_id="run_123",

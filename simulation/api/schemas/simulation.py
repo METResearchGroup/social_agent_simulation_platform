@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, JsonValue, field_validator, model_validator
 
 from feeds.algorithms.interfaces import FeedAlgorithmMetadata
+from simulation.core.metrics.interfaces import MetricScope
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_feed_algorithm,
+    validate_metric_keys,
     validate_num_agents,
     validate_num_turns,
 )
@@ -23,6 +25,13 @@ class RunRequest(BaseModel):
     num_agents: int
     num_turns: int | None = None
     feed_algorithm: str | None = None
+    feed_algorithm_config: dict[str, JsonValue] | None = None
+    metric_keys: list[str] | None = None
+
+    @field_validator("metric_keys")
+    @classmethod
+    def _validate_metric_keys(cls, v: list[str] | None) -> list[str] | None:
+        return validate_metric_keys(v)
 
     @field_validator("num_agents")
     @classmethod
@@ -44,6 +53,16 @@ class FeedAlgorithmSchema(FeedAlgorithmMetadata):
     """API response for GET /v1/simulations/feed-algorithms."""
 
     id: str  # algorithm_id from registry
+
+
+class MetricSchema(BaseModel):
+    """API response for GET /v1/simulations/metrics."""
+
+    key: str
+    display_name: str
+    description: str
+    scope: MetricScope
+    author: str
 
 
 class ErrorDetail(BaseModel):
@@ -87,6 +106,16 @@ class DefaultConfigSchema(BaseModel):
 
     num_agents: int
     num_turns: int
+    metric_keys: list[str]
+
+    @field_validator("metric_keys")
+    @classmethod
+    def _validate_metric_keys(cls, v: list[str]) -> list[str]:
+        validated = validate_metric_keys(v)
+        assert (
+            validated is not None
+        )  # v is required list[str], so result will be the list
+        return validated
 
 
 class RunConfigDetail(BaseModel):
@@ -95,6 +124,7 @@ class RunConfigDetail(BaseModel):
     num_agents: int
     num_turns: int
     feed_algorithm: str
+    metric_keys: list[str]
 
 
 class RunListItem(BaseModel):
@@ -105,6 +135,34 @@ class RunListItem(BaseModel):
     total_turns: int
     total_agents: int
     status: RunStatus
+
+
+class CreateAgentRequest(BaseModel):
+    """Request body for POST /v1/simulations/agents.
+
+    Fast-follows (not yet supported):
+    - comments: list of {text, postUri}
+    - likedPostUris: list of post URIs
+    - linkedAgentHandles: list of agent handles to link
+    """
+
+    handle: str
+    display_name: str
+    bio: str = ""
+
+    @field_validator("handle")
+    @classmethod
+    def _validate_handle(cls, v: str) -> str:
+        from lib.validation_utils import validate_non_empty_string
+
+        return validate_non_empty_string(v.strip(), "handle")
+
+    @field_validator("display_name")
+    @classmethod
+    def _validate_display_name(cls, v: str) -> str:
+        from lib.validation_utils import validate_non_empty_string
+
+        return validate_non_empty_string(v.strip(), "display_name")
 
 
 class AgentSchema(BaseModel):

@@ -1,71 +1,51 @@
 """Tests for POST /v1/simulations/run endpoint."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from lib.timestamp_utils import get_current_timestamp
-from simulation.api.dummy_data import DUMMY_RUNS, DUMMY_TURNS
-from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.runs import Run, RunStatus
-from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.runs import RunStatus
+from simulation.core.utils.exceptions import SimulationRunFailure
+from tests.factories import (
+    EngineFactory,
+    GeneratedFeedFactory,
+    RunConfigFactory,
+    RunFactory,
+    TurnMetadataFactory,
+    TurnMetricsFactory,
+)
 
 
 def test_post_simulations_run_success_returns_completed_and_metrics(simulation_client):
     """Success run returns 200 with status completed and per-turn metrics."""
     client, fastapi_app = simulation_client
-    run = Run(
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-success-1",
-        created_at=get_current_timestamp(),
         total_turns=1,
         total_agents=1,
-        feed_algorithm="chronological",
-        started_at=get_current_timestamp(),
-        status=RunStatus.COMPLETED,
-        completed_at=get_current_timestamp(),
     )
-    metadata_list = [
-        TurnMetadata(
-            run_id=run.run_id,
-            turn_number=0,
-            total_actions={
-                TurnAction.LIKE: 0,
-                TurnAction.COMMENT: 0,
-                TurnAction.FOLLOW: 0,
-            },
-            created_at=run.created_at,
-        ),
-    ]
-    turn_metrics_list = [
-        TurnMetrics(
-            run_id=run.run_id,
-            turn_number=0,
-            metrics={"turn.actions.total": 0},
-            created_at=run.created_at,
-        )
-    ]
-    run_metrics = RunMetrics(
-        run_id=run.run_id,
-        metrics={"run.actions.total": 0},
-        created_at=run.created_at,
-    )
-    mock_engine = MagicMock()
-    mock_engine.execute_run.return_value = run
-    mock_engine.list_turn_metadata.return_value = metadata_list
-    mock_engine.list_turn_metrics.return_value = turn_metrics_list
-    mock_engine.get_run_metrics.return_value = run_metrics
     fastapi_app.state.engine = mock_engine
+    run = mock_engine.execute_run.return_value
     response = client.post(
         "/v1/simulations/run",
         json={"num_agents": 1, "num_turns": 1},
     )
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "status": "completed",
         "num_agents": 1,
         "num_turns": 1,
         "error": None,
+        "turns": [
+            {
+                "turn_number": 0,
+                "created_at": run.created_at,
+                "total_actions": {"like": 0, "comment": 0, "follow": 0},
+                "metrics": {"turn.actions.total": 0},
+            }
+        ],
+        "run_metrics": {"run.actions.total": 0},
     }
     assert data["status"] == expected_result["status"]
     assert data["num_agents"] == expected_result["num_agents"]
@@ -73,73 +53,64 @@ def test_post_simulations_run_success_returns_completed_and_metrics(simulation_c
     assert data["error"] is expected_result["error"]
     assert data["run_id"] == run.run_id
     assert data["created_at"] == run.created_at
-    assert data["turns"] == [
-        {
-            "turn_number": 0,
-            "created_at": run.created_at,
-            "total_actions": {"like": 0, "comment": 0, "follow": 0},
-            "metrics": {"turn.actions.total": 0},
-        }
-    ]
-    assert data["run_metrics"] == {"run.actions.total": 0}
+    assert data["turns"] == expected_result["turns"]
+    assert data["run_metrics"] == expected_result["run_metrics"]
 
 
 def test_post_simulations_run_defaults_num_turns_and_feed_algorithm(simulation_client):
     """Request with only num_agents uses default num_turns=10 and feed_algorithm=chronological."""
     client, fastapi_app = simulation_client
-    run = Run(
+    mock_engine = EngineFactory.create_completed_run_engine(
         run_id="run-defaults-1",
-        created_at=get_current_timestamp(),
         total_turns=10,
         total_agents=1,
-        feed_algorithm="chronological",
-        started_at=get_current_timestamp(),
-        status=RunStatus.COMPLETED,
-        completed_at=get_current_timestamp(),
     )
-    metadata_list = [
-        TurnMetadata(
-            run_id=run.run_id,
-            turn_number=i,
-            total_actions={
-                TurnAction.LIKE: 0,
-                TurnAction.COMMENT: 0,
-                TurnAction.FOLLOW: 0,
-            },
-            created_at=run.created_at,
-        )
-        for i in range(10)
-    ]
-    turn_metrics_list = [
-        TurnMetrics(
-            run_id=run.run_id,
-            turn_number=i,
-            metrics={"turn.actions.total": 0},
-            created_at=run.created_at,
-        )
-        for i in range(10)
-    ]
-    run_metrics = RunMetrics(
-        run_id=run.run_id,
-        metrics={"run.actions.total": 0},
-        created_at=run.created_at,
-    )
-    mock_engine = MagicMock()
-    mock_engine.execute_run.return_value = run
-    mock_engine.list_turn_metadata.return_value = metadata_list
-    mock_engine.list_turn_metrics.return_value = turn_metrics_list
-    mock_engine.get_run_metrics.return_value = run_metrics
     fastapi_app.state.engine = mock_engine
+    run = mock_engine.execute_run.return_value
     response = client.post(
         "/v1/simulations/run",
         json={"num_agents": 1},
     )
-    assert response.status_code == 200
+    expected_result = {
+        "status_code": 200,
+        "num_turns": 10,
+        "status": "completed",
+        "turn_count": 10,
+    }
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert data["created_at"] == run.created_at
-    assert data["num_turns"] == 10
-    assert data["status"] == "completed"
-    assert len(data["turns"]) == 10
+    assert data["num_turns"] == expected_result["num_turns"]
+    assert data["status"] == expected_result["status"]
+    assert len(data["turns"]) == expected_result["turn_count"]
+
+
+def test_post_simulations_run_passes_feed_algorithm_config_to_engine(simulation_client):
+    """Request with feed_algorithm_config passes config into RunConfig used by engine."""
+    client, fastapi_app = simulation_client
+    mock_engine = EngineFactory.create_completed_run_engine(
+        run_id="run-config-1",
+        total_turns=10,
+        total_agents=1,
+    )
+    fastapi_app.state.engine = mock_engine
+
+    feed_algorithm_config = {"order": "oldest_first"}
+    response = client.post(
+        "/v1/simulations/run",
+        json={"num_agents": 1, "feed_algorithm_config": feed_algorithm_config},
+    )
+    expected_result = {
+        "status_code": 200,
+        "feed_algorithm": "chronological",
+        "feed_algorithm_config": feed_algorithm_config,
+    }
+    assert response.status_code == expected_result["status_code"]
+
+    _, kwargs = mock_engine.execute_run.call_args
+    run_config = kwargs["run_config"]
+    assert run_config.feed_algorithm == expected_result["feed_algorithm"]
+    assert run_config.feed_algorithm_config == expected_result["feed_algorithm_config"]
 
 
 def test_post_simulations_run_validation_num_agents_zero(simulation_client):
@@ -149,7 +120,8 @@ def test_post_simulations_run_validation_num_agents_zero(simulation_client):
         "/v1/simulations/run",
         json={"num_agents": 0},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_run_validation_num_agents_missing(simulation_client):
@@ -159,7 +131,8 @@ def test_post_simulations_run_validation_num_agents_missing(simulation_client):
         "/v1/simulations/run",
         json={},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_run_validation_invalid_feed_algorithm(simulation_client):
@@ -169,7 +142,8 @@ def test_post_simulations_run_validation_invalid_feed_algorithm(simulation_clien
         "/v1/simulations/run",
         json={"num_agents": 1, "feed_algorithm": "invalid_algo"},
     )
-    assert response.status_code == 422
+    expected_result = {"status_code": 422}
+    assert response.status_code == expected_result["status_code"]
 
 
 def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
@@ -186,12 +160,18 @@ def test_post_simulations_run_pre_create_failure_returns_500(simulation_client):
         "/v1/simulations/run",
         json={"num_agents": 2, "num_turns": 2},
     )
-    assert response.status_code == 500
+    expected_result = {
+        "status_code": 500,
+        "error_code": "RUN_CREATION_FAILED",
+        "error_message": "Run creation or status update failed",
+        "error_detail": None,
+    }
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     assert "error" in data
-    assert data["error"]["code"] == "RUN_CREATION_FAILED"
-    assert data["error"]["message"] == "Run creation or status update failed"
-    assert data["error"]["detail"] is None
+    assert data["error"]["code"] == expected_result["error_code"]
+    assert data["error"]["message"] == expected_result["error_message"]
+    assert data["error"]["detail"] is expected_result["error_detail"]
 
 
 def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
@@ -200,7 +180,7 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     """Mid-run failure returns 200 with status failed and partial per-turn metrics."""
     client, fastapi_app = simulation_client
     partial_metadata = [
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id="run-partial-1",
             turn_number=0,
             total_actions={
@@ -212,19 +192,25 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         ),
     ]
     partial_turn_metrics = [
-        TurnMetrics(
+        TurnMetricsFactory.create(
             run_id="run-partial-1",
             turn_number=0,
             metrics={"turn.actions.total": 3},
             created_at="2026-01-01T00:00:00",
         )
     ]
-    failed_run = Run(
+    failed_run = RunFactory.create(
         run_id="run-partial-1",
         created_at="2026-01-01T00:00:00",
         total_turns=2,
         total_agents=2,
         feed_algorithm="chronological",
+        metric_keys=[
+            "run.actions.total",
+            "run.actions.total_by_type",
+            "turn.actions.counts_by_type",
+            "turn.actions.total",
+        ],
         started_at="2026-01-01T00:00:00",
         status=RunStatus.FAILED,
         completed_at=None,
@@ -244,7 +230,8 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
         "/v1/simulations/run",
         json={"num_agents": 2, "num_turns": 2},
     )
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "run_id": "run-partial-1",
@@ -270,46 +257,106 @@ def test_post_simulations_run_partial_failure_returns_200_with_partial_metrics(
     assert data["turns"] == expected_result["turns"]
     assert data["run_metrics"] is expected_result["run_metrics"]
     assert data["error"] is not None
-    assert data["error"]["code"] == "SIMULATION_FAILED"
-    assert data["error"]["message"] == "Run failed during execution"
-    assert data["error"]["detail"] is None
+    expected_result = {
+        "error_code": "SIMULATION_FAILED",
+        "error_message": "Run failed during execution",
+        "error_detail": None,
+    }
+    assert data["error"]["code"] == expected_result["error_code"]
+    assert data["error"]["message"] == expected_result["error_message"]
+    assert data["error"]["detail"] is expected_result["error_detail"]
 
 
-def test_get_simulations_runs_returns_dummy_run_list(simulation_client):
-    """GET /v1/simulations/runs returns dummy run summaries from backend."""
+def test_get_simulations_runs_returns_persisted_runs_newest_first(
+    simulation_client,
+    run_repo,
+):
+    """GET /v1/simulations/runs returns persisted run summaries, newest first."""
+    import db.repositories.run_repository as run_repository_module
+
+    with patch.object(
+        run_repository_module,
+        "get_current_timestamp",
+        side_effect=["2026_01_01-00:00:00", "2026_01_02-00:00:00"],
+    ):
+        older_run = run_repo.create_run(
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
+        )
+        newer_run = run_repo.create_run(
+            RunConfigFactory.create(
+                num_agents=1, num_turns=1, feed_algorithm="chronological"
+            )
+        )
+
     client, _ = simulation_client
     response = client.get("/v1/simulations/runs")
 
-    assert response.status_code == 200
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
-    sorted_run_ids = [
-        run.run_id
-        for run in sorted(
-            DUMMY_RUNS,
-            key=lambda run: run.created_at,
-            reverse=True,
-        )
-    ]
-    expected_result = {
-        "count": len(DUMMY_RUNS),
-        "first_run_id": sorted_run_ids[0],
-    }
-    assert len(data) == expected_result["count"]
-    assert data[0]["run_id"] == expected_result["first_run_id"]
+    assert len(data) == 2
+    assert data[0]["run_id"] == newer_run.run_id
+    assert data[1]["run_id"] == older_run.run_id
     assert "total_turns" in data[0]
     assert "total_agents" in data[0]
 
 
-def test_get_simulations_run_turns_returns_turn_map(simulation_client):
+def test_get_simulations_run_turns_returns_turn_map(
+    simulation_client,
+    run_repo,
+    generated_feed_repo,
+):
     """GET /v1/simulations/runs/{run_id}/turns returns turn payload map."""
-    client, _ = simulation_client
-    run_id = DUMMY_RUNS[0].run_id
-    response = client.get(f"/v1/simulations/runs/{run_id}/turns")
+    run = run_repo.create_run(
+        RunConfigFactory.create(
+            num_agents=1, num_turns=2, feed_algorithm="chronological"
+        )
+    )
+    run_repo.write_turn_metadata(
+        TurnMetadataFactory.create(
+            run_id=run.run_id,
+            turn_number=0,
+            total_actions={
+                TurnAction.LIKE: 1,
+                TurnAction.COMMENT: 0,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at="2026-01-01T00:00:00.000Z",
+        )
+    )
+    run_repo.write_turn_metadata(
+        TurnMetadataFactory.create(
+            run_id=run.run_id,
+            turn_number=1,
+            total_actions={
+                TurnAction.LIKE: 0,
+                TurnAction.COMMENT: 0,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at="2026-01-01T00:01:00.000Z",
+        )
+    )
+    generated_feed_repo.write_generated_feed(
+        GeneratedFeedFactory.create(
+            feed_id="feed-1",
+            run_id=run.run_id,
+            turn_number=0,
+            agent_handle="test.agent",
+            post_uris=["at://did:plc:example1/post1"],
+            created_at="2026-01-01T00:00:00.000Z",
+        )
+    )
 
-    assert response.status_code == 200
+    client, _ = simulation_client
+    response = client.get(f"/v1/simulations/runs/{run.run_id}/turns")
+
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
-        "turn_count": len(DUMMY_TURNS[run_id]),
+        "turn_count": 2,
         "first_turn_key": "0",
     }
     assert len(data) == expected_result["turn_count"]
@@ -324,7 +371,8 @@ def test_get_simulations_run_turns_missing_run_returns_404(simulation_client):
     client, _ = simulation_client
     response = client.get("/v1/simulations/runs/missing-run-id/turns")
 
-    assert response.status_code == 404
+    expected_result = {"status_code": 404}
+    assert response.status_code == expected_result["status_code"]
     data = response.json()
     expected_result = {
         "code": "RUN_NOT_FOUND",

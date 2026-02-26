@@ -1,8 +1,9 @@
 from enum import Enum
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, JsonValue, field_validator
 
 from lib.validation_utils import (
+    validate_non_empty_iterable,
     validate_non_empty_string,
     validate_nonnegative_value,
 )
@@ -16,6 +17,20 @@ class RunConfig(BaseModel):
     num_agents: int
     num_turns: int
     feed_algorithm: str
+    feed_algorithm_config: dict[str, JsonValue] | None = None
+    metric_keys: list[str] | None = None
+
+    @field_validator("metric_keys")
+    @classmethod
+    def validate_metric_keys_config(cls, v: list[str] | None) -> list[str] | None:
+        """Validate that metric_keys, when provided, is non-empty and contains non-empty strings.
+
+        Note: registry-level validation belongs outside the domain models layer.
+        """
+        if v is None:
+            return None
+        validate_non_empty_iterable(v, "metric_keys")
+        return [validate_non_empty_string(item, "metric_keys") for item in v]
 
     @field_validator("num_agents")
     @classmethod
@@ -30,12 +45,7 @@ class RunConfig(BaseModel):
     @field_validator("feed_algorithm")
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
-        """Validate that feed_algorithm is a valid feed algorithm."""
-        from feeds.algorithms.validators import validate_feed_algorithm as _validate
-
-        result = _validate(v)
-        assert result is not None  # v is required str, so result will be str
-        return result
+        return validate_non_empty_string(v, "feed_algorithm")
 
 
 class RunStatus(str, Enum):
@@ -66,9 +76,17 @@ class Run(BaseModel):
     total_turns: int
     total_agents: int
     feed_algorithm: str = DEFAULT_FEED_ALGORITHM
+    metric_keys: list[str]
     started_at: str
     status: RunStatus
     completed_at: str | None = None
+
+    @field_validator("metric_keys")
+    @classmethod
+    def validate_metric_keys_run(cls, v: list[str]) -> list[str]:
+        """Validate that metric_keys is non-empty and contains non-empty strings."""
+        validate_non_empty_iterable(v, "metric_keys")
+        return [validate_non_empty_string(item, "metric_keys") for item in v]
 
     @field_validator("run_id")
     @classmethod
@@ -91,9 +109,4 @@ class Run(BaseModel):
     @field_validator("feed_algorithm")
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
-        """Validate that feed_algorithm is a valid feed algorithm."""
-        from feeds.algorithms.validators import validate_feed_algorithm as _validate
-
-        result = _validate(v)
-        assert result is not None  # v is required str, so result will be str
-        return result
+        return validate_non_empty_string(v, "feed_algorithm")

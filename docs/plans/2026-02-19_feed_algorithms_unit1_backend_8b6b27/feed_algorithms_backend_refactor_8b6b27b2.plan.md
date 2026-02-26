@@ -24,6 +24,8 @@ todos:
     content: Delete feeds/algorithms.py (old top-level file) after package is in place
     status: completed
 isProject: false
+description: Plan to refactor feed generation into a registry-backed architecture with metadata and GET /v1/simulations/feed-algorithms.
+tags: [plan, backend, feed-algorithms, registry]
 ---
 
 # Unit 1: Backend Refactor – Feeds Registry + Metadata
@@ -111,9 +113,9 @@ feeds/
 ### 5. Update validators and models
 
 - [simulation/core/validators.py](simulation/core/validators.py): change `validate_feed_algorithm` to import from `feeds.algorithms.validators` (or `feeds.algorithms.registry`) instead of `feeds.feed_generator`.
-- [simulation/core/models/runs.py](simulation/core/models/runs.py): change `RunConfig` and `Run` field validators to import `validate_feed_algorithm` from `feeds.algorithms.validators` (or keep using `simulation.core.validators.validate_feed_algorithm` if that re-exports from feeds).
+- [simulation/core/models/runs.py](simulation/core/models/runs.py): change `RunConfig` and `Run` field validators to import `validate_feed_algorithm` from `feeds.algorithms.validators` (or keep using `simulation.core.utils.validators.validate_feed_algorithm` if that re-exports from feeds).
 
-Prefer: keep `simulation.core.validators.validate_feed_algorithm` as the public API and have it call `feeds.algorithms.validators.validate_feed_algorithm` to avoid coupling simulation to feeds structure.
+Prefer: keep `simulation.core.utils.validators.validate_feed_algorithm` as the public API and have it call `feeds.algorithms.validators.validate_feed_algorithm` to avoid coupling simulation to feeds structure.
 
 ### 6. Add GET /v1/simulations/feed-algorithms
 
@@ -129,7 +131,7 @@ Prefer: keep `simulation.core.validators.validate_feed_algorithm` as the public 
 - Run feed generator tests: `uv run pytest tests/feeds/test_feed_generator.py -v` — all pass.
 - Run validators tests: `uv run pytest tests/simulation/core/test_action_generators_validators.py -v` (if any feed-specific validators exist) and simulation run tests: `uv run pytest tests/api/test_simulation_run.py -v` — pass.
 - Run full test suite: `uv run pytest -v` — no regressions.
-- Start server: `uv run uvicorn simulation.main:app --reload`
+- Start server: `PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload`
 - Call `GET /v1/simulations/feed-algorithms`: `curl -s http://localhost:8000/v1/simulations/feed-algorithms` — returns 200 with `[{"id":"chronological","display_name":"Chronological","description":"...","config_schema":null}]`.
 - Call `POST /v1/simulations/run` with `{"num_agents": 1, "num_turns": 1, "feed_algorithm": "chronological"}` — returns 200.
 - Call `POST /v1/simulations/run` with `{"num_agents": 1, "feed_algorithm": "invalid"}` — returns 422.

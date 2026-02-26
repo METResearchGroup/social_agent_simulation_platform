@@ -4,35 +4,17 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
-from db.repositories.generated_feed_repository import GeneratedFeedRepository
-from db.repositories.interfaces import MetricsRepository
-from db.repositories.profile_repository import ProfileRepository
-from db.repositories.run_repository import RunRepository
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
-from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.runs import Run, RunStatus
+from simulation.core.models.runs import RunStatus
 from simulation.core.query_service import SimulationQueryService
-
-
-@pytest.fixture
-def deps():
-    return {
-        "run_repo": Mock(spec=RunRepository),
-        "metrics_repo": Mock(spec=MetricsRepository),
-        "profile_repo": Mock(spec=ProfileRepository),
-        "feed_post_repo": Mock(spec=FeedPostRepository),
-        "generated_bio_repo": Mock(spec=GeneratedBioRepository),
-        "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
-    }
+from tests.factories import AgentFactory, RunFactory
 
 
 @pytest.fixture
 def agent_factory():
     factory = Mock()
-    factory.return_value = [SocialMediaAgent("agent1.bsky.social")]
+    factory.return_value = [AgentFactory.create(handle="agent1.bsky.social")]
     return factory
 
 
@@ -112,11 +94,18 @@ class TestSimulationEngineDelegation:
         query_service.get_turn_data.assert_called_once_with("run_123", 0)
 
     def test_delegates_command_methods(self, engine, command_service):
-        run = Run(
+        run = RunFactory.create(
             run_id="run_123",
             created_at="2024_01_01-12:00:00",
             total_turns=1,
             total_agents=1,
+            feed_algorithm="chronological",
+            metric_keys=[
+                "run.actions.total",
+                "run.actions.total_by_type",
+                "turn.actions.counts_by_type",
+                "turn.actions.total",
+            ],
             started_at="2024_01_01-12:00:00",
             status=RunStatus.RUNNING,
             completed_at=None,
@@ -128,9 +117,15 @@ class TestSimulationEngineDelegation:
                 "feed_algorithm": "chronological",
                 "num_agents": 1,
                 "num_turns": 1,
+                "metric_keys": [
+                    "run.actions.total",
+                    "run.actions.total_by_type",
+                    "turn.actions.counts_by_type",
+                    "turn.actions.total",
+                ],
             },
         )()
-        agents = [SocialMediaAgent("agent1.bsky.social")]
+        agents = [AgentFactory.create(handle="agent1.bsky.social")]
 
         engine.execute_run(config)
         engine.update_run_status(run, RunStatus.FAILED)
@@ -143,9 +138,19 @@ class TestSimulationEngineDelegation:
         )
         command_service.update_run_status.assert_called_once_with(run, RunStatus.FAILED)
         command_service.simulate_turn.assert_called_once_with(
-            run, config, 0, agents, action_history_store=ANY
+            run,
+            config,
+            0,
+            agents,
+            action_history_store=ANY,
+            turn_metric_keys=["turn.actions.counts_by_type", "turn.actions.total"],
         )
         command_service.simulate_turns.assert_called_once_with(
-            1, run, config, agents, action_history_store=ANY
+            1,
+            run,
+            config,
+            agents,
+            action_history_store=ANY,
+            turn_metric_keys=["turn.actions.counts_by_type", "turn.actions.total"],
         )
         command_service.create_agents_for_run.assert_called_once_with(run, config)

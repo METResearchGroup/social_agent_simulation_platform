@@ -2,6 +2,7 @@
 
 from collections import Counter
 
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
@@ -13,7 +14,10 @@ def main():
     print("=" * 80)
 
     # Read all generated feeds
-    generated_feed_repo = create_sqlite_generated_feed_repository()
+    tx = SqliteTransactionProvider()
+    generated_feed_repo = create_sqlite_generated_feed_repository(
+        transaction_provider=tx
+    )
     feeds = generated_feed_repo.list_all_generated_feeds()
 
     # 1. Total number of generated feeds

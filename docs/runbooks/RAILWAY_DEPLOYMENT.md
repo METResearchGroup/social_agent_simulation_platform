@@ -40,6 +40,7 @@ railway variables --set "FORWARDED_ALLOW_IPS=*"
 ```
 
 Notes:
+
 - `SIM_DB_PATH` is read by the app at runtime and is the recommended SQLite path override for Railway.
 - If you use a different mount path, set `SIM_DB_PATH` accordingly.
 - The Docker build uses `uv sync --frozen` only when `uv.lock` exists; otherwise it falls back to `uv sync --no-dev`.
@@ -85,6 +86,7 @@ curl -sS -X POST "<APP_URL>/v1/simulations/run" \
 ```
 
 Expected behavior:
+
 - `GET /health` returns `{"status":"ok"}` with HTTP 200.
 - `POST /v1/simulations/run` returns HTTP 200 with `run_id`, `status`, `likes_per_turn`, and `total_likes` (status may be `failed` if no agent fixture data is loaded).
 

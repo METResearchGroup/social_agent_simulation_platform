@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.interfaces import (
     FeedPostRepository,
     GeneratedBioRepository,
@@ -11,23 +10,19 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunRepository,
 )
-from db.services.simulation_persistence_service import (
-    SimulationPersistenceService,
-    create_simulation_persistence_service,
-)
+from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.feed_generator_adapter import FeedGeneratorAdapter
 from feeds.interfaces import FeedGenerator
-from simulation.core.action_history import ActionHistoryStore
-from simulation.core.agent_action_feed_filter import (
-    AgentActionFeedFilter,
-    HistoryAwareActionFeedFilter,
-)
-from simulation.core.agent_action_history_recorder import AgentActionHistoryRecorder
-from simulation.core.agent_action_rules_validator import AgentActionRulesValidator
-from simulation.core.command_service import SimulationCommandService
-from simulation.core.factories.action_history_store import (
+from simulation.core.action_history import (
+    ActionHistoryStore,
     create_default_action_history_store_factory,
 )
+from simulation.core.action_policy import (
+    AgentActionFeedFilter,
+    AgentActionRulesValidator,
+    HistoryAwareActionFeedFilter,
+)
+from simulation.core.command_service import SimulationCommandService
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
     DEFAULT_RUN_METRIC_KEYS,
@@ -43,7 +38,7 @@ def create_command_service(
     *,
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
-    simulation_persistence: SimulationPersistenceService | None = None,
+    simulation_persistence: SimulationPersistenceService,
     profile_repo: ProfileRepository,
     feed_post_repo: FeedPostRepository,
     generated_bio_repo: GeneratedBioRepository,
@@ -53,16 +48,9 @@ def create_command_service(
     feed_generator: FeedGenerator | None = None,
     metrics_collector: MetricsCollector | None = None,
     agent_action_rules_validator: AgentActionRulesValidator | None = None,
-    agent_action_history_recorder: AgentActionHistoryRecorder | None = None,
     agent_action_feed_filter: AgentActionFeedFilter | None = None,
 ) -> SimulationCommandService:
     """Create command-side service with execution dependencies."""
-    if simulation_persistence is None:
-        simulation_persistence = create_simulation_persistence_service(
-            run_repo=run_repo,
-            metrics_repo=metrics_repo,
-            transaction_provider=SqliteTransactionProvider(),
-        )
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
     if feed_generator is None:
@@ -97,8 +85,6 @@ def create_command_service(
         feed_generator=feed_generator,
         agent_action_rules_validator=agent_action_rules_validator
         or AgentActionRulesValidator(),
-        agent_action_history_recorder=agent_action_history_recorder
-        or AgentActionHistoryRecorder(),
         agent_action_feed_filter=agent_action_feed_filter
         or HistoryAwareActionFeedFilter(),
     )

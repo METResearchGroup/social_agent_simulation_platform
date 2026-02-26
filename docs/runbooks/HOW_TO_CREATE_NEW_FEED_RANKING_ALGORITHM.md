@@ -104,7 +104,7 @@ The framework persists the feed, hydrates posts, and returns hydrated feeds to c
 from feeds.algorithms.implementations.my_algorithm import MyFeedAlgorithm
 ```
 
-2. Add an entry to `_ALGORITHM_LOOKUP`:
+1. Add an entry to `_ALGORITHM_LOOKUP`:
 
 ```python
 _ALGORITHM_LOOKUP: dict[str, FeedAlgorithm] = {

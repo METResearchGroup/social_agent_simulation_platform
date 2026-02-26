@@ -4,6 +4,10 @@ Sorts posts by creation time, newest first. Limits to caller-supplied limit.
 Uses uri as tie-breaker when created_at is equal for deterministic output.
 """
 
+from collections.abc import Mapping
+
+from pydantic import JsonValue
+
 from feeds.algorithms.interfaces import (
     FeedAlgorithm,
     FeedAlgorithmMetadata,
@@ -17,6 +21,18 @@ ALGORITHM_ID = "chronological"
 METADATA: FeedAlgorithmMetadata = FeedAlgorithmMetadata(
     display_name="Chronological",
     description="Posts sorted by creation time, newest first.",
+    config_schema={
+        "type": "object",
+        "properties": {
+            "order": {
+                "type": "string",
+                "title": "Order",
+                "description": "Whether to show newest posts first or oldest posts first.",
+                "enum": ["newest_first", "oldest_first"],
+                "default": "newest_first",
+            }
+        },
+    },
 )
 
 
@@ -33,6 +49,7 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         candidate_posts: list[BlueskyFeedPost],
         agent: SocialMediaAgent,
         limit: int,
+        config: Mapping[str, JsonValue] | None = None,
     ) -> FeedAlgorithmResult:
         """Generate a chronological feed (newest posts first).
 
@@ -45,8 +62,10 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         Returns:
             FeedAlgorithmResult with feed_id, agent_handle, post_uris in order.
         """
+        order = config.get("order") if config else None
+        reverse = order != "oldest_first"
         sorted_posts = sorted(candidate_posts, key=lambda p: p.uri)
-        sorted_posts = sorted(sorted_posts, key=lambda p: p.created_at, reverse=True)
+        sorted_posts = sorted(sorted_posts, key=lambda p: p.created_at, reverse=reverse)
         selected = sorted_posts[:limit]
         post_uris = [p.uri for p in selected]
         return FeedAlgorithmResult(

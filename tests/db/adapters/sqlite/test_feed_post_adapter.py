@@ -7,27 +7,13 @@ import pytest
 
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
 from simulation.core.models.posts import BlueskyFeedPost
-from tests.db.adapters.sqlite.conftest import create_mock_db_connection, create_mock_row
+from tests.db.adapters.sqlite.conftest import create_mock_row
 
 
 @pytest.fixture
 def adapter():
     """Create a SQLiteFeedPostAdapter instance."""
     return SQLiteFeedPostAdapter()
-
-
-@pytest.fixture
-def mock_db_connection():
-    """Fixture that provides a context manager for mocking database connections.
-
-    Usage:
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
-            mock_cursor.fetchall = Mock(return_value=[row1, row2])
-            # test code here
-    """
-    return create_mock_db_connection(
-        "db.adapters.sqlite.feed_post_adapter.get_connection"
-    )
 
 
 class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
@@ -78,13 +64,13 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         mock_row_2 = create_mock_row(row_data_2)
         mock_row_3 = create_mock_row(row_data_3)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(
                 return_value=[mock_row_1, mock_row_2, mock_row_3]
             )
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris)
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -103,9 +89,9 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         # Arrange
         uris = []
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             # Act
-            result = adapter.read_feed_posts_by_uris(uris)
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -119,11 +105,11 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         # Arrange
         uris = ["nonexistent_uri1", "nonexistent_uri2"]
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[])
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris)
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -164,11 +150,11 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         mock_row_1 = create_mock_row(row_data_1)
         mock_row_2 = create_mock_row(row_data_2)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[mock_row_1, mock_row_2])
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris)
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -225,14 +211,14 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         mock_row_2 = create_mock_row(row_data_2)
         mock_row_3 = create_mock_row(row_data_3)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             # Database returns in different order: uri1, uri2, uri3
             mock_cursor.fetchall = Mock(
                 return_value=[mock_row_1, mock_row_2, mock_row_3]
             )
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris)
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -250,12 +236,12 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         # Arrange
         uris = ["uri1", "uri2"]
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = sqlite3.OperationalError("Database error")
 
             # Act & Assert
             with pytest.raises(sqlite3.OperationalError, match="Database error"):
-                adapter.read_feed_posts_by_uris(uris)
+                adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
     def test_raises_keyerror_when_missing_required_column(
         self, adapter, mock_db_connection
@@ -278,12 +264,12 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[mock_row])
 
             # Act & Assert
             with pytest.raises(KeyError):
-                adapter.read_feed_posts_by_uris(uris)
+                adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
     def test_raises_valueerror_when_null_fields(self, adapter, mock_db_connection):
         """Test that read_feed_posts_by_uris raises ValueError when fields are NULL."""
@@ -305,12 +291,12 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         }
         mock_row = create_mock_row(row_data)
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[mock_row])
 
             # Act & Assert
             with pytest.raises(ValueError, match="uri cannot be NULL"):
-                adapter.read_feed_posts_by_uris(uris)
+                adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
     def test_calls_database_with_correct_parameters_single_uri(
         self, adapter, mock_db_connection
@@ -319,11 +305,11 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         # Arrange
         uris = ["uri1"]
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[])
 
             # Act
-            adapter.read_feed_posts_by_uris(uris)
+            adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             mock_conn.execute.assert_called_once()
@@ -339,11 +325,11 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
         # Arrange
         uris = ["uri1", "uri2", "uri3"]
 
-        with mock_db_connection() as (mock_get_conn, mock_conn, mock_cursor):
+        with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[])
 
             # Act
-            adapter.read_feed_posts_by_uris(uris)
+            adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
 
             # Assert
             mock_conn.execute.assert_called_once()

@@ -2,7 +2,6 @@
 
 import os
 import sqlite3
-import tempfile
 from unittest.mock import patch
 
 import pytest
@@ -16,22 +15,6 @@ from db.adapters.sqlite.sqlite import (
     run_transaction,
 )
 from db.schema import bluesky_feed_posts
-
-
-@pytest.fixture
-def temp_db():
-    """Fixture that creates a temporary database file.
-
-    Yields the temporary database path. On teardown, deletes the temporary file.
-    """
-    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp:
-        temp_db_path = tmp.name
-
-    try:
-        yield temp_db_path
-    finally:
-        if os.path.exists(temp_db_path):
-            os.unlink(temp_db_path)
 
 
 class TestDBPath:
