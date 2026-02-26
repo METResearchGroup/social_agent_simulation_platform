@@ -92,8 +92,8 @@ These are good candidates for linting because they are:
 #### How (implementation) (PY-2)
 
 - Use Semgrep (fast, easy custom rules, language-aware patterns).
-- Add a repo-owned ruleset, e.g. `lint/semgrep/python-di.yml`.
-- Pre-commit hook: `semgrep --config lint/semgrep --error`.
+- Add a repo-owned ruleset, e.g. `lint/semgrep/python-di.yml` (implemented).
+- Pre-commit + CI: `uv tool run semgrep --config lint/semgrep --error` (implemented via the DI guard hook/job).
 
 #### Example rule sketch (Semgrep) (PY-2)
 

@@ -72,7 +72,8 @@ def create_engine(
         like_repo: Optional. Like repository. Defaults to SQLite implementation.
         comment_repo: Optional. Comment repository. Defaults to SQLite implementation.
         follow_repo: Optional. Follow repository. Defaults to SQLite implementation.
-        agent_factory: Optional. Agent factory function. Defaults to create_default_agent_factory().
+        agent_factory: Optional. Agent factory function. Defaults to create_default_agent_factory(...)
+            wired with the default profile/feed_post/generated_bio repositories.
         transaction_provider: Optional. Provider for persistence transactions. Defaults to SQLite.
 
     Returns:
@@ -118,7 +119,11 @@ def create_engine(
 
     # Create default agent factory if not provided
     if agent_factory is None:
-        agent_factory = create_default_agent_factory()
+        agent_factory = create_default_agent_factory(
+            profile_repo=profile_repo,
+            feed_post_repo=feed_post_repo,
+            generated_bio_repo=generated_bio_repo,
+        )
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
 

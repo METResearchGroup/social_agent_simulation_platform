@@ -3,16 +3,10 @@
 import uuid
 
 from db.adapters.base import TransactionProvider
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider
-from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
-from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentRepository,
     UserAgentProfileMetadataRepository,
-)
-from db.repositories.user_agent_profile_metadata_repository import (
-    create_sqlite_user_agent_profile_metadata_repository,
 )
 from lib.timestamp_utils import get_current_timestamp
 from simulation.api.errors import ApiHandleAlreadyExistsError
@@ -26,34 +20,15 @@ from simulation.core.models.user_agent_profile_metadata import UserAgentProfileM
 def create_agent(
     req: CreateAgentRequest,
     *,
-    transaction_provider: TransactionProvider | None = None,
-    agent_repo: AgentRepository | None = None,
-    bio_repo: AgentBioRepository | None = None,
-    metadata_repo: UserAgentProfileMetadataRepository | None = None,
+    transaction_provider: TransactionProvider,
+    agent_repo: AgentRepository,
+    bio_repo: AgentBioRepository,
+    metadata_repo: UserAgentProfileMetadataRepository,
 ) -> AgentSchema:
     """Create a user-generated agent with bio and metadata. Atomic multi-table write."""
     handle = normalize_handle(req.handle)
     display_name = req.display_name.strip()
     bio_text = (req.bio or "").strip() or "No bio provided."
-
-    if (
-        transaction_provider is None
-        or agent_repo is None
-        or bio_repo is None
-        or metadata_repo is None
-    ):
-        transaction_provider = transaction_provider or SqliteTransactionProvider()
-        agent_repo = agent_repo or create_sqlite_agent_repository(
-            transaction_provider=transaction_provider
-        )
-        bio_repo = bio_repo or create_sqlite_agent_bio_repository(
-            transaction_provider=transaction_provider
-        )
-        metadata_repo = metadata_repo or (
-            create_sqlite_user_agent_profile_metadata_repository(
-                transaction_provider=transaction_provider
-            )
-        )
 
     # TODO: that this can cause a slight race condition if we do this check
     # before the below context manager for writing the agent to the database.
