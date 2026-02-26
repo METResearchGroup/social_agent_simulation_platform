@@ -9,6 +9,10 @@ This file is for AI agents and humans working in this repo. It points to the can
 
 If you’re unsure how to do something (local dev, deployment, linting, smoke tests), check `docs/runbooks/` before inventing new workflows.
 
+## Docs metadata
+
+- Every Markdown file under `docs/runbooks/` and `docs/plans/` must ship YAML front matter with `description` and `tags`. Use `scripts/check_docs_metadata.py` to validate it locally (and rely on the pre-commit hook + CI job we added). Missing metadata blocks will fail the docs-metadata job in CI and the new pre-commit hook.
+
 ## Local development (default)
 
 Canonical runbooks:
