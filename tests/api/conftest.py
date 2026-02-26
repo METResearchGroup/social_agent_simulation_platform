@@ -20,11 +20,14 @@ def _mock_require_current_app_user(
     from simulation.core.models.app_user import AppUser
 
     ts = get_current_timestamp()
+    email = claims.get("email", "test@example.com")
+    display_name = (claims.get("user_metadata") or {}).get("full_name") or email
+
     app_user = AppUser(
         id="test-app-user-id",
         auth_provider_id=claims.get("sub", "test-user-id"),
-        email=claims.get("email", "test@example.com"),
-        display_name=None,
+        email=email,
+        display_name=display_name,
         created_at=ts,
         last_seen_at=ts,
     )

@@ -48,10 +48,10 @@ class SQLiteAppUserAdapter(AppUserDatabaseAdapter):
         self,
         app_user_id: str,
         last_seen_at: str,
-        email: str | None = None,
-        display_name: str | None = None,
+        email: str,
+        display_name: str,
     ) -> None:
-        """Update last_seen_at and optionally email, display_name for an app_user."""
+        """Update last_seen_at, email, display_name for an app_user."""
         with get_connection() as conn:
             conn.execute(
                 "UPDATE app_users SET last_seen_at = ?, email = ?, display_name = ? WHERE id = ?",
