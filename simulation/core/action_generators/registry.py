@@ -46,27 +46,27 @@ def _create_random_simple_comment() -> CommentGenerator:
 
 
 def _create_naive_llm_like() -> LikeGenerator:
-    from simulation.core.action_generators.like.algorithms.naive_llm import (
-        NaiveLLMLikeGenerator,
+    from simulation.core.factories.action_generators import (
+        create_naive_llm_like_generator,
     )
 
-    return NaiveLLMLikeGenerator()
+    return create_naive_llm_like_generator()
 
 
 def _create_naive_llm_follow() -> FollowGenerator:
-    from simulation.core.action_generators.follow.algorithms.naive_llm import (
-        NaiveLLMFollowGenerator,
+    from simulation.core.factories.action_generators import (
+        create_naive_llm_follow_generator,
     )
 
-    return NaiveLLMFollowGenerator()
+    return create_naive_llm_follow_generator()
 
 
 def _create_naive_llm_comment() -> CommentGenerator:
-    from simulation.core.action_generators.comment.algorithms.naive_llm import (
-        NaiveLLMCommentGenerator,
+    from simulation.core.factories.action_generators import (
+        create_naive_llm_comment_generator,
     )
 
-    return NaiveLLMCommentGenerator()
+    return create_naive_llm_comment_generator()
 
 
 _LIKE_ALGORITHM_FACTORIES: dict[str, Callable[[], LikeGenerator]] = {

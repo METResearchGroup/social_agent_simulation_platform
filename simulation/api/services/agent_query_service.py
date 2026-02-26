@@ -1,15 +1,9 @@
 """Read-side CQRS service for simulation agent lookup APIs."""
 
-from db.adapters.sqlite.sqlite import SqliteTransactionProvider
-from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
-from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentRepository,
     UserAgentProfileMetadataRepository,
-)
-from db.repositories.user_agent_profile_metadata_repository import (
-    create_sqlite_user_agent_profile_metadata_repository,
 )
 from lib.sql_like import build_substring_like_pattern_from_user_query
 from simulation.api.schemas.simulation import AgentSchema
@@ -20,28 +14,14 @@ from simulation.core.models.user_agent_profile_metadata import UserAgentProfileM
 
 def list_agents(
     *,
-    agent_repo: AgentRepository | None = None,
-    bio_repo: AgentBioRepository | None = None,
-    metadata_repo: UserAgentProfileMetadataRepository | None = None,
+    agent_repo: AgentRepository,
+    bio_repo: AgentBioRepository,
+    metadata_repo: UserAgentProfileMetadataRepository,
     q: str | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[AgentSchema]:
     """Return agents from DB, mapped to AgentSchema, ordered by handle."""
-    if agent_repo is None or bio_repo is None or metadata_repo is None:
-        provider = SqliteTransactionProvider()
-        agent_repo = agent_repo or create_sqlite_agent_repository(
-            transaction_provider=provider
-        )
-        bio_repo = bio_repo or create_sqlite_agent_bio_repository(
-            transaction_provider=provider
-        )
-        metadata_repo = metadata_repo or (
-            create_sqlite_user_agent_profile_metadata_repository(
-                transaction_provider=provider
-            )
-        )
-
     handle_like: str | None = build_substring_like_pattern_from_user_query(q)
 
     agents: list[Agent]

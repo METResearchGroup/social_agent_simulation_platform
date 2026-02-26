@@ -2,6 +2,11 @@
 
 from collections.abc import Callable
 
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedBioRepository,
+    ProfileRepository,
+)
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.utils.validators import (
     validate_duplicate_agent_handles,
@@ -9,7 +14,12 @@ from simulation.core.utils.validators import (
 )
 
 
-def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
+def create_default_agent_factory(
+    *,
+    profile_repo: ProfileRepository,
+    feed_post_repo: FeedPostRepository,
+    generated_bio_repo: GeneratedBioRepository,
+) -> Callable[[int], list[SocialMediaAgent]]:
     """Create the default agent factory that wraps create_initial_agents().
 
     This factory function creates a callable that can be used to generate
@@ -20,7 +30,11 @@ def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
         A callable that takes num_agents (int) and returns a list of agents.
 
     Example:
-        >>> factory = create_default_agent_factory()
+        >>> factory = create_default_agent_factory(
+        ...     profile_repo=profile_repo,
+        ...     feed_post_repo=feed_post_repo,
+        ...     generated_bio_repo=generated_bio_repo,
+        ... )
         >>> agents = factory(10)  # Returns up to 10 agents
     """
 
@@ -40,7 +54,11 @@ def create_default_agent_factory() -> Callable[[int], list[SocialMediaAgent]]:
         from ai.create_initial_agents import create_initial_agents
 
         # Create all available agents
-        all_agents = create_initial_agents()
+        all_agents = create_initial_agents(
+            profile_repo=profile_repo,
+            feed_post_repo=feed_post_repo,
+            generated_bio_repo=generated_bio_repo,
+        )
 
         # Apply limit
         agents = all_agents[:num_agents]

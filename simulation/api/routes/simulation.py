@@ -345,7 +345,15 @@ async def _execute_post_simulation_agents(
 ) -> AgentSchema | Response:
     """Create agent and convert known failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(create_agent, body)
+        app_state = request.app.state
+        return await asyncio.to_thread(
+            create_agent,
+            body,
+            transaction_provider=app_state.transaction_provider,
+            agent_repo=app_state.agent_repo,
+            bio_repo=app_state.agent_bio_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+        )
     except ApiHandleAlreadyExistsError as e:
         return _error_response(
             status_code=409,
@@ -380,7 +388,16 @@ async def _execute_get_simulation_agents(
 ) -> list[AgentSchema] | Response:
     """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
     try:
-        return await asyncio.to_thread(list_agents, q=q, limit=limit, offset=offset)
+        app_state = request.app.state
+        return await asyncio.to_thread(
+            list_agents,
+            agent_repo=app_state.agent_repo,
+            bio_repo=app_state.agent_bio_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+            q=q,
+            limit=limit,
+            offset=offset,
+        )
     except Exception:
         logger.exception("Unexpected error while listing simulation agents")
         return _error_response(

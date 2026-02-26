@@ -4,9 +4,7 @@ Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
 from lib.load_env_vars import EnvVarsContainer
-from simulation.core.action_generators.like.algorithms.naive_llm import (
-    NaiveLLMLikeGenerator,
-)
+from simulation.core.factories.action_generators import create_naive_llm_like_generator
 from simulation.core.models.posts import BlueskyFeedPost
 
 
@@ -34,7 +32,7 @@ def _post(
 
 def main() -> None:
     EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
-    generator = NaiveLLMLikeGenerator()
+    generator = create_naive_llm_like_generator()
     run_id = "e2e_run_1"
 
     candidates_1 = [

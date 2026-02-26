@@ -4,8 +4,8 @@ Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
 from lib.load_env_vars import EnvVarsContainer
-from simulation.core.action_generators.follow.algorithms.naive_llm import (
-    NaiveLLMFollowGenerator,
+from simulation.core.factories.action_generators import (
+    create_naive_llm_follow_generator,
 )
 from simulation.core.models.posts import BlueskyFeedPost
 
@@ -34,7 +34,7 @@ def _post(
 
 def main() -> None:
     EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
-    generator = NaiveLLMFollowGenerator()
+    generator = create_naive_llm_follow_generator()
     run_id = "e2e_run_1"
 
     candidates_1 = [
