@@ -18,10 +18,19 @@ def build_front_matter(mapping: dict[str, object]) -> str:
     return f"---\n{body}\n---\n\nContent\n"
 
 
+def non_whitespace_text(*, min_size: int = 1) -> st.SearchStrategy[str]:
+    # Keep this strict so the property test doesn't generate whitespace-only values
+    # that `str.strip()` would treat as empty.
+    return st.text(
+        alphabet=st.characters(blacklist_categories=("Z", "C")),
+        min_size=min_size,
+    )
+
+
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(
-    description=st.text(min_size=1),
-    tags=st.lists(st.text(min_size=1), min_size=1),
+    description=non_whitespace_text(min_size=1),
+    tags=st.lists(non_whitespace_text(min_size=1), min_size=1),
 )
 def test_validate_metadata_accepts_good_front_matter(
     tmp_path: Path, description: str, tags: list[str]
@@ -36,7 +45,7 @@ def test_validate_metadata_accepts_good_front_matter(
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(tags=st.lists(st.text(min_size=1), min_size=1))
+@given(tags=st.lists(non_whitespace_text(min_size=1), min_size=1))
 def test_validate_metadata_rejects_missing_description(
     tmp_path: Path, tags: list[str]
 ) -> None:
@@ -47,7 +56,7 @@ def test_validate_metadata_rejects_missing_description(
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(description=st.text(min_size=1), tags=st.text())
+@given(description=non_whitespace_text(min_size=1), tags=st.text())
 def test_validate_metadata_rejects_non_list_tags(
     tmp_path: Path, description: str, tags: str
 ) -> None:
