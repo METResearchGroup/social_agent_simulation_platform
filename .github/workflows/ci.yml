@@ -234,8 +234,7 @@ jobs:
 
       - name: python_dependency_injection_guard
         run: |
-          uv tool run semgrep --config lint/semgrep --error
-          uv run python scripts/lint_architecture.py
+          PYTHONPATH=${{ github.workspace }} uv run pre-commit run python_dependency_injection_guard --all-files
 
   test:
     runs-on: ubuntu-latest

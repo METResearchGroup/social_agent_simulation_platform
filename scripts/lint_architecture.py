@@ -256,18 +256,30 @@ def _is_optional_annotation(
     return (False, [annotation])
 
 
-def _annotation_type_names(annotation: ast.AST) -> list[str]:
-    """Extract type names (best-effort) from an annotation expression."""
+def _attribute_name_parts(node: ast.expr) -> list[str]:
+    if isinstance(node, ast.Name):
+        return [node.id]
+    if isinstance(node, ast.Attribute):
+        parent = _attribute_name_parts(node.value)
+        if parent:
+            return parent + [node.attr]
+        return [node.attr]
+    return []
+
+
+def _annotation_type_names(annotation: ast.expr) -> list[str]:
+    """Extract full dotted type names from an annotation expression."""
     names: list[str] = []
 
-    def visit(n: ast.AST) -> None:
+    def visit(n: ast.expr) -> None:
         if isinstance(n, ast.Name):
             names.append(n.id)
         elif isinstance(n, ast.Attribute):
-            names.append(n.attr)
+            parts = _attribute_name_parts(n)
+            if parts:
+                names.append(".".join(parts))
         elif isinstance(n, ast.Subscript):
             visit(n.value)
-            # Include inner types too (e.g. list[Foo]).
             slice_node = n.slice
             if isinstance(slice_node, ast.Tuple):
                 for e in slice_node.elts:
@@ -282,26 +294,45 @@ def _annotation_type_names(annotation: ast.AST) -> list[str]:
                 visit(e)
         elif isinstance(n, ast.Call):
             visit(n.func)
-        # Ignore other nodes.
+            for arg in n.args:
+                visit(arg)
+        else:
+            for child in ast.iter_child_nodes(n):
+                if isinstance(child, ast.expr):
+                    visit(child)
 
     visit(annotation)
     return names
+
+
+def _resolve_dotted_name(name: str, imports: ImportTable) -> str:
+    if "." in name:
+        root, rest = name.split(".", 1)
+        module_base = imports.modules.get(root)
+        if module_base:
+            return f"{module_base}.{rest}"
+    symbol = imports.symbols.get(name)
+    if symbol:
+        return symbol
+    return name
 
 
 def _resolved_modules_for_type_names(
     type_names: Iterable[str], imports: ImportTable
 ) -> set[str]:
     modules: set[str] = set()
-    for t in type_names:
-        resolved = imports.symbols.get(t)
-        if resolved is None:
-            continue
-        mod = resolved.rsplit(".", 1)[0]
-        modules.add(mod)
+    for name in type_names:
+        resolved = _resolve_dotted_name(name, imports)
+        if "." in resolved:
+            modules.add(resolved.rsplit(".", 1)[0])
+        else:
+            modules.add(resolved)
     return modules
 
 
-def _looks_like_dependency_by_module(imports: ImportTable, annotation: ast.AST) -> bool:
+def _looks_like_dependency_by_module(
+    imports: ImportTable, annotation: ast.expr
+) -> bool:
     type_names = _annotation_type_names(annotation)
     modules = _resolved_modules_for_type_names(type_names, imports)
     return any(
