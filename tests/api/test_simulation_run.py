@@ -4,13 +4,12 @@ from unittest.mock import MagicMock, patch
 
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
-from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.utils.exceptions import SimulationRunFailure
 from tests.factories import (
@@ -444,10 +443,15 @@ def test_get_simulations_run_turns_hydrates_agent_actions(
 ):
     """GET /v1/simulations/runs/{run_id}/turns returns hydrated agent_actions."""
     run = run_repo.create_run(
-        RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+        RunConfigFactory.create(
+            num_agents=1,
+            num_turns=1,
+            feed_algorithm="chronological",
+        )
     )
+    created_at = "2026-01-01T00:00:00.000Z"
     run_repo.write_turn_metadata(
-        TurnMetadata(
+        TurnMetadataFactory.create(
             run_id=run.run_id,
             turn_number=0,
             total_actions={
@@ -455,22 +459,21 @@ def test_get_simulations_run_turns_hydrates_agent_actions(
                 TurnAction.COMMENT: 1,
                 TurnAction.FOLLOW: 1,
             },
-            created_at="2026-01-01T00:00:00.000Z",
+            created_at=created_at,
         )
     )
     agent_handle = "@agent1.bsky.social"
     post_uri = "at://did:plc:example1/post1"
     generated_feed_repo.write_generated_feed(
-        GeneratedFeed(
+        GeneratedFeedFactory.create(
             feed_id="feed-1",
             run_id=run.run_id,
             turn_number=0,
             agent_handle=agent_handle,
             post_uris=[post_uri],
-            created_at="2026-01-01T00:00:00.000Z",
+            created_at=created_at,
         )
     )
-    created_at = "2026-01-01T00:00:00.000Z"
     meta = GenerationMetadata(
         model_used=None,
         generation_metadata={"test": True},
