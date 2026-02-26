@@ -97,7 +97,12 @@ const LAYER_ORDER = {
 
 function _isLayeringViolation(fromLayer, toLayer) {
   if (fromLayer === 'app') return false;
-  if (!(fromLayer in LAYER_ORDER) || !(toLayer in LAYER_ORDER)) return false;
+  if (!(fromLayer in LAYER_ORDER) || !(toLayer in LAYER_ORDER)) {
+    // This should never happen because we compute layers from a fixed allowlist. If it does,
+    // keep it visible during lint runs to make misconfigurations obvious.
+    console.warn('[ui-import-layering] Unknown layer', { fromLayer, toLayer });
+    return false;
+  }
   return LAYER_ORDER[toLayer] > LAYER_ORDER[fromLayer];
 }
 
