@@ -4,7 +4,7 @@ from db.adapters.base import GeneratedFeedDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import GeneratedFeedRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_handle_exists,
     validate_run_id,
     validate_turn_number,

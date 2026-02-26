@@ -83,6 +83,7 @@ class Run(BaseModel):
     @field_validator("metric_keys")
     @classmethod
     def validate_metric_keys_run(cls, v: list[str]) -> list[str]:
+        """Validate that metric_keys is non-empty and contains non-empty strings."""
         validate_non_empty_iterable(v, "metric_keys")
         return [validate_non_empty_string(item, "metric_keys") for item in v]
 

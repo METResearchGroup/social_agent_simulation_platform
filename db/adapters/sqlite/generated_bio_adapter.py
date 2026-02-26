@@ -9,7 +9,7 @@ from db.schema import agent_bios
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.bio import GeneratedBio
-from simulation.core.validators import validate_handle_exists
+from simulation.core.utils.validators import validate_handle_exists
 
 AGENT_BIOS_COLUMNS = ordered_column_names(agent_bios)
 AGENT_BIOS_REQUIRED_FIELDS = required_column_names(agent_bios)

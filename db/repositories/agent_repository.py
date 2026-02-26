@@ -4,7 +4,7 @@ from db.adapters.base import AgentDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent import Agent
-from simulation.core.validators import validate_agent_id, validate_handle_exists
+from simulation.core.utils.validators import validate_agent_id, validate_handle_exists
 
 
 class SQLiteAgentRepository(AgentRepository):

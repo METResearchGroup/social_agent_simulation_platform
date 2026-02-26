@@ -4,10 +4,10 @@ from collections import defaultdict, deque
 
 from pydantic import TypeAdapter, ValidationError
 
-from simulation.core.exceptions import MetricsComputationError
 from simulation.core.metrics.interfaces import MetricContext, MetricDeps, MetricScope
 from simulation.core.metrics.registry import MetricsRegistry
 from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
+from simulation.core.utils.exceptions import MetricsComputationError
 
 _COMPUTED_METRIC_RESULT_ADAPTER = TypeAdapter(ComputedMetricResult)
 

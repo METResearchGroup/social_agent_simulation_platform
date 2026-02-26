@@ -180,7 +180,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         sample_turn_metadata,
         sample_turn_metrics,
     ):
-        from simulation.core.exceptions import DuplicateTurnMetadataError
+        from simulation.core.utils.exceptions import DuplicateTurnMetadataError
 
         mock_run_repo.write_turn_metadata.side_effect = DuplicateTurnMetadataError(
             "run_1", 0

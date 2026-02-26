@@ -120,7 +120,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const lastAgentsQueryRef = useRef<string>('');
   const selectedAgentHandleRef = useRef<string | null>(null);
   const runsRequestIdRef = useRef<number>(0);
-  const runDetailsRequestIdMapRef = useRef<Map<string, number>>(new Map());
+  const runDetailsRequestIdRef = useRef<Map<string, number>>(new Map());
+  const turnsRequestIdRef = useRef<Map<string, number>>(new Map());
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -152,15 +153,19 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     const loadRuns = async (): Promise<void> => {
       try {
         const apiRuns: Run[] = await getRuns();
-        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        if (!isMounted) return;
+        if (requestId !== runsRequestIdRef.current) return;
         setRuns(apiRuns);
       } catch (error: unknown) {
         console.error('Failed to fetch runs:', error);
-        if (!isMounted || requestId !== runsRequestIdRef.current) return;
+        if (!isMounted) return;
+        if (requestId !== runsRequestIdRef.current) return;
         setRunsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (!isMounted || requestId !== runsRequestIdRef.current) return;
-        setRunsLoading(false);
+        const isStale = !isMounted || requestId !== runsRequestIdRef.current;
+        if (!isStale) {
+          setRunsLoading(false);
+        }
       }
     };
 
@@ -193,7 +198,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
           offset: 0,
           q: agentsQueryDebounced !== '' ? agentsQueryDebounced : undefined,
         });
-        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        if (!isMounted) return;
+        if (requestId !== agentsRequestIdRef.current) return;
         setAgents(apiAgents);
         agentsOffsetRef.current = apiAgents.length;
         setAgentsHasMore(apiAgents.length === DEFAULT_AGENT_PAGE_SIZE);
@@ -203,11 +209,14 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
         }
       } catch (error: unknown) {
         console.error('Failed to fetch agents:', error);
-        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
+        if (!isMounted) return;
+        if (requestId !== agentsRequestIdRef.current) return;
         setAgentsError(error instanceof Error ? error : new Error(String(error)));
       } finally {
-        if (!isMounted || requestId !== agentsRequestIdRef.current) return;
-        setAgentsLoading(false);
+        const isStale = !isMounted || requestId !== agentsRequestIdRef.current;
+        if (!isStale) {
+          setAgentsLoading(false);
+        }
       }
     };
 
@@ -233,8 +242,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       return;
     }
 
-    let isMounted: boolean = true;
     const runId: string = selectedRunId;
+    let isMounted: boolean = true;
+    const requestId: number = (turnsRequestIdRef.current.get(runId) ?? 0) + 1;
+    turnsRequestIdRef.current.set(runId, requestId);
     turnsFetchInFlightRef.current.add(runId);
     lastTurnsFetchAttemptAtMsRef.current.set(runId, nowMs);
     setTurnsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
@@ -243,23 +254,24 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     const loadTurnsForRun = async (): Promise<void> => {
       try {
         const turnsForRun: Record<string, Turn> = await getTurnsForRun(runId);
+        if (!isMounted) return;
+        if (requestId !== turnsRequestIdRef.current.get(runId)) return;
         loadedTurnsRunIdsRef.current.add(runId);
-        if (isMounted) {
-          setFallbackTurns((previousTurns) => ({
-            ...previousTurns,
-            [runId]: turnsForRun,
-          }));
-        }
+        setFallbackTurns((previousTurns) => ({
+          ...previousTurns,
+          [runId]: turnsForRun,
+        }));
       } catch (error: unknown) {
         console.error(`Failed to fetch turns for ${runId}:`, error);
-        if (isMounted) {
-          const apiError: ApiError =
-            error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
-          setTurnsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
-        }
+        if (!isMounted) return;
+        if (requestId !== turnsRequestIdRef.current.get(runId)) return;
+        const apiError: ApiError =
+          error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+        setTurnsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
       } finally {
         turnsFetchInFlightRef.current.delete(runId);
-        if (isMounted) {
+        const isStale = !isMounted || requestId !== turnsRequestIdRef.current.get(runId);
+        if (!isStale) {
           setTurnsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
         }
       }
@@ -281,38 +293,29 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     }
 
     const runId: string = selectedRunId;
-    const nextRequestId: number = (runDetailsRequestIdMapRef.current.get(runId) ?? 0) + 1;
-    runDetailsRequestIdMapRef.current.set(runId, nextRequestId);
+    const requestId: number = (runDetailsRequestIdRef.current.get(runId) ?? 0) + 1;
+    runDetailsRequestIdRef.current.set(runId, requestId);
     setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
     setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: null }));
 
     const loadRunDetails = async (): Promise<void> => {
       try {
         const details = await getRunDetails(runId);
-        const isStale =
-          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
-        if (!isStale) {
-          setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
-        }
+        if (!isMountedRef.current) return;
+        if (requestId !== runDetailsRequestIdRef.current.get(runId)) return;
+        setRunConfigs((prev) => ({ ...prev, [runId]: details.config }));
       } catch (error: unknown) {
         console.error(`Failed to fetch run details for ${runId}:`, error);
-        const isStale =
-          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
-        if (!isStale) {
-          const apiError: ApiError =
-            error instanceof ApiError
-              ? error
-              : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
-          setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
-        }
+        if (!isMountedRef.current) return;
+        if (requestId !== runDetailsRequestIdRef.current.get(runId)) return;
+        const apiError: ApiError =
+          error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
+        setRunDetailsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
       } finally {
         const isStale =
-          !isMountedRef.current || runDetailsRequestIdMapRef.current.get(runId) !== nextRequestId;
+          !isMountedRef.current || requestId !== runDetailsRequestIdRef.current.get(runId);
         if (!isStale) {
           setRunDetailsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
-        }
-        if (runDetailsRequestIdMapRef.current.get(runId) === nextRequestId) {
-          runDetailsRequestIdMapRef.current.delete(runId);
         }
       }
     };

@@ -1,5 +1,6 @@
 """Tests for simulation.core.factories (factory functions previously in dependencies)."""
 
+from collections.abc import Callable
 from unittest.mock import Mock, patch
 
 import pytest
@@ -18,7 +19,6 @@ from db.repositories.run_repository import RunRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.factories import (
     create_command_service,
     create_default_agent_factory,
@@ -27,7 +27,25 @@ from simulation.core.factories import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.query_service import SimulationQueryService
+from simulation.core.utils.exceptions import InsufficientAgentsError
 from tests.factories import AgentFactory
+
+
+def _make_agent_factory_with_mocks() -> tuple[
+    ProfileRepository,
+    FeedPostRepository,
+    GeneratedBioRepository,
+    Callable[[int], list[SocialMediaAgent]],
+]:
+    profile_repo = Mock(spec=ProfileRepository)
+    feed_post_repo = Mock(spec=FeedPostRepository)
+    generated_bio_repo = Mock(spec=GeneratedBioRepository)
+    factory = create_default_agent_factory(
+        profile_repo=profile_repo,
+        feed_post_repo=feed_post_repo,
+        generated_bio_repo=generated_bio_repo,
+    )
+    return profile_repo, feed_post_repo, generated_bio_repo, factory
 
 
 class TestCreateEngine:
@@ -178,8 +196,7 @@ class TestCreateDefaultAgentFactory:
 
     def test_returns_callable(self):
         """Test that create_default_agent_factory() returns a callable."""
-        # Act
-        factory = create_default_agent_factory()
+        _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Assert
         assert callable(factory)
@@ -193,7 +210,9 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
         ]
         mock_create_agents.return_value = mock_agents
-        factory = create_default_agent_factory()
+        profile_repo, feed_post_repo, generated_bio_repo, factory = (
+            _make_agent_factory_with_mocks()
+        )
 
         # Act
         result = factory(5)  # Request 5 agents
@@ -201,7 +220,11 @@ class TestCreateDefaultAgentFactory:
         # Assert
         assert len(result) == 5
         assert all(isinstance(agent, SocialMediaAgent) for agent in result)
-        mock_create_agents.assert_called_once()
+        mock_create_agents.assert_called_once_with(
+            profile_repo=profile_repo,
+            feed_post_repo=feed_post_repo,
+            generated_bio_repo=generated_bio_repo,
+        )
 
     @patch("ai.create_initial_agents.create_initial_agents")
     def test_handles_limit_correctly(self, mock_create_agents):
@@ -212,7 +235,9 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
         ]
         mock_create_agents.return_value = mock_agents
-        factory = create_default_agent_factory()
+        profile_repo, feed_post_repo, generated_bio_repo, factory = (
+            _make_agent_factory_with_mocks()
+        )
 
         # Act
         result = factory(3)  # Request 3 agents
@@ -229,7 +254,9 @@ class TestCreateDefaultAgentFactory:
         """Test that the factory raises InsufficientAgentsError when no agents are available."""
         # Arrange
         mock_create_agents.return_value = []  # No agents available
-        factory = create_default_agent_factory()
+        profile_repo, feed_post_repo, generated_bio_repo, factory = (
+            _make_agent_factory_with_mocks()
+        )
 
         # Act & Assert
         with pytest.raises(InsufficientAgentsError) as exc_info:
@@ -249,7 +276,9 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(3)
         ]
         mock_create_agents.return_value = mock_agents
-        factory = create_default_agent_factory()
+        profile_repo, feed_post_repo, generated_bio_repo, factory = (
+            _make_agent_factory_with_mocks()
+        )
 
         # Act & Assert
         with pytest.raises(InsufficientAgentsError) as exc_info:
@@ -269,7 +298,9 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(3)
         ]
         mock_create_agents.return_value = mock_agents
-        factory = create_default_agent_factory()
+        profile_repo, feed_post_repo, generated_bio_repo, factory = (
+            _make_agent_factory_with_mocks()
+        )
 
         # Act
         result = factory(3)  # Request exactly 3, which matches available
@@ -286,7 +317,9 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
         ]
         mock_create_agents.return_value = mock_agents
-        factory = create_default_agent_factory()
+        profile_repo, feed_post_repo, generated_bio_repo, factory = (
+            _make_agent_factory_with_mocks()
+        )
 
         # Act
         factory(5)

@@ -163,8 +163,9 @@ function TurnDetailContent({
         error instanceof Error ? error : new Error(String(error)),
       );
     } finally {
-      if (requestId !== requestIdRef.current) return;
-      setPostsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setPostsLoading(false);
+      }
     }
   }, [postUris]);
 
