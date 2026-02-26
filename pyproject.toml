@@ -110,12 +110,12 @@ typeCheckingMode = "basic"
 reportMissingTypeStubs = false
 
 [tool.importlinter]
-root_packages = ["simulation", "db", "lib", "feeds", "ai", "jobs", "ml_tooling", "ai_tools"]
+root_packages = ["simulation", "db", "lib", "feeds", "ai", "jobs", "ml_tooling"]
 include_external_packages = false
 exclude_type_checking_imports = true
 
 [[tool.importlinter.contracts]]
-name = "PY-1 domain purity: simulation.core.models"
+name = "Domain purity: simulation.core.models"
 type = "forbidden"
 source_modules = ["simulation.core.models"]
 forbidden_modules = [
@@ -141,19 +141,19 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "PY-1 lib is leaf"
+name = "lib is leaf"
 type = "forbidden"
 source_modules = ["lib"]
 forbidden_modules = ["simulation", "db", "feeds", "ai", "jobs", "ml_tooling"]
 
 [[tool.importlinter.contracts]]
-name = "PY-1 ml_tooling constraints"
+name = "ml_tooling constraints"
 type = "forbidden"
 source_modules = ["ml_tooling"]
 forbidden_modules = ["simulation", "db", "feeds", "ai", "jobs"]
 
 [[tool.importlinter.contracts]]
-name = "PY-1 API routes boundary: simulation.api.routes"
+name = "API routes boundary: simulation.api.routes"
 type = "forbidden"
 source_modules = ["simulation.api.routes"]
 forbidden_modules = ["simulation.core", "db", "feeds", "ai", "jobs", "ml_tooling"]

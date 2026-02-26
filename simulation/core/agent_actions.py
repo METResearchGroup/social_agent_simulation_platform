@@ -1,8 +1,4 @@
-"""Action generation helpers for simulation agents.
-
-This module intentionally lives outside `simulation.core.models` to keep domain models
-pure per PY-1 import contracts.
-"""
+"""Action generation helpers for simulation agents."""
 
 from __future__ import annotations
 

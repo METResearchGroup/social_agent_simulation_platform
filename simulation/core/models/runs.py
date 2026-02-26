@@ -25,7 +25,7 @@ class RunConfig(BaseModel):
     def validate_metric_keys_config(cls, v: list[str] | None) -> list[str] | None:
         """Validate that metric_keys, when provided, is non-empty and contains non-empty strings.
 
-        Note: registry-level validation belongs outside the domain models layer (PY-1).
+        Note: registry-level validation belongs outside the domain models layer.
         """
         if v is None:
             return None
