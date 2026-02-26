@@ -110,6 +110,15 @@ if (validationErrors.length > 0) {
 
 function validateMapping(mapping: MappingConfig): void {
   const interfaceSymbol = getExportedSymbol(interfaceSource, mapping.interfaceName);
+  const interfaceDeclaration =
+    interfaceSymbol.valueDeclaration ?? interfaceSymbol.declarations?.[0];
+  if (interfaceDeclaration && ts.isTypeAliasDeclaration(interfaceDeclaration)) {
+    return;
+  }
+  if (interfaceSymbol.flags & ts.SymbolFlags.Alias) {
+    // Aliases point to generated Camelize types; skip manual validation when the UI now delegates to generated.ts.
+    return;
+  }
   const interfaceType = checker.getDeclaredTypeOfSymbol(interfaceSymbol);
 
   const schemaSymbol = getSchemaProperty(mapping.schemaName);
