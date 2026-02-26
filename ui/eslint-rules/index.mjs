@@ -369,7 +369,10 @@ const rules = {
   'useeffect-requires-request-id-guard': {
     meta: {
       type: 'problem',
-      docs: { description: 'Require request-id guard for rerunnable async useEffects that set state after await.' },
+      docs: {
+        description:
+          'Require request-id guard for rerunnable async useEffects that set state after await. Heuristic: detects setters via /^set[A-Z]/ in _containsAwaitAndSetStateCall; may miss aliases and may false-positive on non-React helpers.',
+      },
       schema: [],
       messages: {
         needGuard:

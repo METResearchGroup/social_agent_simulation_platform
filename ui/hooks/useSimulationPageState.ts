@@ -114,7 +114,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const agentsOffsetRef = useRef<number>(0);
   const runsRequestIdRef = useRef<number>(0);
   const runDetailsRequestIdRef = useRef<Map<string, number>>(new Map());
-  const turnsRequestIdRef = useRef<number>(0);
+  const turnsRequestIdRef = useRef<Map<string, number>>(new Map());
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -212,10 +212,10 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       return;
     }
 
-    let isMounted: boolean = true;
-    turnsRequestIdRef.current += 1;
-    const requestId: number = turnsRequestIdRef.current;
     const runId: string = selectedRunId;
+    let isMounted: boolean = true;
+    const requestId: number = (turnsRequestIdRef.current.get(runId) ?? 0) + 1;
+    turnsRequestIdRef.current.set(runId, requestId);
     turnsFetchInFlightRef.current.add(runId);
     lastTurnsFetchAttemptAtMsRef.current.set(runId, nowMs);
     setTurnsLoadingByRunId((prev) => ({ ...prev, [runId]: true }));
@@ -225,7 +225,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       try {
         const turnsForRun: Record<string, Turn> = await getTurnsForRun(runId);
         if (!isMounted) return;
-        if (requestId !== turnsRequestIdRef.current) return;
+        if (requestId !== turnsRequestIdRef.current.get(runId)) return;
         loadedTurnsRunIdsRef.current.add(runId);
         setFallbackTurns((previousTurns) => ({
           ...previousTurns,
@@ -234,13 +234,13 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       } catch (error: unknown) {
         console.error(`Failed to fetch turns for ${runId}:`, error);
         if (!isMounted) return;
-        if (requestId !== turnsRequestIdRef.current) return;
+        if (requestId !== turnsRequestIdRef.current.get(runId)) return;
         const apiError: ApiError =
           error instanceof ApiError ? error : new ApiError('UNKNOWN_ERROR', String(error), null, 0);
         setTurnsErrorByRunId((prev) => ({ ...prev, [runId]: apiError }));
       } finally {
         turnsFetchInFlightRef.current.delete(runId);
-        const isStale = !isMounted || requestId !== turnsRequestIdRef.current;
+        const isStale = !isMounted || requestId !== turnsRequestIdRef.current.get(runId);
         if (!isStale) {
           setTurnsLoadingByRunId((prev) => ({ ...prev, [runId]: false }));
         }
