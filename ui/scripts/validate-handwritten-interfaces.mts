@@ -161,12 +161,8 @@ function validateMapping(mapping: MappingConfig): void {
 
     const skipTypeCheck = mapping.skipPropertyTypeChecks?.includes(property.name);
     if (!skipTypeCheck) {
-      const interfaceComparableType = property.optional
-        ? checker.getNonNullableType(property.type)
-        : property.type;
-      const schemaComparableType = schemaProperty.optional
-        ? checker.getNonNullableType(schemaProperty.type)
-        : schemaProperty.type;
+      const interfaceComparableType = property.type;
+      const schemaComparableType = schemaProperty.type;
 
       if (!checker.isTypeAssignableTo(interfaceComparableType, schemaComparableType)) {
         propertyErrors.push(

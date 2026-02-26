@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "generate:api": "uv run python ../scripts/generate_openapi_json.py --out openapi.json && openapi-typescript openapi.json --output types/api.generated.ts && node scripts/generate-ui-contracts.mts",
-    "check:api": "npm run generate:api && node scripts/validate-handwritten-interfaces.mts && git diff --exit-code -- openapi.json types/api.generated.ts",
+    "check:api": "npm run generate:api && tsx scripts/validate-handwritten-interfaces.mts && git diff --exit-code -- openapi.json types/api.generated.ts",
     "lint": "eslint",
     "lint:oxlint": "oxlint . --react-plugin",
     "lint:doctor": "node scripts/check-react-doctor.mjs",
@@ -33,6 +33,7 @@
     "oxlint": "^1",
     "react-doctor": "^0.0.17",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^3"
   }
 }
