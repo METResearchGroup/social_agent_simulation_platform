@@ -11,6 +11,7 @@ Quick lookup table of contents for project documentation.
 | [runbooks/UPDATE_SCHEMAS.md](runbooks/UPDATE_SCHEMAS.md) | Regenerate OpenAPI + UI types after contract changes |
 | [runbooks/PRODUCTION_DEPLOYMENT.md](runbooks/PRODUCTION_DEPLOYMENT.md) | General production and deployment guidance |
 | [runbooks/RAILWAY_DEPLOYMENT.md](runbooks/RAILWAY_DEPLOYMENT.md) | Deploy backend to Railway with Docker |
+| [runbooks/API_GATEWAY_FASTAPI.md](runbooks/API_GATEWAY_FASTAPI.md) | Run and deploy the FastAPI API gateway |
 | [runbooks/UI_DEPLOYMENT.md](runbooks/UI_DEPLOYMENT.md) | Deploy Next.js UI to Vercel |
 | [runbooks/SMOKE_TEST.md](runbooks/SMOKE_TEST.md) | Run smoke tests against a live API |
 | [runbooks/LOAD_TESTING.md](runbooks/LOAD_TESTING.md) | Run load tests with scripts |

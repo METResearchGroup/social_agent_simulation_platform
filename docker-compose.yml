@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    environment:
+      APP_MODULE: simulation.api.main:app
+      FORWARDED_ALLOW_IPS: "*"
+      LOCAL: "1"
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+
+  gateway:
+    build: .
+    environment:
+      APP_MODULE: gateway.api.main:app
+      FORWARDED_ALLOW_IPS: "*"
+      GATEWAY_UPSTREAM_BASE_URL: http://api:8000
+      PORT: "8000"
+      ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8001:8000"
+    depends_on:
+      - api
+
