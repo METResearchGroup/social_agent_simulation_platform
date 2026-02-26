@@ -62,6 +62,10 @@ PR 2:
 
 - Have a "Add comments" button. Same as above.
 
+## Flow 5: AI-generated Bios
+
+- This can be done as part of this unit of work.
+
 ## Overall notes
 
 - I think that there should be an updated viewer component that displays the list of posts/comments/likes/follows, and manages, e.g., showing rows and showing pagination. It can take as a row component the individual CommentRow, PostRow, LikeRow, FollowRow, FollowerRow, for example, and just display that.
