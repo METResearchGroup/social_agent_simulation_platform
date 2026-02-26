@@ -11,7 +11,7 @@ from simulation.core.metrics.interfaces import MetricScope
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
 from simulation.core.models.runs import RunStatus
-from simulation.core.validators import (
+from simulation.core.utils.validators import (
     validate_feed_algorithm,
     validate_metric_keys,
     validate_num_agents,

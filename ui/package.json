@@ -12,9 +12,11 @@
     "generate:api": "uv run python ../scripts/generate_openapi_json.py --out openapi.json && openapi-typescript openapi.json --output types/api.generated.ts && node scripts/generate-ui-contracts.mts",
     "check:api": "npm run generate:api && git diff --exit-code -- openapi.json types/api.generated.ts",
     "lint": "eslint",
+    "lint:eslint": "eslint . --max-warnings 0",
     "lint:oxlint": "oxlint . --react-plugin",
     "lint:doctor": "node scripts/check-react-doctor.mjs",
-    "lint:all": "npm run lint && npm run lint:oxlint && npm run lint:doctor"
+    "lint:all": "npm run lint && npm run lint:oxlint && npm run lint:doctor",
+    "lint:ci": "npm run lint:eslint && npm run lint:oxlint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
@@ -33,6 +35,6 @@
     "oxlint": "^1",
     "react-doctor": "^0.0.17",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "5.9.3"
   }
 }

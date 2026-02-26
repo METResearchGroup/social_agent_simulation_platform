@@ -11,7 +11,7 @@ from simulation.core.metrics.interfaces import (
 )
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
-from simulation.core.validators import validate_run_exists
+from simulation.core.utils.validators import validate_run_exists
 
 TURN_ACTION_COUNTS_BY_TYPE_ADAPTER = TypeAdapter(dict[str, int])
 TURN_ACTION_TOTAL_ADAPTER = TypeAdapter(int)

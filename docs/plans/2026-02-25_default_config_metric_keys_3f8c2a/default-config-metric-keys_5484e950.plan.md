@@ -64,7 +64,7 @@ We will extend the backend response model for `GET /v1/simulations/config/defaul
 - Update `[simulation/api/schemas/simulation.py](simulation/api/schemas/simulation.py)`:
   - Extend `class DefaultConfigSchema(BaseModel)` to include `metric_keys: list[str]`.
   - Add a `@field_validator("metric_keys")` that:
-    - Calls `simulation.core.validators.validate_metric_keys`.
+    - Calls `simulation.core.utils.validators.validate_metric_keys`.
     - Enforces **non-empty** (since list is always present).
   - Ensure the field remains deterministic (order): `get_default_metric_keys()` already returns sorted keys.
 
@@ -164,4 +164,3 @@ NEXT_PUBLIC_DISABLE_AUTH=true npm run dev
 ## Notes / constraints
 
 - This change intentionally expands the response schema for `GET /v1/simulations/config/default`. Any clients that assume the response is *exactly* `{num_agents,num_turns}` should still work (extra fields are typically ignored), but tests and strict decoders may need adjustment.
-

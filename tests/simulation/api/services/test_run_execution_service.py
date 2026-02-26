@@ -6,8 +6,11 @@ import pytest
 
 from simulation.api.schemas.simulation import RunRequest
 from simulation.api.services.run_execution_service import execute
-from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
 from simulation.core.models.actions import TurnAction
+from simulation.core.utils.exceptions import (
+    InconsistentTurnDataError,
+    SimulationRunFailure,
+)
 from tests.factories import TurnMetadataFactory, TurnMetricsFactory
 
 

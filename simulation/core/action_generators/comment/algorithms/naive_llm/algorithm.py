@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 
 from lib.timestamp_utils import get_current_timestamp
-from ml_tooling.llm.llm_service import LLMService, get_llm_service
+from ml_tooling.llm.llm_service import LLMService
 from simulation.core.action_generators.comment.algorithms.naive_llm.prompt import (
     COMMENT_PROMPT,
 )
@@ -69,9 +69,9 @@ def _build_generated_comment(
 class NaiveLLMCommentGenerator(CommentGenerator):
     """Generates comments using LLM prediction."""
 
-    def __init__(self, llm_service: LLMService | None = None) -> None:
-        """Initialize with optional LLM service for testing."""
-        self._llm = llm_service if llm_service is not None else get_llm_service()
+    def __init__(self, *, llm_service: LLMService) -> None:
+        """Initialize with injected LLM service."""
+        self._llm = llm_service
 
     def generate(
         self,

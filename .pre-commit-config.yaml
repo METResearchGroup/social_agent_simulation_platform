@@ -45,9 +45,14 @@ repos:
         entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test lint-imports --config pyproject.toml"
         language: system
         pass_filenames: false
+      - id: python_dependency_injection_guard
+        name: python_dependency_injection_guard (PY-2,3,5,6,7,8,9,10,12)
+        entry: bash -lc "set -euo pipefail; root=$(git rev-parse --show-toplevel); cd \"$root\"; uv tool run semgrep --config lint/semgrep --error; PYTHONPATH=\"$root\" uv run --extra test python scripts/lint_architecture.py"
+        language: system
+        pass_filenames: false
       - id: oxlint
-        name: oxlint + React Doctor (ui)
-        entry: bash -lc "cd ui && (test -d node_modules || npm install) && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
+        name: eslint (custom rules) + oxlint (ui)
+        entry: bash -lc "cd ui && if [ -d node_modules ] && [ -f node_modules/.package-lock.json ] && cmp -s package-lock.json node_modules/.package-lock.json; then npm run lint:ci; else npm ci && npm run lint:ci; fi"
         language: system
         pass_filenames: false
         files: ^ui/
