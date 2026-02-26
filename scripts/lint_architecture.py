@@ -113,6 +113,7 @@ def _git_ls_files_py() -> list[str]:
         check=True,
         capture_output=True,
         text=True,
+        timeout=30,
     )
     files = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
     return [f for f in files if not _posix(f).startswith("docs/plans/")]
