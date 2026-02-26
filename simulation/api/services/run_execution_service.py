@@ -12,11 +12,14 @@ from simulation.api.schemas.simulation import (
     TurnSummaryItem,
 )
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InconsistentTurnDataError, SimulationRunFailure
 from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig
 from simulation.core.models.turns import TurnMetadata
+from simulation.core.utils.exceptions import (
+    InconsistentTurnDataError,
+    SimulationRunFailure,
+)
 
 DEFAULT_NUM_TURNS: int = 10
 DEFAULT_FEED_ALGORITHM: str = "chronological"

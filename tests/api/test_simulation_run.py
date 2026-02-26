@@ -2,9 +2,9 @@
 
 from unittest.mock import MagicMock, patch
 
-from simulation.core.exceptions import SimulationRunFailure
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
+from simulation.core.utils.exceptions import SimulationRunFailure
 from tests.factories import (
     EngineFactory,
     GeneratedFeedFactory,

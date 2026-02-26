@@ -10,12 +10,15 @@ from db.adapters.sqlite.schema_utils import required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import runs
 from lib.validation_decorators import validate_inputs
-from simulation.core.exceptions import DuplicateTurnMetadataError, RunNotFoundError
 from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.models.turns import TurnMetadata
-from simulation.core.validators import validate_run_id, validate_turn_number
+from simulation.core.utils.exceptions import (
+    DuplicateTurnMetadataError,
+    RunNotFoundError,
+)
+from simulation.core.utils.validators import validate_run_id, validate_turn_number
 
 TURN_METADATA_REQUIRED_COLS = ["run_id", "turn_number", "total_actions", "created_at"]
 

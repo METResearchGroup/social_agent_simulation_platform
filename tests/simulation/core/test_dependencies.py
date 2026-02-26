@@ -18,7 +18,6 @@ from db.repositories.run_repository import RunRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
-from simulation.core.exceptions import InsufficientAgentsError
 from simulation.core.factories import (
     create_command_service,
     create_default_agent_factory,
@@ -27,6 +26,7 @@ from simulation.core.factories import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.query_service import SimulationQueryService
+from simulation.core.utils.exceptions import InsufficientAgentsError
 from tests.factories import AgentFactory
 
 

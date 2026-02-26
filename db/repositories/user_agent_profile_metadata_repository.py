@@ -9,7 +9,7 @@ from db.adapters.base import (
 from db.repositories.interfaces import UserAgentProfileMetadataRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
-from simulation.core.validators import validate_agent_id
+from simulation.core.utils.validators import validate_agent_id
 
 
 class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepository):

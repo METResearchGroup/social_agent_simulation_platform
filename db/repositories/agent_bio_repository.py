@@ -6,7 +6,7 @@ from db.adapters.base import AgentBioDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentBioRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent_bio import AgentBio
-from simulation.core.validators import validate_agent_id
+from simulation.core.utils.validators import validate_agent_id
 
 
 class SQLiteAgentBioRepository(AgentBioRepository):
