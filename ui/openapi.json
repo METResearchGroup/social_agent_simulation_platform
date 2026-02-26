@@ -843,6 +843,25 @@
         "operationId": "get_simulation_agents_v1_simulations_agents_get",
         "parameters": [
           {
+            "description": "Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards.",
+              "title": "Q"
+            }
+          },
+          {
             "description": "Maximum number of agents to return (ordered by handle).",
             "in": "query",
             "name": "limit",

@@ -11,6 +11,7 @@ from db.repositories.interfaces import (
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
+from lib.sql_like import build_substring_like_pattern_from_user_query
 from simulation.api.schemas.simulation import AgentSchema
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
@@ -22,6 +23,7 @@ def list_agents(
     agent_repo: AgentRepository | None = None,
     bio_repo: AgentBioRepository | None = None,
     metadata_repo: UserAgentProfileMetadataRepository | None = None,
+    q: str | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[AgentSchema]:
@@ -40,13 +42,22 @@ def list_agents(
             )
         )
 
+    handle_like: str | None = build_substring_like_pattern_from_user_query(q)
+
     agents: list[Agent]
     if limit is None:
         if offset != 0:
             raise ValueError("offset requires limit to be set")
+        if handle_like is not None:
+            raise ValueError("q requires limit to be set")
         agents = agent_repo.list_all_agents()
     else:
-        agents = agent_repo.list_agents_page(limit=limit, offset=offset)
+        if handle_like is None:
+            agents = agent_repo.list_agents_page(limit=limit, offset=offset)
+        else:
+            agents = agent_repo.search_agents_page(
+                handle_like=handle_like, limit=limit, offset=offset
+            )
 
     return _hydrate_agents(
         agents=agents, bio_repo=bio_repo, metadata_repo=metadata_repo

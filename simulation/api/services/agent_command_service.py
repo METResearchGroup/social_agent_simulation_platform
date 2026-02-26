@@ -15,11 +15,11 @@ from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
 from lib.timestamp_utils import get_current_timestamp
+from simulation.api.errors import ApiHandleAlreadyExistsError
 from simulation.api.schemas.simulation import AgentSchema, CreateAgentRequest
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
-from simulation.core.utils.exceptions import HandleAlreadyExistsError
 from simulation.core.utils.handle_utils import normalize_handle
 
 
@@ -59,7 +59,7 @@ def create_agent(
     # before the below context manager for writing the agent to the database.
     # This is a known issue, and we'll revisit this in the future.
     if agent_repo.get_agent_by_handle(handle) is not None:
-        raise HandleAlreadyExistsError(handle)
+        raise ApiHandleAlreadyExistsError(handle)
 
     agent_id = _generate_agent_id()
     now = get_current_timestamp()

@@ -215,6 +215,215 @@ def test_get_simulations_agents_pagination(simulation_client, temp_db, agent_rep
     assert [a["handle"] for a in data2] == ["@c.bsky.social"]
 
 
+def test_get_simulations_agents_query_case_insensitive_substring(
+    simulation_client, temp_db, agent_repo
+):
+    """GET /v1/simulations/agents?q supports case-insensitive substring matching on handle."""
+    agent_repo.create_or_update_agent(
+        AgentRecordFactory.create(
+            agent_id="did:plc:alpha",
+            handle="@alpha.bsky.social",
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name="@alpha.bsky.social",
+            created_at="2026_02_24-10:00:00",
+            updated_at="2026_02_24-10:00:00",
+        ),
+    )
+    agent_repo.create_or_update_agent(
+        AgentRecordFactory.create(
+            agent_id="did:plc:beta",
+            handle="@beta.bsky.social",
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name="@beta.bsky.social",
+            created_at="2026_02_24-10:00:00",
+            updated_at="2026_02_24-10:00:00",
+        ),
+    )
+
+    client, _ = simulation_client
+    response = client.get("/v1/simulations/agents?q=ALPHA&limit=100&offset=0")
+    expected_result = {"status_code": 200, "handles": ["@alpha.bsky.social"]}
+    assert response.status_code == expected_result["status_code"]
+    data = response.json()
+    assert [a["handle"] for a in data] == expected_result["handles"]
+
+
+def test_get_simulations_agents_query_too_long_returns_422(simulation_client, temp_db):
+    """q longer than 200 characters yields 422 with stable error shape."""
+    client, _ = simulation_client
+    q = "a" * 201
+
+    response = client.get(f"/v1/simulations/agents?q={q}&limit=100&offset=0")
+    expected_result = {"status_code": 422, "error_code": "VALIDATION_ERROR"}
+    assert response.status_code == expected_result["status_code"]
+    err = response.json()
+    assert err["error"]["code"] == expected_result["error_code"]
+
+
+def test_get_simulations_agents_query_whitespace_only_returns_all(
+    simulation_client, temp_db, agent_repo
+):
+    """Whitespace-only q is treated as unset (no filtering)."""
+    for handle, agent_id in [
+        ("@alpha.bsky.social", "did:plc:alpha"),
+        ("@beta.bsky.social", "did:plc:beta"),
+    ]:
+        agent_repo.create_or_update_agent(
+            AgentRecordFactory.create(
+                agent_id=agent_id,
+                handle=handle,
+                persona_source=PersonaSource.SYNC_BLUESKY,
+                display_name=handle,
+                created_at="2026_02_24-10:00:00",
+                updated_at="2026_02_24-10:00:00",
+            ),
+        )
+
+    client, _ = simulation_client
+    response = client.get("/v1/simulations/agents?q=%20%20&limit=100&offset=0")
+    expected_result = {"status_code": 200}
+    assert response.status_code == expected_result["status_code"]
+    data = response.json()
+    handles = [a["handle"] for a in data]
+
+    expected_handles = ["@alpha.bsky.social", "@beta.bsky.social"]
+    for handle in expected_handles:
+        assert handle in handles
+
+
+def test_get_simulations_agents_query_wildcards(simulation_client, temp_db, agent_repo):
+    """GET /v1/simulations/agents?q supports * and ? wildcards on handle."""
+    for handle, agent_id in [
+        ("@alpha.bsky.social", "did:plc:alpha"),
+        ("@alxha.bsky.social", "did:plc:alxha"),
+        ("@beta.bsky.social", "did:plc:beta"),
+    ]:
+        agent_repo.create_or_update_agent(
+            AgentRecordFactory.create(
+                agent_id=agent_id,
+                handle=handle,
+                persona_source=PersonaSource.SYNC_BLUESKY,
+                display_name=handle,
+                created_at="2026_02_24-10:00:00",
+                updated_at="2026_02_24-10:00:00",
+            ),
+        )
+
+    client, _ = simulation_client
+    r1 = client.get("/v1/simulations/agents?q=a*social&limit=100&offset=0")
+    expected_result = {
+        "status_code": 200,
+        "handles": ["@alpha.bsky.social", "@alxha.bsky.social", "@beta.bsky.social"],
+    }
+    assert r1.status_code == expected_result["status_code"]
+    assert [a["handle"] for a in r1.json()] == expected_result["handles"]
+
+    r2 = client.get("/v1/simulations/agents?q=al?ha&limit=100&offset=0")
+    expected_result = {
+        "status_code": 200,
+        "handles": ["@alpha.bsky.social", "@alxha.bsky.social"],
+    }
+    assert r2.status_code == expected_result["status_code"]
+    assert [a["handle"] for a in r2.json()] == expected_result["handles"]
+
+
+def test_get_simulations_agents_query_like_metacharacters(
+    simulation_client, temp_db, agent_repo
+):
+    """SQL LIKE metacharacters are treated as literals (% _ \\) in q."""
+    for handle, agent_id in [
+        ("@has%percent.bsky.social", "did:plc:percent"),
+        ("@has_under_score.bsky.social", "did:plc:underscore"),
+        (r"@has\backslash.bsky.social", "did:plc:backslash"),
+        ("@control.bsky.social", "did:plc:control"),
+    ]:
+        agent_repo.create_or_update_agent(
+            AgentRecordFactory.create(
+                agent_id=agent_id,
+                handle=handle,
+                persona_source=PersonaSource.SYNC_BLUESKY,
+                display_name=handle,
+                created_at="2026_02_24-10:00:00",
+                updated_at="2026_02_24-10:00:00",
+            ),
+        )
+
+    client, _ = simulation_client
+
+    r_percent = client.get("/v1/simulations/agents?q=%25&limit=100&offset=0")
+    expected_result = {"status_code": 200, "handles": ["@has%percent.bsky.social"]}
+    assert r_percent.status_code == expected_result["status_code"]
+    assert [a["handle"] for a in r_percent.json()] == expected_result["handles"]
+
+    r_underscore = client.get("/v1/simulations/agents?q=_&limit=100&offset=0")
+    expected_result = {"status_code": 200, "handles": ["@has_under_score.bsky.social"]}
+    assert r_underscore.status_code == expected_result["status_code"]
+    assert [a["handle"] for a in r_underscore.json()] == expected_result["handles"]
+
+    r_backslash = client.get("/v1/simulations/agents?q=%5C&limit=100&offset=0")
+    expected_result = {"status_code": 200, "handles": [r"@has\backslash.bsky.social"]}
+    assert r_backslash.status_code == expected_result["status_code"]
+    assert [a["handle"] for a in r_backslash.json()] == expected_result["handles"]
+
+
+def test_get_simulations_agents_query_pagination(
+    simulation_client, temp_db, agent_repo
+):
+    """GET /v1/simulations/agents?q supports pagination with deterministic ordering."""
+    for handle, agent_id in [
+        ("@c.bsky.social", "did:plc:c"),
+        ("@a.bsky.social", "did:plc:a"),
+        ("@b.bsky.social", "did:plc:b"),
+    ]:
+        agent_repo.create_or_update_agent(
+            AgentRecordFactory.create(
+                agent_id=agent_id,
+                handle=handle,
+                persona_source=PersonaSource.SYNC_BLUESKY,
+                display_name=handle,
+                created_at="2026_02_24-10:00:00",
+                updated_at="2026_02_24-10:00:00",
+            ),
+        )
+
+    client, _ = simulation_client
+    response = client.get("/v1/simulations/agents?q=bsky&limit=2&offset=1")
+    expected_result = {
+        "status_code": 200,
+        "handles": ["@b.bsky.social", "@c.bsky.social"],
+    }
+    assert response.status_code == expected_result["status_code"]
+    data = response.json()
+    assert [a["handle"] for a in data] == expected_result["handles"]
+
+
+def test_get_simulations_agents_query_scrubbing(simulation_client, temp_db, agent_repo):
+    """Whitespace in q is scrubbed so '  a  ' behaves like 'a'."""
+    for handle, agent_id in [
+        ("@alpha.bsky.social", "did:plc:alpha"),
+        ("@beta.bsky.social", "did:plc:beta"),
+    ]:
+        agent_repo.create_or_update_agent(
+            AgentRecordFactory.create(
+                agent_id=agent_id,
+                handle=handle,
+                persona_source=PersonaSource.SYNC_BLUESKY,
+                display_name=handle,
+                created_at="2026_02_24-10:00:00",
+                updated_at="2026_02_24-10:00:00",
+            ),
+        )
+
+    client, _ = simulation_client
+    response = client.get(
+        "/v1/simulations/agents?q=%20%20ALPHA%20%20&limit=100&offset=0"
+    )
+    expected_result = {"status_code": 200, "handles": ["@alpha.bsky.social"]}
+    assert response.status_code == expected_result["status_code"]
+    data = response.json()
+    assert [a["handle"] for a in data] == expected_result["handles"]
+
+
 def test_get_simulations_agents_default_limit_is_100(
     simulation_client, temp_db, agent_repo
 ):

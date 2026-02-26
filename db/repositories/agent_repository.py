@@ -51,6 +51,15 @@ class SQLiteAgentRepository(AgentRepository):
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_agents_page(limit=limit, offset=offset, conn=c)
 
+    def search_agents_page(
+        self, *, handle_like: str, limit: int, offset: int
+    ) -> list[Agent]:
+        """List a page of agents filtered by handle LIKE, ordered by handle."""
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_agents_page_by_handle_like(
+                handle_like=handle_like, limit=limit, offset=offset, conn=c
+            )
+
 
 def create_sqlite_agent_repository(
     *,

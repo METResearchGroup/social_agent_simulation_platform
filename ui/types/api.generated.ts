@@ -596,6 +596,8 @@ export interface operations {
     get_simulation_agents_v1_simulations_agents_get: {
         parameters: {
             query?: {
+                /** @description Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards. */
+                q?: string | null;
                 /** @description Maximum number of agents to return (ordered by handle). */
                 limit?: number;
                 /** @description Number of agents to skip before returning results (ordered by handle). */
