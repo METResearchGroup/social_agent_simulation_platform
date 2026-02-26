@@ -338,3 +338,123 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
             assert "WHERE uri IN" in call_args[0][0]
             # Parameters should be tuple of URIs
             assert call_args[0][1] == tuple(uris)
+
+    def test_handles_very_large_list_of_uris(self, adapter, mock_db_connection):
+        """Test that read_feed_posts_by_uris handles a very large list of URIs."""
+        # Arrange
+        uris = [f"uri_{i}" for i in range(1000)]
+
+        with mock_db_connection() as (mock_conn, mock_cursor):
+            mock_cursor.fetchall = Mock(return_value=[])
+
+            # Act
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+
+            # Assert
+            assert result is not None
+            assert isinstance(result, list)
+            assert len(result) == 0
+            mock_conn.execute.assert_called_once()
+            # Verify correct number of parameters
+            call_args = mock_conn.execute.call_args
+            assert call_args[0][1] == tuple(uris)
+
+    def test_handles_duplicate_uris_in_input(self, adapter, mock_db_connection):
+        """Test that read_feed_posts_by_uris handles duplicate URIs correctly."""
+        # Arrange
+        uris = ["uri1", "uri1", "uri2", "uri2", "uri3"]
+
+        row_data_1 = {
+            "uri": "uri1",
+            "author_display_name": "Author 1",
+            "author_handle": "author1.bsky.social",
+            "text": "Post 1 text",
+            "bookmark_count": 0,
+            "like_count": 5,
+            "quote_count": 0,
+            "reply_count": 2,
+            "repost_count": 1,
+            "created_at": "2024_01_01-12:00:00",
+        }
+        row_data_2 = {
+            "uri": "uri2",
+            "author_display_name": "Author 2",
+            "author_handle": "author2.bsky.social",
+            "text": "Post 2 text",
+            "bookmark_count": 0,
+            "like_count": 10,
+            "quote_count": 0,
+            "reply_count": 3,
+            "repost_count": 2,
+            "created_at": "2024_01_01-12:01:00",
+        }
+        row_data_3 = {
+            "uri": "uri3",
+            "author_display_name": "Author 3",
+            "author_handle": "author3.bsky.social",
+            "text": "Post 3 text",
+            "bookmark_count": 0,
+            "like_count": 0,
+            "quote_count": 0,
+            "reply_count": 0,
+            "repost_count": 0,
+            "created_at": "2024_01_01-12:02:00",
+        }
+        mock_row_1 = create_mock_row(row_data_1)
+        mock_row_2 = create_mock_row(row_data_2)
+        mock_row_3 = create_mock_row(row_data_3)
+
+        with mock_db_connection() as (mock_conn, mock_cursor):
+            # Database returns each URI once
+            mock_cursor.fetchall = Mock(
+                return_value=[mock_row_1, mock_row_2, mock_row_3]
+            )
+
+            # Act
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+
+            # Assert
+            assert result is not None
+            assert isinstance(result, list)
+            # Should preserve input order including duplicates
+            assert len(result) == 5
+            assert result[0].uri == "uri1"
+            assert result[1].uri == "uri1"
+            assert result[2].uri == "uri2"
+            assert result[3].uri == "uri2"
+            assert result[4].uri == "uri3"
+
+    def test_handles_special_characters_in_uris(self, adapter, mock_db_connection):
+        """Test that read_feed_posts_by_uris handles URIs with special characters."""
+        # Arrange
+        uris = [
+            "at://did:plc:abc123/app.bsky.feed.post/xyz",
+            "uri_with_underscores_123",
+            "uri-with-dashes-456",
+        ]
+
+        row_data_1 = {
+            "uri": "at://did:plc:abc123/app.bsky.feed.post/xyz",
+            "author_display_name": "Author 1",
+            "author_handle": "author1.bsky.social",
+            "text": "Post 1",
+            "bookmark_count": 0,
+            "like_count": 5,
+            "quote_count": 0,
+            "reply_count": 2,
+            "repost_count": 1,
+            "created_at": "2024_01_01-12:00:00",
+        }
+        mock_row_1 = create_mock_row(row_data_1)
+
+        with mock_db_connection() as (mock_conn, mock_cursor):
+            mock_cursor.fetchall = Mock(return_value=[mock_row_1])
+
+            # Act
+            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+
+            # Assert
+            assert result is not None
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0].uri == "at://did:plc:abc123/app.bsky.feed.post/xyz"

@@ -454,3 +454,150 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
         mock_adapter.read_feeds_for_turn.assert_called_once()
         assert mock_adapter.read_feeds_for_turn.call_args[0][:2] == ("run_123", 0)
         assert mock_adapter.read_feeds_for_turn.call_args[1]["conn"] is not None
+
+
+class TestSQLiteGeneratedFeedRepositoryEdgeCases:
+    """Additional edge case tests for SQLiteGeneratedFeedRepository."""
+
+    def test_write_generated_feed_with_empty_post_uris_list(self):
+        """Test that write_generated_feed handles empty post_uris list."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed_empty",
+            run_id="run_123",
+            turn_number=0,
+            agent_handle="test.bsky.social",
+            post_uris=[],  # Empty list
+            created_at="2024-01-01T00:00:00Z",
+        )
+
+        # Act
+        result = repo.write_generated_feed(feed)
+
+        # Assert
+        assert result == feed
+        assert result.post_uris == []
+        mock_adapter.write_generated_feed.assert_called_once()
+
+    def test_write_generated_feed_with_large_post_uris_list(self):
+        """Test that write_generated_feed handles large post_uris list."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+        large_uris = [f"at://did:plc:test{i}/app.bsky.feed.post/post{i}" for i in range(1000)]
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed_large",
+            run_id="run_123",
+            turn_number=0,
+            agent_handle="test.bsky.social",
+            post_uris=large_uris,
+            created_at="2024-01-01T00:00:00Z",
+        )
+
+        # Act
+        result = repo.write_generated_feed(feed)
+
+        # Assert
+        assert result == feed
+        assert len(result.post_uris) == 1000
+        mock_adapter.write_generated_feed.assert_called_once()
+
+    def test_write_generated_feed_with_maximum_turn_number(self):
+        """Test that write_generated_feed handles maximum turn number."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed_max_turn",
+            run_id="run_123",
+            turn_number=999999,
+            agent_handle="test.bsky.social",
+            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            created_at="2024-01-01T00:00:00Z",
+        )
+
+        # Act
+        result = repo.write_generated_feed(feed)
+
+        # Assert
+        assert result == feed
+        assert result.turn_number == 999999
+        mock_adapter.write_generated_feed.assert_called_once()
+
+    def test_get_post_uris_for_run_returns_empty_set_when_no_feeds(self):
+        """Test that get_post_uris_for_run returns empty set when no feeds exist."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        mock_adapter.read_post_uris_for_run.return_value = set()
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+
+        # Act
+        result = repo.get_post_uris_for_run("test.bsky.social", "run_123")
+
+        # Assert
+        assert result == set()
+        assert isinstance(result, set)
+        mock_adapter.read_post_uris_for_run.assert_called_once()
+
+    def test_get_post_uris_for_run_handles_large_result_set(self):
+        """Test that get_post_uris_for_run handles large set of URIs."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        large_uris = {f"at://did:plc:test{i}/app.bsky.feed.post/post{i}" for i in range(5000)}
+        mock_adapter.read_post_uris_for_run.return_value = large_uris
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+
+        # Act
+        result = repo.get_post_uris_for_run("test.bsky.social", "run_123")
+
+        # Assert
+        assert result == large_uris
+        assert len(result) == 5000
+        mock_adapter.read_post_uris_for_run.assert_called_once()
+
+    def test_get_post_uris_for_run_raises_error_when_agent_handle_empty(self):
+        """Test that get_post_uris_for_run raises ValueError when agent_handle is empty."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="handle cannot be empty"):
+            repo.get_post_uris_for_run("", "run_123")
+
+        mock_adapter.read_post_uris_for_run.assert_not_called()
+
+    def test_get_post_uris_for_run_raises_error_when_run_id_empty(self):
+        """Test that get_post_uris_for_run raises ValueError when run_id is empty."""
+        # Arrange
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="run_id cannot be empty"):
+            repo.get_post_uris_for_run("test.bsky.social", "")
+
+        mock_adapter.read_post_uris_for_run.assert_not_called()
