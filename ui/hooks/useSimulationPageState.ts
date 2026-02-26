@@ -22,6 +22,8 @@ const EMPTY_RUN_DETAILS_LOADING: Record<string, boolean> = {};
 const EMPTY_RUN_DETAILS_ERROR: Record<string, ApiError | null> = {};
 const TURN_FETCH_THROTTLE_MS: number = 1500;
 const AGENTS_QUERY_MAX_LENGTH: number = 200;
+const RUN_DETAILS_AUTO_RETRY_DELAY_MS: number = 1000;
+const RUN_DETAILS_AUTO_RETRY_MAX_ATTEMPTS: number = 2;
 
 /**
  * Result of useSimulationPageState.
@@ -122,6 +124,9 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
   const runsRequestIdRef = useRef<number>(0);
   const runDetailsRequestIdRef = useRef<Map<string, number>>(new Map());
   const turnsRequestIdRef = useRef<Map<string, number>>(new Map());
+  const runDetailsAutoRetryAttemptsRef = useRef<Map<string, number>>(new Map());
+  const runDetailsAutoRetryTimerRef = useRef<Map<string, number>>(new Map());
+  const previousSelectedRunIdRef = useRef<string | null>(null);
   const isMountedRef = useRef<boolean>(true);
 
   useEffect(() => {
@@ -323,6 +328,71 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     void loadRunDetails();
   }, [selectedRunId, selectedRunHasConfig]);
 
+  const clearRunDetailsAutoRetryState = useCallback((runId: string | null): void => {
+    if (!runId) return;
+    const timerId = runDetailsAutoRetryTimerRef.current.get(runId);
+    if (timerId) {
+      window.clearTimeout(timerId);
+      runDetailsAutoRetryTimerRef.current.delete(runId);
+    }
+    runDetailsAutoRetryAttemptsRef.current.delete(runId);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedRunId) {
+      return;
+    }
+    const runError = runDetailsErrorByRunId[selectedRunId];
+    if (!runError) {
+      clearRunDetailsAutoRetryState(selectedRunId);
+      return;
+    }
+
+    const currentAttempts = runDetailsAutoRetryAttemptsRef.current.get(selectedRunId) ?? 0;
+    if (currentAttempts >= RUN_DETAILS_AUTO_RETRY_MAX_ATTEMPTS) {
+      return;
+    }
+
+    if (runDetailsAutoRetryTimerRef.current.has(selectedRunId)) {
+      return;
+    }
+
+    const runId = selectedRunId;
+    const autoRetryTimers = runDetailsAutoRetryTimerRef.current;
+    const timerId = window.setTimeout(() => {
+      runDetailsAutoRetryAttemptsRef.current.set(runId, currentAttempts + 1);
+      setRunDetailsErrorByRunId((prev) => {
+        const next = { ...prev };
+        delete next[runId];
+        return next;
+      });
+      setRunConfigs((prev) => {
+        const next = { ...prev };
+        delete next[runId];
+        return next;
+      });
+      autoRetryTimers.delete(runId);
+    }, RUN_DETAILS_AUTO_RETRY_DELAY_MS);
+
+    autoRetryTimers.set(runId, timerId);
+
+    return () => {
+      window.clearTimeout(timerId);
+      const pendingTimer = autoRetryTimers.get(runId);
+      if (pendingTimer === timerId) {
+        autoRetryTimers.delete(runId);
+      }
+    };
+  }, [selectedRunId, runDetailsErrorByRunId, clearRunDetailsAutoRetryState]);
+
+  useEffect(() => {
+    const previousRunId = previousSelectedRunIdRef.current;
+    if (previousRunId && previousRunId !== selectedRunId) {
+      clearRunDetailsAutoRetryState(previousRunId);
+    }
+    previousSelectedRunIdRef.current = selectedRunId;
+  }, [selectedRunId, clearRunDetailsAutoRetryState]);
+
   const runsWithStatus: Run[] = useMemo(
     () => withComputedRunStatuses(runs),
     [runs],
@@ -375,7 +445,8 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
       delete next[selectedRunId];
       return next;
     });
-  }, [selectedRunId]);
+    clearRunDetailsAutoRetryState(selectedRunId);
+  }, [selectedRunId, clearRunDetailsAutoRetryState]);
 
   const handleConfigSubmit = (config: RunConfig): void => {
     setRunsError(null); // Clear stale run errors before starting a new run.
