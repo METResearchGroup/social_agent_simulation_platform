@@ -21,6 +21,8 @@ todos:
     content: Capture after screenshots of ConfigForm with feed algorithm select to docs/plans/.../images/after/
     status: completed
 isProject: false
+description: Document the frontend tasks for fetching feed algorithms, extending RunConfig, and wiring ConfigForm to POST /v1/simulations/run.
+tags: [plan, ui, frontend, feed-algorithms]
 ---
 
 # Unit 2: Feed Algorithm Selection (Frontend)

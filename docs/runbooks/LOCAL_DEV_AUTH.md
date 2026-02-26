@@ -1,3 +1,8 @@
+---
+description: Local development auth bypass (LOCAL=true) and real OAuth session persistence guidance.
+tags: [auth, local, oauth, testing]
+---
+
 # Local Development: Auth Bypass and Session Persistence
 
 This runbook covers how to bypass auth during local development and how to persist a real OAuth session for testing.

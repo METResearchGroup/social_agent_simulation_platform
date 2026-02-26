@@ -24,6 +24,8 @@ todos:
     content: Delete feeds/algorithms.py (old top-level file) after package is in place
     status: completed
 isProject: false
+description: Plan to refactor feed generation into a registry-backed architecture with metadata and GET /v1/simulations/feed-algorithms.
+tags: [plan, backend, feed-algorithms, registry]
 ---
 
 # Unit 1: Backend Refactor – Feeds Registry + Metadata

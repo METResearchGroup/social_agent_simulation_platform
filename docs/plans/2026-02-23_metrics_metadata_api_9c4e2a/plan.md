@@ -1,3 +1,8 @@
+---
+description: Plan to add GET /v1/simulations/metrics that surfaces metadata for each built-in metric.
+tags: [plan, metrics, api]
+---
+
 # Metrics Metadata API – Implementation Plan
 
 ## Remember

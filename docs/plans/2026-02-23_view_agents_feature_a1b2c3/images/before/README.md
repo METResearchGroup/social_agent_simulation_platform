@@ -1,3 +1,8 @@
+---
+description: Notes describing the before-screenshots captured ahead of the View Agents feature work.
+tags: [plan, images, ui, view-agents]
+---
+
 # Before Screenshots
 
 Captured before implementing the View Agents feature.

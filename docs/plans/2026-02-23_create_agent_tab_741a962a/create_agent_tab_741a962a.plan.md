@@ -24,6 +24,8 @@ todos:
     content: Capture after screenshots to docs/plans/2026-02-23_create_agent_tab_<hash>/images/after/
     status: completed
 isProject: false
+description: UI plan for adding a "Create agent" tab with a form, history previews, and stubbed submit controls.
+tags: [plan, ui, agents, frontend]
 ---
 
 # Create New Agent Tab Implementation Plan
@@ -190,4 +192,3 @@ docs/plans/2026-02-23_create_agent_tab_<6-digit hash>/
     └── after/
         └── (new UI screenshots)
 ```
-

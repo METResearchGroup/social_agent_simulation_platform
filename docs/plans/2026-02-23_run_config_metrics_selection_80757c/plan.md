@@ -1,3 +1,8 @@
+---
+description: Plan for per-run metric selection where POST /v1/simulations/run accepts metric_keys and persistence uses DEFAULT constants.
+tags: [plan, metrics, api, backend]
+---
+
 # Run Config and Execution – Per-Run Metric Selection
 
 ## Remember

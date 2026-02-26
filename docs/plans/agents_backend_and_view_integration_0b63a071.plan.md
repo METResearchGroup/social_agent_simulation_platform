@@ -3,6 +3,8 @@ name: Agents Backend and View Integration
 overview: Implement backend persistence for agent creation (POST) and real-DB listing (GET), wire the Create Agent form to POST, switch View agents to real data, and preserve mock runs by introducing a mock agents endpoint for run-detail context. Uses atomic transactions, server-side handle normalization, and leaves comments/likes/linked-agents as fast-follows.
 todos: []
 isProject: false
+description: Integrate backend persistence for agent creation/listing and wire the UI's View Agents/Create Agent tabs to real data while keeping mock run support.
+tags: [plan, backend, agents, ui]
 ---
 
 # Agents Backend and View Integration
@@ -233,4 +235,3 @@ docs/plans/2026-02-23_agents_backend_view_integration_<6-digit hash>/
 - **Single agents source for runs:** Rejected; run detail needs mock agents to match dummy turn handles; separating mock endpoint keeps runs flow isolated.
 - **Persist history fields now:** Rejected; requires schema and migration; deferred to fast-follow.
 - **Client-side handle normalization:** Rejected; user requested server-side enforcement.
-

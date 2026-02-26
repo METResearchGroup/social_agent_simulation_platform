@@ -1,7 +1,8 @@
 ---
-description: Setup and running the simulation API locally with uv and uvicorn.
-tags: [local, development, setup, api, uvicorn]
+description: How to run the backend and frontend locally (LOCAL mode) with seeded dummy data and bypassed auth.
+tags: [local, development, api, uvicorn, auth]
 ---
+
 
 # Local Development Runbook
 

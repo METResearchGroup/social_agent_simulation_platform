@@ -15,6 +15,8 @@ todos:
     content: Run pytest and pre-commit, verify structured logs
     status: completed
 isProject: false
+description: Refactor simulation routes to share a log_route_completion_decorator that emits structured completion events and keeps handlers thin.
+tags: [plan, logging, decorator]
 ---
 
 # Log Route Completion Decorator

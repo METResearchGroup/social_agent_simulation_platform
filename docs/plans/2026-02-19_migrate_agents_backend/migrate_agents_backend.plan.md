@@ -27,6 +27,8 @@ todos:
     content: Remove DUMMY_AGENTS and getAgentByHandle from ui/lib/dummy-data.ts
     status: pending
 isProject: false
+description: Migrate DUMMY_AGENTS and agent fetching to the backend so the UI uses GET /v1/simulations/agents instead of dummy data.
+tags: [plan, backend, agents, api]
 ---
 
 # Migrate Agents to Backend

@@ -1,3 +1,8 @@
+---
+description: Notes describing the after-screenshots captured for the View Agents feature implementation.
+tags: [plan, images, ui, view-agents]
+---
+
 # After Screenshots
 
 Captured after implementing the View Agents feature. Run with `DISABLE_AUTH=1` (backend) and `NEXT_PUBLIC_DISABLE_AUTH=true` (frontend) per docs/runbooks/LOCAL_DEV_AUTH.md.

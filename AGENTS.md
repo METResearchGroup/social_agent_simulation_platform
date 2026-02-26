@@ -9,6 +9,10 @@ This file is for AI agents and humans working in this repo. It points to the can
 
 If you’re unsure how to do something (local dev, deployment, linting, smoke tests), check `docs/runbooks/` before inventing new workflows.
 
+## Docs metadata
+
+- Every Markdown file under `docs/runbooks/` and `docs/plans/` must ship YAML front matter with `description` and `tags`. Run `uv run python scripts/check_docs_metadata.py [paths]` to verify any document locally—the default behavior targets `docs/runbooks/` and `docs/plans/`, but you can pass explicit files or directories (pre-commit hooks do this automatically). Missing metadata blocks fail the docs-metadata CI job and the new pre-commit hook, so rerun the script (or `uv run pre-commit run docs-metadata`) before landing doc changes.
+
 ## Local development (default)
 
 Canonical runbooks:

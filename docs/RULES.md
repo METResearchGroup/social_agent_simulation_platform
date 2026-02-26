@@ -159,6 +159,10 @@ Decorators
 
 Document the contract, not just the implementation
 
+## Documentation metadata
+
+- All Markdown files under `docs/runbooks/` and `docs/plans/` must start with YAML front matter containing both `description` (non-empty string) and `tags` (YAML list of strings). This is enforced by `scripts/check_docs_metadata.py`, the pre-commit hook, and the CI job so metadata stays consistent for tooling and cataloging.
+
 - When behavior could be surprising (e.g. overwrite vs fail-on-duplicate, retry safety), document the chosen contract (inputs, outputs, exceptions, idempotency/immutability) at the interface.
 - Prefer documenting intent at the boundary over leaving semantics to be inferred from implementation details.
 - Comment non-obvious design choices: If a choice is made for consistency, future-proofing, or maintainability rather than immediate benefit, add a short comment explaining why, so reviewers and future readers understand the intent.

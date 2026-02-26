@@ -1,3 +1,10 @@
+---
+description: Plan to enable LOCAL=true for auto auth bypass and forced dummy DB seeded from JSON fixtures.
+tags: [plan, local, auth, seed, dev]
+---
+
+# LOCAL=true Local Dev Mode: Forced Dummy DB + Seed Fixtures
+
 ## Remember
 - Exact file paths always
 - Exact commands with expected output

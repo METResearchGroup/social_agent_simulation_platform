@@ -21,6 +21,8 @@ todos:
     content: Capture after screenshots of config form with metrics selector in docs/plans/.../images/after/
     status: completed
 isProject: false
+description: UI-focused plan for the collapsible metrics selector that fetches GET /v1/simulations/metrics and posts selected keys when starting runs.
+tags: [plan, ui, metrics, frontend]
 ---
 
 # Part 3: UI – Metrics Selector Component
@@ -189,4 +191,3 @@ flowchart LR
 - **Directory:** `docs/plans/2026-02-24_metrics_selector_ui_9f3a2b/`
 - **Before screenshots:** `docs/plans/2026-02-24_metrics_selector_ui_9f3a2b/images/before/`
 - **After screenshots:** `docs/plans/2026-02-24_metrics_selector_ui_9f3a2b/images/after/`
-

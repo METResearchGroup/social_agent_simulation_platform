@@ -5,11 +5,44 @@ permissions:
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, "codex/**" ]
   pull_request:
     branches: [ main, master, develop ]
+  workflow_dispatch:
 
 jobs:
+  docs-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache uv + pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            ~/.cache/pip
+          key: ${{ runner.os }}-uv-docs-metadata-3.12-${{ hashFiles('pyproject.toml', 'uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-docs-metadata-3.12-
+
+      - name: Install uv (needed for dependencies)
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run docs metadata check
+        run: uv run python scripts/check_docs_metadata.py
+
   markdownlint:
     runs-on: ubuntu-latest
     steps:

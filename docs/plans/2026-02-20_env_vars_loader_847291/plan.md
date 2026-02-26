@@ -1,3 +1,8 @@
+---
+description: Plan to create `lib/load_env_vars.EnvVarsContainer` as a centralized, thread-safe loader for shared env vars.
+tags: [plan, env, config, loader]
+---
+
 # Centralized Env Vars Loader Implementation Plan
 
 ## Remember

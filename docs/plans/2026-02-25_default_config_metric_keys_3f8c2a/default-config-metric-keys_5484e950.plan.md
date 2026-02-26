@@ -24,6 +24,8 @@ todos:
     content: Capture after UI screenshots and save to `docs/plans/2026-02-25_default_config_metric_keys_3f8c2a/images/after/` using the same happy flow as before.
     status: completed
 isProject: false
+description: Ensure GET /v1/simulations/config/default always returns `metric_keys` and the UI consumes the typed field without widening casts.
+tags: [plan, metrics, config, api]
 ---
 
 # Always-present metric_keys in DefaultConfigSchema

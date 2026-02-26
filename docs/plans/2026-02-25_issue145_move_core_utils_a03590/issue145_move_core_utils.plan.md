@@ -1,6 +1,8 @@
 ---
-name: Issue #145 — Relocate simulation.core utilities into simulation/core/utils/
+name: "Issue #145 — Relocate simulation.core utilities into simulation/core/utils/"
 overview: "Relocate simulation/core/{exceptions,validators,handle_utils}.py into simulation/core/utils/ and update all internal imports accordingly. This is a pure refactor (no behavioral changes) but is an intentional breaking change for external consumers because we will not keep backwards-compatible shims at the old import paths."
+description: Refactor plan to move core utility modules (exceptions, validators, handle utilities) into simulation/core/utils and update imports.
+tags: [plan, refactor, simulation-core]
 todos:
   - id: plan-assets-dir
     content: Create plan assets folder `docs/plans/2026-02-25_issue145_move_core_utils_a03590/` and save this plan.
