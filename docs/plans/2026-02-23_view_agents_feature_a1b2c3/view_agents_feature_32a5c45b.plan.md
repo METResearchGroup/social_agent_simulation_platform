@@ -24,6 +24,8 @@ todos:
     content: Capture after screenshots to docs/plans/2026-02-23_view_agents_feature_a1b2c3/images/after/
     status: completed
 isProject: false
+description: Plan for adding the "View agents" UI toggle, agent sidebar, and agent detail powered by GET /v1/simulations/agents.
+tags: [plan, ui, agents]
 ---
 
 # View Agents Feature Implementation Plan
@@ -177,4 +179,3 @@ docs/plans/2026-02-23_view_agents_feature_a1b2c3/
     └── after/
         └── (new UI screenshots)
 ```
-

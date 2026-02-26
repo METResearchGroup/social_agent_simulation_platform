@@ -1,3 +1,8 @@
+---
+description: When backend schemas change, regenerate the OpenAPI artifacts and keep UI types in sync.
+tags: [api, schema, openapi, ui]
+---
+
 # Updating API schemas (backend ↔ UI)
 
 This project treats the FastAPI backend as the source of truth for API request/response

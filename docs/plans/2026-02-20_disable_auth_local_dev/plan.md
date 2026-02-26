@@ -1,3 +1,8 @@
+---
+description: Plan for BACKEND=DISABLE_AUTH and NEXT_PUBLIC_DISABLE_AUTH bypasses so local dev skips OAuth.
+tags: [plan, auth, local, testing]
+---
+
 # Disable auth during local dev
 
 ## Problem

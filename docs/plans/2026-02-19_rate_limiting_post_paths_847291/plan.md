@@ -18,6 +18,8 @@ todos:
     content: Run Manual Verification checklist (pytest, server, curl, pre-commit)
     status: completed
 isProject: false
+description: Plan to add per-IP slowapi rate limits to POST routes, with tighter limits on POST /v1/simulations/run for Railway deployments.
+tags: [plan, security, rate-limiting, api]
 ---
 
 # Rate Limiting for POST Paths

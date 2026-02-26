@@ -1,3 +1,8 @@
+---
+description: Step-by-step guide to configure Google and GitHub OAuth callbacks for the agent-simulation-platform Supabase project.
+tags: [plan, auth, oauth, supabase]
+---
+
 # OAuth Setup for agent-simulation-platform
 
 Step-by-step instructions to configure Google and GitHub OAuth in the existing Supabase project. The project `agent-simulation-platform` already exists; this guide configures Auth providers and redirect URLs.

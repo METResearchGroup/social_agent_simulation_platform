@@ -1,3 +1,8 @@
+---
+description: Notes for the after-screenshots showing the Metrics selector component with its collapsed sections.
+tags: [plan, images, ui, metrics]
+---
+
 # After screenshots
 
 Captured after implementing the Metrics selector with **display_name** (required) and **Turn-level / Run-level** collapsible sections. Servers started per [LOCAL_DEV_AUTH.md](../../../../runbooks/LOCAL_DEV_AUTH.md) and [LOCAL_DEVELOPMENT.md](../../../../runbooks/LOCAL_DEVELOPMENT.md):

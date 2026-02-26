@@ -27,6 +27,8 @@ todos:
     content: Capture after screenshots of Run Parameters with metrics in docs/plans/.../images/after/
     status: completed
 isProject: false
+description: UI plan for fetching run details and displaying selected metrics inside the Run Parameters block.
+tags: [plan, ui, metrics, run-details]
 ---
 
 # Part 4: UI – Run Parameters Display
@@ -186,4 +188,3 @@ flowchart LR
 - **Directory:** `docs/plans/2026-02-24_run_params_display_4d5e6f/`
 - **Before screenshots:** `docs/plans/2026-02-24_run_params_display_4d5e6f/images/before/`
 - **After screenshots:** `docs/plans/2026-02-24_run_params_display_4d5e6f/images/after/`
-

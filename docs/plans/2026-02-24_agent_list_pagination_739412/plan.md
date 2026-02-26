@@ -1,5 +1,10 @@
+---
+description: Plan to add offset-limit pagination to GET /v1/simulations/agents and load-more UI support.
+tags: [plan, backend, agents, pagination]
+---
+
 # Add pagination for agent listing (GET `/v1/simulations/agents`)
-#
+
 ## Remember
 - Exact file paths always
 - Exact commands with expected output

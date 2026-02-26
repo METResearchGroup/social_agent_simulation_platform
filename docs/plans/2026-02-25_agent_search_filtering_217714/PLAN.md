@@ -1,3 +1,8 @@
+---
+description: Plan to add handle-only search filtering for agents (q query param) and wire UI search inputs with pagination.
+tags: [plan, agents, search, ui, backend]
+---
+
 # Agent search/filtering (handle-only)
 
 ## Overview
@@ -41,4 +46,3 @@ Add a case-insensitive, substring search to agent lists by extending `GET /v1/si
 ## Screenshots
 - Before: `docs/plans/2026-02-25_agent_search_filtering_217714/images/before/`
 - After: `docs/plans/2026-02-25_agent_search_filtering_217714/images/after/`
-

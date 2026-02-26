@@ -30,6 +30,8 @@ todos:
     content: Add integration tests for new repositories and migration job
     status: completed
 isProject: false
+description: Add new agent schema, repositories, and a migration job so user-created agents persist in their own tables instead of Bluesky assets.
+tags: [plan, backend, db, agents]
 ---
 
 # User-Created Agents: Schema, Repositories, and Migration Job
@@ -319,4 +321,3 @@ flowchart LR
 
 - **Path:** `docs/plans/2026-02-19_user_created_agents_migration_246801/`
 - No UI changes in this plan; no before/after screenshots required.
-

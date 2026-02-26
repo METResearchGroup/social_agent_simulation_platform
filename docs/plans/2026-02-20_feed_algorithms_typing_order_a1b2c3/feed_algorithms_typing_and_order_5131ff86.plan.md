@@ -3,6 +3,8 @@ name: Feed Algorithms Typing and Order
 overview: Strengthen feed algorithm contracts with typed return values (FeedAlgorithmResult), introduce a FeedAlgorithm ABC per RULES.md, and document ordering/determinism as part of the contract. This replaces raw dict returns, enforces ordering semantics, and aligns with action_generators patterns.
 todos: []
 isProject: false
+description: Strengthen feed algorithms by returning a typed FeedAlgorithmResult and documenting deterministic post ordering per RULES.
+tags: [plan, backend, feed-algorithms, type-safety]
 ---
 
 # Feed Algorithms Typing and Order Contract

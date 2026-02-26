@@ -1,3 +1,8 @@
+---
+description: Implementation plan for the naive LLM-based like, comment, and follow generators with shared LLM helpers and E2E scripts.
+tags: [plan, llm, action-generators, ai]
+---
+
 # Naive LLM Action Generators — Implementation Plan
 
 ## Remember

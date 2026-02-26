@@ -27,6 +27,8 @@ todos:
     content: Remove DUMMY_POSTS and getPostByUri from ui/lib/dummy-data.ts
     status: completed
 isProject: false
+description: Plan to migrate DUMMY_POSTS and post lookup from the UI to GET /v1/simulations/posts so DetailsPanel consumes the API.
+tags: [plan, backend, posts, api]
 ---
 
 # Migrate Posts to Backend

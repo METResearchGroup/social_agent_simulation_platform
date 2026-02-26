@@ -1,3 +1,8 @@
+---
+description: Document the refactor moving transaction lifecycles into repositories so adapters receive injected connections.
+tags: [plan, db, transactions, architecture]
+---
+
 # Repository-Managed Connection Implementation Plan
 
 ## Remember

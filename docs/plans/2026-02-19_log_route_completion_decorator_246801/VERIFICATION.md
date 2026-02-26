@@ -1,3 +1,8 @@
+---
+description: Verification report for the Log Route Completion Decorator plan, including test runs, pre-commit, and server checks.
+tags: [plan, verification, logging]
+---
+
 # Log Route Completion Decorator — Verification Record
 
 Verification performed against the plan spec in [plan.md](plan.md).

@@ -15,6 +15,8 @@ todos:
     content: Run pytest and manual curl verification
     status: completed
 isProject: false
+description: Add SecurityHeadersMiddleware that sets X-Content-Type-Options, X-Frame-Options, and S-H-S headers on every API response.
+tags: [plan, security, headers, middleware]
 ---
 
 # Security Headers Implementation Plan

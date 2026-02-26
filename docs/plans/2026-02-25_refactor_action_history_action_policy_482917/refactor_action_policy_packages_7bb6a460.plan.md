@@ -21,6 +21,8 @@ todos:
     content: Run `ruff format`, `ruff check`, `pyright`, and `pytest` (targeted + full) and fix any issues.
     status: completed
 isProject: false
+description: Split the turn-action guardrail modules into action_history storage and action_policy eligibility packages with updated wiring/tests.
+tags: [plan, action-history, action-policy, architecture]
 ---
 
 ## Remember
@@ -142,4 +144,3 @@ flowchart TD
 
 - **Single package `simulation/core/turn_actions/`**: maximizes discoverability by co-locating everything, but couples “state/storage” and “policy/rules” evolution; Option A keeps those axes independent for future implementations (persisted history, alternative policy sets).
 - **Keep modules in `simulation/core/` with better naming**: minimal churn but doesn’t create a clear extension boundary; harder to add alternate implementations without growing the root namespace.
-

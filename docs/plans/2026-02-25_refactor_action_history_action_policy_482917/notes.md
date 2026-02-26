@@ -1,3 +1,8 @@
+---
+description: Notes that describe the refactor splitting turn action guardrails into separate history and policy packages.
+tags: [plan, notes, action-history, action-policy]
+---
+
 ## Refactor action history + action policy (notes)
 
 This folder tracks artifacts for the plan: `refactor_action_policy_packages_7bb6a460`.
@@ -27,4 +32,3 @@ flowchart TD
   CommandService --> Rules --> HistoryStore
   CommandService --> Recorder --> HistoryStore
 ```
-

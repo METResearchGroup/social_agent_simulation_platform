@@ -1,3 +1,8 @@
+---
+description: Plan for consolidating DB test fixtures by reusing shared repository fixtures and root temp_db helpers.
+tags: [plan, tests, fixtures, db]
+---
+
 # DB Test Fixtures Consolidation Plan
 
 ## Remember

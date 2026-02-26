@@ -1,3 +1,8 @@
+---
+description: PR notes for splitting guardrails into action_history and action_policy packages and updating wiring/tests.
+tags: [plan, action-history, action-policy, architecture]
+---
+
 ## PR Title
 
 Migrate action guardrails into action history/policy
@@ -85,4 +90,3 @@ simulation/core/
     ├── interfaces.py
     └── rules_validator.py
 ```
-

@@ -24,6 +24,8 @@ todos:
     content: Run pytest, pre-commit, and smoke test GET /v1/simulations/agents
     status: completed
 isProject: false
+description: Batch AgentBio and metadata reads so list_agents only performs three queries, removing the 1+2N pattern.
+tags: [plan, backend, agents, database]
 ---
 
 # list_agents N+1 Batch Fetch Implementation Plan
