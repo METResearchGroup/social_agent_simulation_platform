@@ -2,6 +2,10 @@ from db.repositories.agent_bio_repository import (
     SQLiteAgentBioRepository,
     create_sqlite_agent_bio_repository,
 )
+from db.repositories.agent_generated_bio_repository import (
+    SQLiteAgentGeneratedBioRepository,
+    create_sqlite_agent_generated_bio_repository,
+)
 from db.repositories.agent_repository import (
     SQLiteAgentRepository,
     create_sqlite_agent_repository,
@@ -20,6 +24,7 @@ from db.repositories.generated_feed_repository import (
 )
 from db.repositories.interfaces import (
     AgentBioRepository,
+    AgentGeneratedBioRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedBioRepository,
@@ -42,6 +47,11 @@ __all__ = [
     "AgentBioRepository",
     "SQLiteAgentBioRepository",
     "create_sqlite_agent_bio_repository",
+    "AgentGeneratedBioRepository",
+    "SQLiteAgentGeneratedBioRepository",
+    "create_sqlite_agent_generated_bio_repository",
+    "SQLiteAgentGeneratedBioRepository",
+    "create_sqlite_agent_generated_bio_repository",
     "AgentRepository",
     "SQLiteAgentRepository",
     "create_sqlite_agent_repository",

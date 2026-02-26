@@ -171,6 +171,20 @@ agent_persona_bios = sa.Table(
     ),
 )
 
+agent_generated_bios = sa.Table(
+    "agent_generated_bios",
+    metadata,
+    sa.Column("id", sa.Text(), primary_key=True),
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("generated_bio", sa.Text(), nullable=False),
+    sa.Column("model_used", sa.Text(), nullable=True),
+    sa.Column("generation_metadata_json", sa.Text(), nullable=True),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_agent_generated_bios_agent_id"
+    ),
+)
+
 user_agent_profile_metadata = sa.Table(
     "user_agent_profile_metadata",
     metadata,
@@ -286,6 +300,11 @@ sa.Index(
     "idx_agent_persona_bios_agent_id_created_at",
     agent_persona_bios.c.agent_id,
     agent_persona_bios.c.created_at.desc(),
+)
+sa.Index(
+    "idx_agent_generated_bios_agent_id_created_at",
+    agent_generated_bios.c.agent_id,
+    agent_generated_bios.c.created_at.desc(),
 )
 sa.Index(
     "idx_likes_run_turn_agent",

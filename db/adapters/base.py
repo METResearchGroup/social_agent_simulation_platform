@@ -8,6 +8,7 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_generated_bio import AgentGeneratedBio
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.generated.comment import GeneratedComment
@@ -768,6 +769,38 @@ class AgentBioDatabaseAdapter(ABC):
 
         Returns dict mapping agent_id -> AgentBio | None.
         """
+        raise NotImplementedError
+
+
+class AgentGeneratedBioDatabaseAdapter(ABC):
+    """Abstract interface for agent-generated bio persistence."""
+
+    @abstractmethod
+    def write_agent_generated_bio(
+        self, bio: AgentGeneratedBio, *, conn: object
+    ) -> None:
+        """Write a generated bio for a user-created agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_latest_agent_generated_bio(
+        self, agent_id: str, *, conn: object
+    ) -> AgentGeneratedBio | None:
+        """Return the latest generated bio for the given agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_agent_generated_bios(
+        self, agent_id: str, *, conn: object
+    ) -> list[AgentGeneratedBio]:
+        """Return all generated bios for an agent, ordered by created_at DESC."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_latest_agent_generated_bios_by_agent_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, AgentGeneratedBio | None]:
+        """Return the latest generated bio for each agent in agent_ids."""
         raise NotImplementedError
 
 

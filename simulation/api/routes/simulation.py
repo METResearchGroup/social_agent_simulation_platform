@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from lib.decorators import timed
-from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
+from lib.rate_limiting import (
+    RATE_LIMIT_AGENT_GENERATED_BIO_CREATE,
+    RATE_LIMIT_AGENTS_CREATE,
+    limiter,
+)
 from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.constants import (
     DEFAULT_AGENT_LIST_LIMIT,
@@ -22,6 +26,8 @@ from simulation.api.errors import (
     ApiRunNotFoundError,
 )
 from simulation.api.schemas.simulation import (
+    AgentGeneratedBioCreateRequest,
+    AgentGeneratedBioSchema,
     AgentSchema,
     CreateAgentRequest,
     DefaultConfigSchema,
@@ -35,6 +41,10 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.api.services.agent_command_service import create_agent
+from simulation.api.services.agent_generated_bio_service import (
+    create_generated_bio_for_agent,
+    list_agent_generated_bios_for_agent,
+)
 from simulation.api.services.agent_query_service import list_agents
 from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
 from simulation.api.services.run_execution_service import execute
@@ -59,6 +69,12 @@ SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
 SIMULATION_METRICS_ROUTE: str = "GET /v1/simulations/metrics"
 SIMULATION_CONFIG_DEFAULT_ROUTE: str = "GET /v1/simulations/config/default"
+SIMULATION_AGENT_GENERATED_BIOS_ROUTE: str = (
+    "POST /v1/simulations/agents/{handle}/generated-bios"
+)
+SIMULATION_AGENT_GENERATED_BIOS_LIST_ROUTE: str = (
+    "GET /v1/simulations/agents/{handle}/generated-bios"
+)
 
 
 @router.get(
@@ -161,6 +177,129 @@ async def get_simulation_agents(
     """Return all simulation agents from the database."""
     return await _execute_get_simulation_agents(
         request, q=q, limit=limit, offset=offset
+    )
+
+
+@router.post(
+    "/simulations/agents/{handle}/generated-bios",
+    response_model=AgentGeneratedBioSchema,
+    status_code=201,
+    summary="Generate a new agent bio",
+    description="Generate and persist an AI-generated bio for the specified agent.",
+)
+@limiter.limit(RATE_LIMIT_AGENT_GENERATED_BIO_CREATE)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENT_GENERATED_BIOS_ROUTE, success_type=AgentGeneratedBioSchema
+)
+async def post_agent_generated_bio(
+    request: Request,
+    handle: str,
+    body: AgentGeneratedBioCreateRequest,
+) -> AgentGeneratedBioSchema | Response:
+    """Generate or update an AI-generated bio for an agent."""
+    return await _execute_post_agent_generated_bio(request, handle=handle, body=body)
+
+
+@router.get(
+    "/simulations/agents/{handle}/generated-bios",
+    response_model=list[AgentGeneratedBioSchema],
+    status_code=200,
+    summary="List agent generated bios",
+    description="Return the version history of generated bios for a specific agent.",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENT_GENERATED_BIOS_LIST_ROUTE, success_type=list
+)
+async def get_agent_generated_bios(
+    request: Request,
+    handle: str,
+) -> list[AgentGeneratedBioSchema] | Response:
+    """Return generated bio versions for the given agent handle."""
+    return await _execute_get_agent_generated_bios(request, handle=handle)
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_post_agent_generated_bio(
+    request: Request,
+    *,
+    handle: str,
+    body: AgentGeneratedBioCreateRequest,
+) -> AgentGeneratedBioSchema | Response:
+    try:
+        generated_bio = await asyncio.to_thread(
+            create_generated_bio_for_agent,
+            handle=handle,
+            model=body.model,
+        )
+        return _agent_generated_bio_to_schema(generated_bio)
+    except LookupError as exc:
+        return _error_response(
+            status_code=404,
+            code="AGENT_NOT_FOUND",
+            message="Agent not found",
+            detail=str(exc),
+        )
+    except ValueError as exc:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(exc),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while generating agent bio")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_agent_generated_bios(
+    request: Request,
+    *,
+    handle: str,
+) -> list[AgentGeneratedBioSchema] | Response:
+    try:
+        bios = await asyncio.to_thread(
+            list_agent_generated_bios_for_agent,
+            handle=handle,
+        )
+        return [_agent_generated_bio_to_schema(bio) for bio in bios]
+    except LookupError as exc:
+        return _error_response(
+            status_code=404,
+            code="AGENT_NOT_FOUND",
+            message="Agent not found",
+            detail=str(exc),
+        )
+    except ValueError as exc:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(exc),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while listing agent generated bios")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+def _agent_generated_bio_to_schema(bio) -> AgentGeneratedBioSchema:
+    return AgentGeneratedBioSchema(
+        id=bio.id,
+        agent_id=bio.agent_id,
+        generated_bio=bio.generated_bio,
+        model_used=bio.metadata.model_used,
+        generation_metadata=bio.metadata.generation_metadata,
+        created_at=bio.metadata.created_at,
     )
 
 

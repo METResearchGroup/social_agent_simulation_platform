@@ -1,0 +1,1355 @@
+{
+  "dialect": "sqlite",
+  "referenced_by": {
+    "agent": [
+      {
+        "from_columns": [
+          "agent_id"
+        ],
+        "from_table": "agent_generated_bios",
+        "name": "fk_agent_generated_bios_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "agent_id"
+        ],
+        "from_table": "agent_persona_bios",
+        "name": "fk_agent_persona_bios_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "agent_id"
+        ],
+        "from_table": "user_agent_profile_metadata",
+        "name": "fk_user_agent_profile_metadata_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      }
+    ],
+    "agent_bios": [],
+    "agent_generated_bios": [],
+    "agent_persona_bios": [],
+    "bluesky_feed_posts": [],
+    "bluesky_profiles": [],
+    "comments": [],
+    "follows": [],
+    "generated_feeds": [],
+    "likes": [],
+    "run_metrics": [],
+    "runs": [
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "comments",
+        "name": "fk_comments_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "follows",
+        "name": "fk_follows_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "generated_feeds",
+        "name": "fk_generated_feeds_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "likes",
+        "name": "fk_likes_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "run_metrics",
+        "name": "fk_run_metrics_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "turn_metadata",
+        "name": "fk_turn_metadata_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "run_id"
+        ],
+        "from_table": "turn_metrics",
+        "name": "fk_turn_metrics_run_id",
+        "to_columns": [
+          "run_id"
+        ]
+      }
+    ],
+    "turn_metadata": [],
+    "turn_metrics": [],
+    "user_agent_profile_metadata": []
+  },
+  "tables": {
+    "agent": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "agent_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "handle",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "persona_source",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "display_name",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "updated_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [],
+      "primary_key": {
+        "columns": [
+          "agent_id"
+        ],
+        "name": "pk_agent"
+      },
+      "unique_constraints": [
+        {
+          "columns": [
+            "handle"
+          ],
+          "name": "uq_agent_handle"
+        }
+      ]
+    },
+    "agent_bios": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "handle",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generated_bio",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [],
+      "primary_key": {
+        "columns": [
+          "handle"
+        ],
+        "name": null
+      },
+      "unique_constraints": []
+    },
+    "agent_generated_bios": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "agent_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generated_bio",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "model_used",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_metadata_json",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "agent_id"
+          ],
+          "name": "fk_agent_generated_bios_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "agent_id",
+            "created_at"
+          ],
+          "name": "idx_agent_generated_bios_agent_id_created_at",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "id"
+        ],
+        "name": "pk_agent_generated_bios"
+      },
+      "unique_constraints": []
+    },
+    "agent_persona_bios": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "agent_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "persona_bio",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "persona_bio_source",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "updated_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "agent_id"
+          ],
+          "name": "fk_agent_persona_bios_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "agent_id",
+            "created_at"
+          ],
+          "name": "idx_agent_persona_bios_agent_id_created_at",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "id"
+        ],
+        "name": "pk_agent_persona_bios"
+      },
+      "unique_constraints": []
+    },
+    "bluesky_feed_posts": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "uri",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "author_display_name",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "author_handle",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "text",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "bookmark_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "like_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "quote_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "reply_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "repost_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "columns": [
+            "author_handle"
+          ],
+          "name": "idx_bluesky_feed_posts_author_handle",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "uri"
+        ],
+        "name": null
+      },
+      "unique_constraints": []
+    },
+    "bluesky_profiles": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "handle",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "did",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "display_name",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "bio",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "followers_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "follows_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "posts_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [],
+      "primary_key": {
+        "columns": [
+          "handle"
+        ],
+        "name": null
+      },
+      "unique_constraints": []
+    },
+    "comments": {
+      "check_constraints": [
+        {
+          "name": "ck_comments_turn_number_gte_0",
+          "sqltext": "turn_number >= 0"
+        }
+      ],
+      "columns": [
+        {
+          "default": null,
+          "name": "comment_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "turn_number",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "agent_handle",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "post_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "text",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "explanation",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "model_used",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_metadata_json",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_created_at",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_comments_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "run_id",
+            "turn_number",
+            "agent_handle"
+          ],
+          "name": "idx_comments_run_turn_agent",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "comment_id"
+        ],
+        "name": "pk_comments"
+      },
+      "unique_constraints": [
+        {
+          "columns": [
+            "run_id",
+            "turn_number",
+            "agent_handle",
+            "post_id"
+          ],
+          "name": "uq_comments_run_turn_agent_post"
+        }
+      ]
+    },
+    "follows": {
+      "check_constraints": [
+        {
+          "name": "ck_follows_turn_number_gte_0",
+          "sqltext": "turn_number >= 0"
+        }
+      ],
+      "columns": [
+        {
+          "default": null,
+          "name": "follow_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "turn_number",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "agent_handle",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "user_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "explanation",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "model_used",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_metadata_json",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_created_at",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_follows_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "run_id",
+            "turn_number",
+            "agent_handle"
+          ],
+          "name": "idx_follows_run_turn_agent",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "follow_id"
+        ],
+        "name": "pk_follows"
+      },
+      "unique_constraints": [
+        {
+          "columns": [
+            "run_id",
+            "turn_number",
+            "agent_handle",
+            "user_id"
+          ],
+          "name": "uq_follows_run_turn_agent_user"
+        }
+      ]
+    },
+    "generated_feeds": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "feed_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 2,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "turn_number",
+          "nullable": false,
+          "primary_key": 3,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "agent_handle",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "post_uris",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_generated_feeds_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [],
+      "primary_key": {
+        "columns": [
+          "agent_handle",
+          "run_id",
+          "turn_number"
+        ],
+        "name": "pk_generated_feeds"
+      },
+      "unique_constraints": []
+    },
+    "likes": {
+      "check_constraints": [
+        {
+          "name": "ck_likes_turn_number_gte_0",
+          "sqltext": "turn_number >= 0"
+        }
+      ],
+      "columns": [
+        {
+          "default": null,
+          "name": "like_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "turn_number",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "agent_handle",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "post_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "explanation",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "model_used",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_metadata_json",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "generation_created_at",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_likes_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "run_id",
+            "turn_number",
+            "agent_handle"
+          ],
+          "name": "idx_likes_run_turn_agent",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "like_id"
+        ],
+        "name": "pk_likes"
+      },
+      "unique_constraints": [
+        {
+          "columns": [
+            "run_id",
+            "turn_number",
+            "agent_handle",
+            "post_id"
+          ],
+          "name": "uq_likes_run_turn_agent_post"
+        }
+      ]
+    },
+    "run_metrics": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "metrics",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_run_metrics_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [],
+      "primary_key": {
+        "columns": [
+          "run_id"
+        ],
+        "name": "pk_run_metrics"
+      },
+      "unique_constraints": []
+    },
+    "runs": {
+      "check_constraints": [
+        {
+          "name": "ck_runs_completed_at_consistent",
+          "sqltext": "((status = 'completed' AND completed_at IS NOT NULL AND completed_at >= started_at) OR (status != 'completed' AND completed_at IS NULL))"
+        },
+        {
+          "name": "ck_runs_status_valid",
+          "sqltext": "status IN ('running', 'completed', 'failed')"
+        },
+        {
+          "name": "ck_runs_total_agents_gt_0",
+          "sqltext": "total_agents > 0"
+        },
+        {
+          "name": "ck_runs_total_turns_gt_0",
+          "sqltext": "total_turns > 0"
+        }
+      ],
+      "columns": [
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "total_turns",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "total_agents",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "started_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "status",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "completed_at",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": "'chronological'",
+          "name": "feed_algorithm",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "metric_keys",
+          "nullable": true,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "columns": [
+            "created_at"
+          ],
+          "name": "idx_runs_created_at",
+          "unique": false
+        },
+        {
+          "columns": [
+            "status"
+          ],
+          "name": "idx_runs_status",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "run_id"
+        ],
+        "name": null
+      },
+      "unique_constraints": []
+    },
+    "turn_metadata": {
+      "check_constraints": [
+        {
+          "name": "ck_turn_metadata_turn_number_gte_0",
+          "sqltext": "turn_number >= 0"
+        }
+      ],
+      "columns": [
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "turn_number",
+          "nullable": false,
+          "primary_key": 2,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "total_actions",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_turn_metadata_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "idx_turn_metadata_run_id",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "run_id",
+          "turn_number"
+        ],
+        "name": "pk_turn_metadata"
+      },
+      "unique_constraints": []
+    },
+    "turn_metrics": {
+      "check_constraints": [
+        {
+          "name": "ck_turn_metrics_turn_number_gte_0",
+          "sqltext": "turn_number >= 0"
+        }
+      ],
+      "columns": [
+        {
+          "default": null,
+          "name": "run_id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "turn_number",
+          "nullable": false,
+          "primary_key": 2,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "metrics",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "fk_turn_metrics_run_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "run_id"
+          ],
+          "referred_table": "runs"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "run_id"
+          ],
+          "name": "idx_turn_metrics_run_id",
+          "unique": false
+        }
+      ],
+      "primary_key": {
+        "columns": [
+          "run_id",
+          "turn_number"
+        ],
+        "name": "pk_turn_metrics"
+      },
+      "unique_constraints": []
+    },
+    "user_agent_profile_metadata": {
+      "check_constraints": [],
+      "columns": [
+        {
+          "default": null,
+          "name": "id",
+          "nullable": false,
+          "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "agent_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "followers_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "follows_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "posts_count",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "INTEGER"
+        },
+        {
+          "default": null,
+          "name": "created_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "updated_at",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "agent_id"
+          ],
+          "name": "fk_user_agent_profile_metadata_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        }
+      ],
+      "indexes": [],
+      "primary_key": {
+        "columns": [
+          "id"
+        ],
+        "name": "pk_user_agent_profile_metadata"
+      },
+      "unique_constraints": [
+        {
+          "columns": [
+            "agent_id"
+          ],
+          "name": "uq_user_agent_profile_metadata_agent_id"
+        }
+      ]
+    }
+  }
+}
