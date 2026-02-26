@@ -2,11 +2,21 @@
 
 We want to ship a way to update an individual agent's details dynamically. this will all be in the "View agents" tab as you click into individual agents.
 
-## Flow 1: Follows
+## Flow 0: Deprecate old UI and get "Create Agent" submission to work
 
 PR 1:
 
 - Remove the "Link to existing agents" in the UI and from the Create Agent form.
+- Remove the "History" in the Create Agent form.
+- Get the "Submit" to work, so that we can create agents.
+- Success here = agents can be created (and are created) and will show up in the UI.
+
+PR 2:
+
+- Introduce ability to delete created agents.
+- This allows us to fully test creating and then deleting agents.
+
+## Flow 1: Follows
 
 PR 2:
 
