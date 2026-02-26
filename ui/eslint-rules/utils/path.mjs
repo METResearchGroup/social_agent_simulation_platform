@@ -5,6 +5,8 @@ function _toPosixPath(p) {
   return p.replaceAll(path.sep, '/');
 }
 
+const EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+
 export function getUiRootFromFilename(filename) {
   const normalized = filename.replaceAll('\\', '/');
   const marker = '/ui/';
@@ -40,7 +42,17 @@ export function normalizeFilename(filename) {
 
 export function isUnderDir(filename, dirSuffixWithTrailingSlash) {
   const normalized = normalizeFilename(filename);
-  return normalized.includes(dirSuffixWithTrailingSlash);
+  const suffix = normalizeFilename(dirSuffixWithTrailingSlash);
+  if (suffix.startsWith('/')) {
+    return normalized.includes(suffix);
+  }
+
+  let idx = normalized.indexOf(suffix);
+  while (idx !== -1) {
+    if (idx === 0 || normalized.charAt(idx - 1) === '/') return true;
+    idx = normalized.indexOf(suffix, idx + 1);
+  }
+  return false;
 }
 
 export function resolveImportToUiPath({ filename, importPath }) {
@@ -60,13 +72,11 @@ export function resolveImportToUiPath({ filename, importPath }) {
 }
 
 function _candidatePathsWithoutExt(absPath) {
-  const exts = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
-  return exts.map((ext) => `${absPath}${ext}`);
+  return EXTENSIONS.map((ext) => `${absPath}${ext}`);
 }
 
 function _candidateIndexPaths(dirAbsPath) {
-  const exts = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
-  return exts.map((ext) => _toPosixPath(path.join(dirAbsPath, `index${ext}`)));
+  return EXTENSIONS.map((ext) => _toPosixPath(path.join(dirAbsPath, `index${ext}`)));
 }
 
 function _isFile(p) {

@@ -102,6 +102,11 @@ function _isLayeringViolation(fromLayer, toLayer) {
 }
 
 function _containsAwaitAndSetStateCall(asyncFnNode) {
+  // Heuristic: treat any call to an identifier matching /^set[A-Z]/ as a "setState" call.
+  // This is intentionally lightweight and may have false positives (e.g. setProperty())
+  // and false negatives (e.g. aliased setters like updateCount = setCount). If this
+  // becomes noisy, we can improve it with scope analysis (context.getScope()) to resolve
+  // identifier bindings back to React state setters.
   let hasAwait = false;
   let hasSetStateCall = false;
 
