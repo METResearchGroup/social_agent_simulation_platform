@@ -51,6 +51,19 @@ function _isProcessEnvMemberExpression(node) {
   );
 }
 
+function _isUseEffectCallee(callee) {
+  if (!callee) return false;
+  if (callee.type === 'Identifier' && callee.name === 'useEffect') return true;
+  if (callee.type === 'MemberExpression' && !callee.computed) {
+    const obj = callee.object;
+    const prop = callee.property;
+    if (obj?.type === 'Identifier' && obj.name === 'React') {
+      return prop?.type === 'Identifier' && prop.name === 'useEffect';
+    }
+  }
+  return false;
+}
+
 function _getImportSourceValue(node) {
   if (!node?.source) return null;
   if (typeof node.source.value === 'string') return node.source.value;
@@ -323,7 +336,7 @@ const rules = {
     create(context) {
       return {
         CallExpression(node) {
-          if (node.callee?.type !== 'Identifier' || node.callee.name !== 'useEffect') return;
+          if (!_isUseEffectCallee(node.callee)) return;
           const [callback, deps] = node.arguments;
           if (!callback || (callback.type !== 'ArrowFunctionExpression' && callback.type !== 'FunctionExpression')) return;
 

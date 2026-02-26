@@ -178,15 +178,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (input.code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(input.code);
+        const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(input.code);
         if (exchangeError) {
           return { ok: false, message: exchangeError.message };
         }
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          return { ok: false, message: sessionError.message };
+        if (!exchangeData.session) {
+          return { ok: false, message: 'Missing session after exchanging authorization code' };
         }
-        updateAuthState(data.session);
+        updateAuthState(exchangeData.session);
         return { ok: true };
       }
 

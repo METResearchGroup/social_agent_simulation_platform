@@ -69,21 +69,37 @@ function _candidateIndexPaths(dirAbsPath) {
   return exts.map((ext) => _toPosixPath(path.join(dirAbsPath, `index${ext}`)));
 }
 
+function _isFile(p) {
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function _isDirectory(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export function resolveExistingFile(absPathNoQuery) {
   const absPath = absPathNoQuery.split('?')[0].split('#')[0];
-  if (fs.existsSync(absPath) && fs.statSync(absPath).isFile()) {
+  if (_isFile(absPath)) {
     return _toPosixPath(absPath);
   }
 
   for (const candidate of _candidatePathsWithoutExt(absPath)) {
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+    if (_isFile(candidate)) {
       return _toPosixPath(candidate);
     }
   }
 
-  if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
+  if (_isDirectory(absPath)) {
     for (const indexCandidate of _candidateIndexPaths(absPath)) {
-      if (fs.existsSync(indexCandidate) && fs.statSync(indexCandidate).isFile()) {
+      if (_isFile(indexCandidate)) {
         return _toPosixPath(indexCandidate);
       }
     }
