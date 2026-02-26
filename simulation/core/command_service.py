@@ -21,6 +21,11 @@ from simulation.core.action_policy import (
     AgentActionFeedFilter,
     AgentActionRulesValidator,
 )
+from simulation.core.agent_actions import (
+    generate_comments,
+    generate_follows,
+    generate_likes,
+)
 from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
@@ -290,20 +295,23 @@ class SimulationCommandService:
             )
 
             # Generate the actions.
-            likes = agent.like_posts(
+            likes = generate_likes(
                 action_candidates.like_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
+                agent_handle=agent.handle,
             )
-            comments = agent.comment_posts(
+            comments = generate_comments(
                 action_candidates.comment_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
+                agent_handle=agent.handle,
             )
-            follows = agent.follow_users(
+            follows = generate_follows(
                 action_candidates.follow_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
+                agent_handle=agent.handle,
             )
 
             # Validate the action rules.

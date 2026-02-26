@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from simulation.api.errors import ApiRunNotFoundError
 from simulation.api.services.run_query_service import get_run_details
-from simulation.core.exceptions import RunNotFoundError
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
 from tests.factories import RunFactory, TurnMetadataFactory
@@ -58,9 +58,9 @@ def test_get_run_details_returns_sorted_turns_with_string_action_keys():
 
 
 def test_get_run_details_raises_run_not_found_for_missing_run():
-    """Missing run raises RunNotFoundError for route-level 404 mapping."""
+    """Missing run raises ApiRunNotFoundError for route-level 404 mapping."""
     mock_engine = MagicMock()
     mock_engine.get_run.return_value = None
 
-    with pytest.raises(RunNotFoundError):
+    with pytest.raises(ApiRunNotFoundError):
         get_run_details(run_id="missing-run", engine=mock_engine)

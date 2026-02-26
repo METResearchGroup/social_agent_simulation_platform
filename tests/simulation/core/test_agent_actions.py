@@ -1,7 +1,8 @@
-"""Tests for simulation.core.models.agents.SocialMediaAgent."""
+"""Tests for simulation.core.agent_actions."""
 
 from unittest.mock import Mock, patch
 
+from simulation.core.agent_actions import generate_follows
 from tests.factories import (
     AgentFactory,
     FollowFactory,
@@ -12,13 +13,14 @@ from tests.factories import (
 
 
 def test_follow_users_returns_empty_for_empty_feed():
-    """follow_users returns [] when feed is empty and does not resolve generator."""
+    """generate_follows returns [] when candidates are empty and does not resolve generator."""
     agent = AgentFactory.create(handle="agent1.bsky.social")
-    with patch("simulation.core.action_generators.get_follow_generator") as mock_get:
-        result = agent.follow_users(
+    with patch("simulation.core.agent_actions.get_follow_generator") as mock_get:
+        result = generate_follows(
             [],
             run_id="run_1",
             turn_number=0,
+            agent_handle=agent.handle,
         )
 
     expected_result: list = []
@@ -27,7 +29,7 @@ def test_follow_users_returns_empty_for_empty_feed():
 
 
 def test_follow_users_delegates_to_follow_generator():
-    """follow_users delegates candidate generation to configured follow generator."""
+    """generate_follows delegates candidate generation to configured follow generator."""
     agent = AgentFactory.create(handle="agent1.bsky.social")
     feed = [
         PostFactory.create(
@@ -57,13 +59,14 @@ def test_follow_users_delegates_to_follow_generator():
     mock_generator.generate.return_value = [generated_follow]
 
     with patch(
-        "simulation.core.action_generators.get_follow_generator",
+        "simulation.core.agent_actions.get_follow_generator",
         return_value=mock_generator,
     ) as mock_get:
-        result = agent.follow_users(
+        result = generate_follows(
             feed,
             run_id="run_1",
             turn_number=3,
+            agent_handle=agent.handle,
         )
 
     expected_result = [generated_follow]

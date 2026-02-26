@@ -40,6 +40,11 @@ repos:
         entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test pyright ."
         language: system
         pass_filenames: false
+      - id: python_lint_import_dependency_boundaries
+        name: python_lint_import_dependency_boundaries
+        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test lint-imports --config pyproject.toml"
+        language: system
+        pass_filenames: false
       - id: oxlint
         name: oxlint + React Doctor (ui)
         entry: bash -lc "cd ui && (test -d node_modules || npm install) && npx oxlint . --react-plugin && node scripts/check-react-doctor.mjs"
