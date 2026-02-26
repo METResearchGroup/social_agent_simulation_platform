@@ -183,6 +183,70 @@ def test_post_simulations_agents_then_get_includes_new_agent(
     assert expected_result in handles
 
 
+def test_post_simulations_agents_persists_seed_actions(
+    simulation_client,
+    temp_db,
+    agent_seed_like_repo,
+    agent_seed_comment_repo,
+    agent_seed_follow_repo,
+):
+    """POST /v1/simulations/agents persists seed likes/comments/follows when provided."""
+    client, _ = simulation_client
+    handle = f"seed-{uuid.uuid4().hex[:8]}.bsky.social"
+    body = {
+        "handle": handle,
+        "display_name": "Seed Agent",
+        "bio": "Bio",
+        "liked_post_uris": [
+            "  at://did:plc:example/app.bsky.feed.post/123  ",
+            "",  # ignored
+            "at://did:plc:example/app.bsky.feed.post/123",  # dup ignored
+        ],
+        "comments": [
+            {
+                "text": "  hello  ",
+                "post_uri": " at://did:plc:example/app.bsky.feed.post/999 ",
+            },
+            {
+                "text": "   ",
+                "post_uri": "at://did:plc:example/app.bsky.feed.post/should_skip",
+            },
+        ],
+        "linked_agent_handles": [
+            "Other.BSKY.social",
+            "@other.bsky.social",  # dup after normalization
+            handle,  # self-follow ignored after normalization
+        ],
+    }
+
+    resp = client.post("/v1/simulations/agents", json=body)
+    assert resp.status_code == 201
+    created = resp.json()
+    created_handle = created["handle"]
+
+    seed_likes = agent_seed_like_repo.read_agent_seed_likes_by_agent_handles(
+        [created_handle]
+    )
+    assert len(seed_likes) == 1
+    assert seed_likes[0].agent_handle == created_handle
+    assert seed_likes[0].post_uri == "at://did:plc:example/app.bsky.feed.post/123"
+
+    seed_comments = agent_seed_comment_repo.read_agent_seed_comments_by_agent_handles(
+        [created_handle]
+    )
+    assert len(seed_comments) == 1
+    assert seed_comments[0].agent_handle == created_handle
+    assert seed_comments[0].text == "hello"
+    assert seed_comments[0].post_uri == "at://did:plc:example/app.bsky.feed.post/999"
+
+    seed_follows = agent_seed_follow_repo.read_agent_seed_follows_by_agent_handles(
+        [created_handle]
+    )
+    assert len(seed_follows) == 1
+    assert seed_follows[0].agent_handle == created_handle
+    assert seed_follows[0].user_id == "@other.bsky.social"
+
+
 def test_get_simulations_agents_pagination(simulation_client, temp_db, agent_repo):
     """GET /v1/simulations/agents supports limit/offset pagination."""
     repo = agent_repo

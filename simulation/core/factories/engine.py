@@ -4,6 +4,15 @@ from collections.abc import Callable
 
 from db.adapters.base import TransactionProvider
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
+from db.repositories.agent_seed_comment_repository import (
+    create_sqlite_agent_seed_comment_repository,
+)
+from db.repositories.agent_seed_follow_repository import (
+    create_sqlite_agent_seed_follow_repository,
+)
+from db.repositories.agent_seed_like_repository import (
+    create_sqlite_agent_seed_like_repository,
+)
 from db.repositories.comment_repository import create_sqlite_comment_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.follow_repository import create_sqlite_follow_repository
@@ -14,6 +23,9 @@ from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
 from db.repositories.interfaces import (
+    AgentSeedCommentRepository,
+    AgentSeedFollowRepository,
+    AgentSeedLikeRepository,
     CommentRepository,
     FeedPostRepository,
     FollowRepository,
@@ -53,6 +65,9 @@ def create_engine(
     like_repo: LikeRepository | None = None,
     comment_repo: CommentRepository | None = None,
     follow_repo: FollowRepository | None = None,
+    agent_seed_like_repo: AgentSeedLikeRepository | None = None,
+    agent_seed_comment_repo: AgentSeedCommentRepository | None = None,
+    agent_seed_follow_repo: AgentSeedFollowRepository | None = None,
     agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     transaction_provider: TransactionProvider | None = None,
@@ -134,6 +149,19 @@ def create_engine(
         follow_repo = create_sqlite_follow_repository(
             transaction_provider=transaction_provider
         )
+
+    if agent_seed_like_repo is None:
+        agent_seed_like_repo = create_sqlite_agent_seed_like_repository(
+            transaction_provider=transaction_provider
+        )
+    if agent_seed_comment_repo is None:
+        agent_seed_comment_repo = create_sqlite_agent_seed_comment_repository(
+            transaction_provider=transaction_provider
+        )
+    if agent_seed_follow_repo is None:
+        agent_seed_follow_repo = create_sqlite_agent_seed_follow_repository(
+            transaction_provider=transaction_provider
+        )
     query_service = create_query_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
@@ -159,6 +187,9 @@ def create_engine(
         feed_post_repo=feed_post_repo,
         generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
+        agent_seed_like_repo=agent_seed_like_repo,
+        agent_seed_comment_repo=agent_seed_comment_repo,
+        agent_seed_follow_repo=agent_seed_follow_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
     )

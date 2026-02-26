@@ -3,6 +3,9 @@
 from collections.abc import Callable
 
 from db.repositories.interfaces import (
+    AgentSeedCommentRepository,
+    AgentSeedFollowRepository,
+    AgentSeedLikeRepository,
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
@@ -43,6 +46,9 @@ def create_command_service(
     feed_post_repo: FeedPostRepository,
     generated_bio_repo: GeneratedBioRepository,
     generated_feed_repo: GeneratedFeedRepository,
+    agent_seed_like_repo: AgentSeedLikeRepository,
+    agent_seed_comment_repo: AgentSeedCommentRepository,
+    agent_seed_follow_repo: AgentSeedFollowRepository,
     agent_factory: Callable[[int], list[SocialMediaAgent]],
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     feed_generator: FeedGenerator | None = None,
@@ -80,6 +86,9 @@ def create_command_service(
         feed_post_repo=feed_post_repo,
         generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
+        agent_seed_like_repo=agent_seed_like_repo,
+        agent_seed_comment_repo=agent_seed_comment_repo,
+        agent_seed_follow_repo=agent_seed_follow_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=feed_generator,

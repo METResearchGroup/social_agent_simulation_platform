@@ -20,6 +20,9 @@ from pathlib import Path
 
 from db.adapters.sqlite.agent_adapter import SQLiteAgentAdapter
 from db.adapters.sqlite.agent_bio_adapter import SQLiteAgentBioAdapter
+from db.adapters.sqlite.agent_seed_comment_adapter import SQLiteAgentSeedCommentAdapter
+from db.adapters.sqlite.agent_seed_follow_adapter import SQLiteAgentSeedFollowAdapter
+from db.adapters.sqlite.agent_seed_like_adapter import SQLiteAgentSeedLikeAdapter
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
 from db.adapters.sqlite.generated_feed_adapter import SQLiteGeneratedFeedAdapter
 from db.adapters.sqlite.metrics_adapter import SQLiteMetricsAdapter
@@ -31,8 +34,18 @@ from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
+from simulation.core.models.agent_seed_actions import (
+    AgentSeedComment,
+    AgentSeedFollow,
+    AgentSeedLike,
+)
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
+from simulation.core.models.persisted_actions import (
+    PersistedComment,
+    PersistedFollow,
+    PersistedLike,
+)
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
@@ -61,6 +74,12 @@ class SeedFixtures:
     agents: list[Agent]
     agent_persona_bios: list[AgentBio]
     user_agent_profile_metadata: list[UserAgentProfileMetadata]
+    agent_seed_likes: list[AgentSeedLike]
+    agent_seed_comments: list[AgentSeedComment]
+    agent_seed_follows: list[AgentSeedFollow]
+    likes: list[PersistedLike]
+    comments: list[PersistedComment]
+    follows: list[PersistedFollow]
 
 
 def _read_json_list(path: Path) -> list[dict]:
@@ -113,11 +132,17 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     agents_raw = _read_json_list(fixtures_dir / "agents.json")
     bios_raw = _read_json_list(fixtures_dir / "agent_persona_bios.json")
     metadata_raw = _read_json_list(fixtures_dir / "user_agent_profile_metadata.json")
+    agent_seed_likes_raw = _read_json_list(fixtures_dir / "agent_seed_likes.json")
+    agent_seed_comments_raw = _read_json_list(fixtures_dir / "agent_seed_comments.json")
+    agent_seed_follows_raw = _read_json_list(fixtures_dir / "agent_seed_follows.json")
     posts_raw = _read_json_list(fixtures_dir / "bluesky_feed_posts.json")
     feeds_raw = _read_json_list(fixtures_dir / "generated_feeds.json")
     turn_md_raw = _read_json_list(fixtures_dir / "turn_metadata.json")
     turn_metrics_raw = _read_json_list(fixtures_dir / "turn_metrics.json")
     run_metrics_raw = _read_json_list(fixtures_dir / "run_metrics.json")
+    likes_raw = _read_json_list(fixtures_dir / "likes.json")
+    comments_raw = _read_json_list(fixtures_dir / "comments.json")
+    follows_raw = _read_json_list(fixtures_dir / "follows.json")
 
     runs = [Run.model_validate(item) for item in runs_raw]
     agents: list[Agent] = []
@@ -176,6 +201,112 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         agents=agents,
         agent_persona_bios=bios,
         user_agent_profile_metadata=user_md,
+        agent_seed_likes=[
+            AgentSeedLike.model_validate(item) for item in agent_seed_likes_raw
+        ],
+        agent_seed_comments=[
+            AgentSeedComment.model_validate(item) for item in agent_seed_comments_raw
+        ],
+        agent_seed_follows=[
+            AgentSeedFollow.model_validate(item) for item in agent_seed_follows_raw
+        ],
+        likes=[PersistedLike.model_validate(item) for item in likes_raw],
+        comments=[PersistedComment.model_validate(item) for item in comments_raw],
+        follows=[PersistedFollow.model_validate(item) for item in follows_raw],
+    )
+
+
+def _write_persisted_likes(
+    *, conn: sqlite3.Connection, likes: list[PersistedLike]
+) -> None:
+    if not likes:
+        return
+    conn.executemany(
+        """
+        INSERT INTO likes (
+            like_id, run_id, turn_number, agent_handle, post_id,
+            created_at, explanation, model_used, generation_metadata_json,
+            generation_created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                item.like_id,
+                item.run_id,
+                item.turn_number,
+                item.agent_handle,
+                item.post_id,
+                item.created_at,
+                item.explanation,
+                item.model_used,
+                item.generation_metadata_json,
+                item.generation_created_at,
+            )
+            for item in likes
+        ],
+    )
+
+
+def _write_persisted_comments(
+    *, conn: sqlite3.Connection, comments: list[PersistedComment]
+) -> None:
+    if not comments:
+        return
+    conn.executemany(
+        """
+        INSERT INTO comments (
+            comment_id, run_id, turn_number, agent_handle, post_id,
+            text, created_at, explanation, model_used, generation_metadata_json,
+            generation_created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                item.comment_id,
+                item.run_id,
+                item.turn_number,
+                item.agent_handle,
+                item.post_id,
+                item.text,
+                item.created_at,
+                item.explanation,
+                item.model_used,
+                item.generation_metadata_json,
+                item.generation_created_at,
+            )
+            for item in comments
+        ],
+    )
+
+
+def _write_persisted_follows(
+    *, conn: sqlite3.Connection, follows: list[PersistedFollow]
+) -> None:
+    if not follows:
+        return
+    conn.executemany(
+        """
+        INSERT INTO follows (
+            follow_id, run_id, turn_number, agent_handle, user_id,
+            created_at, explanation, model_used, generation_metadata_json,
+            generation_created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                item.follow_id,
+                item.run_id,
+                item.turn_number,
+                item.agent_handle,
+                item.user_id,
+                item.created_at,
+                item.explanation,
+                item.model_used,
+                item.generation_metadata_json,
+                item.generation_created_at,
+            )
+            for item in follows
+        ],
     )
 
 
@@ -216,6 +347,9 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
         agent_adapter = SQLiteAgentAdapter()
         bio_adapter = SQLiteAgentBioAdapter()
         user_md_adapter = SQLiteUserAgentProfileMetadataAdapter()
+        seed_like_adapter = SQLiteAgentSeedLikeAdapter()
+        seed_comment_adapter = SQLiteAgentSeedCommentAdapter()
+        seed_follow_adapter = SQLiteAgentSeedFollowAdapter()
 
         now = get_current_timestamp()
 
@@ -231,6 +365,19 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
             for md in fixtures.user_agent_profile_metadata:
                 user_md_adapter.write_user_agent_profile_metadata(md, conn=conn)
 
+            seed_like_adapter.write_agent_seed_likes(
+                fixtures.agent_seed_likes,
+                conn=conn,
+            )
+            seed_comment_adapter.write_agent_seed_comments(
+                fixtures.agent_seed_comments,
+                conn=conn,
+            )
+            seed_follow_adapter.write_agent_seed_follows(
+                fixtures.agent_seed_follows,
+                conn=conn,
+            )
+
             post_adapter.write_feed_posts(fixtures.feed_posts, conn=conn)
             for feed in fixtures.generated_feeds:
                 feed_adapter.write_generated_feed(feed, conn=conn)
@@ -240,6 +387,10 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                 metrics_adapter.write_turn_metrics(tm, conn=conn)
             for rm in fixtures.run_metrics:
                 metrics_adapter.write_run_metrics(rm, conn=conn)
+
+            _write_persisted_likes(conn=conn, likes=fixtures.likes)
+            _write_persisted_comments(conn=conn, comments=fixtures.comments)
+            _write_persisted_follows(conn=conn, follows=fixtures.follows)
 
             _set_seed_meta(conn, "fixtures_sha256", digest)
             _set_seed_meta(conn, "seeded_at", now)

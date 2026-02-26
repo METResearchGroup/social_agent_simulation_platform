@@ -2,6 +2,9 @@
 
 from db.adapters.sqlite.agent_adapter import SQLiteAgentAdapter
 from db.adapters.sqlite.agent_bio_adapter import SQLiteAgentBioAdapter
+from db.adapters.sqlite.agent_seed_comment_adapter import SQLiteAgentSeedCommentAdapter
+from db.adapters.sqlite.agent_seed_follow_adapter import SQLiteAgentSeedFollowAdapter
+from db.adapters.sqlite.agent_seed_like_adapter import SQLiteAgentSeedLikeAdapter
 from db.adapters.sqlite.comment_adapter import SQLiteCommentAdapter
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
 from db.adapters.sqlite.follow_adapter import SQLiteFollowAdapter
@@ -18,6 +21,9 @@ from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
 __all__ = [
     "SQLiteAgentAdapter",
     "SQLiteAgentBioAdapter",
+    "SQLiteAgentSeedCommentAdapter",
+    "SQLiteAgentSeedFollowAdapter",
+    "SQLiteAgentSeedLikeAdapter",
     "SQLiteCommentAdapter",
     "SQLiteFeedPostAdapter",
     "SQLiteFollowAdapter",

@@ -8,6 +8,9 @@ from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
+    AgentSeedCommentRepository,
+    AgentSeedFollowRepository,
+    AgentSeedLikeRepository,
     CommentRepository,
     FollowRepository,
     LikeRepository,
@@ -167,6 +170,9 @@ class TestServiceBuilders:
             feed_post_repo=Mock(spec=FeedPostRepository),
             generated_bio_repo=Mock(spec=GeneratedBioRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
+            agent_seed_like_repo=Mock(spec=AgentSeedLikeRepository),
+            agent_seed_comment_repo=Mock(spec=AgentSeedCommentRepository),
+            agent_seed_follow_repo=Mock(spec=AgentSeedFollowRepository),
             agent_factory=Mock(return_value=[]),
         )
         assert isinstance(service, SimulationCommandService)

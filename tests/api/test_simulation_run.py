@@ -4,8 +4,12 @@ from unittest.mock import MagicMock, patch
 
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.exceptions import SimulationRunFailure
-from simulation.core.models.actions import TurnAction
+from simulation.core.models.actions import Comment, Follow, Like, TurnAction
 from simulation.core.models.feeds import GeneratedFeed
+from simulation.core.models.generated.base import GenerationMetadata
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
@@ -454,6 +458,113 @@ def test_get_simulations_run_turns_returns_turn_map(
     assert "turn_number" in data[expected_result["first_turn_key"]]
     assert "agent_feeds" in data[expected_result["first_turn_key"]]
     assert "agent_actions" in data[expected_result["first_turn_key"]]
+
+
+def test_get_simulations_run_turns_hydrates_agent_actions(
+    simulation_client,
+    run_repo,
+    generated_feed_repo,
+    like_repo,
+    comment_repo,
+    follow_repo,
+):
+    """GET /v1/simulations/runs/{run_id}/turns returns hydrated agent_actions."""
+    run = run_repo.create_run(
+        RunConfig(num_agents=1, num_turns=1, feed_algorithm="chronological")
+    )
+    run_repo.write_turn_metadata(
+        TurnMetadata(
+            run_id=run.run_id,
+            turn_number=0,
+            total_actions={
+                TurnAction.LIKE: 1,
+                TurnAction.COMMENT: 1,
+                TurnAction.FOLLOW: 1,
+            },
+            created_at="2026-01-01T00:00:00.000Z",
+        )
+    )
+    agent_handle = "@agent1.bsky.social"
+    post_uri = "at://did:plc:example1/post1"
+    generated_feed_repo.write_generated_feed(
+        GeneratedFeed(
+            feed_id="feed-1",
+            run_id=run.run_id,
+            turn_number=0,
+            agent_handle=agent_handle,
+            post_uris=[post_uri],
+            created_at="2026-01-01T00:00:00.000Z",
+        )
+    )
+    created_at = "2026-01-01T00:00:00.000Z"
+    meta = GenerationMetadata(
+        model_used=None,
+        generation_metadata={"test": True},
+        created_at=created_at,
+    )
+    like_repo.write_likes(
+        run.run_id,
+        0,
+        [
+            GeneratedLike(
+                like=Like(
+                    like_id="like-1",
+                    agent_id=agent_handle,
+                    post_id=post_uri,
+                    created_at=created_at,
+                ),
+                explanation="because",
+                metadata=meta,
+            )
+        ],
+    )
+    comment_repo.write_comments(
+        run.run_id,
+        0,
+        [
+            GeneratedComment(
+                comment=Comment(
+                    comment_id="comment-1",
+                    agent_id=agent_handle,
+                    post_id=post_uri,
+                    text="hello",
+                    created_at=created_at,
+                ),
+                explanation="because",
+                metadata=meta,
+            )
+        ],
+    )
+    follow_repo.write_follows(
+        run.run_id,
+        0,
+        [
+            GeneratedFollow(
+                follow=Follow(
+                    follow_id="follow-1",
+                    agent_id=agent_handle,
+                    user_id="@target.bsky.social",
+                    created_at=created_at,
+                ),
+                explanation="because",
+                metadata=meta,
+            )
+        ],
+    )
+
+    client, _ = simulation_client
+    response = client.get(f"/v1/simulations/runs/{run.run_id}/turns")
+    assert response.status_code == 200
+    data = response.json()
+    actions = data["0"]["agent_actions"][agent_handle]
+    types = {a["type"] for a in actions}
+    assert types == {"like", "comment", "follow"}
+    like_action = next(a for a in actions if a["type"] == "like")
+    assert like_action["post_uri"] == post_uri
+    assert like_action["user_id"] is None
+    follow_action = next(a for a in actions if a["type"] == "follow")
+    assert follow_action["post_uri"] is None
+    assert follow_action["user_id"] == "@target.bsky.social"
 
 
 def test_get_simulations_run_turns_missing_run_returns_404(simulation_client):

@@ -14,6 +14,9 @@ interface CreateAgentViewProps {
     handle: string;
     displayName: string;
     bio: string;
+    comments: Array<{ text: string; postUri?: string }>;
+    likedPostUris: string[];
+    linkedAgentHandles: string[];
   }) => Promise<void>;
 }
 
@@ -78,12 +81,43 @@ export default function CreateAgentView({
     isSubmittingRef.current = true;
     setSubmitError(null);
     setSubmitLoading(true);
+
+    const trimmedHandle = handle.trim();
+    const trimmedDisplayName = displayName.trim();
+    if (!trimmedHandle) {
+      setSubmitError(new Error('Handle is required.'));
+      setSubmitLoading(false);
+      isSubmittingRef.current = false;
+      return;
+    }
+    if (!trimmedDisplayName) {
+      setSubmitError(new Error('Display name is required.'));
+      setSubmitLoading(false);
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    const likedPostUrisList: string[] = likedPostUris
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const commentEntries: Array<{ text: string; postUri?: string }> = comments
+      .map((c) => ({
+        text: c.text.trim(),
+        postUri: c.postUri.trim() || undefined,
+      }))
+      .filter((c) => Boolean(c.text));
+
     void Promise.resolve()
       .then(() =>
         onSubmit({
-          handle: handle.trim(),
-          displayName: displayName.trim(),
+          handle: trimmedHandle,
+          displayName: trimmedDisplayName,
           bio: bio.trim(),
+          comments: commentEntries,
+          likedPostUris: likedPostUrisList,
+          linkedAgentHandles,
         }),
       )
       .catch((err: unknown) => {

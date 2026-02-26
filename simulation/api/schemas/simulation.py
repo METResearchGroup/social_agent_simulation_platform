@@ -137,18 +137,28 @@ class RunListItem(BaseModel):
     status: RunStatus
 
 
+class CreateAgentComment(BaseModel):
+    """One seed comment entry submitted during agent creation."""
+
+    text: str
+    post_uri: str | None = None
+
+
 class CreateAgentRequest(BaseModel):
     """Request body for POST /v1/simulations/agents.
 
-    Fast-follows (not yet supported):
-    - comments: list of {text, postUri}
-    - likedPostUris: list of post URIs
-    - linkedAgentHandles: list of agent handles to link
+    Optional agent-scoped seed actions (Create Agent fast-follows):
+    - comments: list of {text, post_uri}
+    - liked_post_uris: list of post URIs
+    - linked_agent_handles: list of agent handles to follow
     """
 
     handle: str
     display_name: str
     bio: str = ""
+    comments: list[CreateAgentComment] = []
+    liked_post_uris: list[str] = []
+    linked_agent_handles: list[str] = []
 
     @field_validator("handle")
     @classmethod

@@ -190,6 +190,60 @@ user_agent_profile_metadata = sa.Table(
 )
 
 
+# --- Agent-scoped seed actions (Create Agent "fast-follows") ---
+
+agent_seed_likes = sa.Table(
+    "agent_seed_likes",
+    metadata,
+    sa.Column("seed_like_id", sa.Text(), primary_key=True),
+    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("post_uri", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_handle"], ["agent.handle"], name="fk_agent_seed_likes_agent_handle"
+    ),
+    sa.UniqueConstraint(
+        "agent_handle",
+        "post_uri",
+        name="uq_agent_seed_likes_agent_handle_post_uri",
+    ),
+)
+
+agent_seed_comments = sa.Table(
+    "agent_seed_comments",
+    metadata,
+    sa.Column("seed_comment_id", sa.Text(), primary_key=True),
+    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("post_uri", sa.Text(), nullable=True),
+    sa.Column("text", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_handle"],
+        ["agent.handle"],
+        name="fk_agent_seed_comments_agent_handle",
+    ),
+)
+
+agent_seed_follows = sa.Table(
+    "agent_seed_follows",
+    metadata,
+    sa.Column("seed_follow_id", sa.Text(), primary_key=True),
+    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("user_id", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_handle"],
+        ["agent.handle"],
+        name="fk_agent_seed_follows_agent_handle",
+    ),
+    sa.UniqueConstraint(
+        "agent_handle",
+        "user_id",
+        name="uq_agent_seed_follows_agent_handle_user_id",
+    ),
+)
+
+
 # --- Run-scoped action tables (likes, comments, follows) ---
 
 likes = sa.Table(
@@ -287,6 +341,9 @@ sa.Index(
     agent_persona_bios.c.agent_id,
     agent_persona_bios.c.created_at.desc(),
 )
+sa.Index("idx_agent_seed_likes_agent_handle", agent_seed_likes.c.agent_handle)
+sa.Index("idx_agent_seed_comments_agent_handle", agent_seed_comments.c.agent_handle)
+sa.Index("idx_agent_seed_follows_agent_handle", agent_seed_follows.c.agent_handle)
 sa.Index(
     "idx_likes_run_turn_agent",
     likes.c.run_id,

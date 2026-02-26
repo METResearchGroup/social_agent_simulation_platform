@@ -8,6 +8,11 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_seed_actions import (
+    AgentSeedComment,
+    AgentSeedFollow,
+    AgentSeedLike,
+)
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.generated.comment import GeneratedComment
@@ -855,4 +860,67 @@ class FollowDatabaseAdapter(ABC):
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedFollow]:
         """Read all follow rows for (run_id, turn_number). Ordered by agent_handle, user_id."""
+        raise NotImplementedError
+
+
+class AgentSeedLikeDatabaseAdapter(ABC):
+    """Abstract interface for agent-scoped seed likes (Create Agent history)."""
+
+    @abstractmethod
+    def write_agent_seed_likes(
+        self,
+        seed_likes: Iterable[AgentSeedLike],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert agent-scoped seed like rows."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_seed_likes_by_agent_handles(
+        self, agent_handles: Iterable[str], *, conn: object
+    ) -> list[AgentSeedLike]:
+        """Read seed likes for the given agent handles."""
+        raise NotImplementedError
+
+
+class AgentSeedCommentDatabaseAdapter(ABC):
+    """Abstract interface for agent-scoped seed comments (Create Agent history)."""
+
+    @abstractmethod
+    def write_agent_seed_comments(
+        self,
+        seed_comments: Iterable[AgentSeedComment],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert agent-scoped seed comment rows."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_seed_comments_by_agent_handles(
+        self, agent_handles: Iterable[str], *, conn: object
+    ) -> list[AgentSeedComment]:
+        """Read seed comments for the given agent handles."""
+        raise NotImplementedError
+
+
+class AgentSeedFollowDatabaseAdapter(ABC):
+    """Abstract interface for agent-scoped seed follows (Create Agent links)."""
+
+    @abstractmethod
+    def write_agent_seed_follows(
+        self,
+        seed_follows: Iterable[AgentSeedFollow],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert agent-scoped seed follow rows."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_seed_follows_by_agent_handles(
+        self, agent_handles: Iterable[str], *, conn: object
+    ) -> list[AgentSeedFollow]:
+        """Read seed follows for the given agent handles."""
         raise NotImplementedError

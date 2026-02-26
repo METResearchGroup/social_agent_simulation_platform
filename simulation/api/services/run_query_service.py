@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from lib.validation_decorators import validate_inputs
 from simulation.api.schemas.simulation import (
+    AgentActionSchema,
     FeedSchema,
     PostSchema,
     RunConfigDetail,
@@ -14,6 +15,10 @@ from simulation.api.schemas.simulation import (
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.exceptions import RunNotFoundError
+from simulation.core.models.actions import TurnAction
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import BlueskyFeedPost
 from simulation.core.models.runs import Run
@@ -42,11 +47,7 @@ def list_runs(*, engine: SimulationEngine) -> list[RunListItem]:
 def get_turns_for_run(
     *, run_id: str, engine: SimulationEngine
 ) -> dict[str, TurnSchema]:
-    """Build TurnSchema payloads from persisted turn metadata + generated feeds.
-
-    Note: agent_actions are currently not persisted in SQLite. This endpoint returns
-    an empty agent_actions mapping for now.
-    """
+    """Build TurnSchema payloads from persisted turn metadata + feeds + actions."""
     validated_run_id = validate_run_id(run_id)
     run = engine.get_run(validated_run_id)
     if run is None:
@@ -69,10 +70,56 @@ def get_turns_for_run(
             )
             for feed in feeds
         }
+
+        turn_data = engine.get_turn_data(validated_run_id, item.turn_number)
+        agent_actions: dict[str, list[AgentActionSchema]] = {}
+        if turn_data is not None:
+            for agent_handle, actions in (turn_data.actions or {}).items():
+                mapped: list[AgentActionSchema] = []
+                for a in actions:
+                    if isinstance(a, GeneratedLike):
+                        mapped.append(
+                            AgentActionSchema(
+                                action_id=a.like.like_id,
+                                agent_handle=a.like.agent_id,
+                                post_uri=a.like.post_id,
+                                user_id=None,
+                                type=TurnAction.LIKE,
+                                created_at=a.like.created_at,
+                            )
+                        )
+                    elif isinstance(a, GeneratedComment):
+                        mapped.append(
+                            AgentActionSchema(
+                                action_id=a.comment.comment_id,
+                                agent_handle=a.comment.agent_id,
+                                post_uri=a.comment.post_id,
+                                user_id=None,
+                                type=TurnAction.COMMENT,
+                                created_at=a.comment.created_at,
+                            )
+                        )
+                    elif isinstance(a, GeneratedFollow):
+                        mapped.append(
+                            AgentActionSchema(
+                                action_id=a.follow.follow_id,
+                                agent_handle=a.follow.agent_id,
+                                post_uri=None,
+                                user_id=a.follow.user_id,
+                                type=TurnAction.FOLLOW,
+                                created_at=a.follow.created_at,
+                            )
+                        )
+                    else:
+                        raise TypeError(
+                            f"Unsupported action type in turn_data: {type(a)!r}"
+                        )
+                agent_actions[agent_handle] = mapped
+
         turns[str(item.turn_number)] = TurnSchema(
             turn_number=item.turn_number,
             agent_feeds=agent_feeds,
-            agent_actions={},
+            agent_actions=agent_actions,
         )
     return turns
 

@@ -10,6 +10,9 @@ from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
+    AgentSeedCommentRepository,
+    AgentSeedFollowRepository,
+    AgentSeedLikeRepository,
     CommentRepository,
     FollowRepository,
     LikeRepository,
@@ -29,6 +32,13 @@ def mock_repos():
     follow_repo = Mock(spec=FollowRepository)
     follow_repo.read_follows_by_run_turn.return_value = []
 
+    agent_seed_like_repo = Mock(spec=AgentSeedLikeRepository)
+    agent_seed_like_repo.read_agent_seed_likes_by_agent_handles.return_value = []
+    agent_seed_comment_repo = Mock(spec=AgentSeedCommentRepository)
+    agent_seed_comment_repo.read_agent_seed_comments_by_agent_handles.return_value = []
+    agent_seed_follow_repo = Mock(spec=AgentSeedFollowRepository)
+    agent_seed_follow_repo.read_agent_seed_follows_by_agent_handles.return_value = []
+
     return {
         "run_repo": Mock(spec=RunRepository),
         "metrics_repo": Mock(spec=MetricsRepository),
@@ -39,6 +49,9 @@ def mock_repos():
         "like_repo": like_repo,
         "comment_repo": comment_repo,
         "follow_repo": follow_repo,
+        "agent_seed_like_repo": agent_seed_like_repo,
+        "agent_seed_comment_repo": agent_seed_comment_repo,
+        "agent_seed_follow_repo": agent_seed_follow_repo,
     }
 
 

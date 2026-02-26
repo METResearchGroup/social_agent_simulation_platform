@@ -358,6 +358,9 @@ export async function postAgent(body: {
   handle: string;
   display_name: string;
   bio?: string;
+  comments?: Array<{ text: string; post_uri?: string | null }>;
+  liked_post_uris?: string[];
+  linked_agent_handles?: string[];
 }): Promise<Agent> {
   const api: ApiAgent = await fetchPost<typeof body, ApiAgent>(
     buildApiUrl('/simulations/agents'),

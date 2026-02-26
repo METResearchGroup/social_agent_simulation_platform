@@ -88,6 +88,20 @@ def test_api_endpoints__db_backed_with_seeded_db(temp_db, monkeypatch) -> None:
         expected_result = True
         assert isinstance(turns_by_id, dict) is expected_result
 
+        # Seed fixtures should include at least one persisted action so the
+        # turns endpoint returns hydrated agent_actions.
+        expected_result = True
+        assert (
+            any(
+                any(
+                    len(actions) > 0
+                    for actions in turn.get("agent_actions", {}).values()
+                )
+                for turn in turns_by_id.values()
+            )
+            is expected_result
+        ), "Seeded turns should include at least one agent action"
+
         # Extract some URIs (if present) and ensure /posts hydrates them.
         some_uris: list[str] = []
         for turn in turns_by_id.values():

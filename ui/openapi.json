@@ -95,13 +95,46 @@
         "title": "AgentSchema",
         "type": "object"
       },
+      "CreateAgentComment": {
+        "description": "One seed comment entry submitted during agent creation.",
+        "properties": {
+          "post_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Post Uri"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "CreateAgentComment",
+        "type": "object"
+      },
       "CreateAgentRequest": {
-        "description": "Request body for POST /v1/simulations/agents.\n\nFast-follows (not yet supported):\n- comments: list of {text, postUri}\n- likedPostUris: list of post URIs\n- linkedAgentHandles: list of agent handles to link",
+        "description": "Request body for POST /v1/simulations/agents.\n\nOptional agent-scoped seed actions (Create Agent fast-follows):\n- comments: list of {text, post_uri}\n- liked_post_uris: list of post URIs\n- linked_agent_handles: list of agent handles to follow",
         "properties": {
           "bio": {
             "default": "",
             "title": "Bio",
             "type": "string"
+          },
+          "comments": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CreateAgentComment"
+            },
+            "title": "Comments",
+            "type": "array"
           },
           "display_name": {
             "title": "Display Name",
@@ -110,6 +143,22 @@
           "handle": {
             "title": "Handle",
             "type": "string"
+          },
+          "liked_post_uris": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Liked Post Uris",
+            "type": "array"
+          },
+          "linked_agent_handles": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Linked Agent Handles",
+            "type": "array"
           }
         },
         "required": [

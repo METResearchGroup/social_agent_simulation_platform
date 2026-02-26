@@ -250,13 +250,23 @@ export interface components {
             posts_count: number;
         };
         /**
+         * CreateAgentComment
+         * @description One seed comment entry submitted during agent creation.
+         */
+        CreateAgentComment: {
+            /** Post Uri */
+            post_uri?: string | null;
+            /** Text */
+            text: string;
+        };
+        /**
          * CreateAgentRequest
          * @description Request body for POST /v1/simulations/agents.
          *
-         *     Fast-follows (not yet supported):
-         *     - comments: list of {text, postUri}
-         *     - likedPostUris: list of post URIs
-         *     - linkedAgentHandles: list of agent handles to link
+         *     Optional agent-scoped seed actions (Create Agent fast-follows):
+         *     - comments: list of {text, post_uri}
+         *     - liked_post_uris: list of post URIs
+         *     - linked_agent_handles: list of agent handles to follow
          */
         CreateAgentRequest: {
             /**
@@ -264,10 +274,25 @@ export interface components {
              * @default
              */
             bio: string;
+            /**
+             * Comments
+             * @default []
+             */
+            comments: components["schemas"]["CreateAgentComment"][];
             /** Display Name */
             display_name: string;
             /** Handle */
             handle: string;
+            /**
+             * Liked Post Uris
+             * @default []
+             */
+            liked_post_uris: string[];
+            /**
+             * Linked Agent Handles
+             * @default []
+             */
+            linked_agent_handles: string[];
         };
         /**
          * DefaultConfigSchema

@@ -17,6 +17,11 @@ from simulation.core.exceptions import RunStatusUpdateError, SimulationRunFailur
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
 from simulation.core.models.actions import Comment, Follow, Like, TurnAction
+from simulation.core.models.agent_seed_actions import (
+    AgentSeedComment,
+    AgentSeedFollow,
+    AgentSeedLike,
+)
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
@@ -78,6 +83,9 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_bio_repo=mock_repos["generated_bio_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
+        agent_seed_like_repo=mock_repos["agent_seed_like_repo"],
+        agent_seed_comment_repo=mock_repos["agent_seed_comment_repo"],
+        agent_seed_follow_repo=mock_repos["agent_seed_follow_repo"],
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=mock_feed_generator,
@@ -153,6 +161,73 @@ class TestSimulationCommandServiceExecuteRun:
         call_args = command_service.simulation_persistence.write_run.call_args
         assert call_args[0][0] == sample_run.run_id
         assert call_args[0][1].run_id == sample_run.run_id
+
+    def test_seeds_action_history_from_agent_seed_repos(
+        self, mock_repos, mock_agent_factory
+    ):
+        """execute_run seeds ActionHistoryStore from persisted agent seed actions."""
+        # Arrange a real history store so we can assert seeded state.
+        history = InMemoryActionHistoryStore()
+        agent_handle = "@seed.agent.bsky.social"
+        agent = SocialMediaAgent(agent_handle)
+
+        seed_like_repo = Mock()
+        seed_like_repo.read_agent_seed_likes_by_agent_handles.return_value = [
+            AgentSeedLike(
+                seed_like_id="sl1",
+                agent_handle=agent_handle,
+                post_uri="at://did:plc:post1",
+                created_at="2026-02-25T00:00:00Z",
+            )
+        ]
+        seed_comment_repo = Mock()
+        seed_comment_repo.read_agent_seed_comments_by_agent_handles.return_value = [
+            AgentSeedComment(
+                seed_comment_id="sc1",
+                agent_handle=agent_handle,
+                post_uri="at://did:plc:post2",
+                text="hello",
+                created_at="2026-02-25T00:00:00Z",
+            )
+        ]
+        seed_follow_repo = Mock()
+        seed_follow_repo.read_agent_seed_follows_by_agent_handles.return_value = [
+            AgentSeedFollow(
+                seed_follow_id="sf1",
+                agent_handle=agent_handle,
+                user_id="@other.bsky.social",
+                created_at="2026-02-25T00:00:00Z",
+            )
+        ]
+
+        service = SimulationCommandService(
+            run_repo=mock_repos["run_repo"],
+            metrics_repo=mock_repos["metrics_repo"],
+            metrics_collector=Mock(spec=MetricsCollector),
+            simulation_persistence=Mock(spec=SimulationPersistenceService),
+            profile_repo=mock_repos["profile_repo"],
+            feed_post_repo=mock_repos["feed_post_repo"],
+            generated_bio_repo=mock_repos["generated_bio_repo"],
+            generated_feed_repo=mock_repos["generated_feed_repo"],
+            agent_seed_like_repo=seed_like_repo,
+            agent_seed_comment_repo=seed_comment_repo,
+            agent_seed_follow_repo=seed_follow_repo,
+            agent_factory=mock_agent_factory,
+            action_history_store_factory=Mock(return_value=history),
+            feed_generator=Mock(spec=FeedGenerator),
+            agent_action_rules_validator=Mock(spec=AgentActionRulesValidator),
+            agent_action_feed_filter=Mock(spec=HistoryAwareActionFeedFilter),
+        )
+
+        # Act: call the seeding hook directly (execute_run uses this before turns).
+        service._seed_action_history_store_from_agent_seeds(
+            run_id="run_1", agents=[agent], action_history_store=history
+        )
+
+        # Assert
+        assert history.has_liked("run_1", agent_handle, "at://did:plc:post1")
+        assert history.has_commented("run_1", agent_handle, "at://did:plc:post2")
+        assert history.has_followed("run_1", agent_handle, "@other.bsky.social")
 
     def test_run_creation_failure_raises_simulation_run_failure_with_no_run_id(
         self, command_service, mock_repos
@@ -581,6 +656,9 @@ class TestSimulationCommandServiceActionPersistence:
             feed_post_repo=Mock(),
             generated_bio_repo=Mock(),
             generated_feed_repo=Mock(),
+            agent_seed_like_repo=Mock(),
+            agent_seed_comment_repo=Mock(),
+            agent_seed_follow_repo=Mock(),
             agent_factory=lambda n: [agent],
             action_history_store_factory=lambda: action_history_store,
             feed_generator=feed_generator,

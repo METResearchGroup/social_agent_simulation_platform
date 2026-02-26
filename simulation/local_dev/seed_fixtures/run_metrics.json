@@ -58,5 +58,17 @@
       }
     },
     "run_id": "run_2025-01-18T11:00:00"
+  },
+  {
+    "created_at": "2025-02-01T00:00:00",
+    "metrics": {
+      "run.actions.total": 3,
+      "run.actions.total_by_type": {
+        "comment": 1,
+        "follow": 1,
+        "like": 1
+      }
+    },
+    "run_id": "run_2025-02-01T00:00:00_seed_actions_demo"
   }
 ]

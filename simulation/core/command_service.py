@@ -1,10 +1,14 @@
 import logging
 import time
+from collections import defaultdict
 from collections.abc import Callable, Mapping
 
 from pydantic import JsonValue
 
 from db.repositories.interfaces import (
+    AgentSeedCommentRepository,
+    AgentSeedFollowRepository,
+    AgentSeedLikeRepository,
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
@@ -66,6 +70,9 @@ class SimulationCommandService:
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
+        agent_seed_like_repo: AgentSeedLikeRepository,
+        agent_seed_comment_repo: AgentSeedCommentRepository,
+        agent_seed_follow_repo: AgentSeedFollowRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
@@ -80,6 +87,9 @@ class SimulationCommandService:
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
+        self.agent_seed_like_repo = agent_seed_like_repo
+        self.agent_seed_comment_repo = agent_seed_comment_repo
+        self.agent_seed_follow_repo = agent_seed_follow_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
@@ -101,6 +111,12 @@ class SimulationCommandService:
         try:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
             action_history_store = self.action_history_store_factory()
+
+            self._seed_action_history_store_from_agent_seeds(
+                run_id=run.run_id,
+                agents=agents,
+                action_history_store=action_history_store,
+            )
 
             turn_keys, run_keys = resolve_metric_keys_by_scope(run.metric_keys)
             self.simulate_turns(
@@ -131,6 +147,59 @@ class SimulationCommandService:
                 run_id=run.run_id,
                 cause=e,
             ) from e
+
+    def _seed_action_history_store_from_agent_seeds(
+        self,
+        *,
+        run_id: str,
+        agents: list[SocialMediaAgent],
+        action_history_store: ActionHistoryStore,
+    ) -> None:
+        """Seed run-scoped action history from agent-scoped seed actions."""
+        agent_handles = [a.handle for a in agents]
+        if not agent_handles:
+            return
+
+        likes = self.agent_seed_like_repo.read_agent_seed_likes_by_agent_handles(
+            agent_handles
+        )
+        comments = (
+            self.agent_seed_comment_repo.read_agent_seed_comments_by_agent_handles(
+                agent_handles
+            )
+        )
+        follows = self.agent_seed_follow_repo.read_agent_seed_follows_by_agent_handles(
+            agent_handles
+        )
+
+        likes_by_agent: dict[str, list[str]] = defaultdict(list)
+        comments_by_agent: dict[str, list[str]] = defaultdict(list)
+        follows_by_agent: dict[str, list[str]] = defaultdict(list)
+
+        for item in likes:
+            likes_by_agent[item.agent_handle].append(item.post_uri)
+
+        for item in comments:
+            if item.post_uri:
+                comments_by_agent[item.agent_handle].append(item.post_uri)
+
+        for item in follows:
+            follows_by_agent[item.agent_handle].append(item.user_id)
+
+        all_handles = (
+            set(likes_by_agent.keys())
+            | set(comments_by_agent.keys())
+            | set(follows_by_agent.keys())
+        )
+        for agent_handle in all_handles:
+            record_action_targets(
+                run_id=run_id,
+                agent_handle=agent_handle,
+                like_post_ids=likes_by_agent.get(agent_handle, []),
+                comment_post_ids=comments_by_agent.get(agent_handle, []),
+                follow_user_ids=follows_by_agent.get(agent_handle, []),
+                action_history_store=action_history_store,
+            )
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         for attempt in range(STATUS_UPDATE_MAX_ATTEMPTS):

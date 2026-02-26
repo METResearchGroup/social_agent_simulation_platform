@@ -10,6 +10,11 @@ from collections.abc import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_seed_actions import (
+    AgentSeedComment,
+    AgentSeedFollow,
+    AgentSeedLike,
+)
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.generated.comment import GeneratedComment
@@ -546,4 +551,64 @@ class FollowRepository(ABC):
         self, run_id: str, turn_number: int
     ) -> list[PersistedFollow]:
         """Read persisted follows for (run_id, turn_number)."""
+        raise NotImplementedError
+
+
+class AgentSeedLikeRepository(ABC):
+    """Abstract interface for agent-scoped seed likes."""
+
+    @abstractmethod
+    def write_agent_seed_likes(
+        self,
+        seed_likes: Iterable[AgentSeedLike],
+        conn: object | None = None,
+    ) -> None:
+        """Persist agent-scoped seed likes."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_seed_likes_by_agent_handles(
+        self, agent_handles: Iterable[str]
+    ) -> list[AgentSeedLike]:
+        """Read agent-scoped seed likes for the given agent handles."""
+        raise NotImplementedError
+
+
+class AgentSeedCommentRepository(ABC):
+    """Abstract interface for agent-scoped seed comments."""
+
+    @abstractmethod
+    def write_agent_seed_comments(
+        self,
+        seed_comments: Iterable[AgentSeedComment],
+        conn: object | None = None,
+    ) -> None:
+        """Persist agent-scoped seed comments."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_seed_comments_by_agent_handles(
+        self, agent_handles: Iterable[str]
+    ) -> list[AgentSeedComment]:
+        """Read agent-scoped seed comments for the given agent handles."""
+        raise NotImplementedError
+
+
+class AgentSeedFollowRepository(ABC):
+    """Abstract interface for agent-scoped seed follows."""
+
+    @abstractmethod
+    def write_agent_seed_follows(
+        self,
+        seed_follows: Iterable[AgentSeedFollow],
+        conn: object | None = None,
+    ) -> None:
+        """Persist agent-scoped seed follows."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_seed_follows_by_agent_handles(
+        self, agent_handles: Iterable[str]
+    ) -> list[AgentSeedFollow]:
+        """Read agent-scoped seed follows for the given agent handles."""
         raise NotImplementedError

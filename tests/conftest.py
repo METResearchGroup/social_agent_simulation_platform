@@ -11,6 +11,15 @@ import pytest
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
+from db.repositories.agent_seed_comment_repository import (
+    create_sqlite_agent_seed_comment_repository,
+)
+from db.repositories.agent_seed_follow_repository import (
+    create_sqlite_agent_seed_follow_repository,
+)
+from db.repositories.agent_seed_like_repository import (
+    create_sqlite_agent_seed_like_repository,
+)
 from db.repositories.comment_repository import create_sqlite_comment_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.follow_repository import create_sqlite_follow_repository
@@ -95,6 +104,21 @@ def comment_repo(temp_db, sqlite_tx):
 @pytest.fixture
 def follow_repo(temp_db, sqlite_tx):
     return create_sqlite_follow_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def agent_seed_like_repo(temp_db, sqlite_tx):
+    return create_sqlite_agent_seed_like_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def agent_seed_comment_repo(temp_db, sqlite_tx):
+    return create_sqlite_agent_seed_comment_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def agent_seed_follow_repo(temp_db, sqlite_tx):
+    return create_sqlite_agent_seed_follow_repository(transaction_provider=sqlite_tx)
 
 
 @pytest.fixture
