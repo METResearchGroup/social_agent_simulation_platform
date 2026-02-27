@@ -10,6 +10,7 @@ Output format (one per violation):
 from __future__ import annotations
 
 import ast
+import os
 import re
 import subprocess
 import sys
@@ -116,7 +117,8 @@ def _git_ls_files_py() -> list[str]:
         timeout=30,
     )
     files = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
-    return [f for f in files if not _posix(f).startswith("docs/plans/")]
+    filtered = [f for f in files if os.path.exists(f)]
+    return [f for f in filtered if not _posix(f).startswith("docs/plans/")]
 
 
 @dataclass

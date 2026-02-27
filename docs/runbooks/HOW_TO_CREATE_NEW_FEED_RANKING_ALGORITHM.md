@@ -96,6 +96,10 @@ The `generate` method returns `FeedAlgorithmResult` that the framework wraps int
 
 The framework persists the feed, hydrates posts, and returns hydrated feeds to callers. Your algorithm only ranks and selects from `candidate_posts`.
 
+## Action-generator factory guidance
+
+When you add new action generators such as the naive LLM-based comment, like, or follow agents, put their factories in the action-specific directories under `simulation/core/factories/action_generators/` (e.g., `comment/naive_llm.py`, `like/naive_llm.py`, `follow/naive_llm.py`). Each module should export a `create_naive_llm_<action>_generator(*, llm_service: LLMService | None = None)` factory that returns the corresponding `NaiveLLM<action>Generator`. Update other consumers (the registry, scripts, or tests) to import directly from these new paths and keep `simulation/core/action_generators/registry.py` importing the factory so the `"naive_llm"` entry continues to resolve.
+
 ## Register the algorithm (in `feeds/algorithms/registry.py`)
 
 1. Import your implementation's algorithm class:
