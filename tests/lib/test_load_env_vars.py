@@ -25,11 +25,12 @@ def test_get_env_var_returns_value_when_set():
 
 def test_get_env_var_required_raises_when_missing():
     """get_env_var with required=True raises ValueError when var is missing."""
-    with patch.dict("os.environ", {}, clear=True):
-        with pytest.raises(ValueError) as exc_info:
-            EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
-        expected_message = "OPENAI_API_KEY is required but is missing"
-        assert expected_message in str(exc_info.value)
+    with patch("lib.load_env_vars.load_dotenv", return_value=False):
+        with patch.dict("os.environ", {}, clear=True):
+            with pytest.raises(ValueError) as exc_info:
+                EnvVarsContainer.get_env_var("OPENAI_API_KEY", required=True)
+            expected_message = "OPENAI_API_KEY is required but is missing"
+            assert expected_message in str(exc_info.value)
 
 
 def test_get_env_var_required_raises_when_empty_string():
@@ -43,10 +44,11 @@ def test_get_env_var_required_raises_when_empty_string():
 
 def test_get_env_var_returns_empty_string_for_optional_missing():
     """get_env_var returns empty string for optional missing str var."""
-    with patch.dict("os.environ", {}, clear=True):
-        expected_result = ""
-        actual = EnvVarsContainer.get_env_var("OPIK_WORKSPACE")
-        assert actual == expected_result
+    with patch("lib.load_env_vars.load_dotenv", return_value=False):
+        with patch.dict("os.environ", {}, clear=True):
+            expected_result = ""
+            actual = EnvVarsContainer.get_env_var("OPIK_WORKSPACE")
+            assert actual == expected_result
 
 
 def test_load_dotenv_called_from_repo_root():

@@ -1,5 +1,7 @@
 """Shared fixtures for API tests."""
 
+from __future__ import annotations
+
 from typing import cast
 
 import pytest
@@ -24,7 +26,7 @@ def _mock_require_current_app_user(
     display_name = (claims.get("user_metadata") or {}).get("full_name") or email
 
     app_user = AppUser(
-        id="test-app-user-id",
+        id="00000000-0000-0000-0000-000000000001",
         auth_provider_id=claims.get("sub", "test-user-id"),
         email=email,
         display_name=display_name,
