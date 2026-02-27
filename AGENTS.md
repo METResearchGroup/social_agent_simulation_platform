@@ -84,3 +84,24 @@ See `docs/RULES.md` for the full set. A few that commonly matter during edits:
 - Prefer **absolute imports**.
 - Keep domain models (`simulation.core.models`) “pure” (no imports from `db/`, `feeds/`, `ai/`, etc.).
 - Put interfaces next to implementations in `interfaces.py` at the package level (e.g. `feeds/interfaces.py`).
+
+## Cursor Cloud specific instructions
+
+### Prerequisites
+
+- **Python 3.12** (system default on VM) with **uv** for package management.
+- **Node.js 20.x** via nvm (`nvm use 20`) — the project's `engines` field requires `20.x`; do NOT use 22.x.
+
+### Starting services
+
+- **Backend**: `DISABLE_AUTH=1 PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload --port 8000`
+- **Frontend**: Ensure `ui/.env.local` contains `NEXT_PUBLIC_DISABLE_AUTH=true`, then `cd ui && npm run dev`.
+- Auth bypass flags (`DISABLE_AUTH=1` / `NEXT_PUBLIC_DISABLE_AUTH=true`) are required for local dev without Supabase OAuth configured.
+- No external services (Docker, databases, queues) are needed — SQLite is embedded and ships with a pre-seeded `db/db.sqlite`.
+
+### Gotchas
+
+- The `ui/.env.local` file is gitignored and must be created manually with `NEXT_PUBLIC_DISABLE_AUTH=true` for local dev.
+- The smoke test `test_post_simulations_run_returns_200_with_run_id_and_likes_per_turn` may fail if the `agent` table is empty; agents must first be created via `POST /v1/simulations/agents` or through the UI's "Create agent" tab.
+- Pyright must be run with `PYTHONPATH=.` set (or from repo root) to resolve first-party imports correctly.
+- Pre-commit hooks include `markdownlint-cli2` (installed as a Node dependency by pre-commit) and `oxlint` (runs inside `ui/`). Both work out of the box after `uv sync --extra test` and `cd ui && npm install`.
