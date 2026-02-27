@@ -91,10 +91,14 @@ class SimulationCommandService:
         self.agent_action_rules_validator = agent_action_rules_validator
         self.agent_action_feed_filter = agent_action_feed_filter
 
-    def execute_run(self, run_config: RunConfig) -> Run:
+    def execute_run(
+        self, run_config: RunConfig, created_by_app_user_id: str | None = None
+    ) -> Run:
         """Execute a simulation run."""
         try:
-            run = self.run_repo.create_run(run_config)
+            run = self.run_repo.create_run(
+                run_config, created_by_app_user_id=created_by_app_user_id
+            )
             self.update_run_status(run, RunStatus.RUNNING)
         except Exception as e:
             raise SimulationRunFailure(

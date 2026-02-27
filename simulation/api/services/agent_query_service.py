@@ -21,7 +21,7 @@ def list_agents(
     limit: int | None = None,
     offset: int = 0,
 ) -> list[AgentSchema]:
-    """Return agents from DB, mapped to AgentSchema, ordered by handle."""
+    """Return agents from DB, mapped to AgentSchema, ordered by updated_at DESC, handle ASC."""
     handle_like: str | None = build_substring_like_pattern_from_user_query(q)
 
     agents: list[Agent]

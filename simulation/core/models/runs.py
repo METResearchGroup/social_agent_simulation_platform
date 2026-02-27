@@ -71,6 +71,7 @@ class RunStatus(str, Enum):
 
 class Run(BaseModel):
     run_id: str
+    app_user_id: str | None = None
     created_at: str
     total_turns: int
     total_agents: int
@@ -109,3 +110,16 @@ class Run(BaseModel):
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
         return validate_non_empty_string(v, "feed_algorithm")
+
+    @field_validator("app_user_id")
+    @classmethod
+    def validate_app_user_id(cls, v: str | None) -> str | None:
+        """Reject empty or whitespace-only app_user_id values."""
+        if v is None:
+            return None
+
+        cleaned = v.strip()
+        if cleaned == "":
+            raise ValueError("app_user_id must not be empty or whitespace")
+
+        return cleaned

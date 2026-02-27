@@ -1,7 +1,7 @@
 """Refactor Bluesky feed posts into generic feed_posts and use post_ids everywhere.
 
 Revision ID: e1f0d1c2b3a4
-Revises: c3a1d2e4f5a6
+Revises: f0e1d2c3b4a5
 Create Date: 2026-02-27 00:00:00.000000
 """
 
@@ -15,7 +15,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e1f0d1c2b3a4"
-down_revision: Union[str, Sequence[str], None] = "c3a1d2e4f5a6"
+down_revision: Union[str, Sequence[str], None] = "f0e1d2c3b4a5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

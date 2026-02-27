@@ -64,8 +64,12 @@ class SimulationEngine:
         self.query_service = query_service
         self.command_service = command_service
 
-    def execute_run(self, run_config: RunConfig) -> Run:
-        return self.command_service.execute_run(run_config)
+    def execute_run(
+        self, run_config: RunConfig, created_by_app_user_id: str | None = None
+    ) -> Run:
+        return self.command_service.execute_run(
+            run_config, created_by_app_user_id=created_by_app_user_id
+        )
 
     def get_run(self, run_id: str) -> Run | None:
         return self.query_service.get_run(run_id)

@@ -81,6 +81,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 f"Invalid status value: {row['status']}. Must be one of: {[s.value for s in RunStatus]}"
             ) from err
 
+        app_user_id = row["app_user_id"] if "app_user_id" in row.keys() else None
+
         metric_keys: list[str]
         raw_metric_keys: str | None = (
             row["metric_keys"] if "metric_keys" in row.keys() else None
@@ -104,6 +106,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
 
         return Run(
             run_id=row["run_id"],
+            app_user_id=app_user_id,
             created_at=row["created_at"],
             total_turns=row["total_turns"],
             total_agents=row["total_agents"],
@@ -126,11 +129,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         conn.execute(
             """
             INSERT OR REPLACE INTO runs 
-            (run_id, created_at, total_turns, total_agents, feed_algorithm, metric_keys, started_at, status, completed_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (run_id, app_user_id, created_at, total_turns, total_agents, feed_algorithm, metric_keys, started_at, status, completed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 run.run_id,
+                run.app_user_id,
                 run.created_at,
                 run.total_turns,
                 run.total_agents,

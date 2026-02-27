@@ -4,7 +4,7 @@ Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
 from lib.load_env_vars import EnvVarsContainer
-from simulation.core.factories.action_generators import (
+from simulation.core.factories.action_generators.follow.naive_llm import (
     create_naive_llm_follow_generator,
 )
 from simulation.core.models.posts import Post, PostSource

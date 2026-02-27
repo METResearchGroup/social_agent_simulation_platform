@@ -80,16 +80,19 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
         return self._row_to_agent(row)
 
     def read_all_agents(self, *, conn: sqlite3.Connection) -> list[Agent]:
-        """Read all agents, ordered by handle for deterministic output."""
-        rows = conn.execute("SELECT * FROM agent ORDER BY handle").fetchall()
+        """Read all agents, ordered by updated_at DESC, handle ASC for determinism."""
+        rows = conn.execute(
+            "SELECT * FROM agent ORDER BY updated_at DESC, handle ASC"
+        ).fetchall()
         return self._map_rows_to_agents(rows)
 
     def read_agents_page(
         self, *, limit: int, offset: int, conn: sqlite3.Connection
     ) -> list[Agent]:
-        """Read a page of agents, ordered by handle for deterministic output."""
+        """Read a page of agents, ordered by updated_at DESC, handle ASC."""
         rows = conn.execute(
-            "SELECT * FROM agent ORDER BY handle LIMIT ? OFFSET ?", (limit, offset)
+            "SELECT * FROM agent ORDER BY updated_at DESC, handle ASC LIMIT ? OFFSET ?",
+            (limit, offset),
         ).fetchall()
         return self._map_rows_to_agents(rows)
 
@@ -101,12 +104,12 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
         offset: int,
         conn: sqlite3.Connection,
     ) -> list[Agent]:
-        """Read a page of agents filtered by handle LIKE (case-insensitive)."""
+        """Read a page of agents filtered by handle LIKE, ordered by updated_at DESC, handle ASC."""
         rows = conn.execute(
             (
                 "SELECT * FROM agent "
                 "WHERE handle LIKE ? ESCAPE '\\' COLLATE NOCASE "
-                "ORDER BY handle LIMIT ? OFFSET ?"
+                "ORDER BY updated_at DESC, handle ASC LIMIT ? OFFSET ?"
             ),
             (handle_like, limit, offset),
         ).fetchall()

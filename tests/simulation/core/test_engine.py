@@ -133,7 +133,9 @@ class TestSimulationEngineDelegation:
         engine.simulate_turns(1, run, config, agents)
         engine.create_agents_for_run(run, config)
 
-        command_service.execute_run.assert_called_once_with(config)
+        command_service.execute_run.assert_called_once_with(
+            config, created_by_app_user_id=None
+        )
         command_service.update_run_status.assert_called_once_with(run, RunStatus.FAILED)
         command_service.simulate_turn.assert_called_once_with(
             run,

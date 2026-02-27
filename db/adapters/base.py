@@ -8,6 +8,7 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.generated.comment import GeneratedComment
@@ -24,6 +25,31 @@ from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+
+
+class AppUserDatabaseAdapter(ABC):
+    """Abstract interface for app_user database operations."""
+
+    @abstractmethod
+    def read_by_auth_provider_id(self, auth_provider_id: str) -> AppUser | None:
+        """Read app_user by auth_provider_id (Supabase sub)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def insert_app_user(self, app_user: AppUser) -> None:
+        """Insert a new app_user row."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_last_seen(
+        self,
+        app_user_id: str,
+        last_seen_at: str,
+        email: str,
+        display_name: str,
+    ) -> None:
+        """Update last_seen_at along with required email/display_name."""
+        raise NotImplementedError
 
 
 class TransactionProvider(ABC):
@@ -710,7 +736,7 @@ class AgentDatabaseAdapter(ABC):
 
     @abstractmethod
     def read_agents_page(self, *, limit: int, offset: int, conn: object) -> list[Agent]:
-        """Read a page of agents, ordered by handle for deterministic output.
+        """Read a page of agents, ordered by updated_at descending with handle ascending for deterministic output.
 
         Args:
             limit: Maximum number of agents to return.

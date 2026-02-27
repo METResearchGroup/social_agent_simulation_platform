@@ -21,7 +21,7 @@ def test_get_simulations_agents_returns_list(simulation_client, temp_db):
 def test_get_simulations_agents_matches_db_and_sorted(
     simulation_client, temp_db, agent_repo
 ):
-    """GET /v1/simulations/agents returns DB-backed agents sorted by handle."""
+    """GET /v1/simulations/agents returns DB-backed agents sorted newest-first."""
     # Seed the temp DB in non-sorted order so ordering assertions are meaningful.
     agent_repo.create_or_update_agent(
         AgentRecordFactory.create(
@@ -29,8 +29,8 @@ def test_get_simulations_agents_matches_db_and_sorted(
             handle="@z.bsky.social",
             persona_source=PersonaSource.SYNC_BLUESKY,
             display_name="@z.bsky.social",
-            created_at="2026_02_24-10:00:00",
-            updated_at="2026_02_24-10:00:00",
+            created_at="2026_02_25-10:00:00",
+            updated_at="2026_02_25-10:00:00",
         ),
     )
     agent_repo.create_or_update_agent(
@@ -52,9 +52,8 @@ def test_get_simulations_agents_matches_db_and_sorted(
     assert isinstance(data, list)
     handles = [a["handle"] for a in data]
 
-    expected_handles = ["@a.bsky.social", "@z.bsky.social"]
+    expected_handles = ["@z.bsky.social", "@a.bsky.social"]
     assert handles == expected_handles
-    assert handles == sorted(handles)
 
 
 def test_get_simulations_agents_fields_present(simulation_client, temp_db):
@@ -159,9 +158,19 @@ def test_post_simulations_agents_validation_empty_display_name_returns_422(
 
 
 def test_post_simulations_agents_then_get_includes_new_agent(
-    simulation_client, temp_db
+    simulation_client, temp_db, agent_repo
 ):
-    """POST agent then GET /agents includes the new agent."""
+    """POST agent then GET /agents returns the new agent newest-first."""
+    agent_repo.create_or_update_agent(
+        AgentRecordFactory.create(
+            agent_id="did:plc:existing",
+            handle="@existing.bsky.social",
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name="@existing.bsky.social",
+            created_at="2026_02_24-10:00:00",
+            updated_at="2026_02_24-10:00:00",
+        ),
+    )
     client, _ = simulation_client
     handle = f"new-{uuid.uuid4().hex[:8]}.bsky.social"
     body = {
@@ -175,13 +184,12 @@ def test_post_simulations_agents_then_get_includes_new_agent(
     assert post_resp.status_code == expected_result["status_code"]
     created = post_resp.json()
 
-    get_resp = client.get("/v1/simulations/agents")
+    get_resp = client.get("/v1/simulations/agents?limit=5&offset=0")
     expected_result = {"status_code": 200}
     assert get_resp.status_code == expected_result["status_code"]
     agents = get_resp.json()
     handles = [a["handle"] for a in agents]
-    expected_result = created["handle"]
-    assert expected_result in handles
+    assert handles[0] == created["handle"]
 
 
 def test_get_simulations_agents_pagination(simulation_client, temp_db, agent_repo):

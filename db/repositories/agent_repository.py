@@ -42,19 +42,19 @@ class SQLiteAgentRepository(AgentRepository):
             return self._db_adapter.read_agent_by_handle(handle, conn=c)
 
     def list_all_agents(self) -> list[Agent]:
-        """List all agents, ordered by handle."""
+        """List all agents, ordered by updated_at DESC and handle ASC."""
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_all_agents(conn=c)
 
     def list_agents_page(self, *, limit: int, offset: int) -> list[Agent]:
-        """List a page of agents, ordered by handle."""
+        """List a page of agents, ordered by updated_at DESC and handle ASC."""
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_agents_page(limit=limit, offset=offset, conn=c)
 
     def search_agents_page(
         self, *, handle_like: str, limit: int, offset: int
     ) -> list[Agent]:
-        """List a page of agents filtered by handle LIKE, ordered by handle."""
+        """List a page of agents filtered by handle LIKE, ordered by updated_at DESC, handle ASC."""
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_agents_page_by_handle_like(
                 handle_like=handle_like, limit=limit, offset=offset, conn=c
