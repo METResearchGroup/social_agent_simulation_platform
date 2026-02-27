@@ -416,8 +416,12 @@ async def _execute_simulation_run(
 ) -> RunResponse | Response:
     """Run the simulation and return response; used for timing and logging."""
     engine = request.app.state.engine
-    current_app_user = getattr(request.state, "current_app_user", None)
-    created_by_app_user_id = current_app_user.id if current_app_user else None
+    current_app_user = getattr(request.state, "current_app_user")
+    if current_app_user is None:
+        raise RuntimeError(
+            "current_app_user was not set on request.state, but is required for simulation run creation."
+        )
+    created_by_app_user_id = current_app_user.id
     try:
         return await asyncio.to_thread(
             execute,
