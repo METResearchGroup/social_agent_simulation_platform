@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 from pydantic import BaseModel, field_validator
 
 from lib.validation_utils import validate_non_empty_string
@@ -22,6 +24,19 @@ class AppUser(BaseModel):
     def validate_auth_provider_id(cls, v: str) -> str:
         """Validate that auth_provider_id is non-empty."""
         return validate_non_empty_string(v, "auth_provider_id")
+
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, v: str) -> str:
+        """Ensure the id is non-empty and a valid UUID."""
+        validated = validate_non_empty_string(v, "id")
+
+        try:
+            uuid.UUID(validated)
+        except ValueError as exc:
+            raise ValueError("id must be a valid UUID") from exc
+
+        return validated
 
     @field_validator("email")
     @classmethod
