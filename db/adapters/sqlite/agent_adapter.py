@@ -114,3 +114,8 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             (handle_like, limit, offset),
         ).fetchall()
         return self._map_rows_to_agents(rows)
+
+    def delete_agent(self, agent_id: str, *, conn: sqlite3.Connection) -> None:
+        """Delete an agent by agent_id."""
+        validate_non_empty_string(agent_id, "agent_id")
+        conn.execute("DELETE FROM agent WHERE agent_id = ?", (agent_id,))

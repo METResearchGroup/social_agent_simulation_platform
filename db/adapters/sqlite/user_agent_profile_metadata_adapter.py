@@ -84,3 +84,11 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
             self._validate_metadata_row(row)
             result[row["agent_id"]] = self._row_to_metadata(row)
         return result
+
+    def delete_by_agent_id(self, agent_id: str, *, conn: sqlite3.Connection) -> None:
+        """Delete metadata by agent_id."""
+        validate_non_empty_string(agent_id, "agent_id")
+        conn.execute(
+            "DELETE FROM user_agent_profile_metadata WHERE agent_id = ?",
+            (agent_id,),
+        )

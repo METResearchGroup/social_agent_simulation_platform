@@ -60,6 +60,15 @@ class SQLiteAgentRepository(AgentRepository):
                 handle_like=handle_like, limit=limit, offset=offset, conn=c
             )
 
+    @validate_inputs((validate_agent_id, "agent_id"))
+    def delete_agent(self, agent_id: str, conn: object | None = None) -> None:
+        """Delete an agent by ID."""
+        if conn is not None:
+            self._db_adapter.delete_agent(agent_id, conn=conn)
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.delete_agent(agent_id, conn=c)
+
 
 def create_sqlite_agent_repository(
     *,

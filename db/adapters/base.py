@@ -765,6 +765,11 @@ class AgentDatabaseAdapter(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_agent(self, agent_id: str, *, conn: object) -> None:
+        """Delete an agent row by agent_id."""
+        raise NotImplementedError
+
 
 class AgentBioDatabaseAdapter(ABC):
     """Abstract interface for agent persona bio database operations."""
@@ -794,6 +799,11 @@ class AgentBioDatabaseAdapter(ABC):
 
         Returns dict mapping agent_id -> AgentBio | None.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_agent_bios_by_agent_id(self, agent_id: str, *, conn: object) -> None:
+        """Delete all persona bios for an agent by agent_id."""
         raise NotImplementedError
 
 
@@ -829,6 +839,11 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
 
         Returns dict mapping agent_id -> metadata | None.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_by_agent_id(self, agent_id: str, *, conn: object) -> None:
+        """Delete metadata rows by agent_id."""
         raise NotImplementedError
 
 
