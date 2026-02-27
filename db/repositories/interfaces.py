@@ -49,19 +49,19 @@ class AgentRepository(ABC):
 
     @abstractmethod
     def list_all_agents(self) -> list[Agent]:
-        """List all agents, ordered by handle for deterministic output."""
+        """List all agents, ordered by updated_at DESC and handle ASC for determinism."""
         raise NotImplementedError
 
     @abstractmethod
     def list_agents_page(self, *, limit: int, offset: int) -> list[Agent]:
-        """List a page of agents, ordered by handle for deterministic output."""
+        """List a page of agents, ordered by updated_at DESC and handle ASC."""
         raise NotImplementedError
 
     @abstractmethod
     def search_agents_page(
         self, *, handle_like: str, limit: int, offset: int
     ) -> list[Agent]:
-        """List a page of agents filtered by handle LIKE, ordered by handle."""
+        """List a page of agents filtered by handle LIKE, ordered by updated_at DESC, handle ASC."""
         raise NotImplementedError
 
 

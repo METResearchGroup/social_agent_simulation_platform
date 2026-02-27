@@ -736,7 +736,7 @@ class AgentDatabaseAdapter(ABC):
 
     @abstractmethod
     def read_agents_page(self, *, limit: int, offset: int, conn: object) -> list[Agent]:
-        """Read a page of agents, ordered by handle for deterministic output.
+        """Read a page of agents, ordered by updated_at descending with handle ascending for deterministic output.
 
         Args:
             limit: Maximum number of agents to return.

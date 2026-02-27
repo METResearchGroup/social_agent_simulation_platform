@@ -162,18 +162,7 @@ function AuthenticatedApp() {
       />
 
       {viewMode === 'create-agent' ? (
-        <CreateAgentView
-          agents={agents}
-          agentsLoading={agentsLoading}
-          agentsLoadingMore={agentsLoadingMore}
-          agentsError={agentsError}
-          agentsHasMore={agentsHasMore}
-          agentsQuery={agentsQuery}
-          onRetryAgents={handleRetryAgents}
-          onLoadMoreAgents={handleLoadMoreAgents}
-          onAgentsQueryChange={handleSetAgentsQuery}
-          onSubmit={handleCreateAgent}
-        />
+        <CreateAgentView onSubmit={handleCreateAgent} />
       ) : viewMode === 'agents' ? (
         <AgentsView
           agents={agents}
