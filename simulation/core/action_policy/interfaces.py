@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from simulation.core.action_history.interfaces import ActionHistoryStore
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 if TYPE_CHECKING:
     from simulation.core.action_policy.candidate_filter import ActionCandidateFeeds
@@ -19,7 +19,7 @@ class AgentActionFeedFilter(ABC):
         *,
         run_id: str,
         agent_handle: str,
-        feed: list[BlueskyFeedPost],
+        feed: list[Post],
         action_history_store: ActionHistoryStore,
     ) -> "ActionCandidateFeeds":
         raise NotImplementedError

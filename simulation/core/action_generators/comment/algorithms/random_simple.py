@@ -14,7 +14,7 @@ from simulation.core.action_generators.interfaces import CommentGenerator
 from simulation.core.models.actions import Comment
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 TOP_K_POSTS_TO_COMMENT: int = 3
 COMMENT_PROBABILITY: float = 0.30
@@ -39,7 +39,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
@@ -49,7 +49,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
             return []
 
         scored = [(_score_post(post), post) for post in candidates]
-        scored.sort(key=lambda x: (-x[0], x[1].id))
+        scored.sort(key=lambda x: (-x[0], x[1].post_id))
         selected = [post for _, post in scored[:TOP_K_POSTS_TO_COMMENT]]
 
         generated: list[GeneratedComment] = []
@@ -58,7 +58,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
                 run_id=run_id,
                 turn_number=turn_number,
                 agent_handle=agent_handle,
-                post_id=post.id,
+                post_id=post.post_id,
             ):
                 continue
             generated.append(
@@ -75,7 +75,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
         return generated
 
 
-def _score_post(post: BlueskyFeedPost) -> float:
+def _score_post(post: Post) -> float:
     """Compute score for a post (recency + social proof)."""
     recency = _recency_score(post.created_at)
     social = (
@@ -122,13 +122,13 @@ def _pick_comment_text(
 
 def _build_generated_comment(
     *,
-    post: BlueskyFeedPost,
+    post: Post,
     agent_handle: str,
     run_id: str,
     turn_number: int,
 ) -> GeneratedComment:
     """Build a GeneratedComment with IDs and metadata."""
-    post_id = post.id
+    post_id = post.post_id
     comment_id = f"comment_{run_id}_{turn_number}_{agent_handle}_{post_id}"
     created_at = get_current_timestamp()
     text = _pick_comment_text(

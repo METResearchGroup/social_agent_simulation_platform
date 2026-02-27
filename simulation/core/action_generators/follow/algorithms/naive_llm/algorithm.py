@@ -21,7 +21,7 @@ from simulation.core.action_generators.utils.llm_utils import _resolve_model_use
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.follow import GeneratedFollow
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 logger = logging.getLogger(__name__)
 EXPLANATION: str = "LLM prediction (naive_llm)"
@@ -29,11 +29,11 @@ FOLLOW_POLICY: str = "naive_llm"
 
 
 def _collect_unique_authors(
-    candidates: list[BlueskyFeedPost],
+    candidates: list[Post],
     agent_handle: str,
-) -> dict[str, BlueskyFeedPost]:
+) -> dict[str, Post]:
     """Return one post per author (excluding self), keyed by author_handle."""
-    result: dict[str, BlueskyFeedPost] = {}
+    result: dict[str, Post] = {}
     for post in candidates:
         author_handle = post.author_handle
         if author_handle == agent_handle:
@@ -46,7 +46,7 @@ def _collect_unique_authors(
     return result
 
 
-def _authors_to_minimal_json(author_to_post: dict[str, BlueskyFeedPost]) -> str:
+def _authors_to_minimal_json(author_to_post: dict[str, Post]) -> str:
     """Serialize authors to minimal JSON for the prompt."""
     items = [
         {
@@ -60,7 +60,7 @@ def _authors_to_minimal_json(author_to_post: dict[str, BlueskyFeedPost]) -> str:
 
 def _build_prompt(
     agent_handle: str,
-    author_to_post: dict[str, BlueskyFeedPost],
+    author_to_post: dict[str, Post],
 ) -> str:
     """Build the follow prediction prompt."""
     authors_json = _authors_to_minimal_json(author_to_post)
@@ -72,7 +72,7 @@ def _build_prompt(
 
 def _build_generated_follow(
     *,
-    post: BlueskyFeedPost,
+    post: Post,
     agent_handle: str,
     run_id: str,
     turn_number: int,
@@ -128,7 +128,7 @@ class NaiveLLMFollowGenerator(FollowGenerator):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,

@@ -5,7 +5,6 @@ from tests.factories import PostFactory
 
 def _make_post(*, uri: str, text: str):
     return PostFactory.create(
-        post_id=uri,
         uri=uri,
         author_display_name="Test Author",
         author_handle="test.author",
@@ -19,11 +18,11 @@ def _make_post(*, uri: str, text: str):
     )
 
 
-def test_get_simulations_posts_returns_all_when_no_uris(
+def test_get_simulations_posts_returns_all_when_no_post_ids(
     simulation_client,
     feed_post_repo,
 ):
-    """GET /v1/simulations/posts returns all posts when no uris query param."""
+    """GET /v1/simulations/posts returns all posts when no post_ids query param."""
     post_1 = _make_post(uri="at://did:plc:example1/post1", text="hello 1")
     post_2 = _make_post(uri="at://did:plc:example2/post2", text="hello 2")
     feed_post_repo.create_or_update_feed_posts([post_1, post_2])
@@ -34,43 +33,42 @@ def test_get_simulations_posts_returns_all_when_no_uris(
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
+    assert all("post_id" in post for post in data)
+    assert all("source" in post for post in data)
     assert all("uri" in post for post in data)
     assert all("author_display_name" in post for post in data)
     assert all("text" in post for post in data)
 
 
-def test_get_simulations_posts_returns_filtered_by_uris(
+def test_get_simulations_posts_returns_filtered_by_post_ids(
     simulation_client,
     feed_post_repo,
 ):
-    """GET /v1/simulations/posts?uris=... returns only requested posts."""
+    """GET /v1/simulations/posts?post_ids=... returns only requested posts."""
     uri1 = "at://did:plc:example1/post1"
     uri2 = "at://did:plc:example2/post2"
-    feed_post_repo.create_or_update_feed_posts(
-        [
-            _make_post(uri=uri1, text="hello 1"),
-            _make_post(uri=uri2, text="hello 2"),
-        ]
-    )
+    post_1 = _make_post(uri=uri1, text="hello 1")
+    post_2 = _make_post(uri=uri2, text="hello 2")
+    feed_post_repo.create_or_update_feed_posts([post_1, post_2])
 
     client, _ = simulation_client
     response = client.get(
         "/v1/simulations/posts",
-        params={"uris": [uri1, uri2]},
+        params={"post_ids": [post_1.post_id, post_2.post_id]},
     )
 
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
-    returned_uris = {post["uri"] for post in data}
-    assert returned_uris == {uri1, uri2}
+    returned_post_ids = {post["post_id"] for post in data}
+    assert returned_post_ids == {post_1.post_id, post_2.post_id}
 
 
 def test_get_simulations_posts_ordering_deterministic(
     simulation_client,
     feed_post_repo,
 ):
-    """GET /v1/simulations/posts returns posts sorted by uri."""
+    """GET /v1/simulations/posts returns posts sorted by post_id."""
     feed_post_repo.create_or_update_feed_posts(
         [
             _make_post(uri="at://did:plc:b/post2", text="b"),
@@ -83,6 +81,6 @@ def test_get_simulations_posts_ordering_deterministic(
 
     assert response.status_code == 200
     data = response.json()
-    uris = [post["uri"] for post in data]
-    sorted_uris = sorted(uris)
-    assert uris == sorted_uris
+    post_ids = [post["post_id"] for post in data]
+    sorted_post_ids = sorted(post_ids)
+    assert post_ids == sorted_post_ids

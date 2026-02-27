@@ -8,7 +8,7 @@ from lib.validation_utils import (
     validate_turn_number,  # noqa: F401
 )
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.utils.exceptions import (
     InsufficientAgentsError,
@@ -176,6 +176,16 @@ def validate_uris_exist(uris: Iterable[str]) -> Iterable[str]:
     return validate_non_empty_iterable(uris, "uris")
 
 
-def validate_posts_exist(posts: list[BlueskyFeedPost] | None) -> list[BlueskyFeedPost]:
+def validate_post_id_exists(post_id: str) -> str:
+    """Validate that post_id is a non-empty string. Returns stripped value."""
+    return validate_non_empty_string(post_id, "post_id")
+
+
+def validate_post_ids_exist(post_ids: Iterable[str]) -> Iterable[str]:
+    """Validate that post_ids is not None and not empty."""
+    return validate_non_empty_iterable(post_ids, "post_ids")
+
+
+def validate_posts_exist(posts: list[Post] | None) -> list[Post]:
     """Validate that posts is not None."""
     return validate_not_none(posts, "posts")

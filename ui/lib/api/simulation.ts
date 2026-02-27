@@ -155,7 +155,7 @@ function mapFeed(apiFeed: ApiFeed): Feed {
     runId: apiFeed.run_id,
     turnNumber: apiFeed.turn_number,
     agentHandle: apiFeed.agent_handle,
-    postUris: apiFeed.post_uris,
+    postIds: apiFeed.post_ids,
     createdAt: apiFeed.created_at,
   };
 }
@@ -164,7 +164,7 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
   return {
     actionId: apiAction.action_id,
     agentHandle: apiAction.agent_handle,
-    postUri: apiAction.post_uri ?? undefined,
+    postId: apiAction.post_id ?? undefined,
     userId: apiAction.user_id ?? undefined,
     type: apiAction.type,
     createdAt: apiAction.created_at,
@@ -173,6 +173,8 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
 
 function mapPost(apiPost: ApiPost): Post {
   return {
+    postId: apiPost.post_id,
+    source: apiPost.source,
     uri: apiPost.uri,
     authorDisplayName: apiPost.author_display_name,
     authorHandle: apiPost.author_handle,
@@ -372,12 +374,15 @@ export async function postAgent(body: {
   return mapAgent(api);
 }
 
-export async function getPosts(uris?: string[]): Promise<Post[]> {
+export async function getPosts(postIds?: string[]): Promise<Post[]> {
   const baseUrl: string = buildApiUrl('/simulations/posts');
-  const url: string =
-    uris != null && uris.length > 0
-      ? `${baseUrl}?${uris.map((u) => `uris=${encodeURIComponent(u)}`).join('&')}`
-      : baseUrl;
+  const qs = new URLSearchParams();
+  if (postIds != null) {
+    for (const postId of postIds) {
+      qs.append('post_ids', postId);
+    }
+  }
+  const url: string = qs.size > 0 ? `${baseUrl}?${qs.toString()}` : baseUrl;
   const apiPosts: ApiPost[] = await fetchJson<ApiPost[]>(url);
   return apiPosts.map(mapPost);
 }

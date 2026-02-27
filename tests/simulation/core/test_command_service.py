@@ -217,7 +217,6 @@ class TestSimulationCommandServiceExecuteRun:
         command_service.agent_action_rules_validator = Mock()
         agent = AgentFactory.create(handle="agent1.bsky.social")
         feed_post = PostFactory.create(
-            post_id="post_1",
             uri="post_1",
             author_display_name="Author",
             author_handle="author.bsky.social",
@@ -229,6 +228,7 @@ class TestSimulationCommandServiceExecuteRun:
             repost_count=0,
             created_at="2024_01_01-12:00:00",
         )
+        canonical_post_id = feed_post.post_id
 
         metadata = GenerationMetadataFactory.create(created_at="2024_01_01-12:00:00")
         mock_generate_likes = Mock(
@@ -237,7 +237,7 @@ class TestSimulationCommandServiceExecuteRun:
                     like=LikeFactory.create(
                         like_id="like_1",
                         agent_id=agent.handle,
-                        post_id="post_1",
+                        post_id=canonical_post_id,
                         created_at="2024_01_01-12:00:00",
                     ),
                     explanation="reason",
@@ -251,7 +251,7 @@ class TestSimulationCommandServiceExecuteRun:
                     comment=CommentFactory.create(
                         comment_id="comment_1",
                         agent_id=agent.handle,
-                        post_id="post_1",
+                        post_id=canonical_post_id,
                         text="nice post",
                         created_at="2024_01_01-12:00:00",
                     ),
@@ -277,8 +277,8 @@ class TestSimulationCommandServiceExecuteRun:
 
         mock_repos["run_repo"].get_run.return_value = sample_run
         command_service.agent_action_rules_validator.validate.return_value = (
-            ["post_1"],
-            ["post_1"],
+            [canonical_post_id],
+            [canonical_post_id],
             ["user_1"],
         )
         command_service.feed_generator.generate_feeds.return_value = {
@@ -316,12 +316,12 @@ class TestSimulationCommandServiceExecuteRun:
         action_history_store.record_like.assert_called_once_with(
             sample_run.run_id,
             agent.handle,
-            "post_1",
+            canonical_post_id,
         )
         action_history_store.record_comment.assert_called_once_with(
             sample_run.run_id,
             agent.handle,
-            "post_1",
+            canonical_post_id,
         )
         action_history_store.record_follow.assert_called_once_with(
             sample_run.run_id,
@@ -334,7 +334,6 @@ class TestSimulationCommandServiceExecuteRun:
     ):
         agent = AgentFactory.create(handle="agent1.bsky.social")
         like_only_post = PostFactory.create(
-            post_id="post_like",
             uri="post_like",
             author_display_name="Author A",
             author_handle="author-a.bsky.social",
@@ -347,7 +346,6 @@ class TestSimulationCommandServiceExecuteRun:
             created_at="2024_01_01-12:00:00",
         )
         comment_only_post = PostFactory.create(
-            post_id="post_comment",
             uri="post_comment",
             author_display_name="Author B",
             author_handle="author-b.bsky.social",
@@ -360,7 +358,6 @@ class TestSimulationCommandServiceExecuteRun:
             created_at="2024_01_01-12:00:00",
         )
         follow_only_post = PostFactory.create(
-            post_id="post_follow",
             uri="post_follow",
             author_display_name="Author C",
             author_handle="author-c.bsky.social",
@@ -456,7 +453,6 @@ class TestSimulationCommandServiceExecuteRun:
         agent = AgentFactory.create(handle="agent1.bsky.social")
         feed_posts = [
             PostFactory.create(
-                post_id="post_1",
                 uri="post_1",
                 author_display_name="Author A",
                 author_handle="author-a.bsky.social",
@@ -469,7 +465,6 @@ class TestSimulationCommandServiceExecuteRun:
                 created_at="2024_01_01-12:00:00",
             ),
             PostFactory.create(
-                post_id="post_2",
                 uri="post_2",
                 author_display_name="Author B",
                 author_handle="author-b.bsky.social",
@@ -553,7 +548,7 @@ class TestSimulationCommandServiceActionPersistence:
                     like=LikeFactory.create(
                         like_id="like_1",
                         agent_id=agent.handle,
-                        post_id="at://did:plc:post1",
+                        post_id="bluesky:at://did:plc:post1",
                         created_at="2026-02-24T12:00:00Z",
                     ),
                     explanation="Great",
@@ -567,7 +562,7 @@ class TestSimulationCommandServiceActionPersistence:
                     comment=CommentFactory.create(
                         comment_id="comment_1",
                         agent_id=agent.handle,
-                        post_id="at://did:plc:post1",
+                        post_id="bluesky:at://did:plc:post1",
                         text="Nice!",
                         created_at="2026-02-24T12:00:00Z",
                     ),
@@ -592,7 +587,6 @@ class TestSimulationCommandServiceActionPersistence:
         )
 
         feed_post = PostFactory.create(
-            post_id="post_1",
             uri="at://did:plc:post1",
             author_display_name="Author",
             author_handle="author.bsky.social",
@@ -660,7 +654,7 @@ class TestSimulationCommandServiceActionPersistence:
         assert len(persisted_likes) == 1
         assert persisted_likes[0].like_id == "like_1"
         assert persisted_likes[0].agent_handle == "agent1.bsky.social"
-        assert persisted_likes[0].post_id == "at://did:plc:post1"
+        assert persisted_likes[0].post_id == "bluesky:at://did:plc:post1"
 
         assert len(persisted_comments) == 1
         assert persisted_comments[0].comment_id == "comment_1"

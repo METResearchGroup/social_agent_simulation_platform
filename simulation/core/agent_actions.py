@@ -10,11 +10,11 @@ from simulation.core.action_generators import (
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 
 def generate_likes(
-    candidates: list[BlueskyFeedPost],
+    candidates: list[Post],
     *,
     run_id: str,
     turn_number: int,
@@ -32,7 +32,7 @@ def generate_likes(
 
 
 def generate_comments(
-    candidates: list[BlueskyFeedPost],
+    candidates: list[Post],
     *,
     run_id: str,
     turn_number: int,
@@ -50,7 +50,7 @@ def generate_comments(
 
 
 def generate_follows(
-    candidates: list[BlueskyFeedPost],
+    candidates: list[Post],
     *,
     run_id: str,
     turn_number: int,

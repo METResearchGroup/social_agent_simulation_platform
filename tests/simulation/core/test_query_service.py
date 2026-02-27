@@ -139,7 +139,7 @@ class TestSimulationQueryServiceGetTurnData:
             run_id=sample_run.run_id,
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            post_uris=["uri1", "uri2"],
+            post_ids=["bluesky:uri1", "bluesky:uri2"],
             created_at="2024_01_01-12:00:00",
         )
         feed2 = GeneratedFeedFactory.create(
@@ -147,12 +147,11 @@ class TestSimulationQueryServiceGetTurnData:
             run_id=sample_run.run_id,
             turn_number=0,
             agent_handle="agent2.bsky.social",
-            post_uris=["uri3"],
+            post_ids=["bluesky:uri3"],
             created_at="2024_01_01-12:00:01",
         )
         posts = [
             PostFactory.create(
-                post_id="uri1",
                 uri="uri1",
                 author_display_name="Author 1",
                 author_handle="author1.bsky.social",
@@ -165,7 +164,6 @@ class TestSimulationQueryServiceGetTurnData:
                 created_at="2024_01_01-12:00:00",
             ),
             PostFactory.create(
-                post_id="uri2",
                 uri="uri2",
                 author_display_name="Author 2",
                 author_handle="author2.bsky.social",
@@ -178,7 +176,6 @@ class TestSimulationQueryServiceGetTurnData:
                 created_at="2024_01_01-12:01:00",
             ),
             PostFactory.create(
-                post_id="uri3",
                 uri="uri3",
                 author_display_name="Author 3",
                 author_handle="author3.bsky.social",
@@ -196,7 +193,7 @@ class TestSimulationQueryServiceGetTurnData:
             feed1,
             feed2,
         ]
-        mock_repos["feed_post_repo"].read_feed_posts_by_uris.return_value = posts
+        mock_repos["feed_post_repo"].read_feed_posts_by_ids.return_value = posts
 
         result = query_service.get_turn_data(sample_run.run_id, 0)
 
@@ -226,7 +223,7 @@ class TestSimulationQueryServiceGetTurnData:
                 run_id=sample_run.run_id,
                 turn_number=0,
                 agent_handle="agent1.bsky.social",
-                post_id="at://did:plc:post1",
+                post_id="bluesky:at://did:plc:post1",
                 created_at="2026-02-24T12:00:00Z",
                 explanation="Great",
                 model_used=None,
@@ -253,11 +250,10 @@ class TestSimulationQueryServiceGetTurnData:
             run_id=sample_run.run_id,
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            post_uris=["at://did:plc:post1"],
+            post_ids=["bluesky:at://did:plc:post1"],
             created_at="2026-02-24T12:00:00Z",
         )
         post = PostFactory.create(
-            post_id="at://did:plc:post1",
             uri="at://did:plc:post1",
             author_display_name="Author",
             author_handle="author.bsky.social",
@@ -271,7 +267,7 @@ class TestSimulationQueryServiceGetTurnData:
         )
         mock_repos["run_repo"].get_run.return_value = sample_run
         mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [feed]
-        mock_repos["feed_post_repo"].read_feed_posts_by_uris.return_value = [post]
+        mock_repos["feed_post_repo"].read_feed_posts_by_ids.return_value = [post]
 
         result = query_service.get_turn_data(sample_run.run_id, 0)
 
@@ -281,5 +277,5 @@ class TestSimulationQueryServiceGetTurnData:
         assert len(agent_actions) == 1
         assert isinstance(agent_actions[0], GeneratedLike)
         assert agent_actions[0].like.like_id == "like_1"
-        assert agent_actions[0].like.post_id == "at://did:plc:post1"
+        assert agent_actions[0].like.post_id == "bluesky:at://did:plc:post1"
         like_repo.read_likes_by_run_turn.assert_called_once_with(sample_run.run_id, 0)

@@ -24,12 +24,12 @@ Your algorithm module must define a class that extends `FeedAlgorithm`:
 
 The `generate` method must:
 
-- Accept `candidate_posts: list[BlueskyFeedPost]`, `agent: SocialMediaAgent`, and `limit: int`.
-- Return `FeedAlgorithmResult` with `feed_id`, `agent_handle`, `post_uris`.
+- Accept `candidate_posts: list[Post]`, `agent: SocialMediaAgent`, and `limit: int`.
+- Return `FeedAlgorithmResult` with `feed_id`, `agent_handle`, `post_ids`.
 
 ## Ordering
 
-`post_uris` must be in feed display order (first element = top of feed). Use deterministic tie-breaking (e.g. `uri` ascending) when primary sort keys tie so that runs are reproducible.
+`post_ids` must be in feed display order (first element = top of feed). Use deterministic tie-breaking (e.g. `post_id` ascending) when primary sort keys tie so that runs are reproducible.
 
 ## Example template (copy/paste)
 
@@ -46,7 +46,7 @@ from feeds.algorithms.interfaces import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 ALGORITHM_ID = "my_algorithm"
 METADATA: FeedAlgorithmMetadata = FeedAlgorithmMetadata(
@@ -65,22 +65,22 @@ class MyFeedAlgorithm(FeedAlgorithm):
     def generate(
         self,
         *,
-        candidate_posts: list[BlueskyFeedPost],
+        candidate_posts: list[Post],
         agent: SocialMediaAgent,
         limit: int,  # supplied by caller; see feeds.constants.MAX_POSTS_PER_FEED
     ) -> FeedAlgorithmResult:
         """Generate a feed using your ranking logic."""
-        # Your ranking logic (e.g. sort, score, filter). Use uri for tie-breaking.
+        # Your ranking logic (e.g. sort, score, filter). Use post_id for tie-breaking.
         ranked_posts = sorted(
-            candidate_posts, key=lambda p: (-p.like_count, p.uri)
+            candidate_posts, key=lambda p: (-p.like_count, p.post_id)
         )
         selected = ranked_posts[:limit]
-        post_uris = [p.uri for p in selected]
+        post_ids = [p.post_id for p in selected]
 
         return FeedAlgorithmResult(
             feed_id=GeneratedFeed.generate_feed_id(),
             agent_handle=agent.handle,
-            post_uris=post_uris,
+            post_ids=post_ids,
         )
 ```
 
@@ -92,7 +92,7 @@ The `generate` method returns `FeedAlgorithmResult` that the framework wraps int
 |---------------|--------|-----------------------------------------------------------------------------|
 | `feed_id`     | `str`  | Unique ID for the feed; use `GeneratedFeed.generate_feed_id()`              |
 | `agent_handle`| `str`  | The agent's handle; use `agent.handle`                                      |
-| `post_uris`   | `list[str]` | Ordered list of post URIs (first = top of feed). Use deterministic tie-breaking. |
+| `post_ids`   | `list[str]` | Ordered list of post IDs (first = top of feed). Use deterministic tie-breaking. |
 
 The framework persists the feed, hydrates posts, and returns hydrated feeds to callers. Your algorithm only ranks and selects from `candidate_posts`.
 
@@ -155,7 +155,7 @@ from feeds.algorithms.interfaces import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 ALGORITHM_ID = "engagement-feed-ranking"
 METADATA: FeedAlgorithmMetadata = FeedAlgorithmMetadata(
@@ -168,7 +168,7 @@ REPOST_WEIGHT = 1.5
 REPLY_WEIGHT = 1.2
 
 
-def _engagement_score(post: BlueskyFeedPost) -> float:
+def _engagement_score(post: Post) -> float:
     """Compute weighted engagement score for a post."""
     return (
         post.like_count * LIKE_WEIGHT
@@ -187,20 +187,20 @@ class EngagementFeedAlgorithm(FeedAlgorithm):
     def generate(
         self,
         *,
-        candidate_posts: list[BlueskyFeedPost],
+        candidate_posts: list[Post],
         agent: SocialMediaAgent,
         limit: int,
     ) -> FeedAlgorithmResult:
         """Generate a feed ranked by engagement score."""
         scored = [(_engagement_score(p), p) for p in candidate_posts]
-        scored.sort(key=lambda x: (-x[0], x[1].uri))  # uri for tie-breaking
+        scored.sort(key=lambda x: (-x[0], x[1].post_id))  # post_id for tie-breaking
         selected = [p for _, p in scored[:limit]]
-        post_uris = [p.uri for p in selected]
+        post_ids = [p.post_id for p in selected]
 
         return FeedAlgorithmResult(
             feed_id=GeneratedFeed.generate_feed_id(),
             agent_handle=agent.handle,
-            post_uris=post_uris,
+            post_ids=post_ids,
         )
 ```
 
@@ -275,8 +275,8 @@ No other files need changes. Validation, `GET /v1/simulations/feed-algorithms`, 
 ## Common pitfalls
 
 - **Wrong return type**: `generate` must return `FeedAlgorithmResult`, not a dict; missing or wrong fields cause runtime errors when building `GeneratedFeed`.
-- **Non-deterministic ordering**: When primary sort keys tie (e.g. same score or created_at), use a secondary sort by `uri` (ascending) so output is reproducible.
-- **Wrong post_uris order**: `post_uris` is the feed display order; first element = top of feed. Ensure your sort preserves intent.
+- **Non-deterministic ordering**: When primary sort keys tie (e.g. same score or created_at), use a secondary sort by `post_id` (ascending) so output is reproducible.
+- **Wrong post_ids order**: `post_ids` is the feed display order; first element = top of feed. Ensure your sort preserves intent.
 - **Forgetting `ALGORITHM_ID` or `METADATA`**: These are required for registry discovery and API exposure.
 - **Using a duplicate `ALGORITHM_ID`**: Must match the key used in `_ALGORITHM_LOOKUP`.
 - **Not registering in `registry.py`**: The implementation file alone is not enough; it must be added to `_ALGORITHM_LOOKUP`.

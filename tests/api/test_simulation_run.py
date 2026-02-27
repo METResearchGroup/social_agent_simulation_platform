@@ -344,7 +344,7 @@ def test_get_simulations_run_turns_returns_turn_map(
             run_id=run.run_id,
             turn_number=0,
             agent_handle="test.agent",
-            post_uris=["at://did:plc:example1/post1"],
+            post_ids=["bluesky:at://did:plc:example1/post1"],
             created_at="2026-01-01T00:00:00.000Z",
         )
     )

@@ -14,7 +14,7 @@ from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.follow import GeneratedFollow
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 TOP_K_USERS_TO_FOLLOW: int = 2
 FOLLOW_PROBABILITY: float = 0.30
@@ -33,7 +33,7 @@ class RandomSimpleFollowGenerator(FollowGenerator):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
@@ -42,11 +42,9 @@ class RandomSimpleFollowGenerator(FollowGenerator):
         if not candidates:
             return []
 
-        scored_candidates: list[tuple[float, BlueskyFeedPost]] = (
-            _collect_scored_unique_authors(
-                candidates=candidates,
-                agent_handle=agent_handle,
-            )
+        scored_candidates: list[tuple[float, Post]] = _collect_scored_unique_authors(
+            candidates=candidates,
+            agent_handle=agent_handle,
         )
         if not scored_candidates:
             return []
@@ -71,42 +69,40 @@ class RandomSimpleFollowGenerator(FollowGenerator):
 
 def _collect_scored_unique_authors(
     *,
-    candidates: list[BlueskyFeedPost],
+    candidates: list[Post],
     agent_handle: str,
-) -> list[tuple[float, BlueskyFeedPost]]:
+) -> list[tuple[float, Post]]:
     """Choose one best post per author and return sorted tuples by score."""
-    best_by_author: dict[str, tuple[float, BlueskyFeedPost]] = {}
+    best_by_author: dict[str, tuple[float, Post]] = {}
     for post in candidates:
         author_handle = post.author_handle
         if author_handle == agent_handle:
             continue
 
         score: float = _score_post(post)
-        existing: tuple[float, BlueskyFeedPost] | None = best_by_author.get(
-            author_handle
-        )
+        existing: tuple[float, Post] | None = best_by_author.get(author_handle)
         if existing is None:
             best_by_author[author_handle] = (score, post)
             continue
 
         existing_score, existing_post = existing
         if score > existing_score or (
-            score == existing_score and post.id < existing_post.id
+            score == existing_score and post.post_id < existing_post.post_id
         ):
             best_by_author[author_handle] = (score, post)
 
-    scored: list[tuple[float, BlueskyFeedPost]] = list(best_by_author.values())
+    scored: list[tuple[float, Post]] = list(best_by_author.values())
     scored.sort(
         key=lambda scored_post: (
             -scored_post[0],
             scored_post[1].author_handle,
-            scored_post[1].id,
+            scored_post[1].post_id,
         )
     )
     return scored
 
 
-def _score_post(post: BlueskyFeedPost) -> float:
+def _score_post(post: Post) -> float:
     """Compute score for selecting follow candidates (recency + social proof)."""
     recency_score: float = _recency_score(created_at=post.created_at)
     social_score: float = (
@@ -134,7 +130,7 @@ def _should_follow() -> bool:
 
 def _build_generated_follow(
     *,
-    post: BlueskyFeedPost,
+    post: Post,
     agent_handle: str,
     run_id: str,
     turn_number: int,

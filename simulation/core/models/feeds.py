@@ -17,7 +17,7 @@ class GeneratedFeed(BaseModel):
     run_id: str
     turn_number: int
     agent_handle: str
-    post_uris: list[str]
+    post_ids: list[str]
     created_at: str
 
     @field_validator("agent_handle")

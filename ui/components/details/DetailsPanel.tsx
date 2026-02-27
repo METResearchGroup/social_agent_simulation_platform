@@ -89,27 +89,31 @@ export default function DetailsPanel() {
   );
 }
 
-function getPostUrisFromTurn(turn: Turn): string[] {
-  const uris: string[] = [];
+function normalizeHandle(handle: string): string {
+  return handle.startsWith('@') ? handle.slice(1) : handle;
+}
+
+function getPostIdsFromTurn(turn: Turn): string[] {
+  const postIds: string[] = [];
   const seen = new Set<string>();
   for (const feed of Object.values(turn.agentFeeds)) {
-    for (const uri of feed.postUris) {
-      if (!seen.has(uri)) {
-        seen.add(uri);
-        uris.push(uri);
+    for (const postId of feed.postIds) {
+      if (!seen.has(postId)) {
+        seen.add(postId);
+        postIds.push(postId);
       }
     }
   }
   for (const actions of Object.values(turn.agentActions)) {
     for (const action of actions) {
-      if (!action.postUri) continue;
-      if (!seen.has(action.postUri)) {
-        seen.add(action.postUri);
-        uris.push(action.postUri);
+      if (!action.postId) continue;
+      if (!seen.has(action.postId)) {
+        seen.add(action.postId);
+        postIds.push(action.postId);
       }
     }
   }
-  return uris;
+  return postIds;
 }
 
 interface TurnDetailContentProps {
@@ -129,18 +133,18 @@ function TurnDetailContent({
   runDetailsError,
   onRetryRunDetails,
 }: TurnDetailContentProps) {
-  const postUris: string[] = useMemo(
-    () => getPostUrisFromTurn(currentTurn),
+  const postIds: string[] = useMemo(
+    () => getPostIdsFromTurn(currentTurn),
     [currentTurn],
   );
-  const [postsByUri, setPostsByUri] = useState<Record<string, Post>>({});
+  const [postsById, setPostsById] = useState<Record<string, Post>>({});
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<Error | null>(null);
   const requestIdRef = useRef(0);
 
   const loadPosts = useCallback(async () => {
-    if (postUris.length === 0) {
-      setPostsByUri({});
+    if (postIds.length === 0) {
+      setPostsById({});
       setPostsLoading(false);
       setPostsError(null);
       return;
@@ -150,13 +154,13 @@ function TurnDetailContent({
     setPostsLoading(true);
     setPostsError(null);
     try {
-      const posts: Post[] = await getPosts(postUris);
+      const posts: Post[] = await getPosts(postIds);
       if (requestId !== requestIdRef.current) return;
-      const byUri: Record<string, Post> = {};
+      const byId: Record<string, Post> = {};
       for (const post of posts) {
-        byUri[post.uri] = post;
+        byId[post.postId] = post;
       }
-      setPostsByUri(byUri);
+      setPostsById(byId);
     } catch (error: unknown) {
       if (requestId !== requestIdRef.current) return;
       setPostsError(
@@ -167,7 +171,7 @@ function TurnDetailContent({
         setPostsLoading(false);
       }
     }
-  }, [postUris]);
+  }, [postIds]);
 
   useEffect(() => {
     void loadPosts();
@@ -214,13 +218,17 @@ function TurnDetailContent({
         <h3 className="text-lg font-medium text-beige-900 mb-4">Agents</h3>
         <div className="space-y-4">
           {participatingAgents.map((agent) => {
-            const feed = currentTurn.agentFeeds[agent.handle];
+            const handleKey = normalizeHandle(agent.handle);
+            const feed = currentTurn.agentFeeds[handleKey] || currentTurn.agentFeeds[agent.handle];
             const feedPosts: Post[] = feed
-              ? feed.postUris
-                  .map((uri) => postsByUri[uri])
+              ? feed.postIds
+                  .map((postId) => postsById[postId])
                   .filter((post): post is Post => post !== undefined)
               : [];
-            const agentActions = currentTurn.agentActions[agent.handle] || [];
+            const agentActions =
+              currentTurn.agentActions[handleKey] ||
+              currentTurn.agentActions[agent.handle] ||
+              [];
 
             return (
               <div key={agent.handle} className="border border-beige-300 rounded-lg p-3">
@@ -231,7 +239,7 @@ function TurnDetailContent({
                   agent={agent}
                   feed={feedPosts}
                   actions={agentActions}
-                  postsByUri={postsByUri}
+                  postsById={postsById}
                 />
               </div>
             );
@@ -243,9 +251,12 @@ function TurnDetailContent({
 }
 
 function getParticipatingAgents(turn: Turn, runAgents: Agent[]): Agent[] {
-  const participatingAgentHandles: Set<string> = new Set([
-    ...Object.keys(turn.agentFeeds),
-    ...Object.keys(turn.agentActions),
-  ]);
-  return runAgents.filter((agent) => participatingAgentHandles.has(agent.handle));
+  const participatingAgentHandles: Set<string> = new Set(
+    [...Object.keys(turn.agentFeeds), ...Object.keys(turn.agentActions)].map(
+      normalizeHandle,
+    ),
+  );
+  return runAgents.filter((agent) =>
+    participatingAgentHandles.has(normalizeHandle(agent.handle)),
+  );
 }

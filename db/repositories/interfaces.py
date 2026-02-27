@@ -21,7 +21,7 @@ from simulation.core.models.persisted_actions import (
     PersistedFollow,
     PersistedLike,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
@@ -296,78 +296,76 @@ class FeedPostRepository(ABC):
     """Abstract base class defining the interface for feed post repositories."""
 
     @abstractmethod
-    def create_or_update_feed_post(self, post: BlueskyFeedPost) -> BlueskyFeedPost:
+    def create_or_update_feed_post(self, post: Post) -> Post:
         """Create or update a feed post.
 
         Args:
-            post: BlueskyFeedPost model to create or update
+            post: Post model to create or update
 
         Returns:
-            The created or updated BlueskyFeedPost object
+            The created or updated Post object
         """
         raise NotImplementedError
 
     @abstractmethod
-    def create_or_update_feed_posts(
-        self, posts: list[BlueskyFeedPost]
-    ) -> list[BlueskyFeedPost]:
+    def create_or_update_feed_posts(self, posts: list[Post]) -> list[Post]:
         """Create or update multiple feed posts (batch operation).
 
         Args:
-            posts: List of BlueskyFeedPost models to create or update
+            posts: List of Post models to create or update
 
         Returns:
-            List of created or updated BlueskyFeedPost objects
+            List of created or updated Post objects
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_feed_post(self, uri: str) -> BlueskyFeedPost:
-        """Get a feed post by URI.
+    def get_feed_post(self, post_id: str) -> Post:
+        """Get a feed post by canonical post_id.
 
         Args:
-            uri: Post URI to look up
+            post_id: Canonical post ID to look up
 
         Returns:
-            BlueskyFeedPost model if found.
+            Post model if found.
 
         Raises:
-            ValueError: If uri is empty or if no feed post is found for the given URI
+            ValueError: If post_id is empty or if no feed post is found for the given post_id
         """
         raise NotImplementedError
 
     @abstractmethod
-    def list_feed_posts_by_author(self, author_handle: str) -> list[BlueskyFeedPost]:
+    def list_feed_posts_by_author(self, author_handle: str) -> list[Post]:
         """List all feed posts by a specific author.
 
         Args:
             author_handle: Author handle to filter by
 
         Returns:
-            List of BlueskyFeedPost models for the author.
+            List of Post models for the author.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def list_all_feed_posts(self) -> list[BlueskyFeedPost]:
+    def list_all_feed_posts(self) -> list[Post]:
         """List all feed posts.
 
         Returns:
-            List of all BlueskyFeedPost models.
+            List of all Post models.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
-        """Read feed posts by URIs.
+    def read_feed_posts_by_ids(self, post_ids: Iterable[str]) -> list[Post]:
+        """Read feed posts by canonical post_ids.
 
         Args:
-            uris: Iterable of post URIs to look up
+            post_ids: Iterable of canonical post IDs to look up
 
         Returns:
-            List of BlueskyFeedPost models for the given URIs.
-            Returns empty list if no URIs provided or if no posts found.
-            Missing URIs are silently skipped (only existing posts are returned).
+            List of Post models for the given post_ids.
+            Returns empty list if no post_ids provided or if no posts found.
+            Missing post_ids are silently skipped (only existing posts are returned).
         """
         raise NotImplementedError
 
@@ -423,15 +421,15 @@ class GeneratedFeedRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
-        """Get all post URIs from generated feeds for a specific agent and run.
+    def get_post_ids_for_run(self, agent_handle: str, run_id: str) -> set[str]:
+        """Get all post_ids from generated feeds for a specific agent and run.
 
         Args:
             agent_handle: Agent handle to filter by
             run_id: Run ID to filter by
 
         Returns:
-            Set of post URIs from all generated feeds matching the agent and run.
+            Set of post_ids from all generated feeds matching the agent and run.
             Returns empty set if no feeds found.
 
         Raises:

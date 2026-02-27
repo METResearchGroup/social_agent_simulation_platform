@@ -16,7 +16,7 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.utils.exceptions import RunNotFoundError
@@ -97,21 +97,21 @@ class SimulationQueryService:
         if not feeds:
             return None
 
-        post_uris_set: set[str] = set()
+        post_ids_set: set[str] = set()
         for feed in feeds:
-            post_uris_set.update(feed.post_uris)
+            post_ids_set.update(feed.post_ids)
 
-        post_uris_list = list(post_uris_set)
-        posts = self.feed_post_repo.read_feed_posts_by_uris(post_uris_list)
+        post_ids_list = list(post_ids_set)
+        posts = self.feed_post_repo.read_feed_posts_by_ids(post_ids_list)
 
-        uri_to_post = {post.uri: post for post in posts}
+        post_id_to_post = {post.post_id: post for post in posts}
 
-        feeds_dict: dict[str, list[BlueskyFeedPost]] = {}
+        feeds_dict: dict[str, list[Post]] = {}
         for feed in feeds:
             hydrated_posts = []
-            for post_uri in feed.post_uris:
-                if post_uri in uri_to_post:
-                    hydrated_posts.append(uri_to_post[post_uri])
+            for post_id in feed.post_ids:
+                if post_id in post_id_to_post:
+                    hydrated_posts.append(post_id_to_post[post_id])
             feeds_dict[feed.agent_handle] = hydrated_posts
 
         actions_by_agent: dict[

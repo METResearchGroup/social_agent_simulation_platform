@@ -14,7 +14,7 @@ from db.adapters.sqlite.sqlite import (
     initialize_database,
     run_transaction,
 )
-from db.schema import bluesky_feed_posts
+from db.schema import feed_posts
 
 
 class TestDBPath:
@@ -122,7 +122,7 @@ class TestInitializeDatabase:
             conn = get_connection()
             tables = [
                 "bluesky_profiles",
-                "bluesky_feed_posts",
+                "feed_posts",
                 "agent_bios",
                 "generated_feeds",
                 "runs",
@@ -151,7 +151,7 @@ class TestInitializeDatabase:
             indexes = [
                 "idx_runs_status",
                 "idx_runs_created_at",
-                "idx_bluesky_feed_posts_author_handle",
+                "idx_feed_posts_author_handle",
                 "idx_turn_metadata_run_id",
                 "idx_turn_metrics_run_id",
             ]
@@ -212,13 +212,13 @@ class TestInitializeDatabase:
 
             conn.close()
 
-    def test_bluesky_feed_posts_schema_matches_canonical(self, temp_db):
-        """PRAGMA table_info(bluesky_feed_posts) matches db.schema column order and NOT NULL."""
+    def test_feed_posts_schema_matches_canonical(self, temp_db):
+        """PRAGMA table_info(feed_posts) matches db.schema column order and NOT NULL."""
         with patch("db.adapters.sqlite.sqlite.DB_PATH", temp_db):
             initialize_database()
 
             conn = get_connection()
-            cursor = conn.execute("PRAGMA table_info(bluesky_feed_posts)")
+            cursor = conn.execute("PRAGMA table_info(feed_posts)")
             rows = cursor.fetchall()
             conn.close()
 
@@ -226,14 +226,14 @@ class TestInitializeDatabase:
             db_columns = [row[1] for row in rows]
             db_notnull = {row[1]: bool(row[3]) for row in rows}
 
-            expected_order = ordered_column_names(bluesky_feed_posts)
+            expected_order = ordered_column_names(feed_posts)
             assert db_columns == expected_order, (
-                f"bluesky_feed_posts column order mismatch: got {db_columns}, expected {expected_order}"
+                f"feed_posts column order mismatch: got {db_columns}, expected {expected_order}"
             )
 
-            required = set(required_column_names(bluesky_feed_posts))
+            required = set(required_column_names(feed_posts))
             for col in expected_order:
                 assert db_notnull[col] == (col in required), (
-                    f"bluesky_feed_posts.{col}: NOT NULL in DB is {db_notnull[col]}, "
+                    f"feed_posts.{col}: NOT NULL in DB is {db_notnull[col]}, "
                     f"schema nullable=False is {col in required}"
                 )

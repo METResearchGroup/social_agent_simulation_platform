@@ -94,7 +94,7 @@ generated_feeds = sa.Table(
     sa.Column("run_id", sa.Text(), nullable=False),
     sa.Column("turn_number", sa.Integer(), nullable=False),
     sa.Column("agent_handle", sa.Text(), nullable=False),
-    sa.Column("post_uris", sa.Text(), nullable=False),
+    sa.Column("post_ids", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
     # NOTE: This FK is applied by the second Alembic migration.
     sa.ForeignKeyConstraint(
@@ -122,10 +122,12 @@ bluesky_profiles = sa.Table(
     sa.Column("posts_count", sa.Integer(), nullable=False),
 )
 
-bluesky_feed_posts = sa.Table(
-    "bluesky_feed_posts",
+feed_posts = sa.Table(
+    "feed_posts",
     metadata,
-    sa.Column("uri", sa.Text(), primary_key=True),
+    sa.Column("post_id", sa.Text(), primary_key=True),
+    sa.Column("source", sa.Text(), nullable=False),
+    sa.Column("uri", sa.Text(), nullable=False),
     sa.Column("author_display_name", sa.Text(), nullable=False),
     sa.Column("author_handle", sa.Text(), nullable=False),
     sa.Column("text", sa.Text(), nullable=False),
@@ -279,7 +281,7 @@ follows = sa.Table(
 
 sa.Index("idx_runs_status", runs.c.status)
 sa.Index("idx_runs_created_at", runs.c.created_at.desc())
-sa.Index("idx_bluesky_feed_posts_author_handle", bluesky_feed_posts.c.author_handle)
+sa.Index("idx_feed_posts_author_handle", feed_posts.c.author_handle)
 sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
 sa.Index("idx_turn_metrics_run_id", turn_metrics.c.run_id)
 sa.Index(

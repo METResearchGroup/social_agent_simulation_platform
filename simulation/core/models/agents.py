@@ -2,7 +2,7 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 
 class SocialMediaAgent:
@@ -13,7 +13,7 @@ class SocialMediaAgent:
         self.followers: int = 0
         self.following: int = 0
         self.posts_count: int = 0
-        self.posts: list[BlueskyFeedPost] = []
+        self.posts: list[Post] = []
         self.likes: list[GeneratedLike] = []
         self.comments: list[GeneratedComment] = []
         self.follows: list[GeneratedFollow] = []
@@ -36,6 +36,6 @@ class SocialMediaAgent:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=self.handle,
-            post_uris=[],
+            post_ids=[],
             created_at=created_at,
         )

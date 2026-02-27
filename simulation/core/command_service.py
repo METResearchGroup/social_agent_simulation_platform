@@ -36,7 +36,7 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
@@ -256,7 +256,7 @@ class SimulationCommandService:
         run = self.run_repo.get_run(run_id)
         validate_run_exists(run=run, run_id=run_id)
 
-        agent_to_hydrated_feeds: dict[str, list[BlueskyFeedPost]] = (
+        agent_to_hydrated_feeds: dict[str, list[Post]] = (
             self.feed_generator.generate_feeds(
                 agents=agents,
                 run_id=run_id,
