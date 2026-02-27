@@ -15,7 +15,7 @@ from simulation.api.constants import (
     DEFAULT_SIMULATION_CONFIG,
     MAX_AGENT_LIST_LIMIT,
 )
-from simulation.api.dependencies.auth import require_auth
+from simulation.api.dependencies.app_user import require_current_app_user
 from simulation.api.errors import (
     ApiHandleAlreadyExistsError,
     ApiRunCreationFailedError,
@@ -47,7 +47,9 @@ from simulation.api.services.run_query_service import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["simulation"], dependencies=[Depends(require_auth)])
+router = APIRouter(
+    tags=["simulation"], dependencies=[Depends(require_current_app_user)]
+)
 
 SIMULATION_RUN_ROUTE: str = "POST /v1/simulations/run"
 SIMULATION_RUNS_ROUTE: str = "GET /v1/simulations/runs"
@@ -414,11 +416,18 @@ async def _execute_simulation_run(
 ) -> RunResponse | Response:
     """Run the simulation and return response; used for timing and logging."""
     engine = request.app.state.engine
+    current_app_user = getattr(request.state, "current_app_user")
+    if current_app_user is None:
+        raise RuntimeError(
+            "current_app_user was not set on request.state, but is required for simulation run creation."
+        )
+    created_by_app_user_id = current_app_user.id
     try:
         return await asyncio.to_thread(
             execute,
             request=body,
             engine=engine,
+            created_by_app_user_id=created_by_app_user_id,
         )
     except ApiRunCreationFailedError as e:
         logger.exception("Simulation run failed before run creation")

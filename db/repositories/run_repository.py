@@ -52,11 +52,14 @@ class SQLiteRunRepository(RunRepository):
         self._db_adapter = db_adapter
         self._transaction_provider = transaction_provider
 
-    def create_run(self, config: RunConfig) -> Run:
+    def create_run(
+        self, config: RunConfig, created_by_app_user_id: str | None = None
+    ) -> Run:
         """Create a new run in SQLite.
 
         Args:
             config: Configuration for the run
+            created_by_app_user_id: Optional app_user id for attribution
 
         Returns:
             The created Run object
@@ -77,6 +80,7 @@ class SQLiteRunRepository(RunRepository):
 
             run = Run(
                 run_id=run_id,
+                app_user_id=created_by_app_user_id,
                 created_at=ts,
                 total_turns=config.num_turns,
                 total_agents=config.num_agents,
