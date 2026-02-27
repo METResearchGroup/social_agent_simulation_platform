@@ -110,3 +110,10 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
             if aid not in result:
                 result[aid] = None
         return result
+
+    def delete_agent_bios_by_agent_id(
+        self, agent_id: str, *, conn: sqlite3.Connection
+    ) -> None:
+        """Delete all bios for an agent by agent_id."""
+        validate_non_empty_string(agent_id, "agent_id")
+        conn.execute("DELETE FROM agent_persona_bios WHERE agent_id = ?", (agent_id,))

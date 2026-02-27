@@ -149,6 +149,21 @@ async function fetchPost<TReq, TRes>(url: string, body: TReq): Promise<TRes> {
   return response.json() as Promise<TRes>;
 }
 
+/**
+ * DELETEs a resource. Throws ApiError on non-2xx responses.
+ */
+async function fetchDelete(url: string): Promise<void> {
+  const headers = await getAuthHeaders();
+  const response: Response = await fetch(url, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+}
+
 function mapFeed(apiFeed: ApiFeed): Feed {
   return {
     feedId: apiFeed.feed_id,
@@ -370,6 +385,12 @@ export async function postAgent(body: {
     body,
   );
   return mapAgent(api);
+}
+
+export async function deleteAgent(handle: string): Promise<void> {
+  await fetchDelete(
+    buildApiUrl(`/simulations/agents/${encodeURIComponent(handle)}`),
+  );
 }
 
 export async function getPosts(uris?: string[]): Promise<Post[]> {

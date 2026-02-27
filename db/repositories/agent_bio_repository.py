@@ -52,6 +52,15 @@ class SQLiteAgentBioRepository(AgentBioRepository):
                 agent_ids, conn=c
             )
 
+    @validate_inputs((validate_agent_id, "agent_id"))
+    def delete_agent_bios(self, agent_id: str, conn: object | None = None) -> None:
+        """Delete all bios for an agent."""
+        if conn is not None:
+            self._db_adapter.delete_agent_bios_by_agent_id(agent_id, conn=conn)
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.delete_agent_bios_by_agent_id(agent_id, conn=c)
+
 
 def create_sqlite_agent_bio_repository(
     *,

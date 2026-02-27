@@ -14,6 +14,12 @@ class ApiHandleAlreadyExistsError(Exception):
         self.handle = handle
 
 
+class ApiAgentNotFoundError(Exception):
+    def __init__(self, handle: str):
+        super().__init__(handle)
+        self.handle = handle
+
+
 class ApiRunNotFoundError(Exception):
     def __init__(self, run_id: str):
         super().__init__(run_id)
