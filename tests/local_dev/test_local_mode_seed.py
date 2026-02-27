@@ -88,20 +88,22 @@ def test_api_endpoints__db_backed_with_seeded_db(temp_db, monkeypatch) -> None:
         expected_result = True
         assert isinstance(turns_by_id, dict) is expected_result
 
-        # Extract some URIs (if present) and ensure /posts hydrates them.
-        some_uris: list[str] = []
+        # Extract some post IDs (if present) and ensure /posts hydrates them.
+        some_post_ids: list[str] = []
         for turn in turns_by_id.values():
             agent_feeds = turn.get("agent_feeds", {})
             for feed in agent_feeds.values():
-                some_uris.extend(feed.get("post_uris", []))
-            if some_uris:
+                some_post_ids.extend(feed.get("post_ids", []))
+            if some_post_ids:
                 break
         expected_result = True
-        assert bool(some_uris) is expected_result, (
-            "Seeded turns should include post URIs"
+        assert bool(some_post_ids) is expected_result, (
+            "Seeded turns should include post IDs"
         )
 
-        url = "/v1/simulations/posts?" + "&".join(f"uris={u}" for u in some_uris[:3])
+        url = "/v1/simulations/posts?" + "&".join(
+            f"post_ids={pid}" for pid in some_post_ids[:3]
+        )
         posts = client.get(url).json()
         expected_result = True
         assert isinstance(posts, list) is expected_result

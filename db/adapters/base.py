@@ -20,7 +20,7 @@ from simulation.core.models.persisted_actions import (
     PersistedFollow,
     PersistedLike,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
@@ -372,17 +372,17 @@ class ProfileDatabaseAdapter(ABC):
 class FeedPostDatabaseAdapter(ABC):
     """Abstract interface for feed post database operations.
 
-    This interface is database-agnostic. Currently works with BlueskyFeedPost.
+    This interface is database-agnostic. Currently works with Post.
     Concrete implementations should document the specific exceptions they raise,
     which may be database-specific.
     """
 
     @abstractmethod
-    def write_feed_post(self, post: BlueskyFeedPost, *, conn: object) -> None:
+    def write_feed_post(self, post: Post, *, conn: object) -> None:
         """Write a feed post to the database.
 
         Args:
-            post: BlueskyFeedPost model to write
+            post: Post model to write
             conn: Connection.
 
         Raises:
@@ -399,11 +399,11 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def write_feed_posts(self, posts: list[BlueskyFeedPost], *, conn: object) -> None:
+    def write_feed_posts(self, posts: list[Post], *, conn: object) -> None:
         """Write multiple feed posts to the database (batch operation).
 
         Args:
-            posts: List of BlueskyFeedPost models to write
+            posts: List of Post models to write
             conn: Connection.
 
         Raises:
@@ -420,18 +420,18 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_post(self, uri: str, *, conn: object) -> BlueskyFeedPost:
-        """Read a feed post by URI.
+    def read_feed_post(self, post_id: str, *, conn: object) -> Post:
+        """Read a feed post by canonical post_id.
 
         Args:
-            uri: Post URI to look up
+            post_id: Canonical post ID to look up
             conn: Connection.
 
         Returns:
-            BlueskyFeedPost model if found.
+            Post model if found.
 
         Raises:
-            ValueError: If uri is empty or if no feed post is found for the given URI
+            ValueError: If post_id is empty or if no feed post is found for the given post_id
             ValueError: If the feed post data is invalid (NULL fields)
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exception if the operation fails.
@@ -443,7 +443,7 @@ class FeedPostDatabaseAdapter(ABC):
     @abstractmethod
     def read_feed_posts_by_author(
         self, author_handle: str, *, conn: object
-    ) -> list[BlueskyFeedPost]:
+    ) -> list[Post]:
         """Read all feed posts by a specific author.
 
         Args:
@@ -451,7 +451,7 @@ class FeedPostDatabaseAdapter(ABC):
             conn: Connection.
 
         Returns:
-            List of BlueskyFeedPost models for the author.
+            List of Post models for the author.
 
         Raises:
             ValueError: If any feed post data is invalid (NULL fields)
@@ -463,14 +463,14 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_all_feed_posts(self, *, conn: object) -> list[BlueskyFeedPost]:
+    def read_all_feed_posts(self, *, conn: object) -> list[Post]:
         """Read all feed posts.
 
         Args:
             conn: Connection.
 
         Returns:
-            List of all BlueskyFeedPost models. Returns empty list if no posts exist.
+            List of all Post models. Returns empty list if no posts exist.
 
         Raises:
             ValueError: If any feed post data is invalid (NULL fields)
@@ -482,17 +482,17 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_uris(
-        self, uris: Iterable[str], *, conn: object
-    ) -> list[BlueskyFeedPost]:
-        """Read feed posts by URIs.
+    def read_feed_posts_by_ids(
+        self, post_ids: Iterable[str], *, conn: object
+    ) -> list[Post]:
+        """Read feed posts by canonical post_ids.
 
         Args:
-            uris: Iterable of post URIs to look up
+            post_ids: Iterable of canonical post IDs to look up
             conn: Connection.
 
         Returns:
-            List of BlueskyFeedPost models for the given URIs.
+            List of Post models for the given post_ids.
 
         Raises:
             ValueError: If any feed post data is invalid (NULL fields)
@@ -502,8 +502,8 @@ class FeedPostDatabaseAdapter(ABC):
                       they raise.
         Note:
             This method is used to hydrate generated feeds. Implementations should
-            ensure that the post URIs are valid and that the feed posts are returned
-            in the same order as the URIs.
+            ensure that the post_ids are valid and that the feed posts are returned
+            in the same order as the input post_ids.
         """
         raise NotImplementedError
 
@@ -588,10 +588,10 @@ class GeneratedFeedDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_post_uris_for_run(
+    def read_post_ids_for_run(
         self, agent_handle: str, run_id: str, *, conn: object
     ) -> set[str]:
-        """Read all post URIs from generated feeds for a specific agent and run.
+        """Read all post_ids from generated feeds for a specific agent and run.
 
         Args:
             agent_handle: Agent handle to filter by
@@ -599,7 +599,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
             conn: Connection.
 
         Returns:
-            Set of post URIs from all generated feeds matching the agent and run.
+            Set of post_ids from all generated feeds matching the agent and run.
             Returns empty set if no feeds found.
 
         Raises:

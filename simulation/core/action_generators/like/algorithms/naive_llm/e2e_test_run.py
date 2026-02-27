@@ -7,19 +7,20 @@ from lib.load_env_vars import EnvVarsContainer
 from simulation.core.factories.action_generators.like.naive_llm import (
     create_naive_llm_like_generator,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post, PostSource
 
 
 def _post(
-    post_id: str,
+    uri: str,
     *,
     author_handle: str = "alice.bsky.social",
     text: str = "Sample post content",
     like_count: int = 10,
-) -> BlueskyFeedPost:
-    return BlueskyFeedPost(
-        id=post_id,
-        uri=post_id,
+) -> Post:
+    return Post(
+        source=PostSource.BLUESKY,
+        post_id=f"bluesky:{uri}",
+        uri=uri,
         author_handle=author_handle,
         author_display_name="Alice",
         text=text,

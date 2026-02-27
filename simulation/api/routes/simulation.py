@@ -39,7 +39,7 @@ from simulation.api.services.agent_query_service import list_agents
 from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
-    get_posts_by_uris,
+    get_posts_by_ids,
     get_run_details,
     get_turns_for_run,
     list_runs,
@@ -223,15 +223,17 @@ async def get_simulation_run(
     response_model=list[PostSchema],
     status_code=200,
     summary="List simulation posts",
-    description="Return posts, optionally filtered by URIs. Batch lookup for feed resolution.",
+    description="Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.",
 )
 @log_route_completion_decorator(route=SIMULATION_POSTS_ROUTE, success_type=list)
 async def get_simulation_posts(
     request: Request,
-    uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
+    post_ids: list[str] | None = Query(
+        default=None, description="Filter by canonical post_ids"
+    ),
 ) -> list[PostSchema] | Response:
     """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
-    return await _execute_get_simulation_posts(request, uris=uris)
+    return await _execute_get_simulation_posts(request, post_ids=post_ids)
 
 
 @router.get(
@@ -306,12 +308,14 @@ async def _execute_get_default_config(
 async def _execute_get_simulation_posts(
     request: Request,
     *,
-    uris: list[str] | None = None,
+    post_ids: list[str] | None = None,
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
         engine = request.app.state.engine
-        return await asyncio.to_thread(get_posts_by_uris, uris=uris, engine=engine)
+        return await asyncio.to_thread(
+            get_posts_by_ids, post_ids=post_ids, engine=engine
+        )
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")
         return _error_response(

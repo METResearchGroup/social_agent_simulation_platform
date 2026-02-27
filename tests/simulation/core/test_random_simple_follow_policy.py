@@ -8,7 +8,7 @@ from simulation.core.action_generators.follow.algorithms.random_simple import (
     TOP_K_USERS_TO_FOLLOW,
     RandomSimpleFollowGenerator,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from tests.factories import PostFactory
 
 # Timestamp format used by get_current_timestamp(): YYYY_MM_DD-HH:MM:SS
@@ -16,21 +16,20 @@ CREATED_AT_PATTERN = re.compile(r"^\d{4}_\d{2}_\d{2}-\d{2}:\d{2}:\d{2}$")
 
 
 def _post(
-    post_id: str,
+    uri: str,
     *,
     author_handle: str | None = None,
     like_count: int = 0,
     repost_count: int = 0,
     reply_count: int = 0,
     created_at: str = "2024_01_01-12:00:00",
-) -> BlueskyFeedPost:
-    """Build a BlueskyFeedPost for tests."""
-    resolved_author_handle: str = author_handle or f"author-{post_id}.bsky.social"
+) -> Post:
+    """Build a Post (Bluesky source) for tests."""
+    resolved_author_handle: str = author_handle or f"author-{uri}.bsky.social"
     return PostFactory.create(
-        post_id=post_id,
-        uri=post_id,
+        uri=uri,
         author_handle=resolved_author_handle,
-        author_display_name=f"Author {post_id}",
+        author_display_name=f"Author {uri}",
         text="content",
         like_count=like_count,
         bookmark_count=0,

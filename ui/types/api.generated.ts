@@ -117,7 +117,7 @@ export interface paths {
         };
         /**
          * List simulation posts
-         * @description Return posts, optionally filtered by URIs. Batch lookup for feed resolution.
+         * @description Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.
          */
         get: operations["get_simulation_posts_v1_simulations_posts_get"];
         put?: never;
@@ -223,8 +223,8 @@ export interface components {
             agent_handle: string;
             /** Created At */
             created_at: string;
-            /** Post Uri */
-            post_uri?: string | null;
+            /** Post Id */
+            post_id?: string | null;
             type: components["schemas"]["TurnAction"];
             /** User Id */
             user_id?: string | null;
@@ -320,8 +320,8 @@ export interface components {
             created_at: string;
             /** Feed Id */
             feed_id: string;
-            /** Post Uris */
-            post_uris: string[];
+            /** Post Ids */
+            post_ids: string[];
             /** Run Id */
             run_id: string;
             /** Turn Number */
@@ -368,17 +368,26 @@ export interface components {
             created_at: string;
             /** Like Count */
             like_count: number;
+            /** Post Id */
+            post_id: string;
             /** Quote Count */
             quote_count: number;
             /** Reply Count */
             reply_count: number;
             /** Repost Count */
             repost_count: number;
+            source: components["schemas"]["PostSource"];
             /** Text */
             text: string;
             /** Uri */
             uri: string;
         };
+        /**
+         * PostSource
+         * @description Source platform/type for a post.
+         * @enum {string}
+         */
+        PostSource: "bluesky" | "ai_generated";
         /**
          * RunConfigDetail
          * @description Configuration for a persisted run.
@@ -725,8 +734,8 @@ export interface operations {
     get_simulation_posts_v1_simulations_posts_get: {
         parameters: {
             query?: {
-                /** @description Filter by post URIs */
-                uris?: string[] | null;
+                /** @description Filter by canonical post_ids */
+                post_ids?: string[] | null;
             };
             header?: never;
             path?: never;

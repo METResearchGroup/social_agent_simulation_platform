@@ -66,9 +66,7 @@ class TurnData(BaseModel):
 
     turn_number: int
     agents: list[Any]  # SocialMediaAgent - using Any to avoid circular import
-    feeds: dict[
-        str, list[Any]
-    ]  # dict[str, list[BlueskyFeedPost]] - contains hydrated posts
+    feeds: dict[str, list[Any]]  # dict[str, list[Post]] - contains hydrated posts
     actions: dict[
         str, list[Any]
     ]  # dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]] - contains actions taken by the agents

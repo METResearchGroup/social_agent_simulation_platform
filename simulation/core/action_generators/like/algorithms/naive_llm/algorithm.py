@@ -23,14 +23,14 @@ from simulation.core.action_generators.utils.llm_utils import (
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.like import GeneratedLike
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 logger = logging.getLogger(__name__)
 EXPLANATION: str = "LLM prediction (naive_llm)"
 LIKE_POLICY: str = "naive_llm"
 
 
-def _build_prompt(agent_handle: str, candidates: list[BlueskyFeedPost]) -> str:
+def _build_prompt(agent_handle: str, candidates: list[Post]) -> str:
     """Build the like prediction prompt."""
     posts_json = _posts_to_minimal_json(candidates)
     return LIKE_PROMPT.format(agent_handle=agent_handle, posts_json=posts_json)
@@ -59,14 +59,14 @@ def _get_ids_to_like(
 
 def _build_generated_like(
     *,
-    post: BlueskyFeedPost,
+    post: Post,
     agent_handle: str,
     run_id: str,
     turn_number: int,
     model_used: str | None,
 ) -> GeneratedLike:
     """Build a GeneratedLike with IDs and metadata."""
-    post_id = post.id
+    post_id = post.post_id
     like_id = f"like_{run_id}_{turn_number}_{agent_handle}_{post_id}"
     created_at = get_current_timestamp()
     return GeneratedLike(
@@ -95,7 +95,7 @@ class NaiveLLMLikeGenerator(LikeGenerator):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
@@ -113,8 +113,8 @@ class NaiveLLMLikeGenerator(LikeGenerator):
             response_model=LikePrediction,
         )
 
-        valid_ids = {p.id for p in candidates}
-        post_by_id = {p.id: p for p in candidates}
+        valid_ids = {p.post_id for p in candidates}
+        post_by_id = {p.post_id: p for p in candidates}
         to_like_ids = _get_ids_to_like(
             response_post_ids=response.post_ids,
             valid_post_ids=valid_ids,

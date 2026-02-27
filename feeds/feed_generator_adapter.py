@@ -8,7 +8,7 @@ from db.repositories.interfaces import FeedPostRepository, GeneratedFeedReposito
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
 from feeds.interfaces import FeedGenerator
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 
 class FeedGeneratorAdapter(FeedGenerator):
@@ -30,7 +30,7 @@ class FeedGeneratorAdapter(FeedGenerator):
         turn_number: int,
         feed_algorithm: str,
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-    ) -> dict[str, list[BlueskyFeedPost]]:
+    ) -> dict[str, list[Post]]:
         return generate_feeds_impl(
             agents=agents,
             run_id=run_id,

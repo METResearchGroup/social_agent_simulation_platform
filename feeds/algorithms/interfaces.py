@@ -10,7 +10,7 @@ from pydantic import BaseModel, JsonValue
 
 if TYPE_CHECKING:
     from simulation.core.models.agents import SocialMediaAgent
-    from simulation.core.models.posts import BlueskyFeedPost
+    from simulation.core.models.posts import Post
 
 
 class FeedAlgorithmMetadata(BaseModel):
@@ -24,13 +24,13 @@ class FeedAlgorithmMetadata(BaseModel):
 class FeedAlgorithmResult(BaseModel):
     """Result of a feed ranking algorithm.
 
-    post_uris is ordered: first element = top of feed. Implementations must use
+    post_ids is ordered: first element = top of feed. Implementations must use
     deterministic tie-breaking when scores/keys are equal.
     """
 
     feed_id: str
     agent_handle: str
-    post_uris: list[str]
+    post_ids: list[str]
 
 
 class FeedAlgorithm(ABC):
@@ -46,16 +46,14 @@ class FeedAlgorithm(ABC):
     def generate(
         self,
         *,
-        candidate_posts: list[
-            BlueskyFeedPost
-        ],  # TODO: decouple from Bluesky-specific type
+        candidate_posts: list[Post],
         agent: SocialMediaAgent,
         limit: int,
         config: Mapping[str, JsonValue] | None = None,
     ) -> FeedAlgorithmResult:
         """Rank and select posts.
 
-        Return post_uris in feed display order. Use deterministic tie-breaking
-        (e.g. uri) when primary sort keys tie.
+        Return post_ids in feed display order. Use deterministic tie-breaking
+        (e.g. post_id) when primary sort keys tie.
         """
         ...

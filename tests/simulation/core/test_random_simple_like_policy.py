@@ -5,24 +5,23 @@ from simulation.core.action_generators.like.algorithms.random_simple import (
     TOP_K_POSTS_TO_LIKE,
     RandomSimpleLikeGenerator,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from tests.factories import PostFactory
 
 
 def _post(
-    post_id: str,
+    uri: str,
     *,
     like_count: int = 0,
     repost_count: int = 0,
     reply_count: int = 0,
     created_at: str = "2024_01_01-12:00:00",
-) -> BlueskyFeedPost:
-    """Build a BlueskyFeedPost for tests."""
+) -> Post:
+    """Build a Post (Bluesky source) for tests."""
     return PostFactory.create(
-        post_id=post_id,
-        uri=post_id,
-        author_handle=f"author-{post_id}.bsky.social",
-        author_display_name=f"Author {post_id}",
+        uri=uri,
+        author_handle=f"author-{uri}.bsky.social",
+        author_display_name=f"Author {uri}",
         text="content",
         like_count=like_count,
         bookmark_count=0,
@@ -73,7 +72,9 @@ class TestRandomSimpleLikeGeneratorGenerate:
         )
         expected_count = min(TOP_K_POSTS_TO_LIKE, len(candidates))
         assert len(result) == expected_count
-        assert all(like.like.post_id in ("post_1", "post_2") for like in result)
+        assert all(
+            like.like.post_id in ("bluesky:post_1", "bluesky:post_2") for like in result
+        )
 
     def test_respects_top_k_limit(self, monkeypatch):
         """Never returns more than TOP_K likes."""
@@ -102,8 +103,8 @@ class TestRandomSimpleLikeGeneratorGenerate:
             agent_handle="agent1.bsky.social",
         )
         post_ids = [like.like.post_id for like in result]
-        assert post_ids[0] == "post_high"
-        assert "post_high" in post_ids
+        assert post_ids[0] == "bluesky:post_high"
+        assert "bluesky:post_high" in post_ids
 
     def test_recency_affects_ordering(self, monkeypatch):
         """Newer posts score higher when social proof is equal."""
@@ -119,8 +120,8 @@ class TestRandomSimpleLikeGeneratorGenerate:
             agent_handle="agent1.bsky.social",
         )
         post_ids = [like.like.post_id for like in result]
-        assert post_ids[0] == "post_new"
-        assert "post_new" in post_ids
+        assert post_ids[0] == "bluesky:post_new"
+        assert "bluesky:post_new" in post_ids
 
     def test_reproducible_when_random_mocked(self, monkeypatch):
         """With random mocked to fixed values, repeated runs produce same likes."""
@@ -161,9 +162,9 @@ class TestRandomSimpleLikeGeneratorGenerate:
         )
         assert len(result) == 1
         like = result[0]
-        assert like.like.like_id == "like_run_1_2_agent.bsky.social_post_1"
+        assert like.like.like_id == "like_run_1_2_agent.bsky.social_bluesky:post_1"
         assert like.like.agent_id == "agent.bsky.social"
-        assert like.like.post_id == "post_1"
+        assert like.like.post_id == "bluesky:post_1"
         assert like.explanation
         assert like.metadata.generation_metadata == {
             "policy": "simple",

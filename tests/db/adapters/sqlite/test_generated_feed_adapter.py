@@ -35,15 +35,15 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
         turn_number = default_test_data["turn_number"]
         agent_handle = default_test_data["agent_handle"]
 
-        post_uris_1 = ["uri1", "uri2", "uri3"]
-        post_uris_2 = ["uri4", "uri5"]
+        post_ids_1 = [f"bluesky:{u}" for u in ["uri1", "uri2", "uri3"]]
+        post_ids_2 = [f"bluesky:{u}" for u in ["uri4", "uri5"]]
 
         row_data_1 = {
             "feed_id": "feed_1",
             "run_id": run_id,
             "turn_number": turn_number,
             "agent_handle": agent_handle,
-            "post_uris": json.dumps(post_uris_1),
+            "post_ids": json.dumps(post_ids_1),
             "created_at": "2024_01_01-12:00:00",
         }
         row_data_2 = {
@@ -51,7 +51,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "run_id": run_id,
             "turn_number": turn_number,
             "agent_handle": "another.agent.bsky.social",
-            "post_uris": json.dumps(post_uris_2),
+            "post_ids": json.dumps(post_ids_2),
             "created_at": "2024_01_01-12:00:01",
         }
         mock_row_1 = create_mock_row(row_data_1)
@@ -69,9 +69,9 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             assert len(result) == 2
             assert all(isinstance(feed, GeneratedFeed) for feed in result)
             assert result[0].feed_id == "feed_1"
-            assert result[0].post_uris == post_uris_1
+            assert result[0].post_ids == post_ids_1
             assert result[1].feed_id == "feed_2"
-            assert result[1].post_uris == post_uris_2
+            assert result[1].post_ids == post_ids_2
 
             # Verify database was called with correct parameters
             # Adapter receives conn; execute called with (sql, params)
@@ -130,7 +130,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "run_id": run_id,
             "turn_number": turn_number,
             "agent_handle": "agent.bsky.social",
-            "post_uris": json.dumps(["uri1"]),
+            "post_ids": json.dumps(["bluesky:uri1"]),
             "created_at": "2024_01_01-12:00:00",
         }
         mock_row = create_mock_row(row_data)
@@ -156,7 +156,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "run_id": run_id,
             "turn_number": turn_number,
             "agent_handle": "agent.bsky.social",
-            "post_uris": json.dumps(["uri1"]),
+            "post_ids": json.dumps(["bluesky:uri1"]),
             "created_at": "2024_01_01-12:00:00",
         }
         mock_row = create_mock_row(row_data)
@@ -171,18 +171,18 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
     def test_raises_valueerror_when_invalid_json(
         self, adapter, default_test_data, mock_db_connection
     ):
-        """Test that read_feeds_for_turn raises ValueError when post_uris JSON is invalid."""
+        """Test that read_feeds_for_turn raises ValueError when post_ids JSON is invalid."""
         # Arrange
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
 
-        # Invalid JSON in post_uris
+        # Invalid JSON in post_ids
         row_data = {
             "feed_id": "feed_1",
             "run_id": run_id,
             "turn_number": turn_number,
             "agent_handle": "agent.bsky.social",
-            "post_uris": "not valid json",
+            "post_ids": "not valid json",
             "created_at": "2024_01_01-12:00:00",
         }
         mock_row = create_mock_row(row_data)

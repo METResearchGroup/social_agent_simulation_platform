@@ -16,7 +16,7 @@
             "title": "Created At",
             "type": "string"
           },
-          "post_uri": {
+          "post_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -25,7 +25,7 @@
                 "type": "null"
               }
             ],
-            "title": "Post Uri"
+            "title": "Post Id"
           },
           "type": {
             "$ref": "#/components/schemas/TurnAction"
@@ -227,11 +227,11 @@
             "title": "Feed Id",
             "type": "string"
           },
-          "post_uris": {
+          "post_ids": {
             "items": {
               "type": "string"
             },
-            "title": "Post Uris",
+            "title": "Post Ids",
             "type": "array"
           },
           "run_id": {
@@ -248,7 +248,7 @@
           "run_id",
           "turn_number",
           "agent_handle",
-          "post_uris",
+          "post_ids",
           "created_at"
         ],
         "title": "FeedSchema",
@@ -332,6 +332,10 @@
             "title": "Like Count",
             "type": "integer"
           },
+          "post_id": {
+            "title": "Post Id",
+            "type": "string"
+          },
           "quote_count": {
             "title": "Quote Count",
             "type": "integer"
@@ -344,6 +348,9 @@
             "title": "Repost Count",
             "type": "integer"
           },
+          "source": {
+            "$ref": "#/components/schemas/PostSource"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -354,6 +361,8 @@
           }
         },
         "required": [
+          "post_id",
+          "source",
           "uri",
           "author_display_name",
           "author_handle",
@@ -367,6 +376,15 @@
         ],
         "title": "PostSchema",
         "type": "object"
+      },
+      "PostSource": {
+        "description": "Source platform/type for a post.",
+        "enum": [
+          "bluesky",
+          "ai_generated"
+        ],
+        "title": "PostSource",
+        "type": "string"
       },
       "RunConfigDetail": {
         "description": "Configuration for a persisted run.",
@@ -1062,13 +1080,13 @@
     },
     "/v1/simulations/posts": {
       "get": {
-        "description": "Return posts, optionally filtered by URIs. Batch lookup for feed resolution.",
+        "description": "Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.",
         "operationId": "get_simulation_posts_v1_simulations_posts_get",
         "parameters": [
           {
-            "description": "Filter by post URIs",
+            "description": "Filter by canonical post_ids",
             "in": "query",
-            "name": "uris",
+            "name": "post_ids",
             "required": false,
             "schema": {
               "anyOf": [
@@ -1082,8 +1100,8 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by post URIs",
-              "title": "Uris"
+              "description": "Filter by canonical post_ids",
+              "title": "Post Ids"
             }
           }
         ],

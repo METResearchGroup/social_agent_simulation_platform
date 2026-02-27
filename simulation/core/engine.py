@@ -19,7 +19,7 @@ from simulation.core.metrics.defaults import (
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
@@ -98,11 +98,11 @@ class SimulationEngine:
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:
         return self.generated_feed_repo.read_feeds_for_turn(run_id, turn_number)
 
-    def read_all_feed_posts(self) -> list[BlueskyFeedPost]:
+    def read_all_feed_posts(self) -> list[Post]:
         return self.feed_post_repo.list_all_feed_posts()
 
-    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
-        return self.feed_post_repo.read_feed_posts_by_uris(uris)
+    def read_feed_posts_by_ids(self, post_ids: Iterable[str]) -> list[Post]:
+        return self.feed_post_repo.read_feed_posts_by_ids(post_ids)
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         self.command_service.update_run_status(run, status)

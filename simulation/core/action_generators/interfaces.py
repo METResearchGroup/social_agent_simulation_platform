@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 
 class LikeGenerator(ABC):
@@ -15,7 +15,7 @@ class LikeGenerator(ABC):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
@@ -31,7 +31,7 @@ class FollowGenerator(ABC):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
@@ -47,7 +47,7 @@ class CommentGenerator(ABC):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
