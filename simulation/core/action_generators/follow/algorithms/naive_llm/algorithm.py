@@ -17,9 +17,6 @@ from simulation.core.action_generators.follow.algorithms.naive_llm.response_mode
     FollowPrediction,
 )
 from simulation.core.action_generators.interfaces import FollowGenerator
-from simulation.core.action_generators.utils.llm_action_generator_mixin import (
-    LLMActionGeneratorMixin,
-)
 from simulation.core.action_generators.utils.llm_utils import _resolve_model_used
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
@@ -101,12 +98,32 @@ def _build_generated_follow(
     )
 
 
-class NaiveLLMFollowGenerator(LLMActionGeneratorMixin, FollowGenerator):
+def _deduplicate_follow_ids(candidate_follow_ids: list[str]) -> list[str]:
+    already_included_user_ids = set()
+    to_follow_ids = []
+    for uid in candidate_follow_ids:
+        if uid in already_included_user_ids:
+            continue
+        already_included_user_ids.add(uid)
+        to_follow_ids.append(uid)
+    return to_follow_ids
+
+
+def _get_ids_to_follow(
+    *,
+    response_user_ids: list[str],
+    valid_user_ids: set[str],
+) -> list[str]:
+    candidate_follow_ids = [uid for uid in response_user_ids if uid in valid_user_ids]
+    return _deduplicate_follow_ids(candidate_follow_ids)
+
+
+class NaiveLLMFollowGenerator(FollowGenerator):
     """Generates follows using LLM prediction."""
 
     def __init__(self, *, llm_service: LLMService) -> None:
         """Initialize with injected LLM service."""
-        super().__init__(llm_service=llm_service)
+        self._llm = llm_service
 
     def generate(
         self,
@@ -128,13 +145,14 @@ class NaiveLLMFollowGenerator(LLMActionGeneratorMixin, FollowGenerator):
             return []
 
         prompt = _build_prompt(agent_handle=agent_handle, author_to_post=author_to_post)
-        response: FollowPrediction = self._call_llm(
-            prompt=prompt, response_model=FollowPrediction
+        response: FollowPrediction = self._llm.structured_completion(
+            messages=[{"role": "user", "content": prompt}],
+            response_model=FollowPrediction,
         )
 
-        to_follow_ids = self._filter_and_dedupe_ids(
-            response_ids=response.user_ids,
-            valid_ids=set(author_to_post.keys()),
+        to_follow_ids = _get_ids_to_follow(
+            response_user_ids=response.user_ids,
+            valid_user_ids=set(author_to_post.keys()),
         )
 
         model_used = _resolve_model_used()
