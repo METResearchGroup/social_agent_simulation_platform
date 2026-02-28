@@ -42,17 +42,22 @@ def mock_agent_factory():
     return factory
 
 
+def generate_feeds_stub(
+    agents,
+    run_id,
+    turn_number,
+    feed_algorithm,
+    feed_algorithm_config=None,
+):
+    """Return an empty feed for each provided agent."""
+    return {a.handle: [] for a in agents}
+
+
 @pytest.fixture
 def mock_feed_generator():
     """Feed generator mock that returns one empty feed per agent (satisfies validate_agents_without_feeds)."""
     mock = Mock(spec=FeedGenerator)
-    mock.generate_feeds.side_effect = (
-        lambda agents,
-        run_id,
-        turn_number,
-        feed_algorithm,
-        feed_algorithm_config=None: {a.handle: [] for a in agents}
-    )
+    mock.generate_feeds.side_effect = generate_feeds_stub
     return mock
 
 
