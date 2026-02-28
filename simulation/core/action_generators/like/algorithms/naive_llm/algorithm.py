@@ -16,7 +16,7 @@ from simulation.core.action_generators.like.algorithms.naive_llm.prompt import (
 from simulation.core.action_generators.like.algorithms.naive_llm.response_models import (
     LikePrediction,
 )
-from simulation.core.action_generators.utils.llm_action_generator_mixin import (
+from simulation.core.action_generators.mixins.llm_action_generator_mixin import (
     LLMActionGeneratorMixin,
 )
 from simulation.core.action_generators.utils.llm_utils import (

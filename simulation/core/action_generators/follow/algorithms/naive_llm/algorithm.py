@@ -17,7 +17,7 @@ from simulation.core.action_generators.follow.algorithms.naive_llm.response_mode
     FollowPrediction,
 )
 from simulation.core.action_generators.interfaces import FollowGenerator
-from simulation.core.action_generators.utils.llm_action_generator_mixin import (
+from simulation.core.action_generators.mixins.llm_action_generator_mixin import (
     LLMActionGeneratorMixin,
 )
 from simulation.core.action_generators.utils.llm_utils import _resolve_model_used
