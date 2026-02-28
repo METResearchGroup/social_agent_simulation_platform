@@ -1,6 +1,10 @@
 ---
 name: naive-llm-mixin-refactor
 overview: Refactor the three naive-LLM action generators (like/comment/follow) to share LLM-call + filter/dedupe scaffolding via a lightweight Python mixin, preserving public class names, constructor signatures, and output semantics verified by existing tests.
+description: Add a shared mixin so naive-LM like/comment/follow generators reuse the same LLM call + dedupe helpers.
+tags:
+  - action-generators
+  - llm
 todos:
   - id: add-mixin
     content: Add `simulation/core/action_generators/utils/llm_action_generator_mixin.py` with helpers for LLM call + filter/dedupe (IDs and items).
