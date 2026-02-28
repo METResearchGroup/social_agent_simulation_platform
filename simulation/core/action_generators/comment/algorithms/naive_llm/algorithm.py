@@ -16,6 +16,9 @@ from simulation.core.action_generators.comment.algorithms.naive_llm.response_mod
     CommentPrediction,
 )
 from simulation.core.action_generators.interfaces import CommentGenerator
+from simulation.core.action_generators.utils.llm_action_generator_mixin import (
+    LLMActionGeneratorMixin,
+)
 from simulation.core.action_generators.utils.llm_utils import (
     _posts_to_minimal_json,
     _resolve_model_used,
@@ -66,12 +69,12 @@ def _build_generated_comment(
     )
 
 
-class NaiveLLMCommentGenerator(CommentGenerator):
+class NaiveLLMCommentGenerator(LLMActionGeneratorMixin, CommentGenerator):
     """Generates comments using LLM prediction."""
 
     def __init__(self, *, llm_service: LLMService) -> None:
         """Initialize with injected LLM service."""
-        self._llm = llm_service
+        super().__init__(llm_service=llm_service)
 
     def generate(
         self,
@@ -89,35 +92,30 @@ class NaiveLLMCommentGenerator(CommentGenerator):
             return []
 
         prompt = _build_prompt(agent_handle=agent_handle, candidates=candidates)
-        response: CommentPrediction = self._llm.structured_completion(
-            messages=[{"role": "user", "content": prompt}],
-            response_model=CommentPrediction,
+        response: CommentPrediction = self._call_llm(
+            prompt=prompt, response_model=CommentPrediction
         )
 
         valid_ids = {p.id for p in candidates}
         post_by_id = {p.id: p for p in candidates}
         model_used = _resolve_model_used()
 
-        generated: list[GeneratedComment] = []
+        filtered_comments = self._filter_and_dedupe_items(
+            items=response.comments,
+            valid_ids=valid_ids,
+            item_id=lambda item: item.post_id,
+        )
 
-        already_included_post_ids = set()
-        for item in response.comments:
-            if (
-                item.post_id in already_included_post_ids
-                or item.post_id not in valid_ids
-            ):
-                continue
-            already_included_post_ids.add(item.post_id)
-            post = post_by_id[item.post_id]
-            generated.append(
-                _build_generated_comment(
-                    post=post,
-                    agent_handle=agent_handle,
-                    run_id=run_id,
-                    turn_number=turn_number,
-                    text=item.text,
-                    model_used=model_used,
-                )
+        generated: list[GeneratedComment] = [
+            _build_generated_comment(
+                post=post_by_id[item.post_id],
+                agent_handle=agent_handle,
+                run_id=run_id,
+                turn_number=turn_number,
+                text=item.text,
+                model_used=model_used,
             )
+            for item in filtered_comments
+        ]
         generated.sort(key=lambda c: c.comment.post_id)
         return generated
