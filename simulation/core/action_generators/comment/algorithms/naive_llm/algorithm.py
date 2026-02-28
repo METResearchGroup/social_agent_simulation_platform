@@ -100,6 +100,7 @@ class NaiveLLMCommentGenerator(LLMActionGeneratorMixin, CommentGenerator):
         post_by_id = {p.id: p for p in candidates}
         model_used = _resolve_model_used()
 
+        # note: implies max 1 comment on a post. This is OK, but just something to note.
         filtered_comments = self._filter_and_dedupe_items(
             items=response.comments,
             valid_ids=valid_ids,
