@@ -5,9 +5,11 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import TypeVar
 
+from pydantic import BaseModel
+
 from ml_tooling.llm.llm_service import LLMService
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 
 class LLMActionGeneratorMixin:
@@ -42,13 +44,16 @@ class LLMActionGeneratorMixin:
         items: Iterable[T],
         valid_ids: set[str],
         item_id: Callable[[T], str],
+        validation_id: Callable[[T], str] | None = None,
     ) -> list[T]:
         """Return items whose IDs are valid, deduplicated in first-occurrence order."""
+        validation_id = validation_id or item_id
         seen: set[str] = set()
         filtered: list[T] = []
         for item in items:
             identifier = item_id(item)
-            if identifier in seen or identifier not in valid_ids:
+            validation_key = validation_id(item)
+            if identifier in seen or validation_key not in valid_ids:
                 continue
             seen.add(identifier)
             filtered.append(item)
