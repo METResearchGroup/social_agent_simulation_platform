@@ -1,7 +1,6 @@
 import pytest
 
-from lib.validation_utils import validate_non_empty_iterable
-from lib.validation_utils import validate_non_empty_iterable
+from lib.validation_utils import validate_non_empty_iterable, validate_non_empty_string
 
 
 class TestValidateNonEmptyIterable:
@@ -33,8 +32,25 @@ class TestValidateNonEmptyIterable:
 
 class TestValidateNonEmptyString:
     def test_if_input_is_none(self):
-        input = "string"
-        assert validate_non_empty_string(input, "field_name") == None
+        input = None
+        with pytest.raises(ValueError):
+            validate_non_empty_string(input, "field_name")
 
-    
+    def test_if_input_is_not_string(self):
+        input = 5
+        with pytest.raises(ValueError):
+            validate_non_empty_string(input, "field_name")
+
+    def test_if_input_is_empty(self):
+        input = ""
+        with pytest.raises(ValueError):
+            validate_non_empty_string(input, "field_name")
+
+    def test_if_v_strip_works(self):
+        input = "   spaces string  "
+        expected_result = "spaces string"
+        result = validate_non_empty_string(input, "field_name")
+        assert expected_result == result
+        
+
     
