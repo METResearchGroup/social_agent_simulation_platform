@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Agent, Run } from '@/types';
-
 
 interface RunSummaryProps {
   run: Run;
@@ -12,6 +11,15 @@ interface RunSummaryProps {
 
 export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
   const [copied, setCopied] = useState(false);
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="p-6 space-y-6">
@@ -35,11 +43,17 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
                 <div className="flex items-center gap-2">
                   {run.runId}
                   <button 
+                    type="button"
                     className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left" 
-                    onClick={() => {
-                      navigator.clipboard.writeText(run.runId)
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 1000);
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(run.runId)
+                        setCopied(true)
+                        if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
+                        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
+                      } catch {
+                        setCopied(false)
+                      }
                     }}
                   >
                     {copied ? 'Copied!' : 'Copy'}
