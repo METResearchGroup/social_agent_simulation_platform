@@ -51,6 +51,3 @@ class TestValidateNonEmptyString:
         expected_result = "spaces string"
         result = validate_non_empty_string(input, "field_name")
         assert expected_result == result
-        
-
-    
