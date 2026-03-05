@@ -14,7 +14,7 @@ class TestValidateNonEmptyIterable:
     def test_if_iterable_is_none(self):
         """Test if iterable is None."""
         iterable = None
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="iterable cannot be None"):
             validate_non_empty_iterable(iterable, "iterable")  # type: ignore
 
     def test_if_iterable_is_not_none(self):
@@ -26,28 +26,31 @@ class TestValidateNonEmptyIterable:
     def test_if_iterable_is_empty(self):
         """Test if iterable is empty."""
         iterable = []
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="iterable cannot be empty"):
             validate_non_empty_iterable(iterable, "iterable")  # type: ignore
 
 
 class TestValidateNonEmptyString:
-    def test_if_input_is_none(self):
-        input = None
-        with pytest.raises(ValueError):
-            validate_non_empty_string(input, "field_name")
+    @pytest.mark.parametrize(
+        "string, expected_error",
+        [
+            (None, "field_name cannot be None"),
+            (5, "field_name must be a string"),
+            ("", "field_name cannot be empty"),
+            ("   ", "field_name cannot be empty"),
+        ],
+    )
+    def test_validation_errors(self, string, expected_error):
+        with pytest.raises(ValueError, match=expected_error):
+            validate_non_empty_string(string, "field_name")
 
-    def test_if_input_is_not_string(self):
-        input = 5
-        with pytest.raises(ValueError):
-            validate_non_empty_string(input, "field_name")
-
-    def test_if_input_is_empty(self):
-        input = ""
-        with pytest.raises(ValueError):
-            validate_non_empty_string(input, "field_name")
-
-    def test_if_v_strip_works(self):
-        input = "   spaces string  "
-        expected_result = "spaces string"
-        result = validate_non_empty_string(input, "field_name")
-        assert expected_result == result
+    @pytest.mark.parametrize(
+        "string, expected",
+        [
+            ("string", "string"),
+            ("  string with spaces  ", "string with spaces"),
+        ],
+    )
+    def test_if_v_strip_works(self, string, expected):
+        result = validate_non_empty_string(string, "field_name")
+        assert expected == result
