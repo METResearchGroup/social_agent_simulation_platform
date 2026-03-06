@@ -23,11 +23,13 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
 
   const handleCopyButtonClick = async (): Promise<void> => {
       try {
+   //     throw new Error('copy error');
         await navigator.clipboard.writeText(run.runId)
         setCopied(true)
         if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
         copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
-      } catch {
+      } catch (error) {
+        console.log(error instanceof Error ? error.message : 'Copy failed');
         setCopied(false)
       }
   };
