@@ -19,7 +19,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
         clearTimeout(copyResetTimerRef.current);
       }
     };
-  }, []);
+  }, [run.runId]);
 
   const handleCopyRunId = async (): Promise<void> => {
       try {
