@@ -21,13 +21,14 @@ class TestValidateNonEmptyIterable:
         """Test if iterable is not None."""
         iterable = [1, 2, 3]
         result = validate_non_empty_iterable(iterable, "iterable")
-        assert result == iterable
+        expected_result = iterable
+        assert result == expected_result
 
     def test_if_iterable_is_empty(self):
         """Test if iterable is empty."""
         iterable = []
         with pytest.raises(ValueError, match="iterable cannot be empty"):
-            validate_non_empty_iterable(iterable, "iterable")  # type: ignore
+            validate_non_empty_iterable(iterable, "iterable")
 
 
 class TestValidateNonEmptyString:
@@ -51,6 +52,7 @@ class TestValidateNonEmptyString:
             ("  string with spaces  ", "string with spaces"),
         ],
     )
-    def test_if_v_strip_works(self, string, expected):
+    def test_strips_surrounding_whitespace(self, string, expected):
         result = validate_non_empty_string(string, "field_name")
-        assert expected == result
+        expected_result = expected
+        assert expected_result == result
