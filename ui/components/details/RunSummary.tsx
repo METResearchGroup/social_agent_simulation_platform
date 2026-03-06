@@ -21,7 +21,19 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
         clearTimeout(copyResetTimerRef.current);
       }
     };
-  }, []);
+  }, [run.runId]);
+
+  const handleCopyRunId = async (): Promise<void> => {
+      try {
+        await navigator.clipboard.writeText(run.runId)
+        setCopied(true)
+        if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
+        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
+      } catch (error) {
+        console.log(error instanceof Error ? error.message : 'Copy failed');
+        setCopied(false)
+      }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -61,16 +73,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
                   <button 
                     type="button"
                     className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left" 
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(run.runId)
-                        setCopied(true)
-                        if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
-                        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
-                      } catch {
-                        setCopied(false)
-                      }
-                    }}
+                    onClick={handleCopyRunId}
                   >
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
