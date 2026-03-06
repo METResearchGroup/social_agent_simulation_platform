@@ -21,7 +21,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     };
   }, []);
 
-  const handleCopyButtonClick = async (): Promise<void> => {
+  const handleCopyRunId = async (): Promise<void> => {
       try {
    //     throw new Error('copy error');
         await navigator.clipboard.writeText(run.runId)
@@ -58,7 +58,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
                   <button 
                     type="button"
                     className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left" 
-                    onClick={handleCopyButtonClick}
+                    onClick={handleCopyRunId}
                   >
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
