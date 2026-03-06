@@ -21,6 +21,17 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     };
   }, []);
 
+  const handleCopyButtonClick = async (): Promise<void> => {
+      try {
+        await navigator.clipboard.writeText(run.runId)
+        setCopied(true)
+        if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
+        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
+      } catch {
+        setCopied(false)
+      }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
@@ -45,16 +56,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
                   <button 
                     type="button"
                     className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left" 
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(run.runId)
-                        setCopied(true)
-                        if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
-                        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
-                      } catch {
-                        setCopied(false)
-                      }
-                    }}
+                    onClick={handleCopyButtonClick}
                   >
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
