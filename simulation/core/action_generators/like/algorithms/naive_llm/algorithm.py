@@ -94,8 +94,8 @@ class NaiveLLMLikeGenerator(LLMActionGeneratorMixin, LikeGenerator):
             prompt=prompt, response_model=LikePrediction
         )
 
-        valid_ids = {p.id for p in candidates}
-        post_by_id = {p.id: p for p in candidates}
+        valid_ids = {p.post_id for p in candidates}
+        post_by_id = {p.post_id: p for p in candidates}
         to_like_ids = self._filter_and_dedupe_ids(
             response_ids=response.post_ids,
             valid_ids=valid_ids,
