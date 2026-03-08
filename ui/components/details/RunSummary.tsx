@@ -12,7 +12,6 @@ interface RunSummaryProps {
 export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
   const [copied, setCopied] = useState(false);
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const [exportStatus, setExportStatus] = useState(false);
 
   useEffect(() => {
