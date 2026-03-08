@@ -1,11 +1,7 @@
 """Tests for metric_keys in run request and run details."""
 
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.metrics.defaults import (
-    DEFAULT_RUN_METRIC_KEYS,
-    DEFAULT_TURN_METRIC_KEYS,
-    get_default_metric_keys,
-)
+from simulation.core.metrics.defaults import get_default_metric_keys
 from tests.factories import EngineFactory
 
 
@@ -74,7 +70,7 @@ class TestRunMetricKeys:
     def test_post_run_with_invalid_metric_key_returns_422(self, simulation_client):
         """POST with unknown metric key returns 422 validation error."""
         client, fastapi_app = simulation_client
-        default_keys = sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+        default_keys = get_default_metric_keys()
         fastapi_app.state.engine = EngineFactory.create_completed_run_engine(
             run_id="run-metrics-test",
             total_turns=1,
@@ -95,7 +91,7 @@ class TestRunMetricKeys:
     def test_post_run_with_empty_metric_keys_returns_422(self, simulation_client):
         """POST with empty metric_keys returns 422; omit the field or use valid keys."""
         client, fastapi_app = simulation_client
-        default_keys = sorted(set(DEFAULT_TURN_METRIC_KEYS + DEFAULT_RUN_METRIC_KEYS))
+        default_keys = get_default_metric_keys()
         fastapi_app.state.engine = EngineFactory.create_completed_run_engine(
             run_id="run-metrics-test",
             total_turns=1,

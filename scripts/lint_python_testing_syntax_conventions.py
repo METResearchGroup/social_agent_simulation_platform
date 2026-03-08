@@ -38,11 +38,65 @@ def _find_module_level_test_functions(path: Path) -> list[Violation]:
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
     violations: list[Violation] = []
-    for node in tree.body:
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue
-        if node.name.startswith("test_"):
-            violations.append(Violation(path=path, lineno=node.lineno, name=node.name))
+
+    class Visitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.stack: list[ast.AST] = []
+
+        def visit_Module(self, node: ast.Module) -> None:  # noqa: N802
+            self.stack.append(node)
+            try:
+                self.generic_visit(node)
+            finally:
+                self.stack.pop()
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:  # noqa: N802
+            self.stack.append(node)
+            try:
+                self.generic_visit(node)
+            finally:
+                self.stack.pop()
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+            self._check_test(node)
+            self.stack.append(node)
+            try:
+                self.generic_visit(node)
+            finally:
+                self.stack.pop()
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802
+            self._check_test(node)
+            self.stack.append(node)
+            try:
+                self.generic_visit(node)
+            finally:
+                self.stack.pop()
+
+        def _check_test(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+            if not node.name.startswith("test_"):
+                return
+            parent = self.stack[-1] if self.stack else None
+            # Only enforce for functions that pytest would consider tests:
+            # - module-level `def test_*`
+            # - class methods `def test_*` where class name starts with `Test`
+            #
+            # Nested `def test_*` inside other functions are not collected by pytest,
+            # so we ignore them to avoid false positives (e.g., a decorated callable
+            # named `test_function` used as a subject under test).
+            if isinstance(parent, ast.Module):
+                violations.append(
+                    Violation(path=path, lineno=node.lineno, name=node.name)
+                )
+                return
+            if isinstance(parent, ast.ClassDef):
+                if not parent.name.startswith("Test"):
+                    violations.append(
+                        Violation(path=path, lineno=node.lineno, name=node.name)
+                    )
+                return
+
+    Visitor().visit(tree)
     return violations
 
 
@@ -66,8 +120,8 @@ def main(argv: list[str]) -> int:
         except ValueError:
             pass
         print(
-            f"{rel}:{v.lineno} module-level test function '{v.name}' is not allowed; "
-            "wrap in class Test...:"
+            f"{rel}:{v.lineno} test function '{v.name}' is not allowed; "
+            "define tests as methods on class Test...:"
         )
     return 1
 

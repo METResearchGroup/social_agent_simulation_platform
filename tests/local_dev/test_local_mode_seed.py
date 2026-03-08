@@ -55,7 +55,32 @@ class TestLocalModeSeed:
             conn.close()
 
         # Second call should be a no-op (same digest).
+        conn = sqlite3.connect(temp_db)
+        try:
+            fixtures_sha256_before = conn.execute(
+                "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
+            ).fetchone()[0]
+            runs_count_before = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+        finally:
+            conn.close()
+
         seed_local_db_if_needed(db_path=temp_db, fixtures_dir=FIXTURES_DIR)
+
+        conn = sqlite3.connect(temp_db)
+        try:
+            fixtures_sha256_after = conn.execute(
+                "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
+            ).fetchone()[0]
+            runs_count_after = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+        finally:
+            conn.close()
+
+        expected_result = _fixtures_digest(FIXTURES_DIR)
+        assert fixtures_sha256_before == expected_result
+        assert fixtures_sha256_after == expected_result
+        assert fixtures_sha256_after == fixtures_sha256_before
+        assert runs_count_after == runs_count_before
+
         expected_result = True
         assert (
             any("Local seed already applied" in r.message for r in caplog.records)

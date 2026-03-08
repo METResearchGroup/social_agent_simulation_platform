@@ -87,6 +87,10 @@ class TestSimulationRun:
         assert data["num_turns"] == expected_result["num_turns"]
         assert data["status"] == expected_result["status"]
         assert len(data["turns"]) == expected_result["turn_count"]
+        _, kwargs = mock_engine.execute_run.call_args
+        run_config = kwargs["run_config"]
+        assert run_config.num_turns == 10
+        assert run_config.feed_algorithm == "chronological"
 
     def test_post_simulations_run_passes_feed_algorithm_config_to_engine(
         self, simulation_client
@@ -364,15 +368,12 @@ class TestSimulationRun:
         expected_result = {"status_code": 200}
         assert response.status_code == expected_result["status_code"]
         data = response.json()
-        expected_result = {
-            "turn_count": 2,
-            "first_turn_key": "0",
-        }
-        assert len(data) == expected_result["turn_count"]
-        assert expected_result["first_turn_key"] in data
-        assert "turn_number" in data[expected_result["first_turn_key"]]
-        assert "agent_feeds" in data[expected_result["first_turn_key"]]
-        assert "agent_actions" in data[expected_result["first_turn_key"]]
+        expected_keys = {str(t) for t in range(2)}
+        assert set(data.keys()) == expected_keys
+        sample = data["0"]
+        assert "turn_number" in sample
+        assert "agent_feeds" in sample
+        assert "agent_actions" in sample
 
     def test_get_simulations_run_turns_missing_run_returns_404(self, simulation_client):
         """Unknown run_id for turns endpoint returns stable RUN_NOT_FOUND payload."""
