@@ -357,7 +357,7 @@ class TestSimulationRun:
                 run_id=run.run_id,
                 turn_number=0,
                 agent_handle="test.agent",
-                post_uris=["at://did:plc:example1/post1"],
+                post_ids=["bluesky:at://did:plc:example1/post1"],
                 created_at="2026-01-01T00:00:00.000Z",
             )
         )
@@ -379,7 +379,6 @@ class TestSimulationRun:
         """Unknown run_id for turns endpoint returns stable RUN_NOT_FOUND payload."""
         client, _ = simulation_client
         response = client.get("/v1/simulations/runs/missing-run-id/turns")
-
         expected_result = {"status_code": 404}
         assert response.status_code == expected_result["status_code"]
         data = response.json()

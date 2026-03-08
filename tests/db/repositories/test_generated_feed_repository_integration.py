@@ -22,7 +22,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
 
@@ -39,7 +39,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert retrieved_feed.run_id == created_feed.run_id
         assert retrieved_feed.turn_number == created_feed.turn_number
         assert retrieved_feed.agent_handle == created_feed.agent_handle
-        assert retrieved_feed.post_uris == created_feed.post_uris
+        assert retrieved_feed.post_ids == created_feed.post_ids
         assert retrieved_feed.created_at == created_feed.created_at
 
     def test_write_generated_feed_updates_existing_feed(self, generated_feed_repo):
@@ -53,20 +53,20 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
         repo.write_generated_feed(initial_feed)
 
-        # Update the feed (same composite key, different feed_id and post_uris)
+        # Update the feed (same composite key, different feed_id and post_ids)
         updated_feed = GeneratedFeedFactory.create(
             feed_id="feed_updated",
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=[
-                "at://did:plc:test1/app.bsky.feed.post/post1",
-                "at://did:plc:test2/app.bsky.feed.post/post2",
+            post_ids=[
+                "bluesky:at://did:plc:test1/app.bsky.feed.post/post1",
+                "bluesky:at://did:plc:test2/app.bsky.feed.post/post2",
             ],
             created_at="2024-01-02T00:00:00Z",
         )
@@ -78,10 +78,10 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert retrieved_feed.feed_id == "feed_updated"
         assert retrieved_feed.run_id == "run_123"
         assert retrieved_feed.turn_number == 1
-        assert len(retrieved_feed.post_uris) == 2
-        assert retrieved_feed.post_uris == [
-            "at://did:plc:test1/app.bsky.feed.post/post1",
-            "at://did:plc:test2/app.bsky.feed.post/post2",
+        assert len(retrieved_feed.post_ids) == 2
+        assert retrieved_feed.post_ids == [
+            "bluesky:at://did:plc:test1/app.bsky.feed.post/post1",
+            "bluesky:at://did:plc:test2/app.bsky.feed.post/post2",
         ]
 
     def test_get_generated_feed_raises_value_error_for_nonexistent_composite_key(
@@ -106,7 +106,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
                 run_id=f"run_{i}",
                 turn_number=i,
                 agent_handle=f"user{i}.bsky.social",
-                post_uris=[f"at://did:plc:test{i}/app.bsky.feed.post/post{i}"],
+                post_ids=[f"bluesky:at://did:plc:test{i}/app.bsky.feed.post/post{i}"],
                 created_at=f"2024-01-0{i}T00:00:00Z",
             )
             for i in range(1, 4)
@@ -127,8 +127,8 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
         # Verify all fields are correct
         assert feed_dict[("user1.bsky.social", "run_1", 1)].feed_id == "feed_test1"
-        assert feed_dict[("user2.bsky.social", "run_2", 2)].post_uris == [
-            "at://did:plc:test2/app.bsky.feed.post/post2"
+        assert feed_dict[("user2.bsky.social", "run_2", 2)].post_ids == [
+            "bluesky:at://did:plc:test2/app.bsky.feed.post/post2"
         ]
         assert (
             feed_dict[("user3.bsky.social", "run_3", 3)].created_at
@@ -158,7 +158,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_1",
             turn_number=1,
             agent_handle="alice.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
         feed2 = GeneratedFeedFactory.create(
@@ -166,7 +166,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_1",
             turn_number=2,
             agent_handle="alice.bsky.social",
-            post_uris=["at://did:plc:test2/app.bsky.feed.post/post2"],
+            post_ids=["bluesky:at://did:plc:test2/app.bsky.feed.post/post2"],
             created_at="2024-01-02T00:00:00Z",
         )
         feed3 = GeneratedFeedFactory.create(
@@ -174,7 +174,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_2",
             turn_number=1,
             agent_handle="alice.bsky.social",
-            post_uris=["at://did:plc:test3/app.bsky.feed.post/post3"],
+            post_ids=["bluesky:at://did:plc:test3/app.bsky.feed.post/post3"],
             created_at="2024-01-03T00:00:00Z",
         )
 
@@ -208,7 +208,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
                 run_id="run_123",
                 turn_number=1,
                 agent_handle="",
-                post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+                post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
                 created_at="2024-01-01T00:00:00Z",
             )
 
@@ -223,20 +223,21 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
-    def test_generated_feed_with_multiple_post_uris(self, generated_feed_repo):
-        """Test that generated feeds with multiple post URIs are handled correctly."""
+    def test_generated_feed_with_multiple_post_ids(self, generated_feed_repo):
+        """Test that generated feeds with multiple post IDs are handled correctly."""
         repo = generated_feed_repo
         ensure_run_exists("run_123")
 
-        post_uris = [
-            f"at://did:plc:test{i}/app.bsky.feed.post/post{i}" for i in range(1, 11)
+        post_ids = [
+            f"bluesky:at://did:plc:test{i}/app.bsky.feed.post/post{i}"
+            for i in range(1, 11)
         ]
         feed = GeneratedFeedFactory.create(
             feed_id="feed_many_posts",
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=post_uris,
+            post_ids=post_ids,
             created_at="2024-01-01T00:00:00Z",
         )
 
@@ -244,8 +245,8 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         retrieved = repo.get_generated_feed("test.bsky.social", "run_123", 1)
 
         assert retrieved is not None
-        assert retrieved.post_uris == post_uris
-        assert len(retrieved.post_uris) == 10
+        assert retrieved.post_ids == post_ids
+        assert len(retrieved.post_ids) == 10
 
     def test_read_feeds_for_turn_returns_feeds_for_specific_turn(
         self, generated_feed_repo
@@ -261,7 +262,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_123",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
         feed2 = GeneratedFeedFactory.create(
@@ -269,7 +270,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_123",
             turn_number=0,
             agent_handle="agent2.bsky.social",
-            post_uris=["at://did:plc:test2/app.bsky.feed.post/post2"],
+            post_ids=["bluesky:at://did:plc:test2/app.bsky.feed.post/post2"],
             created_at="2024-01-01T00:00:01Z",
         )
         feed3 = GeneratedFeedFactory.create(
@@ -277,7 +278,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_123",
             turn_number=1,
             agent_handle="agent1.bsky.social",
-            post_uris=["at://did:plc:test3/app.bsky.feed.post/post3"],
+            post_ids=["bluesky:at://did:plc:test3/app.bsky.feed.post/post3"],
             created_at="2024-01-01T00:00:02Z",
         )
         feed4 = GeneratedFeedFactory.create(
@@ -285,7 +286,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             run_id="run_456",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            post_uris=["at://did:plc:test4/app.bsky.feed.post/post4"],
+            post_ids=["bluesky:at://did:plc:test4/app.bsky.feed.post/post4"],
             created_at="2024-01-01T00:00:03Z",
         )
 

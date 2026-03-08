@@ -24,13 +24,8 @@ class TestLocalModeSeed:
         caplog.set_level("WARNING")
         path = get_db_path()
 
-        expected_result = LOCAL_DEV_DB_PATH
-        assert path == expected_result
-        expected_result = True
-        assert (
-            any("LOCAL=true overrides" in r.message for r in caplog.records)
-            is expected_result
-        )
+        assert path == LOCAL_DEV_DB_PATH
+        assert any("LOCAL=true overrides" in r.message for r in caplog.records)
 
     def test_seed_local_db_if_needed__idempotent(self, temp_db, caplog) -> None:
         caplog.clear()
@@ -43,14 +38,11 @@ class TestLocalModeSeed:
             row = conn.execute(
                 "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
             ).fetchone()
-            expected_result = True
-            assert (row is not None) is expected_result
-            expected_result = _fixtures_digest(FIXTURES_DIR)
-            assert row[0] == expected_result
+            assert row is not None
+            assert row[0] == _fixtures_digest(FIXTURES_DIR)
 
             runs_count = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
-            expected_result = True
-            assert (runs_count > 0) is expected_result
+            assert runs_count > 0
         finally:
             conn.close()
 
@@ -75,17 +67,13 @@ class TestLocalModeSeed:
         finally:
             conn.close()
 
-        expected_result = _fixtures_digest(FIXTURES_DIR)
-        assert fixtures_sha256_before == expected_result
-        assert fixtures_sha256_after == expected_result
+        expected_digest = _fixtures_digest(FIXTURES_DIR)
+        assert fixtures_sha256_before == expected_digest
+        assert fixtures_sha256_after == expected_digest
         assert fixtures_sha256_after == fixtures_sha256_before
         assert runs_count_after == runs_count_before
 
-        expected_result = True
-        assert (
-            any("Local seed already applied" in r.message for r in caplog.records)
-            is expected_result
-        )
+        assert any("Local seed already applied" in r.message for r in caplog.records)
 
     def test_api_endpoints__db_backed_with_seeded_db(
         self, temp_db, monkeypatch
@@ -98,40 +86,30 @@ class TestLocalModeSeed:
 
         with TestClient(app) as client:
             runs = client.get("/v1/simulations/runs").json()
-            expected_result = True
-            assert isinstance(runs, list) is expected_result
-            expected_result = True
-            assert (len(runs) > 0) is expected_result
+            assert isinstance(runs, list)
+            assert len(runs) > 0
 
             run_id = runs[0]["run_id"]
             run_details = client.get(f"/v1/simulations/runs/{run_id}").json()
-            expected_result = run_id
-            assert run_details["run_id"] == expected_result
-            expected_result = True
-            assert (run_details.get("run_metrics") is not None) is expected_result
+            assert run_details["run_id"] == run_id
+            assert run_details.get("run_metrics") is not None
 
             turns_by_id = client.get(f"/v1/simulations/runs/{run_id}/turns").json()
-            expected_result = True
-            assert isinstance(turns_by_id, dict) is expected_result
+            assert isinstance(turns_by_id, dict)
 
-            # Extract some URIs (if present) and ensure /posts hydrates them.
-            some_uris: list[str] = []
+            # Extract some post IDs (if present) and ensure /posts hydrates them.
+            some_post_ids: list[str] = []
             for turn in turns_by_id.values():
                 agent_feeds = turn.get("agent_feeds", {})
                 for feed in agent_feeds.values():
-                    some_uris.extend(feed.get("post_uris", []))
-                if some_uris:
+                    some_post_ids.extend(feed.get("post_ids", []))
+                if some_post_ids:
                     break
-            expected_result = True
-            assert bool(some_uris) is expected_result, (
-                "Seeded turns should include post URIs"
-            )
+            assert some_post_ids, "Seeded turns should include post IDs"
 
             url = "/v1/simulations/posts?" + "&".join(
-                f"uris={u}" for u in some_uris[:3]
+                f"post_ids={pid}" for pid in some_post_ids[:3]
             )
             posts = client.get(url).json()
-            expected_result = True
-            assert isinstance(posts, list) is expected_result
-            expected_result = True
-            assert (len(posts) > 0) is expected_result
+            assert isinstance(posts, list)
+            assert len(posts) > 0

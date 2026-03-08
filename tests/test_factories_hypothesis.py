@@ -10,7 +10,8 @@ class TestFactoriesHypothesis:
     @settings(max_examples=50, deadline=None)
     def test_bluesky_post_strategy_produces_valid_post(self, post):
         assert post.uri
-        assert post.id == post.uri
+        assert post.post_id == f"bluesky:{post.uri}"
+        assert post.source.value == "bluesky"
         assert post.author_handle
         assert post.author_display_name
         assert post.text
