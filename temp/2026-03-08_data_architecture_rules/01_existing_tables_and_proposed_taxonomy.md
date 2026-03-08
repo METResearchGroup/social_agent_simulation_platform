@@ -2,12 +2,20 @@
 
 At schema `HEAD`, you effectively have **15 tables**, and they already fall into a few distinct worlds even if the names are not yet fully normalized.
 
+If [PR #172](https://github.com/METResearchGroup/social_agent_simulation_platform/pull/172) lands first, the taxonomy in this note still holds, but the post-ingest substrate becomes cleaner:
+
+- `bluesky_feed_posts` becomes `feed_posts`
+- post identity becomes canonical `post_id` instead of raw Bluesky URI
+- `generated_feeds.post_uris` becomes `generated_feeds.post_ids`
+
+That does **not** change the recommended `agent_*` vs `run_*` vs turn-event separation. It only changes which imported post table we should treat as the backfill source for `agent_posts`.
+
 ## Current Tables
 
 | Scope | Tables | What they are |
 |---|---|---|
 | App/auth | `app_users` | App-level authenticated users |
-| External ingest / legacy seed data | `bluesky_profiles`, `bluesky_feed_posts`, `agent_bios` | Imported Bluesky data plus an older generated-bio table |
+| External ingest / legacy seed data | `bluesky_profiles`, `bluesky_feed_posts` (or `feed_posts` after PR 172), `agent_bios` | Imported profile/post data plus an older generated-bio table |
 | Current agent catalog | `agent`, `agent_persona_bios`, `user_agent_profile_metadata` | The newer user-editable agent system |
 | Run / turn execution | `runs`, `turn_metadata`, `turn_metrics`, `run_metrics`, `generated_feeds`, `likes`, `comments`, `follows` | Immutable simulation execution data |
 
