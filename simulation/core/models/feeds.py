@@ -17,8 +17,18 @@ class GeneratedFeed(BaseModel):
     run_id: str
     turn_number: int
     agent_handle: str
-    post_ids: list[str]
-    created_at: str
+class GeneratedFeed(BaseModel):
+    `@field_validator`("turn_number")
+    `@classmethod`
+    def validate_turn_number(cls, v: int) -> int:
+        """Validate that turn_number is a non-negative integer."""
+        return validate_nonnegative_value(v, "turn_number")
+
+    `@field_validator`("post_ids")
+    `@classmethod`
+    def validate_post_ids(cls, v: list[str]) -> list[str]:
+        """Validate that each post_id is a non-empty string."""
+        return [validate_non_empty_string(post_id, "post_ids[]") for post_id in v]
 
     @field_validator("agent_handle")
     @classmethod
