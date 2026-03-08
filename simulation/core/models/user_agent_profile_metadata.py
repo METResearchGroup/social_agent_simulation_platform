@@ -19,12 +19,12 @@ class UserAgentProfileMetadata(BaseModel):
     @field_validator("id")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        return validate_non_empty_string(v, "id")
+        return validate_non_empty_string(v)
 
     @field_validator("agent_id")
     @classmethod
     def validate_agent_id(cls, v: str) -> str:
-        return validate_non_empty_string(v, "agent_id")
+        return validate_non_empty_string(v)
 
     @field_validator("followers_count")
     @classmethod

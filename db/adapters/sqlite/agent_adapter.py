@@ -59,7 +59,7 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
 
     def read_agent(self, agent_id: str, *, conn: sqlite3.Connection) -> Agent | None:
         """Read an agent by ID."""
-        validate_non_empty_string(agent_id, "agent_id")
+        validate_non_empty_string(agent_id)
         row = conn.execute(
             "SELECT * FROM agent WHERE agent_id = ?", (agent_id,)
         ).fetchone()
@@ -72,7 +72,7 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
         self, handle: str, *, conn: sqlite3.Connection
     ) -> Agent | None:
         """Read an agent by handle."""
-        validate_non_empty_string(handle, "handle")
+        validate_non_empty_string(handle)
         row = conn.execute("SELECT * FROM agent WHERE handle = ?", (handle,)).fetchone()
         if row is None:
             return None

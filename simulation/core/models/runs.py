@@ -30,7 +30,7 @@ class RunConfig(BaseModel):
         if v is None:
             return None
         validate_non_empty_iterable(v, "metric_keys")
-        return [validate_non_empty_string(item, "metric_keys") for item in v]
+        return [validate_non_empty_string(item) for item in v]
 
     @field_validator("num_agents")
     @classmethod
@@ -45,7 +45,7 @@ class RunConfig(BaseModel):
     @field_validator("feed_algorithm")
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
-        return validate_non_empty_string(v, "feed_algorithm")
+        return validate_non_empty_string(v)
 
 
 class RunStatus(str, Enum):
@@ -86,13 +86,13 @@ class Run(BaseModel):
     def validate_metric_keys_run(cls, v: list[str]) -> list[str]:
         """Validate that metric_keys is non-empty and contains non-empty strings."""
         validate_non_empty_iterable(v, "metric_keys")
-        return [validate_non_empty_string(item, "metric_keys") for item in v]
+        return [validate_non_empty_string(item) for item in v]
 
     @field_validator("run_id")
     @classmethod
     def validate_run_id(cls, v: str) -> str:
         """Validate that run_id is a non-empty string."""
-        return validate_non_empty_string(v, "run_id")
+        return validate_non_empty_string(v)
 
     @field_validator("total_turns")
     @classmethod
@@ -109,7 +109,7 @@ class Run(BaseModel):
     @field_validator("feed_algorithm")
     @classmethod
     def validate_feed_algorithm(cls, v: str) -> str:
-        return validate_non_empty_string(v, "feed_algorithm")
+        return validate_non_empty_string(v)
 
     @field_validator("app_user_id")
     @classmethod
