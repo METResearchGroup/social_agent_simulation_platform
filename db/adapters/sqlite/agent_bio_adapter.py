@@ -11,8 +11,9 @@ from db.adapters.base import AgentBioDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import agent_persona_bios
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
+from simulation.core.utils.validators import validate_agent_id
 
 AGENT_BIO_COLUMNS = ordered_column_names(agent_persona_bios)
 AGENT_BIO_REQUIRED_FIELDS = required_column_names(agent_persona_bios)
@@ -55,11 +56,11 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
         )
         conn.execute(_INSERT_AGENT_BIO_SQL, row_values)
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def read_latest_agent_bio(
         self, agent_id: str, *, conn: sqlite3.Connection
     ) -> AgentBio | None:
         """Read the latest bio for an agent by created_at DESC."""
-        validate_non_empty_string(agent_id, "agent_id")
         row = conn.execute(
             "SELECT * FROM agent_persona_bios WHERE agent_id = ? "
             "ORDER BY created_at DESC LIMIT 1",
@@ -70,11 +71,11 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
         self._validate_agent_bio_row(row)
         return self._row_to_agent_bio(row)
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def read_agent_bios_by_agent_id(
         self, agent_id: str, *, conn: sqlite3.Connection
     ) -> list[AgentBio]:
         """Read all bios for an agent, ordered by created_at DESC."""
-        validate_non_empty_string(agent_id, "agent_id")
         rows = conn.execute(
             "SELECT * FROM agent_persona_bios WHERE agent_id = ? "
             "ORDER BY created_at DESC",
@@ -111,9 +112,9 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
                 result[aid] = None
         return result
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def delete_agent_bios_by_agent_id(
         self, agent_id: str, *, conn: sqlite3.Connection
     ) -> None:
         """Delete all bios for an agent by agent_id."""
-        validate_non_empty_string(agent_id, "agent_id")
         conn.execute("DELETE FROM agent_persona_bios WHERE agent_id = ?", (agent_id,))
