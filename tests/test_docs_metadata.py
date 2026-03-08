@@ -27,55 +27,55 @@ def non_whitespace_text(*, min_size: int = 1) -> st.SearchStrategy[str]:
     )
 
 
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(
-    description=non_whitespace_text(min_size=1),
-    tags=st.lists(non_whitespace_text(min_size=1), min_size=1),
-)
-def test_validate_metadata_accepts_good_front_matter(
-    tmp_path: Path, description: str, tags: list[str]
-) -> None:
-    path = write_doc(
-        tmp_path,
-        "good.md",
-        build_front_matter({"description": description, "tags": tags}),
+class TestDocsMetadata:
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @given(
+        description=non_whitespace_text(min_size=1),
+        tags=st.lists(non_whitespace_text(min_size=1), min_size=1),
     )
+    def test_validate_metadata_accepts_good_front_matter(
+        self, tmp_path: Path, description: str, tags: list[str]
+    ) -> None:
+        path = write_doc(
+            tmp_path,
+            "good.md",
+            build_front_matter({"description": description, "tags": tags}),
+        )
 
-    assert validate_metadata(path) == []
+        assert validate_metadata(path) == []
 
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @given(tags=st.lists(non_whitespace_text(min_size=1), min_size=1))
+    def test_validate_metadata_rejects_missing_description(
+        self, tmp_path: Path, tags: list[str]
+    ) -> None:
+        path = write_doc(tmp_path, "missing.md", build_front_matter({"tags": tags}))
 
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(tags=st.lists(non_whitespace_text(min_size=1), min_size=1))
-def test_validate_metadata_rejects_missing_description(
-    tmp_path: Path, tags: list[str]
-) -> None:
-    path = write_doc(tmp_path, "missing.md", build_front_matter({"tags": tags}))
+        errors = validate_metadata(path)
+        assert any("description" in err for err in errors)
 
-    errors = validate_metadata(path)
-    assert any("description" in err for err in errors)
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @given(description=non_whitespace_text(min_size=1), tags=st.text())
+    def test_validate_metadata_rejects_non_list_tags(
+        self, tmp_path: Path, description: str, tags: str
+    ) -> None:
+        path = write_doc(
+            tmp_path,
+            "bad_tags.md",
+            build_front_matter({"description": description, "tags": tags}),
+        )
 
+        errors = validate_metadata(path)
+        assert any("tags" in err for err in errors)
 
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(description=non_whitespace_text(min_size=1), tags=st.text())
-def test_validate_metadata_rejects_non_list_tags(
-    tmp_path: Path, description: str, tags: str
-) -> None:
-    path = write_doc(
-        tmp_path,
-        "bad_tags.md",
-        build_front_matter({"description": description, "tags": tags}),
-    )
+    def test_validate_metadata_rejects_non_mapping_front_matter(
+        self, tmp_path: Path
+    ) -> None:
+        front = "---\n- item\n- other\n---\n"
+        path = write_doc(tmp_path, "nonmapping.md", front)
 
-    errors = validate_metadata(path)
-    assert any("tags" in err for err in errors)
-
-
-def test_validate_metadata_rejects_non_mapping_front_matter(tmp_path: Path) -> None:
-    front = "---\n- item\n- other\n---\n"
-    path = write_doc(tmp_path, "nonmapping.md", front)
-
-    errors = validate_metadata(path)
-    assert any("front matter" in err.lower() for err in errors)
+        errors = validate_metadata(path)
+        assert any("front matter" in err.lower() for err in errors)
 
 
 def create_docs(tmp_path: Path, names: list[str]) -> list[Path]:
@@ -92,16 +92,16 @@ def create_docs(tmp_path: Path, names: list[str]) -> list[Path]:
     return paths
 
 
-def test_collect_markdown_files_walks_directories(tmp_path: Path) -> None:
-    paths = create_docs(tmp_path, ["a.md", "b.md"])
+class TestDocsMetadata2:
+    def test_collect_markdown_files_walks_directories(self, tmp_path: Path) -> None:
+        paths = create_docs(tmp_path, ["a.md", "b.md"])
 
-    files = collect_markdown_files([tmp_path / "docs"], [])
-    assert set(paths).issubset(set(files))
+        files = collect_markdown_files([tmp_path / "docs"], [])
+        assert set(paths).issubset(set(files))
 
+    def test_collect_markdown_files_respects_exclude(self, tmp_path: Path) -> None:
+        paths = create_docs(tmp_path, ["ok.md", "skip.md"])
+        excluded = paths[1]
 
-def test_collect_markdown_files_respects_exclude(tmp_path: Path) -> None:
-    paths = create_docs(tmp_path, ["ok.md", "skip.md"])
-    excluded = paths[1]
-
-    files = collect_markdown_files([tmp_path / "docs"], [excluded])
-    assert paths[0] in files and excluded not in files
+        files = collect_markdown_files([tmp_path / "docs"], [excluded])
+        assert paths[0] in files and excluded not in files

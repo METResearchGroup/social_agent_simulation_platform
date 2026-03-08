@@ -307,48 +307,53 @@ class TestMetricsCollectorFailures:
         assert "expected_schema" in str(exc_info.value)
 
 
-def test_built_in_metrics_validate_and_serialize():
-    """Built-in metrics emit JSON-serializable, schema-validated outputs."""
-    run_repo = Mock()
-    metrics_repo = Mock()
+class TestMetricsCollector:
+    def test_built_in_metrics_validate_and_serialize(self):
+        """Built-in metrics emit JSON-serializable, schema-validated outputs."""
+        run_repo = Mock()
+        metrics_repo = Mock()
 
-    run_id = "run_x"
-    run_repo.get_run.return_value = object()
-    run_repo.get_turn_metadata.return_value = TurnMetadataFactory.create(
-        run_id=run_id,
-        turn_number=0,
-        total_actions={
-            TurnAction.LIKE: 1,
-            TurnAction.COMMENT: 2,
-            TurnAction.FOLLOW: 0,
-        },
-        created_at="2026-01-01T00:00:00",
-    )
-    run_repo.list_turn_metadata.return_value = [run_repo.get_turn_metadata.return_value]
+        run_id = "run_x"
+        run_repo.get_run.return_value = object()
+        run_repo.get_turn_metadata.return_value = TurnMetadataFactory.create(
+            run_id=run_id,
+            turn_number=0,
+            total_actions={
+                TurnAction.LIKE: 1,
+                TurnAction.COMMENT: 2,
+                TurnAction.FOLLOW: 0,
+            },
+            created_at="2026-01-01T00:00:00",
+        )
+        run_repo.list_turn_metadata.return_value = [
+            run_repo.get_turn_metadata.return_value
+        ]
 
-    deps = MetricDeps(run_repo=run_repo, metrics_repo=metrics_repo, sql_executor=None)
-    collector = MetricsCollector(
-        registry=create_default_metrics_registry(),
-        turn_metric_keys=["turn.actions.total"],
-        run_metric_keys=["run.actions.total"],
-        deps=deps,
-    )
+        deps = MetricDeps(
+            run_repo=run_repo, metrics_repo=metrics_repo, sql_executor=None
+        )
+        collector = MetricsCollector(
+            registry=create_default_metrics_registry(),
+            turn_metric_keys=["turn.actions.total"],
+            run_metric_keys=["run.actions.total"],
+            deps=deps,
+        )
 
-    turn_metrics_dict = collector.collect_turn_metrics(
-        run_id=run_id,
-        turn_number=0,
-        turn_metric_keys=["turn.actions.total"],
-    )
-    json.dumps(turn_metrics_dict)  # should not raise
-    TurnMetricsFactory.create(
-        run_id=run_id,
-        turn_number=0,
-        metrics=turn_metrics_dict,
-        created_at="2026-01-01T00:00:00",
-    )
+        turn_metrics_dict = collector.collect_turn_metrics(
+            run_id=run_id,
+            turn_number=0,
+            turn_metric_keys=["turn.actions.total"],
+        )
+        json.dumps(turn_metrics_dict)  # should not raise
+        TurnMetricsFactory.create(
+            run_id=run_id,
+            turn_number=0,
+            metrics=turn_metrics_dict,
+            created_at="2026-01-01T00:00:00",
+        )
 
-    run_metrics_dict = collector.collect_run_metrics(
-        run_id=run_id,
-        run_metric_keys=["run.actions.total"],
-    )
-    json.dumps(run_metrics_dict)  # should not raise
+        run_metrics_dict = collector.collect_run_metrics(
+            run_id=run_id,
+            run_metric_keys=["run.actions.total"],
+        )
+        json.dumps(run_metrics_dict)  # should not raise

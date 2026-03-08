@@ -12,6 +12,11 @@ repos:
         args: [--check]
   - repo: local
     hooks:
+      - id: python_test_class_convention
+        name: python_test_class_convention (pytest tests must be class-based)
+        entry: bash -lc "uv run python scripts/lint_pytest_class_convention.py"
+        language: system
+        pass_filenames: false
       - id: markdownlint
         name: markdownlint (markdownlint-cli2)
         entry: markdownlint-cli2
