@@ -11,7 +11,7 @@ import RunHistorySidebar from '@/components/sidebars/RunHistorySidebar';
 import StartScreenView from '@/components/start/StartScreenView';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimulationPageState } from '@/hooks/useSimulationPageState';
-import { getDefaultConfig, postAgent } from '@/lib/api/simulation';
+import { deleteAgent, getDefaultConfig, postAgent } from '@/lib/api/simulation';
 import { FALLBACK_DEFAULT_CONFIG } from '@/lib/default-config';
 import type { RunConfig } from '@/types';
 
@@ -95,6 +95,15 @@ function AuthenticatedApp() {
     [handleRetryAgents, handleSetViewMode, handleSelectAgent],
   );
 
+  const handleDeleteAgent = useCallback(
+    async (handle: string): Promise<void> => {
+      await deleteAgent(handle);
+      handleSelectAgent(null);
+      handleRetryAgents();
+    },
+    [handleRetryAgents, handleSelectAgent],
+  );
+
   const runDetailContextValue = useMemo(
     () => ({
       selectedRun,
@@ -170,6 +179,7 @@ function AuthenticatedApp() {
           agentsLoading={agentsLoading}
           agentsError={agentsError}
           onRetryAgents={handleRetryAgents}
+          onDeleteAgent={handleDeleteAgent}
         />
       ) : isStartScreen ? (
         <StartScreenView

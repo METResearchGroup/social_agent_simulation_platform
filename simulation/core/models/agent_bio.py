@@ -27,17 +27,17 @@ class AgentBio(BaseModel):
     @field_validator("id")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        return validate_non_empty_string(v, "id")
+        return validate_non_empty_string(v)
 
     @field_validator("agent_id")
     @classmethod
     def validate_agent_id(cls, v: str) -> str:
-        return validate_non_empty_string(v, "agent_id")
+        return validate_non_empty_string(v)
 
     @field_validator("persona_bio")
     @classmethod
     def validate_persona_bio(cls, v: str) -> str:
-        return validate_non_empty_string(v, "persona_bio")
+        return validate_non_empty_string(v)
 
     @field_validator("persona_bio_source", mode="before")
     @classmethod

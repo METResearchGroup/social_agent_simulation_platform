@@ -12,6 +12,11 @@ repos:
         args: [--check]
   - repo: local
     hooks:
+      - id: python_testing_syntax_conventions
+        name: python_testing_syntax_conventions (python testing conventions)
+        entry: bash -lc "uv run python scripts/lint_python_testing_syntax_conventions.py"
+        language: system
+        pass_filenames: false
       - id: markdownlint
         name: markdownlint (markdownlint-cli2)
         entry: markdownlint-cli2

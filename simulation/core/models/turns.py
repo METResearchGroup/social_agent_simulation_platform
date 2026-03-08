@@ -47,7 +47,7 @@ class TurnMetadata(BaseModel):
     @classmethod
     def validate_run_id(cls, v: str) -> str:
         """Validate that run_id is a non-empty string."""
-        return validate_non_empty_string(v, "run_id")
+        return validate_non_empty_string(v)
 
     @field_validator("turn_number")
     @classmethod

@@ -14,12 +14,12 @@ class GeneratedBio(BaseModel):
     @field_validator("handle")
     @classmethod
     def validate_handle(cls, v: str) -> str:
-        return validate_non_empty_string(v, "handle")
+        return validate_non_empty_string(v)
 
     @field_validator("generated_bio")
     @classmethod
     def validate_generated_bio(cls, v: str) -> str:
-        return validate_non_empty_string(v, "generated_bio")
+        return validate_non_empty_string(v)
 
     @field_validator("metadata")
     @classmethod

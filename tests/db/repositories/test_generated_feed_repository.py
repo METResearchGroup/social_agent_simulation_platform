@@ -116,7 +116,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
                 created_at="2024-01-01T00:00:00Z",
             )
 
-        assert "agent_handle cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_raises_validation_error_when_run_id_is_empty(self):
         """Test that creating GeneratedFeed with empty run_id raises ValidationError from Pydantic."""
@@ -132,7 +132,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
                 created_at="2024-01-01T00:00:00Z",
             )
 
-        assert "run_id cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_propagates_adapter_exception_when_write_fails(self):
         """Test that write_generated_feed propagates adapter exceptions when database write fails."""

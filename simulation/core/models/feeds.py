@@ -24,19 +24,19 @@ class GeneratedFeed(BaseModel):
     @classmethod
     def validate_agent_handle(cls, v: str) -> str:
         """Validate that agent_handle is a non-empty string."""
-        return validate_non_empty_string(v, "agent_handle")
+        return validate_non_empty_string(v)
 
     @field_validator("run_id")
     @classmethod
     def validate_run_id(cls, v: str) -> str:
         """Validate that run_id is a non-empty string."""
-        return validate_non_empty_string(v, "run_id")
+        return validate_non_empty_string(v)
 
     @field_validator("feed_id")
     @classmethod
     def validate_feed_id(cls, v: str) -> str:
         """Validate that feed_id is a non-empty string."""
-        return validate_non_empty_string(v, "feed_id")
+        return validate_non_empty_string(v)
 
     @field_validator("turn_number")
     @classmethod

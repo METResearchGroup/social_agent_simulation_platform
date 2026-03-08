@@ -27,12 +27,12 @@ class Agent(BaseModel):
     @field_validator("agent_id")
     @classmethod
     def validate_agent_id(cls, v: str) -> str:
-        return validate_non_empty_string(v, "agent_id")
+        return validate_non_empty_string(v)
 
     @field_validator("handle")
     @classmethod
     def validate_handle(cls, v: str) -> str:
-        return validate_non_empty_string(v, "handle")
+        return validate_non_empty_string(v)
 
     @field_validator("persona_source", mode="before")
     @classmethod

@@ -20,7 +20,7 @@ class Profile(BaseModel):
     @field_validator("handle")
     @classmethod
     def validate_handle(cls, v: str) -> str:
-        return validate_non_empty_string(v, "handle")
+        return validate_non_empty_string(v)
 
     @field_validator("followers_count")
     @classmethod
@@ -49,4 +49,4 @@ class BlueskyProfile(Profile):
     @field_validator("did")
     @classmethod
     def validate_did(cls, v: str) -> str:
-        return validate_non_empty_string(v, "did")
+        return validate_non_empty_string(v)

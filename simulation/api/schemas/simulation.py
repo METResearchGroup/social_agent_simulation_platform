@@ -156,14 +156,14 @@ class CreateAgentRequest(BaseModel):
     def _validate_handle(cls, v: str) -> str:
         from lib.validation_utils import validate_non_empty_string
 
-        return validate_non_empty_string(v.strip(), "handle")
+        return validate_non_empty_string(v.strip())
 
     @field_validator("display_name")
     @classmethod
     def _validate_display_name(cls, v: str) -> str:
         from lib.validation_utils import validate_non_empty_string
 
-        return validate_non_empty_string(v.strip(), "display_name")
+        return validate_non_empty_string(v.strip())
 
 
 class AgentSchema(BaseModel):

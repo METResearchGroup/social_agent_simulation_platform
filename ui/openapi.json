@@ -880,13 +880,13 @@
             }
           },
           {
-            "description": "Maximum number of agents to return (ordered by handle).",
+            "description": "Maximum number of agents to return (ordered by updated_at DESC, handle ASC).",
             "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
               "default": 100,
-              "description": "Maximum number of agents to return (ordered by handle).",
+              "description": "Maximum number of agents to return (ordered by updated_at DESC, handle ASC).",
               "maximum": 500,
               "minimum": 1,
               "title": "Limit",
@@ -894,13 +894,13 @@
             }
           },
           {
-            "description": "Number of agents to skip before returning results (ordered by handle).",
+            "description": "Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC).",
             "in": "query",
             "name": "offset",
             "required": false,
             "schema": {
               "default": 0,
-              "description": "Number of agents to skip before returning results (ordered by handle).",
+              "description": "Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC).",
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
@@ -984,6 +984,47 @@
           }
         ],
         "summary": "Create simulation agent",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/agents/{handle}": {
+      "delete": {
+        "description": "Delete a simulation agent by handle.",
+        "operationId": "delete_simulation_agent_v1_simulations_agents__handle__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "title": "Handle",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete simulation agent",
         "tags": [
           "simulation"
         ]
