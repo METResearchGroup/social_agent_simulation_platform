@@ -77,6 +77,23 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             created_at=row["created_at"],
         )
 
+    def _serialize_post_row(self, post: Post) -> tuple[object, ...]:
+        """Serialize a Post instance into a tuple of column values for SQL insertion.
+
+        Iterates FEED_POST_COLUMNS in order, using ``post.source.value`` for the
+        ``source`` column and ``getattr(post, col)`` for all others.
+
+        Args:
+            post: Post model to serialize.
+
+        Returns:
+            Tuple of values aligned with FEED_POST_COLUMNS / _INSERT_FEED_POST_SQL.
+        """
+        values: list[object] = []
+        for col in FEED_POST_COLUMNS:
+            values.append(post.source.value if col == "source" else getattr(post, col))
+        return tuple(values)
+
     def write_feed_post(self, post: Post, *, conn: sqlite3.Connection) -> None:
         """Write a feed post to SQLite.
 
@@ -88,13 +105,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
             sqlite3.IntegrityError: If uri violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        values = []
-        for col in FEED_POST_COLUMNS:
-            if col == "source":
-                values.append(post.source.value)
-            else:
-                values.append(getattr(post, col))
-        conn.execute(_INSERT_FEED_POST_SQL, tuple(values))
+        conn.execute(_INSERT_FEED_POST_SQL, self._serialize_post_row(post))
 
     def write_feed_posts(self, posts: list[Post], *, conn: sqlite3.Connection) -> None:
         """Write multiple feed posts to SQLite (batch operation).
@@ -110,16 +121,10 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         if not posts:
             return
 
-        def _row(post: Post) -> tuple[object, ...]:
-            row_values: list[object] = []
-            for col in FEED_POST_COLUMNS:
-                if col == "source":
-                    row_values.append(post.source.value)
-                else:
-                    row_values.append(getattr(post, col))
-            return tuple(row_values)
-
-        conn.executemany(_INSERT_FEED_POST_SQL, [_row(post) for post in posts])
+        conn.executemany(
+            _INSERT_FEED_POST_SQL,
+            (self._serialize_post_row(post) for post in posts),
+        )
 
     def read_feed_post(self, post_id: str, *, conn: sqlite3.Connection) -> Post:
         """Read a feed post from SQLite.
