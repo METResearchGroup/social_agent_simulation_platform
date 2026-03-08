@@ -1,7 +1,7 @@
 """Chronological feed generation algorithm.
 
 Sorts posts by creation time, newest first. Limits to caller-supplied limit.
-Uses uri as tie-breaker when created_at is equal for deterministic output.
+Uses source_id as tie-breaker when created_at is equal for deterministic output.
 """
 
 from collections.abc import Mapping
@@ -53,7 +53,7 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
     ) -> FeedAlgorithmResult:
         """Generate a chronological feed (newest posts first).
 
-        Sort by created_at desc (newest first); use uri asc as tie-breaker for determinism.
+        Sort by created_at desc (newest first); use source_id asc as tie-breaker for determinism.
         Args:
             candidate_posts: Posts to rank and select from.
             agent: The agent this feed is for.
@@ -64,10 +64,10 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         """
         order = config.get("order") if config else None
         reverse = order != "oldest_first"
-        sorted_posts = sorted(candidate_posts, key=lambda p: p.uri)
+        sorted_posts = sorted(candidate_posts, key=lambda p: p.source_id)
         sorted_posts = sorted(sorted_posts, key=lambda p: p.created_at, reverse=reverse)
         selected = sorted_posts[:limit]
-        post_uris = [p.uri for p in selected]
+        post_uris = [p.source_id for p in selected]
         return FeedAlgorithmResult(
             feed_id=GeneratedFeed.generate_feed_id(),
             agent_handle=agent.handle,

@@ -225,7 +225,7 @@ class TestSimulationCommandServiceExecuteRun:
         agent = AgentFactory.create(handle="agent1.bsky.social")
         feed_post = PostFactory.create(
             post_id="post_1",
-            uri="post_1",
+            source_id="post_1",
             author_display_name="Author",
             author_handle="author.bsky.social",
             text="hello",
@@ -342,7 +342,7 @@ class TestSimulationCommandServiceExecuteRun:
         agent = AgentFactory.create(handle="agent1.bsky.social")
         like_only_post = PostFactory.create(
             post_id="post_like",
-            uri="post_like",
+            source_id="post_like",
             author_display_name="Author A",
             author_handle="author-a.bsky.social",
             text="for likes",
@@ -355,7 +355,7 @@ class TestSimulationCommandServiceExecuteRun:
         )
         comment_only_post = PostFactory.create(
             post_id="post_comment",
-            uri="post_comment",
+            source_id="post_comment",
             author_display_name="Author B",
             author_handle="author-b.bsky.social",
             text="for comments",
@@ -368,7 +368,7 @@ class TestSimulationCommandServiceExecuteRun:
         )
         follow_only_post = PostFactory.create(
             post_id="post_follow",
-            uri="post_follow",
+            source_id="post_follow",
             author_display_name="Author C",
             author_handle="author-c.bsky.social",
             text="for follows",
@@ -464,7 +464,7 @@ class TestSimulationCommandServiceExecuteRun:
         feed_posts = [
             PostFactory.create(
                 post_id="post_1",
-                uri="post_1",
+                source_id="post_1",
                 author_display_name="Author A",
                 author_handle="author-a.bsky.social",
                 text="content",
@@ -477,7 +477,7 @@ class TestSimulationCommandServiceExecuteRun:
             ),
             PostFactory.create(
                 post_id="post_2",
-                uri="post_2",
+                source_id="post_2",
                 author_display_name="Author B",
                 author_handle="author-b.bsky.social",
                 text="content",
@@ -600,7 +600,7 @@ class TestSimulationCommandServiceActionPersistence:
 
         feed_post = PostFactory.create(
             post_id="post_1",
-            uri="at://did:plc:post1",
+            source_id="at://did:plc:post1",
             author_display_name="Author",
             author_handle="author.bsky.social",
             text="Hello",

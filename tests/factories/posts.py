@@ -22,7 +22,7 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         cls,
         *,
         post_id: str | None = None,
-        uri: str | None = None,
+        source_id: str | None = None,
         author_handle: str | None = None,
         author_display_name: str | None = None,
         text: str | None = None,
@@ -34,9 +34,9 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         created_at: str | None = None,
     ) -> BlueskyFeedPost:
         fake = get_faker()
-        uri_value = (
-            uri
-            if uri is not None
+        source_id_value = (
+            source_id
+            if source_id is not None
             else f"at://did:plc:{_did_plc()}/app.bsky.feed.post/{_post_key()}"
         )
         author_handle_value = (
@@ -66,10 +66,10 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_iso()
         )
-        id_value = post_id if post_id is not None else uri_value
+        id_value = post_id if post_id is not None else source_id_value
         return BlueskyFeedPost(
             id=id_value,
-            uri=uri_value,
+            source_id=source_id_value,
             author_handle=author_handle_value,
             author_display_name=author_display_name_value,
             text=text_value,

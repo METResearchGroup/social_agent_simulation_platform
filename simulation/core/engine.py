@@ -101,8 +101,10 @@ class SimulationEngine:
     def read_all_feed_posts(self) -> list[BlueskyFeedPost]:
         return self.feed_post_repo.list_all_feed_posts()
 
-    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
-        return self.feed_post_repo.read_feed_posts_by_uris(uris)
+    def read_feed_posts_by_source_ids(
+        self, source_ids: Iterable[str]
+    ) -> list[BlueskyFeedPost]:
+        return self.feed_post_repo.read_feed_posts_by_source_ids(source_ids)
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         self.command_service.update_run_status(run, status)

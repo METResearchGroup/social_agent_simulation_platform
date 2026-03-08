@@ -80,9 +80,9 @@ def validate_required_fields(
     Args:
         row: SQLite Row object to validate
         fields: List of required field names to validate.
-                For example: ["handle", "did"] or ["uri", "text"]
+                For example: ["handle", "did"] or ["source_id", "text"]
         context: Optional context string to include in error messages
-                 (e.g., "feed post uri=at://did:plc:...")
+                 (e.g., "feed post source_id=at://did:plc:...")
 
     Raises:
         ValueError: If any required field is NULL. Error message includes

@@ -391,7 +391,7 @@ class FeedPostDatabaseAdapter(ABC):
                       specific exception types they raise.
 
         Note:
-            This write is idempotent: an existing row with the same URI may be
+            This write is idempotent: an existing row with the same source_id may be
             replaced. Callers can safely retry or recompute; duplicate writes do
             not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
             (delete+insert semantics).
@@ -412,7 +412,7 @@ class FeedPostDatabaseAdapter(ABC):
                       specific exception types they raise.
 
         Note:
-            Each write is idempotent: an existing row with the same URI may be
+            Each write is idempotent: an existing row with the same source_id may be
             replaced. Callers can safely retry or recompute; duplicate writes do
             not raise. Implementations (e.g. SQLite) may use INSERT OR REPLACE
             (delete+insert semantics).
@@ -420,18 +420,18 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_post(self, uri: str, *, conn: object) -> BlueskyFeedPost:
-        """Read a feed post by URI.
+    def read_feed_post(self, source_id: str, *, conn: object) -> BlueskyFeedPost:
+        """Read a feed post by source_id.
 
         Args:
-            uri: Post URI to look up
+            source_id: Post source_id to look up
             conn: Connection.
 
         Returns:
             BlueskyFeedPost model if found.
 
         Raises:
-            ValueError: If uri is empty or if no feed post is found for the given URI
+            ValueError: If source_id is empty or if no feed post is found for the given source_id
             ValueError: If the feed post data is invalid (NULL fields)
             KeyError: If required columns are missing from the database row
             Exception: Database-specific exception if the operation fails.
@@ -482,17 +482,17 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_uris(
-        self, uris: Iterable[str], *, conn: object
+    def read_feed_posts_by_source_ids(
+        self, source_ids: Iterable[str], *, conn: object
     ) -> list[BlueskyFeedPost]:
-        """Read feed posts by URIs.
+        """Read feed posts by source_ids.
 
         Args:
-            uris: Iterable of post URIs to look up
+            source_ids: Iterable of post source_ids to look up
             conn: Connection.
 
         Returns:
-            List of BlueskyFeedPost models for the given URIs.
+            List of BlueskyFeedPost models for the given source_ids.
 
         Raises:
             ValueError: If any feed post data is invalid (NULL fields)
@@ -502,8 +502,8 @@ class FeedPostDatabaseAdapter(ABC):
                       they raise.
         Note:
             This method is used to hydrate generated feeds. Implementations should
-            ensure that the post URIs are valid and that the feed posts are returned
-            in the same order as the URIs.
+            ensure that the post source_ids are valid and that the feed posts are returned
+            in the same order as the source_ids.
         """
         raise NotImplementedError
 

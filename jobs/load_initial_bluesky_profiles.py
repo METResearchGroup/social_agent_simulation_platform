@@ -62,7 +62,7 @@ def transform_bsky_author_feed(author_feed: list[dict]) -> list[BlueskyFeedPost]
     for post_view in author_feed:
         post = BlueskyFeedPost(
             id=post_view["uri"],
-            uri=post_view["uri"],
+            source_id=post_view["uri"],
             author_display_name=post_view["author"]["display_name"],
             author_handle=post_view["author"]["handle"],
             text=post_view["record"]["text"],

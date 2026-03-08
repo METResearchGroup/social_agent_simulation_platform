@@ -16,7 +16,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo = feed_post_repo
         post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
             text="Test post content",
@@ -30,7 +30,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Create post
         created_post = repo.create_or_update_feed_post(post)
-        assert created_post.uri == "at://did:plc:test123/app.bsky.feed.post/test"
+        assert created_post.source_id == "at://did:plc:test123/app.bsky.feed.post/test"
         assert created_post.text == "Test post content"
         assert created_post.like_count == 10
 
@@ -39,7 +39,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
             "at://did:plc:test123/app.bsky.feed.post/test"
         )
         assert retrieved_post is not None
-        assert retrieved_post.uri == created_post.uri
+        assert retrieved_post.source_id == created_post.source_id
         assert retrieved_post.author_display_name == created_post.author_display_name
         assert retrieved_post.author_handle == created_post.author_handle
         assert retrieved_post.text == created_post.text
@@ -58,7 +58,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -78,9 +78,9 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Read them back individually
         for i, post in enumerate(posts, 1):
-            retrieved = repo.get_feed_post(post.uri)
+            retrieved = repo.get_feed_post(post.source_id)
             assert retrieved is not None
-            assert retrieved.uri == post.uri
+            assert retrieved.source_id == post.source_id
             assert retrieved.text == post.text
             assert retrieved.like_count == post.like_count
 
@@ -91,7 +91,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # Create initial post
         initial_post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Initial Name",
             author_handle="test.bsky.social",
             text="Initial content",
@@ -107,7 +107,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # Update the post
         updated_post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Updated Name",
             author_handle="test.bsky.social",
             text="Updated content with more text",
@@ -125,17 +125,21 @@ class TestSQLiteFeedPostRepositoryIntegration:
             "at://did:plc:test123/app.bsky.feed.post/test"
         )
         assert retrieved_post is not None
-        assert retrieved_post.uri == "at://did:plc:test123/app.bsky.feed.post/test"
+        assert (
+            retrieved_post.source_id == "at://did:plc:test123/app.bsky.feed.post/test"
+        )
         assert retrieved_post.text == "Updated content with more text"
         assert retrieved_post.like_count == 200
         assert retrieved_post.reply_count == 25
         assert retrieved_post.repost_count == 15
 
-    def test_get_feed_post_raises_value_error_for_nonexistent_uri(self, feed_post_repo):
-        """Test that get_feed_post raises ValueError for a non-existent URI."""
+    def test_get_feed_post_raises_value_error_for_nonexistent_source_id(
+        self, feed_post_repo
+    ):
+        """Test that get_feed_post raises ValueError for a non-existent source_id."""
         repo = feed_post_repo
 
-        with pytest.raises(ValueError, match="No feed post found for uri"):
+        with pytest.raises(ValueError, match="No feed post found for source_id"):
             repo.get_feed_post("at://did:plc:nonexistent/app.bsky.feed.post/test")
 
     def test_list_feed_posts_by_author_retrieves_correct_posts(self, feed_post_repo):
@@ -145,7 +149,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # Create posts by different authors
         post1 = PostFactory.create(
             post_id="at://did:plc:alice/app.bsky.feed.post/post1",
-            uri="at://did:plc:alice/app.bsky.feed.post/post1",
+            source_id="at://did:plc:alice/app.bsky.feed.post/post1",
             author_display_name="Alice",
             author_handle="alice.bsky.social",
             text="Alice's post 1",
@@ -158,7 +162,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         )
         post2 = PostFactory.create(
             post_id="at://did:plc:alice/app.bsky.feed.post/post2",
-            uri="at://did:plc:alice/app.bsky.feed.post/post2",
+            source_id="at://did:plc:alice/app.bsky.feed.post/post2",
             author_display_name="Alice",
             author_handle="alice.bsky.social",
             text="Alice's post 2",
@@ -171,7 +175,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         )
         post3 = PostFactory.create(
             post_id="at://did:plc:bob/app.bsky.feed.post/post1",
-            uri="at://did:plc:bob/app.bsky.feed.post/post1",
+            source_id="at://did:plc:bob/app.bsky.feed.post/post1",
             author_display_name="Bob",
             author_handle="bob.bsky.social",
             text="Bob's post",
@@ -190,8 +194,8 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # List posts by Alice
         alice_posts = repo.list_feed_posts_by_author("alice.bsky.social")
         assert len(alice_posts) == 2
-        uris = {p.uri for p in alice_posts}
-        assert uris == {
+        source_ids = {p.source_id for p in alice_posts}
+        assert source_ids == {
             "at://did:plc:alice/app.bsky.feed.post/post1",
             "at://did:plc:alice/app.bsky.feed.post/post2",
         }
@@ -199,7 +203,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         # List posts by Bob
         bob_posts = repo.list_feed_posts_by_author("bob.bsky.social")
         assert len(bob_posts) == 1
-        assert bob_posts[0].uri == "at://did:plc:bob/app.bsky.feed.post/post1"
+        assert bob_posts[0].source_id == "at://did:plc:bob/app.bsky.feed.post/post1"
 
     def test_list_all_feed_posts_retrieves_all_posts(self, feed_post_repo):
         """Test that list_all_feed_posts retrieves all posts from the database."""
@@ -209,7 +213,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -231,15 +235,15 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         # Assert
         assert len(all_posts) == 3
-        uris = {p.uri for p in all_posts}
-        assert uris == {
+        source_ids = {p.source_id for p in all_posts}
+        assert source_ids == {
             "at://did:plc:test1/app.bsky.feed.post/test1",
             "at://did:plc:test2/app.bsky.feed.post/test2",
             "at://did:plc:test3/app.bsky.feed.post/test3",
         }
 
         # Verify all fields are correct
-        post_dict = {p.uri: p for p in all_posts}
+        post_dict = {p.source_id: p for p in all_posts}
         assert (
             post_dict["at://did:plc:test1/app.bsky.feed.post/test1"].text
             == "Post 1 content"
@@ -265,17 +269,17 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert posts == []
         assert isinstance(posts, list)
 
-    def test_create_or_update_feed_post_with_empty_uri_raises_error(
+    def test_create_or_update_feed_post_with_empty_source_id_raises_error(
         self, feed_post_repo
     ):
-        """Test that creating BlueskyFeedPost with empty uri raises ValidationError from Pydantic."""
+        """Test that creating BlueskyFeedPost with empty source_id raises ValidationError from Pydantic."""
         # Pydantic validation happens at model creation time, not in repository
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError) as exc_info:
             PostFactory.create(
                 post_id="",
-                uri="",
+                source_id="",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
                 text="Test post content",
@@ -289,11 +293,11 @@ class TestSQLiteFeedPostRepositoryIntegration:
 
         assert "value cannot be empty" in str(exc_info.value)
 
-    def test_get_feed_post_with_empty_uri_raises_error(self, feed_post_repo):
-        """Test that get_feed_post raises ValueError when uri is empty."""
+    def test_get_feed_post_with_empty_source_id_raises_error(self, feed_post_repo):
+        """Test that get_feed_post raises ValueError when source_id is empty."""
         repo = feed_post_repo
 
-        with pytest.raises(ValueError, match="uri cannot be empty"):
+        with pytest.raises(ValueError, match="source_id cannot be empty"):
             repo.get_feed_post("")
 
     def test_list_feed_posts_by_author_with_empty_handle_raises_error(
@@ -312,7 +316,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         long_text = "This is a very long post. " * 100  # 2500+ characters
         post = PostFactory.create(
             post_id="at://did:plc:longpost/app.bsky.feed.post/test",
-            uri="at://did:plc:longpost/app.bsky.feed.post/test",
+            source_id="at://did:plc:longpost/app.bsky.feed.post/test",
             author_display_name="Long Post User",
             author_handle="longpost.bsky.social",
             text=long_text,
@@ -331,17 +335,17 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert retrieved.text == long_text
         assert len(retrieved.text) > 2000
 
-    def test_read_feed_posts_by_uris_returns_posts_for_existing_uris(
+    def test_read_feed_posts_by_source_ids_returns_posts_for_existing_source_ids(
         self, feed_post_repo
     ):
-        """Test that read_feed_posts_by_uris returns posts for existing URIs."""
+        """Test that read_feed_posts_by_source_ids returns posts for existing source_ids."""
         repo = feed_post_repo
 
         # Create multiple posts
         posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -358,55 +362,55 @@ class TestSQLiteFeedPostRepositoryIntegration:
         for post in posts:
             repo.create_or_update_feed_post(post)
 
-        # Read posts by URIs
-        uris = [post.uri for post in posts]
-        retrieved_posts = repo.read_feed_posts_by_uris(uris)
+        # Read posts by source_ids
+        source_ids = [post.source_id for post in posts]
+        retrieved_posts = repo.read_feed_posts_by_source_ids(source_ids)
 
         # Assert
         assert len(retrieved_posts) == 3
-        retrieved_uris = {p.uri for p in retrieved_posts}
-        assert retrieved_uris == set(uris)
+        retrieved_source_ids = {p.source_id for p in retrieved_posts}
+        assert retrieved_source_ids == set(source_ids)
 
         # Verify all fields are correct
-        post_dict = {p.uri: p for p in retrieved_posts}
-        assert post_dict[uris[0]].text == "Post 1 content"
-        assert post_dict[uris[1]].like_count == 20
-        assert post_dict[uris[2]].reply_count == 9
+        post_dict = {p.source_id: p for p in retrieved_posts}
+        assert post_dict[source_ids[0]].text == "Post 1 content"
+        assert post_dict[source_ids[1]].like_count == 20
+        assert post_dict[source_ids[2]].reply_count == 9
 
-    def test_read_feed_posts_by_uris_returns_empty_list_when_no_uris(
+    def test_read_feed_posts_by_source_ids_returns_empty_list_when_no_source_ids(
         self, feed_post_repo
     ):
-        """Test that read_feed_posts_by_uris returns empty list when no URIs provided."""
+        """Test that read_feed_posts_by_source_ids returns empty list when no source_ids provided."""
         repo = feed_post_repo
 
-        posts = repo.read_feed_posts_by_uris([])
+        posts = repo.read_feed_posts_by_source_ids([])
         assert posts == []
         assert isinstance(posts, list)
 
-    def test_read_feed_posts_by_uris_returns_empty_list_when_no_posts_found(
+    def test_read_feed_posts_by_source_ids_returns_empty_list_when_no_posts_found(
         self, feed_post_repo
     ):
-        """Test that read_feed_posts_by_uris returns empty list when no posts exist for URIs."""
+        """Test that read_feed_posts_by_source_ids returns empty list when no posts exist for source_ids."""
         repo = feed_post_repo
 
-        uris = [
+        source_ids = [
             "at://did:plc:nonexistent1/app.bsky.feed.post/test1",
             "at://did:plc:nonexistent2/app.bsky.feed.post/test2",
         ]
-        posts = repo.read_feed_posts_by_uris(uris)
+        posts = repo.read_feed_posts_by_source_ids(source_ids)
         assert posts == []
         assert isinstance(posts, list)
 
-    def test_read_feed_posts_by_uris_returns_partial_results_when_some_missing(
+    def test_read_feed_posts_by_source_ids_returns_partial_results_when_some_missing(
         self, feed_post_repo
     ):
-        """Test that read_feed_posts_by_uris returns partial results when some URIs don't exist."""
+        """Test that read_feed_posts_by_source_ids returns partial results when some source_ids don't exist."""
         repo = feed_post_repo
 
         # Create some posts
         post1 = PostFactory.create(
             post_id="at://did:plc:test1/app.bsky.feed.post/test1",
-            uri="at://did:plc:test1/app.bsky.feed.post/test1",
+            source_id="at://did:plc:test1/app.bsky.feed.post/test1",
             author_display_name="User 1",
             author_handle="user1.bsky.social",
             text="Post 1 content",
@@ -419,7 +423,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         )
         post2 = PostFactory.create(
             post_id="at://did:plc:test2/app.bsky.feed.post/test2",
-            uri="at://did:plc:test2/app.bsky.feed.post/test2",
+            source_id="at://did:plc:test2/app.bsky.feed.post/test2",
             author_display_name="User 2",
             author_handle="user2.bsky.social",
             text="Post 2 content",
@@ -434,19 +438,19 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo.create_or_update_feed_post(post1)
         repo.create_or_update_feed_post(post2)
 
-        # Query with mix of existing and non-existing URIs
-        uris = [
+        # Query with mix of existing and non-existing source_ids
+        source_ids = [
             "at://did:plc:test1/app.bsky.feed.post/test1",  # exists
             "at://did:plc:nonexistent/app.bsky.feed.post/test",  # doesn't exist
             "at://did:plc:test2/app.bsky.feed.post/test2",  # exists
         ]
 
-        retrieved_posts = repo.read_feed_posts_by_uris(uris)
+        retrieved_posts = repo.read_feed_posts_by_source_ids(source_ids)
 
         # Should return only the 2 existing posts
         assert len(retrieved_posts) == 2
-        retrieved_uris = {p.uri for p in retrieved_posts}
-        assert retrieved_uris == {
+        retrieved_source_ids = {p.source_id for p in retrieved_posts}
+        assert retrieved_source_ids == {
             "at://did:plc:test1/app.bsky.feed.post/test1",
             "at://did:plc:test2/app.bsky.feed.post/test2",
         }

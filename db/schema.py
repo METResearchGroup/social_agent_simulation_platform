@@ -138,7 +138,7 @@ bluesky_profiles = sa.Table(
 bluesky_feed_posts = sa.Table(
     "bluesky_feed_posts",
     metadata,
-    sa.Column("uri", sa.Text(), primary_key=True),
+    sa.Column("source_id", sa.Text(), primary_key=True),
     sa.Column("author_display_name", sa.Text(), nullable=False),
     sa.Column("author_handle", sa.Text(), nullable=False),
     sa.Column("text", sa.Text(), nullable=False),

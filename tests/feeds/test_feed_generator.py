@@ -37,7 +37,7 @@ def sample_posts():
     """Fixture providing sample BlueskyFeedPost objects."""
     return [
         PostFactory.create(
-            uri="at://did:plc:test1/app.bsky.feed.post/post1",
+            source_id="at://did:plc:test1/app.bsky.feed.post/post1",
             author_handle="author1.bsky.social",
             author_display_name="Author One",
             text="First post",
@@ -49,7 +49,7 @@ def sample_posts():
             created_at="2024-01-01T00:00:00Z",
         ),
         PostFactory.create(
-            uri="at://did:plc:test2/app.bsky.feed.post/post2",
+            source_id="at://did:plc:test2/app.bsky.feed.post/post2",
             author_handle="author2.bsky.social",
             author_display_name="Author Two",
             text="Second post",
@@ -61,7 +61,7 @@ def sample_posts():
             created_at="2024-01-02T00:00:00Z",
         ),
         PostFactory.create(
-            uri="at://did:plc:test3/app.bsky.feed.post/post3",
+            source_id="at://did:plc:test3/app.bsky.feed.post/post3",
             author_handle="author3.bsky.social",
             author_display_name="Author Three",
             text="Third post",
@@ -114,11 +114,11 @@ class TestGenerateFeed:
     def test_chronological_uses_deterministic_tie_breaking_for_same_created_at(
         self, sample_agent
     ):
-        """Test that posts with identical created_at are ordered by uri (ascending)."""
+        """Test that posts with identical created_at are ordered by source_id (ascending)."""
         same_timestamp = "2024-01-02T00:00:00Z"
         posts_same_created_at = [
             PostFactory.create(
-                uri="at://did:plc:z/app.bsky.feed.post/post_z",
+                source_id="at://did:plc:z/app.bsky.feed.post/post_z",
                 author_handle="author.bsky.social",
                 author_display_name="Author",
                 text="Post Z",
@@ -130,7 +130,7 @@ class TestGenerateFeed:
                 created_at=same_timestamp,
             ),
             PostFactory.create(
-                uri="at://did:plc:a/app.bsky.feed.post/post_a",
+                source_id="at://did:plc:a/app.bsky.feed.post/post_a",
                 author_handle="author.bsky.social",
                 author_display_name="Author",
                 text="Post A",
@@ -185,7 +185,7 @@ class TestGenerateFeed:
         mock_algorithm.generate.return_value = FeedAlgorithmResult(
             feed_id="feed-1",
             agent_handle=sample_agent.handle,
-            post_uris=[p.uri for p in sample_posts],
+            post_uris=[p.source_id for p in sample_posts],
         )
         feed_algorithm_config = {"order": "oldest_first"}
         with patch(
@@ -246,7 +246,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = sample_posts
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = sample_posts
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = sample_posts
 
         # Act
         result = generate_feeds(
@@ -267,7 +267,7 @@ class TestGenerateFeeds:
         # Verify repositories were called
         assert mock_generated_feed_repo.write_generated_feed.call_count == 2
         # Verify batch query was used (not list_all_feed_posts)
-        mock_feed_post_repo.read_feed_posts_by_uris.assert_called_once()
+        mock_feed_post_repo.read_feed_posts_by_source_ids.assert_called_once()
         # Verify load_candidate_posts was called for each agent
         assert mock_load_candidate_posts.call_count == 2
 
@@ -288,7 +288,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = sample_posts
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = sample_posts
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = sample_posts
 
         # Act
         generate_feeds(
@@ -302,11 +302,11 @@ class TestGenerateFeeds:
 
         # Assert
         # Verify batch query was used
-        mock_feed_post_repo.read_feed_posts_by_uris.assert_called_once()
+        mock_feed_post_repo.read_feed_posts_by_source_ids.assert_called_once()
         # Verify list_all_feed_posts was NOT called
         mock_feed_post_repo.list_all_feed_posts.assert_not_called()
         # Verify the batch query was called with a set of URIs
-        call_args = mock_feed_post_repo.read_feed_posts_by_uris.call_args[0][0]
+        call_args = mock_feed_post_repo.read_feed_posts_by_source_ids.call_args[0][0]
         assert isinstance(call_args, (set, list, tuple))
         assert len(call_args) == len(sample_posts)
 
@@ -332,7 +332,7 @@ class TestGenerateFeeds:
         mock_load_candidate_posts.return_value = sample_posts
         # Only return 2 of the 3 posts (missing post3)
         existing_posts = sample_posts[:2]
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = existing_posts
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = existing_posts
 
         # Act
         result = generate_feeds(
@@ -349,9 +349,9 @@ class TestGenerateFeeds:
         assert len(result[sample_agent.handle]) == 2
         # Verify the returned posts match what was returned from the repository
         # (not necessarily in the same order as sample_posts due to sorting)
-        returned_uris = {post.uri for post in result[sample_agent.handle]}
-        expected_uris = {post.uri for post in existing_posts}
-        assert returned_uris == expected_uris
+        returned_source_ids = {post.source_id for post in result[sample_agent.handle]}
+        expected_source_ids = {post.source_id for post in existing_posts}
+        assert returned_source_ids == expected_source_ids
         # Should log a warning about missing posts
         assert mock_logger.warning.called
 
@@ -375,7 +375,7 @@ class TestGenerateFeeds:
 
         mock_load_candidate_posts.return_value = sample_posts
         # Return empty list (all posts missing)
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = []
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = []
 
         # Act
         result = generate_feeds(
@@ -416,7 +416,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = sample_posts
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = sample_posts
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = sample_posts
 
         # Act
         generate_feeds(
@@ -455,7 +455,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = sample_posts
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = sample_posts
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = sample_posts
 
         # Act
         result = generate_feeds(
@@ -491,7 +491,7 @@ class TestGenerateFeeds:
         turn_number = 0
         feed_algorithm = "chronological"
         # Mock should return empty list when called with empty set
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = []
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = []
 
         # Act
         result = generate_feeds(
@@ -507,9 +507,9 @@ class TestGenerateFeeds:
         assert result == {}
         mock_load_candidate_posts.assert_not_called()
         mock_generated_feed_repo.write_generated_feed.assert_not_called()
-        # read_feed_posts_by_uris is called with empty set when no agents
-        mock_feed_post_repo.read_feed_posts_by_uris.assert_called_once()
-        call_args = mock_feed_post_repo.read_feed_posts_by_uris.call_args[0][0]
+        # read_feed_posts_by_source_ids is called with empty set when no agents
+        mock_feed_post_repo.read_feed_posts_by_source_ids.assert_called_once()
+        call_args = mock_feed_post_repo.read_feed_posts_by_source_ids.call_args[0][0]
         assert len(call_args) == 0
 
     @patch("feeds.feed_generator.load_candidate_posts")
@@ -528,7 +528,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = []
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = []
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = []
 
         # Act
         result = generate_feeds(
@@ -564,7 +564,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = sample_posts
-        mock_feed_post_repo.read_feed_posts_by_uris.return_value = sample_posts
+        mock_feed_post_repo.read_feed_posts_by_source_ids.return_value = sample_posts
 
         # Act
         result = generate_feeds(

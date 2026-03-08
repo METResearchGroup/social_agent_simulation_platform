@@ -102,10 +102,10 @@ def _load_hydrated_posts(
     all_post_uris: set[str] = set()
     for feed in feeds.values():
         all_post_uris.update(feed.post_uris)
-    hydrated_posts: list[BlueskyFeedPost] = feed_post_repo.read_feed_posts_by_uris(
-        all_post_uris
+    hydrated_posts: list[BlueskyFeedPost] = (
+        feed_post_repo.read_feed_posts_by_source_ids(all_post_uris)
     )
-    return {p.uri: p for p in hydrated_posts}
+    return {p.source_id: p for p in hydrated_posts}
 
 
 def _hydrate_generated_feeds(

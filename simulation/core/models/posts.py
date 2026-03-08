@@ -31,15 +31,15 @@ class Post(BaseModel):
 class BlueskyFeedPost(Post):
     """Bluesky-specific post with additional platform fields."""
 
-    uri: str  # Bluesky-specific URI
+    source_id: str  # Bluesky AT Protocol URI
     bookmark_count: int
     quote_count: int
     reply_count: int
     repost_count: int
 
-    @field_validator("uri")
+    @field_validator("source_id")
     @classmethod
-    def validate_uri(cls, v: str) -> str:
+    def validate_source_id(cls, v: str) -> str:
         return validate_non_empty_string(v)
 
     @field_validator("bookmark_count")
@@ -68,8 +68,8 @@ class BlueskyFeedPost(Post):
 
     @model_validator(mode="before")
     @classmethod
-    def set_id_from_uri(cls, data: dict) -> dict:
-        """Set id from uri if not provided."""
-        if isinstance(data, dict) and "uri" in data and "id" not in data:
-            data["id"] = data["uri"]
+    def set_id_from_source_id(cls, data: dict) -> dict:
+        """Set id from source_id if not provided."""
+        if isinstance(data, dict) and "source_id" in data and "id" not in data:
+            data["id"] = data["source_id"]
         return data

@@ -24,7 +24,7 @@ from tests.factories import (
 
 class TestFactories:
     def test_post_factory_smoke(self):
-        assert PostFactory.create().uri
+        assert PostFactory.create().source_id
 
     def test_generation_metadata_factory_smoke(self):
         assert GenerationMetadataFactory.create().created_at

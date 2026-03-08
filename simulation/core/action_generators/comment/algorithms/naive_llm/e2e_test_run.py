@@ -19,7 +19,7 @@ def _post(
 ) -> BlueskyFeedPost:
     return BlueskyFeedPost(
         id=post_id,
-        uri=post_id,
+        source_id=post_id,
         author_handle=author_handle,
         author_display_name="Alice",
         text=text,

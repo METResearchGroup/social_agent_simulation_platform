@@ -33,7 +33,7 @@ def print_post(post, show_full_text=True):
     print(
         f"Engagement: ❤️ {post.like_count:,} | 💬 {post.reply_count:,} | 🔁 {post.repost_count:,} | 🔖 {post.bookmark_count:,} | 💬 {post.quote_count:,}"
     )
-    print(f"URI: {post.uri}")
+    print(f"Source ID: {post.source_id}")
 
 
 def main():

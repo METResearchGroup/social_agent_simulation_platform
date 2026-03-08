@@ -177,14 +177,14 @@ def validate_run_status_transition(
         )
 
 
-def validate_uri_exists(uri: str) -> str:
-    """Validate that uri is a non-empty string. Returns stripped value."""
-    return _validate_non_empty_string_labeled(uri, label="uri")
+def validate_source_id_exists(source_id: str) -> str:
+    """Validate that source_id is a non-empty string. Returns stripped value."""
+    return _validate_non_empty_string_labeled(source_id, label="source_id")
 
 
-def validate_uris_exist(uris: Iterable[str]) -> Iterable[str]:
-    """Validate that uris is not None and not empty."""
-    return validate_non_empty_iterable(uris, "uris")
+def validate_source_ids_exist(source_ids: Iterable[str]) -> Iterable[str]:
+    """Validate that source_ids is not None and not empty."""
+    return validate_non_empty_iterable(source_ids, "source_ids")
 
 
 def validate_posts_exist(posts: list[BlueskyFeedPost] | None) -> list[BlueskyFeedPost]:

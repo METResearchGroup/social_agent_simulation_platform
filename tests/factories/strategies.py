@@ -15,7 +15,7 @@ def bluesky_post_strategy() -> SearchStrategy[BlueskyFeedPost]:
 
     Keep constraints aligned with Pydantic validators (non-empty strings, non-negative counts).
     """
-    uri = st.from_regex(
+    source_id = st.from_regex(
         r"at://did:plc:[a-z0-9]{5,20}/app\.bsky\.feed\.post/[a-z0-9]{5,20}",
         fullmatch=True,
     )
@@ -32,7 +32,7 @@ def bluesky_post_strategy() -> SearchStrategy[BlueskyFeedPost]:
     )
     post_dict = st.fixed_dictionaries(
         {
-            "uri": uri,
+            "source_id": source_id,
             "author_handle": handle,
             "author_display_name": display_name,
             "text": text,

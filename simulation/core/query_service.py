@@ -102,9 +102,9 @@ class SimulationQueryService:
             post_uris_set.update(feed.post_uris)
 
         post_uris_list = list(post_uris_set)
-        posts = self.feed_post_repo.read_feed_posts_by_uris(post_uris_list)
+        posts = self.feed_post_repo.read_feed_posts_by_source_ids(post_uris_list)
 
-        uri_to_post = {post.uri: post for post in posts}
+        uri_to_post = {post.source_id: post for post in posts}
 
         feeds_dict: dict[str, list[BlueskyFeedPost]] = {}
         for feed in feeds:

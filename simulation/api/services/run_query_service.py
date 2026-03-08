@@ -79,7 +79,7 @@ def get_turns_for_run(
 
 def _post_to_schema(post: BlueskyFeedPost) -> PostSchema:
     return PostSchema(
-        uri=post.uri,
+        source_id=post.source_id,
         author_display_name=post.author_display_name,
         author_handle=post.author_handle,
         text=post.text,
@@ -103,9 +103,9 @@ def get_posts_by_uris(
     if not uris:
         posts = engine.read_all_feed_posts()[:MAX_UNFILTERED_POSTS]
     else:
-        posts = engine.read_feed_posts_by_uris(uris)
+        posts = engine.read_feed_posts_by_source_ids(uris)
 
-    return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.uri)]
+    return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.source_id)]
 
 
 @validate_inputs((validate_run_id, "run_id"))

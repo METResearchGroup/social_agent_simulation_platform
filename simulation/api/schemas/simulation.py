@@ -189,9 +189,12 @@ class FeedSchema(BaseModel):
 
 
 class PostSchema(BaseModel):
-    """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts."""
+    """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.
 
-    uri: str
+    Breaking change (issue #200): This schema field was renamed from `uri` to `source_id`.
+    """
+
+    source_id: str
     author_display_name: str
     author_handle: str
     text: str

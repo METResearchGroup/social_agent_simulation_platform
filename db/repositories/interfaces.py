@@ -355,17 +355,17 @@ class FeedPostRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_feed_post(self, uri: str) -> BlueskyFeedPost:
-        """Get a feed post by URI.
+    def get_feed_post(self, source_id: str) -> BlueskyFeedPost:
+        """Get a feed post by source_id.
 
         Args:
-            uri: Post URI to look up
+            source_id: Post source_id to look up
 
         Returns:
             BlueskyFeedPost model if found.
 
         Raises:
-            ValueError: If uri is empty or if no feed post is found for the given URI
+            ValueError: If source_id is empty or if no feed post is found for the given source_id
         """
         raise NotImplementedError
 
@@ -391,16 +391,18 @@ class FeedPostRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_uris(self, uris: Iterable[str]) -> list[BlueskyFeedPost]:
-        """Read feed posts by URIs.
+    def read_feed_posts_by_source_ids(
+        self, source_ids: Iterable[str]
+    ) -> list[BlueskyFeedPost]:
+        """Read feed posts by source_ids.
 
         Args:
-            uris: Iterable of post URIs to look up
+            source_ids: Iterable of post source_ids to look up
 
         Returns:
-            List of BlueskyFeedPost models for the given URIs.
-            Returns empty list if no URIs provided or if no posts found.
-            Missing URIs are silently skipped (only existing posts are returned).
+            List of BlueskyFeedPost models for the given source_ids.
+            Returns empty list if no source_ids provided or if no posts found.
+            Missing source_ids are silently skipped (only existing posts are returned).
         """
         raise NotImplementedError
 

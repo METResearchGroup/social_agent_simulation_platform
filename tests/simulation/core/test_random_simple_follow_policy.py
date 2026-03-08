@@ -28,7 +28,7 @@ def _post(
     resolved_author_handle: str = author_handle or f"author-{post_id}.bsky.social"
     return PostFactory.create(
         post_id=post_id,
-        uri=post_id,
+        source_id=post_id,
         author_handle=resolved_author_handle,
         author_display_name=f"Author {post_id}",
         text="content",

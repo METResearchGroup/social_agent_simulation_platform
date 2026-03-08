@@ -33,7 +33,7 @@ class TestAgentActions:
         agent = AgentFactory.create(handle="agent1.bsky.social")
         feed = [
             PostFactory.create(
-                uri="post_1",
+                source_id="post_1",
                 author_handle="author1.bsky.social",
                 author_display_name="Author post_1",
                 text="content",

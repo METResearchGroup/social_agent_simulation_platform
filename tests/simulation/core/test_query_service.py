@@ -153,7 +153,7 @@ class TestSimulationQueryServiceGetTurnData:
         posts = [
             PostFactory.create(
                 post_id="uri1",
-                uri="uri1",
+                source_id="uri1",
                 author_display_name="Author 1",
                 author_handle="author1.bsky.social",
                 text="Post 1",
@@ -166,7 +166,7 @@ class TestSimulationQueryServiceGetTurnData:
             ),
             PostFactory.create(
                 post_id="uri2",
-                uri="uri2",
+                source_id="uri2",
                 author_display_name="Author 2",
                 author_handle="author2.bsky.social",
                 text="Post 2",
@@ -179,7 +179,7 @@ class TestSimulationQueryServiceGetTurnData:
             ),
             PostFactory.create(
                 post_id="uri3",
-                uri="uri3",
+                source_id="uri3",
                 author_display_name="Author 3",
                 author_handle="author3.bsky.social",
                 text="Post 3",
@@ -196,7 +196,7 @@ class TestSimulationQueryServiceGetTurnData:
             feed1,
             feed2,
         ]
-        mock_repos["feed_post_repo"].read_feed_posts_by_uris.return_value = posts
+        mock_repos["feed_post_repo"].read_feed_posts_by_source_ids.return_value = posts
 
         result = query_service.get_turn_data(sample_run.run_id, 0)
 
@@ -258,7 +258,7 @@ class TestSimulationQueryServiceGetTurnData:
         )
         post = PostFactory.create(
             post_id="at://did:plc:post1",
-            uri="at://did:plc:post1",
+            source_id="at://did:plc:post1",
             author_display_name="Author",
             author_handle="author.bsky.social",
             text="Hello",
@@ -271,7 +271,7 @@ class TestSimulationQueryServiceGetTurnData:
         )
         mock_repos["run_repo"].get_run.return_value = sample_run
         mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [feed]
-        mock_repos["feed_post_repo"].read_feed_posts_by_uris.return_value = [post]
+        mock_repos["feed_post_repo"].read_feed_posts_by_source_ids.return_value = [post]
 
         result = query_service.get_turn_data(sample_run.run_id, 0)
 

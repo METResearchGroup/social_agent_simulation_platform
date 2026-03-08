@@ -26,7 +26,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         )
         post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
             text="Test post content",
@@ -57,7 +57,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         )
         post = PostFactory.create(
             post_id="at://did:plc:another456/app.bsky.feed.post/another",
-            uri="at://did:plc:another456/app.bsky.feed.post/another",
+            source_id="at://did:plc:another456/app.bsky.feed.post/another",
             author_display_name="Another User",
             author_handle="another.bsky.social",
             text="Another post with more content",
@@ -73,7 +73,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         result = repo.create_or_update_feed_post(post)
 
         # Assert
-        assert result.uri == "at://did:plc:another456/app.bsky.feed.post/another"
+        assert result.source_id == "at://did:plc:another456/app.bsky.feed.post/another"
         assert result.like_count == 200
         assert result.reply_count == 25
         mock_adapter.write_feed_post.assert_called_once()
@@ -90,7 +90,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         )
         post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
             text="Test post content",
@@ -110,18 +110,18 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         call_args = mock_adapter.write_feed_post.call_args[0][0]
         assert isinstance(call_args, BlueskyFeedPost)
         assert mock_adapter.write_feed_post.call_args[1]["conn"] is not None
-        assert call_args.uri == result.uri
+        assert call_args.source_id == result.source_id
         assert call_args.text == result.text
         assert call_args.author_handle == result.author_handle
 
-    def test_raises_validation_error_when_uri_is_empty(self):
-        """Test that creating BlueskyFeedPost with empty uri raises ValidationError from Pydantic."""
+    def test_raises_validation_error_when_source_id_is_empty(self):
+        """Test that creating BlueskyFeedPost with empty source_id raises ValidationError from Pydantic."""
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
             PostFactory.create(
                 post_id="",
-                uri="",
+                source_id="",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
                 text="Test post content",
@@ -135,14 +135,14 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
 
         assert "value cannot be empty" in str(exc_info.value)
 
-    def test_raises_validation_error_when_uri_is_whitespace(self):
-        """Test that creating BlueskyFeedPost with whitespace uri raises ValidationError from Pydantic."""
+    def test_raises_validation_error_when_source_id_is_whitespace(self):
+        """Test that creating BlueskyFeedPost with whitespace source_id raises ValidationError from Pydantic."""
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         with pytest.raises(ValidationError) as exc_info:
             PostFactory.create(
                 post_id="   ",
-                uri="   ",
+                source_id="   ",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
                 text="Test post content",
@@ -161,7 +161,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         db_error = sqlite3.IntegrityError(
-            "UNIQUE constraint failed: bluesky_feed_posts.uri"
+            "UNIQUE constraint failed: bluesky_feed_posts.source_id"
         )
         mock_adapter.write_feed_post.side_effect = db_error
         repo = SQLiteFeedPostRepository(
@@ -170,7 +170,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPost:
         )
         post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
             text="Test post content",
@@ -206,7 +206,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
         posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -263,15 +263,15 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
 
         mock_adapter.write_feed_posts.assert_not_called()
 
-    def test_raises_validation_error_when_any_uri_is_empty(self):
-        """Test that creating BlueskyFeedPost with empty uri raises ValidationError from Pydantic."""
+    def test_raises_validation_error_when_any_source_id_is_empty(self):
+        """Test that creating BlueskyFeedPost with empty source_id raises ValidationError from Pydantic."""
         # Arrange & Act & Assert
         # Pydantic validation happens at model creation time, not in repository
         # The post will fail validation when created
         with pytest.raises(ValidationError) as exc_info:
             PostFactory.create(
                 post_id="",
-                uri="",
+                source_id="",
                 author_display_name="User 2",
                 author_handle="user2.bsky.social",
                 text="Post 2 content",
@@ -298,7 +298,7 @@ class TestSQLiteFeedPostRepositoryCreateOrUpdateFeedPosts:
         posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -331,7 +331,7 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         expected_post = PostFactory.create(
             post_id="at://did:plc:test123/app.bsky.feed.post/test",
-            uri="at://did:plc:test123/app.bsky.feed.post/test",
+            source_id="at://did:plc:test123/app.bsky.feed.post/test",
             author_display_name="Test User",
             author_handle="test.bsky.social",
             text="Test post content",
@@ -364,7 +364,7 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         mock_adapter.read_feed_post.side_effect = ValueError(
-            "No feed post found for uri: at://did:plc:nonexistent/app.bsky.feed.post/test"
+            "No feed post found for source_id: at://did:plc:nonexistent/app.bsky.feed.post/test"
         )
         repo = SQLiteFeedPostRepository(
             db_adapter=mock_adapter,
@@ -372,7 +372,7 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         )
 
         # Act & Assert
-        with pytest.raises(ValueError, match="No feed post found for uri"):
+        with pytest.raises(ValueError, match="No feed post found for source_id"):
             repo.get_feed_post("at://did:plc:nonexistent/app.bsky.feed.post/test")
 
         mock_adapter.read_feed_post.assert_called_once()
@@ -381,8 +381,8 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         )
         assert mock_adapter.read_feed_post.call_args[1]["conn"] is not None
 
-    def test_raises_value_error_when_uri_is_empty(self):
-        """Test that get_feed_post raises ValueError when uri is empty."""
+    def test_raises_value_error_when_source_id_is_empty(self):
+        """Test that get_feed_post raises ValueError when source_id is empty."""
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         repo = SQLiteFeedPostRepository(
@@ -391,13 +391,13 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         )
 
         # Act & Assert
-        with pytest.raises(ValueError, match="uri cannot be empty"):
+        with pytest.raises(ValueError, match="source_id cannot be empty"):
             repo.get_feed_post("")
 
         mock_adapter.read_feed_post.assert_not_called()
 
-    def test_raises_value_error_when_uri_is_whitespace(self):
-        """Test that get_feed_post raises ValueError when uri is whitespace."""
+    def test_raises_value_error_when_source_id_is_whitespace(self):
+        """Test that get_feed_post raises ValueError when source_id is whitespace."""
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         repo = SQLiteFeedPostRepository(
@@ -406,7 +406,7 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         )
 
         # Act & Assert
-        with pytest.raises(ValueError, match="uri cannot be empty"):
+        with pytest.raises(ValueError, match="source_id cannot be empty"):
             repo.get_feed_post("   ")
 
         mock_adapter.read_feed_post.assert_not_called()
@@ -422,7 +422,7 @@ class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
         expected_posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name="Test User",
                 author_handle="test.bsky.social",
                 text=f"Post {i} content",
@@ -532,7 +532,7 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         expected_posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -567,7 +567,7 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         expected_posts = [
             PostFactory.create(
                 post_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
-                uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
+                source_id=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
                 author_display_name=f"User {i}",
                 author_handle=f"user{i}.bsky.social",
                 text=f"Post {i} content",
@@ -590,6 +590,6 @@ class TestSQLiteFeedPostRepositoryListAllFeedPosts:
         result = repo.list_all_feed_posts()
 
         # Assert
-        assert result[0].uri == "at://did:plc:test1/app.bsky.feed.post/test1"
-        assert result[1].uri == "at://did:plc:test2/app.bsky.feed.post/test2"
-        assert result[2].uri == "at://did:plc:test3/app.bsky.feed.post/test3"
+        assert result[0].source_id == "at://did:plc:test1/app.bsky.feed.post/test1"
+        assert result[1].source_id == "at://did:plc:test2/app.bsky.feed.post/test2"
+        assert result[2].source_id == "at://did:plc:test3/app.bsky.feed.post/test3"

@@ -9,7 +9,7 @@ from tests.factories import PostFactory
 def _build_post(post_id: str, author_handle: str):
     return PostFactory.create(
         post_id=post_id,
-        uri=post_id,
+        source_id=post_id,
         author_display_name="Author",
         author_handle=author_handle,
         text=f"text for {post_id}",
