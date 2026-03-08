@@ -13,6 +13,8 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
   const [copied, setCopied] = useState(false);
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [exportStatus, setExportStatus] = useState(false);
+
   useEffect(() => {
     return () => {
       if (copyResetTimerRef.current) {
@@ -33,9 +35,25 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
       }
   };
 
+  const handleExportRun = async (): Promise<void> => {
+    setExportStatus(true) 
+    console.log(run)
+    console.log(agents)
+    console.log(completedTurns)
+  }
+
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
+        <button
+          type="button"
+          onClick={handleExportRun}
+        >
+          {exportStatus ? 'Clicked!' : 'Export Run '}
+        </button>
+      </div>
+
       <div className="bg-white border border-beige-300 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-beige-100">
