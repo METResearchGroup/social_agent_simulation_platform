@@ -12,9 +12,9 @@ repos:
         args: [--check]
   - repo: local
     hooks:
-      - id: python_test_class_convention
-        name: python_test_class_convention (pytest tests must be class-based)
-        entry: bash -lc "uv run python scripts/lint_pytest_class_convention.py"
+      - id: python_testing_syntax_conventions
+        name: python_testing_syntax_conventions (python testing conventions)
+        entry: bash -lc "uv run python scripts/lint_python_testing_syntax_conventions.py"
         language: system
         pass_filenames: false
       - id: markdownlint

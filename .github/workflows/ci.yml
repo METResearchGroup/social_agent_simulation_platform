@@ -269,7 +269,7 @@ jobs:
         run: |
           PYTHONPATH=${{ github.workspace }} uv run pre-commit run python_dependency_injection_guard --all-files
 
-  pytest_test_class_convention:
+  python_testing_syntax_conventions:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -299,8 +299,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra test
 
-      - name: Enforce class-based pytest tests
-        run: uv run python scripts/lint_pytest_class_convention.py
+      - name: Enforce python testing conventions
+        run: uv run python scripts/lint_python_testing_syntax_conventions.py
 
   test:
     runs-on: ubuntu-latest

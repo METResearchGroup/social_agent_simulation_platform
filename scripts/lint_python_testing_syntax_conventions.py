@@ -1,8 +1,9 @@
-"""Fail if pytest tests are defined as module-level `def test_*` functions.
+"""Enforce repo conventions for Python test syntax under `tests/`.
 
-Repo convention: tests should be organized under `class Test...:` blocks. Fixtures and
-helper functions may remain at module scope, but module-level test functions are not
-allowed to avoid drift in test structure.
+Currently enforced:
+- Pytest tests must not be defined as module-level `def test_*` functions; tests should
+  live under `class Test...:` blocks. Fixtures and helper functions may remain at module
+  scope.
 """
 
 from __future__ import annotations

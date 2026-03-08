@@ -1,17 +1,17 @@
-"""Unit tests for scripts/lint_pytest_class_convention.py."""
+"""Unit tests for scripts/lint_python_testing_syntax_conventions.py."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from scripts import lint_pytest_class_convention
+from scripts import lint_python_testing_syntax_conventions
 
 
 def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-class TestLintPytestClassConvention:
+class TestLintPythonTestingSyntaxConventions:
     def test_allows_class_based_tests(self, tmp_path: Path, capsys):
         root = tmp_path / "tests"
         root.mkdir()
@@ -20,7 +20,7 @@ class TestLintPytestClassConvention:
             "class TestOk:\n    def test_works(self):\n        assert True\n",
         )
 
-        exit_code = lint_pytest_class_convention.main(["prog", str(root)])
+        exit_code = lint_python_testing_syntax_conventions.main(["prog", str(root)])
 
         assert exit_code == 0
         out = capsys.readouterr().out
@@ -40,7 +40,7 @@ class TestLintPytestClassConvention:
             "        assert thing == 123\n",
         )
 
-        exit_code = lint_pytest_class_convention.main(["prog", str(root)])
+        exit_code = lint_python_testing_syntax_conventions.main(["prog", str(root)])
 
         assert exit_code == 0
         out = capsys.readouterr().out
@@ -54,7 +54,7 @@ class TestLintPytestClassConvention:
             "def test_bad():\n    assert True\n",
         )
 
-        exit_code = lint_pytest_class_convention.main(["prog", str(root)])
+        exit_code = lint_python_testing_syntax_conventions.main(["prog", str(root)])
 
         assert exit_code == 1
         out = capsys.readouterr().out
@@ -68,7 +68,7 @@ class TestLintPytestClassConvention:
             "async def test_bad_async():\n    assert True\n",
         )
 
-        exit_code = lint_pytest_class_convention.main(["prog", str(root)])
+        exit_code = lint_python_testing_syntax_conventions.main(["prog", str(root)])
 
         assert exit_code == 1
         out = capsys.readouterr().out
