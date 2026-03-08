@@ -130,6 +130,16 @@ def test_post_invariants(post):
 
 - Unit tests should live under `tests/` mirroring the source layout.
 - Prefer adding tests next to similar tests to reuse fixtures and patterns.
+- Use class-based pytest tests: define `test_*` as methods on `class Test...:` blocks (not module-level `def test_*`).
+
+Example:
+
+```python
+class TestPostFactory:
+    def test_defaults_are_valid(self):
+        post = PostFactory.create()
+        assert post.uri
+```
 
 ## Quality gates
 
