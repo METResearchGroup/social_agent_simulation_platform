@@ -192,9 +192,18 @@ def validate_post_id_exists(post_id: str) -> str:
     return _validate_non_empty_string_labeled(post_id, label="post_id")
 
 
-def validate_post_ids_exist(post_ids: Iterable[str]) -> Iterable[str]:
-    """Validate that post_ids is not None and not empty."""
-    return validate_non_empty_iterable(post_ids, "post_ids")
+def validate_post_ids_exist(post_ids: Iterable[str]) -> list[str]:
+    """Validate that post_ids is not None/empty and contains only valid post IDs.
+
+    Materializes the iterable so generator inputs are validated (and duplicates and
+    ordering are preserved). Returns a normalized list of stripped post IDs.
+    """
+    if post_ids is None:  # type: ignore[reportUnnecessaryComparison]
+        raise ValueError("post_ids cannot be None")
+
+    post_ids_list = list(post_ids)
+    validate_non_empty_iterable(post_ids_list, "post_ids")
+    return [validate_post_id_exists(pid) for pid in post_ids_list]
 
 
 def validate_posts_exist(posts: list[Post] | None) -> list[Post]:

@@ -1,13 +1,10 @@
-# TODO: for now, we support only Bluesky posts being added to feeds.
-# We'll revisit how to add AI-generated posts to feeds later on.
+from __future__ import annotations
+
 import uuid
 
 from pydantic import BaseModel, field_validator
 
-from lib.validation_utils import (
-    validate_non_empty_string,
-    validate_nonnegative_value,
-)
+from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 
 
 class GeneratedFeed(BaseModel):
@@ -17,43 +14,41 @@ class GeneratedFeed(BaseModel):
     run_id: str
     turn_number: int
     agent_handle: str
-class GeneratedFeed(BaseModel):
-    `@field_validator`("turn_number")
-    `@classmethod`
-    def validate_turn_number(cls, v: int) -> int:
-        """Validate that turn_number is a non-negative integer."""
-        return validate_nonnegative_value(v, "turn_number")
+    post_ids: list[str]
+    created_at: str
 
-    `@field_validator`("post_ids")
-    `@classmethod`
-    def validate_post_ids(cls, v: list[str]) -> list[str]:
-        """Validate that each post_id is a non-empty string."""
-        return [validate_non_empty_string(post_id, "post_ids[]") for post_id in v]
-
-    @field_validator("agent_handle")
+    @field_validator("feed_id", "run_id", "agent_handle", "created_at", mode="before")
     @classmethod
-    def validate_agent_handle(cls, v: str) -> str:
-        """Validate that agent_handle is a non-empty string."""
-        return validate_non_empty_string(v)
+    def validate_required_strings(cls, v: object) -> str:
+        return validate_non_empty_string(v)  # pyright: ignore[reportArgumentType]
 
-    @field_validator("run_id")
-    @classmethod
-    def validate_run_id(cls, v: str) -> str:
-        """Validate that run_id is a non-empty string."""
-        return validate_non_empty_string(v)
-
-    @field_validator("feed_id")
-    @classmethod
-    def validate_feed_id(cls, v: str) -> str:
-        """Validate that feed_id is a non-empty string."""
-        return validate_non_empty_string(v)
-
-    @field_validator("turn_number")
+    @field_validator("turn_number", mode="before")
     @classmethod
     def validate_turn_number(cls, v: int) -> int:
         """Validate that turn_number is a non-negative integer."""
-        return validate_nonnegative_value(v, "turn_number")
+        return int(validate_nonnegative_value(v, "turn_number"))
+
+    @field_validator("post_ids", mode="before")
+    @classmethod
+    def validate_post_ids(cls, v: object) -> list[str]:
+        """Validate and normalize post_ids by stripping and rejecting empty entries."""
+        if v is None:
+            raise ValueError("post_ids cannot be None")
+        if not isinstance(v, list):
+            raise ValueError("post_ids must be a list")
+
+        normalized: list[str] = []
+        for post_id in v:
+            if post_id is None:
+                raise ValueError("post_ids contains null entry")
+            if not isinstance(post_id, str):
+                raise ValueError("post_ids contains non-string entry")
+            cleaned = post_id.strip()
+            if cleaned == "":
+                raise ValueError("post_ids contains empty/whitespace-only entry")
+            normalized.append(cleaned)
+        return normalized
 
     @classmethod
     def generate_feed_id(cls) -> str:
-        return f"feed_{str(uuid.uuid4())}"
+        return f"feed_{uuid.uuid4()}"

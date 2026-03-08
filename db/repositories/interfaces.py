@@ -396,9 +396,17 @@ class FeedPostRepository(ABC):
             post_ids: Iterable of canonical post IDs to look up
 
         Returns:
-            List of Post models for the given post_ids.
-            Returns empty list if no post_ids provided or if no posts found.
-            Missing post_ids are silently skipped (only existing posts are returned).
+            List of Post models corresponding to the provided post_ids.
+
+            Ordering is part of the contract:
+            - The returned list must preserve the same relative ordering as post_ids.
+            - Missing post_ids are silently skipped (only existing posts are returned).
+            - Duplicate post_ids must be preserved (i.e., if the same ID appears
+              multiple times in post_ids, the corresponding Post must appear
+              multiple times in the returned list, in the same positions relative
+              to other IDs, skipping only missing IDs).
+
+            Returns an empty list if post_ids is empty or if no posts are found.
         """
         raise NotImplementedError
 
