@@ -49,6 +49,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
         <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
         <button
           type="button"
+          className="text-accent hover:text-accent-hover"
           onClick={handleExportRun}
         >
           {exportStatus ? 'Clicked!' : 'Export Run'}
