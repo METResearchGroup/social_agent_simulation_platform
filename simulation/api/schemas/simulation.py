@@ -244,6 +244,21 @@ class RunDetailsResponse(BaseModel):
     run_metrics: ComputedMetrics | None = None
 
 
+class RunExportResponse(BaseModel):
+    """Response body for GET /v1/simulations/runs/{run_id}/export."""
+
+    run_id: str
+    status: RunStatus
+    created_at: str
+    started_at: str
+    completed_at: str | None = None
+    config: RunConfigDetail
+    turns: list[TurnActionsItem]
+    run_metrics: ComputedMetrics | None = None
+    agents: list[AgentSchema]
+    completed_turns: int
+
+
 class TurnSummaryItem(BaseModel):
     """One turn summary with computed metrics."""
 
