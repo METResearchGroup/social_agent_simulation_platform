@@ -30,10 +30,17 @@ Hard breaking change: `PostSchema` responses no longer include `uri`.
 
 ## Happy Flow (end-to-end)
 
-1. Backend loads persisted feed posts from SQLite table `bluesky_feed_posts` keyed by `source_id` and materializes `BlueskyFeedPost.source_id`.
-2. Feed generation continues to persist feeds containing `post_uris` (unchanged naming), but the values represent post source IDs; hydration resolves those values via DB queries keyed by `source_id`.
-3. `GET /v1/simulations/posts?uris=...` returns `PostSchema` objects containing `source_id` (no `uri`).
-4. UI calls `getPosts(uris)` (name unchanged) and maps `source_id` → `sourceId`; UI indexes posts by `sourceId` and resolves `feed.postUris[]` against that map.
+1. Backend loads persisted feed posts from SQLite table `bluesky_feed_posts` keyed by `source_id` and materializes `BlueskyFeedPost.source_id` (`simulation/core/models/posts.py`, `db/adapters/sqlite/feed_post_adapter.py`).
+2. Feed generation persists feeds containing `post_uris` (unchanged naming), but the values represent post source IDs; hydration resolves those values via DB queries keyed by `source_id` (`feeds/feed_generator.py`, `db/repositories/feed_post_repository.py`).
+3. `GET /v1/simulations/posts?uris=...` returns `PostSchema` objects containing `source_id` (no `uri`) (`simulation/api/schemas/simulation.py`, `simulation/api/services/run_query_service.py`).
+4. UI calls `getPosts(uris)` (name unchanged) and maps `source_id` → `sourceId`; UI indexes posts by `sourceId` and resolves `feed.postUris[]` against that map (`ui/lib/api/simulation.ts`, `ui/components/details/DetailsPanel.tsx`).
+
+## Data Flow
+
+- **DB**: `bluesky_feed_posts.source_id` (primary key) replaces `uri` (`db/schema.py`, `db/migrations/versions/2c7d9b31f4aa_rename_bluesky_feed_posts_uri_to_source_id.py`).
+- **Domain**: `BlueskyFeedPost.source_id` replaces `uri` and remains the canonical post identifier; `BlueskyFeedPost.id` mirrors `source_id` when not explicitly set (`simulation/core/models/posts.py`).
+- **API**: `PostSchema.source_id` replaces `uri` (breaking response change); request query parameter remains `uris` (`simulation/api/schemas/simulation.py`).
+- **UI**: API `source_id` maps to UI `sourceId`; feeds still reference `postUris[]` values that match `sourceId` (`ui/lib/api/simulation.ts`).
 
 ## Assets (UI screenshots)
 
@@ -60,4 +67,3 @@ UI:
 
 - Regenerate API client/types: `cd ui && npm run generate:api`
 - Lint/typecheck: `cd ui && npm run lint:all`
-
