@@ -15,6 +15,10 @@ def create_mock_row(row_data: dict) -> MagicMock:
     Returns:
         MagicMock configured to behave like a sqlite3.Row
     """
+    if "uri" in row_data and "post_id" not in row_data:
+        row_data = {**row_data, "post_id": f"bluesky:{row_data['uri']}"}
+    if "uri" in row_data and "source" not in row_data:
+        row_data = {**row_data, "source": "bluesky"}
     mock_row = MagicMock()
     mock_row.__getitem__ = Mock(side_effect=lambda key: row_data[key])
     mock_row.keys = Mock(return_value=list(row_data.keys()))

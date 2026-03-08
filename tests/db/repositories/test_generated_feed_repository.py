@@ -28,7 +28,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
 
@@ -54,9 +54,9 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             run_id="run_456",
             turn_number=5,
             agent_handle="another.bsky.social",
-            post_uris=[
-                "at://did:plc:test1/app.bsky.feed.post/post1",
-                "at://did:plc:test2/app.bsky.feed.post/post2",
+            post_ids=[
+                "bluesky:at://did:plc:test1/app.bsky.feed.post/post1",
+                "bluesky:at://did:plc:test2/app.bsky.feed.post/post2",
             ],
             created_at="2024-02-01T12:00:00Z",
         )
@@ -68,7 +68,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
         assert result.feed_id == "feed_another456"
         assert result.run_id == "run_456"
         assert result.turn_number == 5
-        assert len(result.post_uris) == 2
+        assert len(result.post_ids) == 2
         mock_adapter.write_generated_feed.assert_called_once()
         assert mock_adapter.write_generated_feed.call_args[0][0] == feed
         assert mock_adapter.write_generated_feed.call_args[1]["conn"] is not None
@@ -86,7 +86,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
 
@@ -112,7 +112,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
                 run_id="run_123",
                 turn_number=1,
                 agent_handle="",
-                post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+                post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
                 created_at="2024-01-01T00:00:00Z",
             )
 
@@ -128,7 +128,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
                 run_id="",
                 turn_number=1,
                 agent_handle="test.bsky.social",
-                post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+                post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
                 created_at="2024-01-01T00:00:00Z",
             )
 
@@ -153,7 +153,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
 
@@ -179,7 +179,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
             run_id="run_123",
             turn_number=1,
             agent_handle="test.bsky.social",
-            post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+            post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
         mock_adapter.read_generated_feed.return_value = expected_feed
@@ -287,7 +287,7 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
                 run_id=f"run_{i}",
                 turn_number=i,
                 agent_handle=f"user{i}.bsky.social",
-                post_uris=[f"at://did:plc:test{i}/app.bsky.feed.post/post{i}"],
+                post_ids=[f"bluesky:at://did:plc:test{i}/app.bsky.feed.post/post{i}"],
                 created_at=f"2024-01-0{i}T00:00:00Z",
             )
             for i in range(1, 4)
@@ -317,7 +317,7 @@ class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
                 run_id=f"run_{i}",
                 turn_number=i,
                 agent_handle=f"user{i}.bsky.social",
-                post_uris=[f"at://did:plc:test{i}/app.bsky.feed.post/post{i}"],
+                post_ids=[f"bluesky:at://did:plc:test{i}/app.bsky.feed.post/post{i}"],
                 created_at=f"2024-01-0{i}T00:00:00Z",
             )
             for i in range(1, 4)
@@ -350,7 +350,7 @@ class TestSQLiteGeneratedFeedRepositoryReadFeedsForTurn:
                 run_id="run_123",
                 turn_number=0,
                 agent_handle="test.bsky.social",
-                post_uris=["at://did:plc:test1/app.bsky.feed.post/post1"],
+                post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
                 created_at="2024-01-01T00:00:00Z",
             )
         ]

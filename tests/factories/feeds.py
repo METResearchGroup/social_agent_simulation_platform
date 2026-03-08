@@ -22,7 +22,7 @@ class GeneratedFeedFactory(BaseFactory[GeneratedFeed]):
         run_id: str | None = None,
         turn_number: int = 0,
         agent_handle: str | None = None,
-        post_uris: list[str] | None = None,
+        post_ids: list[str] | None = None,
         created_at: str | None = None,
     ) -> GeneratedFeed:
         fake = get_faker()
@@ -33,11 +33,11 @@ class GeneratedFeedFactory(BaseFactory[GeneratedFeed]):
             else f"{fake.user_name()}.bsky.social"
         )
         feed_id_value = feed_id if feed_id is not None else f"feed_{fake.uuid4()}"
-        post_uris_value = (
-            post_uris
-            if post_uris is not None
-            else [f"at://did:plc:{fake.uuid4()}/app.bsky.feed.post/{fake.uuid4()}"]
-        )
+        if post_ids is not None:
+            post_ids_value = post_ids
+        else:
+            uri = f"at://did:plc:{fake.uuid4()}/app.bsky.feed.post/{fake.uuid4()}"
+            post_ids_value = [f"bluesky:{uri}"]
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_iso()
         )
@@ -46,6 +46,6 @@ class GeneratedFeedFactory(BaseFactory[GeneratedFeed]):
             run_id=run_id_value,
             turn_number=turn_number,
             agent_handle=agent_value,
-            post_uris=post_uris_value,
+            post_ids=post_ids_value,
             created_at=created_at_value,
         )

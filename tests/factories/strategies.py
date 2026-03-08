@@ -6,12 +6,12 @@ from hypothesis import strategies as st
 from hypothesis.strategies import SearchStrategy
 
 from simulation.core.metrics.defaults import get_default_metric_keys
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import RunConfig
 
 
-def bluesky_post_strategy() -> SearchStrategy[BlueskyFeedPost]:
-    """Generate valid BlueskyFeedPost instances.
+def bluesky_post_strategy() -> SearchStrategy[Post]:
+    """Generate valid Post instances (Bluesky source).
 
     Keep constraints aligned with Pydantic validators (non-empty strings, non-negative counts).
     """
@@ -32,6 +32,7 @@ def bluesky_post_strategy() -> SearchStrategy[BlueskyFeedPost]:
     )
     post_dict = st.fixed_dictionaries(
         {
+            "source": st.just(PostSource.BLUESKY),
             "uri": uri,
             "author_handle": handle,
             "author_display_name": display_name,
@@ -44,7 +45,8 @@ def bluesky_post_strategy() -> SearchStrategy[BlueskyFeedPost]:
             "created_at": created_at,
         }
     )
-    return post_dict.map(BlueskyFeedPost.model_validate)
+    post_dict_with_id = post_dict.map(lambda d: {**d, "post_id": f"bluesky:{d['uri']}"})
+    return post_dict_with_id.map(Post.model_validate)
 
 
 def run_config_strategy() -> SearchStrategy[RunConfig]:

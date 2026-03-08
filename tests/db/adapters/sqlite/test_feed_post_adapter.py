@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from tests.db.adapters.sqlite.conftest import create_mock_row
 
 
@@ -16,13 +16,13 @@ def adapter():
     return SQLiteFeedPostAdapter()
 
 
-class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
-    """Tests for SQLiteFeedPostAdapter.read_feed_posts_by_uris method."""
+class TestSQLiteFeedPostAdapterReadFeedPostsByIds:
+    """Tests for SQLiteFeedPostAdapter.read_feed_posts_by_ids method."""
 
     def test_returns_posts_when_found(self, adapter, mock_db_connection):
-        """Test that read_feed_posts_by_uris returns list of posts when they exist."""
+        """Test that read_feed_posts_by_ids returns list of posts when they exist."""
         # Arrange
-        uris = ["uri1", "uri2", "uri3"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1", "uri2", "uri3"]]
 
         row_data_1 = {
             "uri": "uri1",
@@ -70,28 +70,28 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
             )
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            result = adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             assert result is not None
             assert isinstance(result, list)
             assert len(result) == 3
-            assert all(isinstance(post, BlueskyFeedPost) for post in result)
+            assert all(isinstance(post, Post) for post in result)
             assert result[0].uri == "uri1"
             assert result[0].text == "Post 1 text"
             assert result[1].uri == "uri2"
             assert result[2].uri == "uri3"
 
-    def test_returns_empty_list_when_no_uris_provided(
+    def test_returns_empty_list_when_no_post_ids_provided(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris returns empty list when no URIs provided."""
+        """Test that read_feed_posts_by_ids returns empty list when no post_ids provided."""
         # Arrange
-        uris = []
+        post_ids = []
 
         with mock_db_connection() as (mock_conn, mock_cursor):
             # Act
-            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            result = adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -101,27 +101,27 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
             mock_conn.execute.assert_not_called()
 
     def test_returns_empty_list_when_no_posts_found(self, adapter, mock_db_connection):
-        """Test that read_feed_posts_by_uris returns empty list when no posts exist."""
+        """Test that read_feed_posts_by_ids returns empty list when no posts exist."""
         # Arrange
-        uris = ["nonexistent_uri1", "nonexistent_uri2"]
+        post_ids = [f"bluesky:{u}" for u in ["nonexistent_uri1", "nonexistent_uri2"]]
 
         with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[])
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            result = adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             assert result is not None
             assert isinstance(result, list)
             assert len(result) == 0
 
-    def test_returns_partial_results_when_some_uris_missing(
+    def test_returns_partial_results_when_some_post_ids_missing(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris returns partial results when some URIs don't exist."""
+        """Test that read_feed_posts_by_ids returns partial results when some post_ids don't exist."""
         # Arrange
-        uris = ["uri1", "nonexistent_uri", "uri2"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1", "nonexistent_uri", "uri2"]]
 
         row_data_1 = {
             "uri": "uri1",
@@ -154,7 +154,7 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
             mock_cursor.fetchall = Mock(return_value=[mock_row_1, mock_row_2])
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            result = adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -166,10 +166,10 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
     def test_preserves_input_order_when_database_returns_different_order(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris preserves input URI order even if DB returns different order."""
+        """Test that read_feed_posts_by_ids preserves input URI order even if DB returns different order."""
         # Arrange
         # Input order: uri3, uri1, uri2
-        uris = ["uri3", "uri1", "uri2"]
+        post_ids = [f"bluesky:{u}" for u in ["uri3", "uri1", "uri2"]]
 
         row_data_1 = {
             "uri": "uri1",
@@ -218,7 +218,7 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
             )
 
             # Act
-            result = adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            result = adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             assert result is not None
@@ -232,23 +232,23 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
     def test_raises_operational_error_on_database_error(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris raises OperationalError on database error."""
+        """Test that read_feed_posts_by_ids raises OperationalError on database error."""
         # Arrange
-        uris = ["uri1", "uri2"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1", "uri2"]]
 
         with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = sqlite3.OperationalError("Database error")
 
             # Act & Assert
             with pytest.raises(sqlite3.OperationalError, match="Database error"):
-                adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+                adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
     def test_raises_keyerror_when_missing_required_column(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris raises KeyError when required column is missing."""
+        """Test that read_feed_posts_by_ids raises KeyError when required column is missing."""
         # Arrange
-        uris = ["uri1"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1"]]
 
         # Missing "uri" column
         row_data = {
@@ -269,12 +269,12 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
 
             # Act & Assert
             with pytest.raises(KeyError):
-                adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+                adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
     def test_raises_valueerror_when_null_fields(self, adapter, mock_db_connection):
-        """Test that read_feed_posts_by_uris raises ValueError when fields are NULL."""
+        """Test that read_feed_posts_by_ids raises ValueError when fields are NULL."""
         # Arrange
-        uris = ["uri1"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1"]]
 
         # NULL uri
         row_data = {
@@ -296,45 +296,45 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByUris:
 
             # Act & Assert
             with pytest.raises(ValueError, match="uri cannot be NULL"):
-                adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+                adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
-    def test_calls_database_with_correct_parameters_single_uri(
+    def test_calls_database_with_correct_parameters_single_post_id(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris calls database with correct SQL for single URI."""
+        """Test that read_feed_posts_by_ids calls database with correct SQL for single post_id."""
         # Arrange
-        uris = ["uri1"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1"]]
 
         with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[])
 
             # Act
-            adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
             # Should use parameterized IN clause
-            assert "WHERE uri IN" in call_args[0][0]
-            assert call_args[0][1] == tuple(uris)
+            assert "WHERE post_id IN" in call_args[0][0]
+            assert call_args[0][1] == tuple(post_ids)
 
-    def test_calls_database_with_correct_parameters_multiple_uris(
+    def test_calls_database_with_correct_parameters_multiple_post_ids(
         self, adapter, mock_db_connection
     ):
-        """Test that read_feed_posts_by_uris calls database with correct SQL for multiple URIs."""
+        """Test that read_feed_posts_by_ids calls database with correct SQL for multiple post_ids."""
         # Arrange
-        uris = ["uri1", "uri2", "uri3"]
+        post_ids = [f"bluesky:{u}" for u in ["uri1", "uri2", "uri3"]]
 
         with mock_db_connection() as (mock_conn, mock_cursor):
             mock_cursor.fetchall = Mock(return_value=[])
 
             # Act
-            adapter.read_feed_posts_by_uris(uris, conn=mock_conn)
+            adapter.read_feed_posts_by_ids(post_ids, conn=mock_conn)
 
             # Assert
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
             # Should use parameterized IN clause with correct number of placeholders
-            assert "WHERE uri IN" in call_args[0][0]
-            # Parameters should be tuple of URIs
-            assert call_args[0][1] == tuple(uris)
+            assert "WHERE post_id IN" in call_args[0][0]
+            # Parameters should be tuple of post_ids
+            assert call_args[0][1] == tuple(post_ids)

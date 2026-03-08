@@ -33,7 +33,7 @@ from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -55,7 +55,7 @@ class SeedFixtures:
     runs: list[Run]
     turn_metadata: list[TurnMetadata]
     generated_feeds: list[GeneratedFeed]
-    feed_posts: list[BlueskyFeedPost]
+    feed_posts: list[Post]
     turn_metrics: list[TurnMetrics]
     run_metrics: list[RunMetrics]
     agents: list[Agent]
@@ -146,7 +146,10 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
             )
         )
     user_md = [UserAgentProfileMetadata.model_validate(item) for item in metadata_raw]
-    posts = [BlueskyFeedPost.model_validate(item) for item in posts_raw]
+    posts = [
+        Post.model_validate({**item, "source": PostSource.BLUESKY})
+        for item in posts_raw
+    ]
     feeds = [GeneratedFeed.model_validate(item) for item in feeds_raw]
 
     turn_metadata: list[TurnMetadata] = []

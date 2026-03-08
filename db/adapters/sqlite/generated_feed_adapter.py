@@ -64,7 +64,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
         """
         row_values = tuple(
-            json.dumps(feed.post_uris) if col == "post_uris" else getattr(feed, col)
+            json.dumps(feed.post_ids) if col == "post_ids" else getattr(feed, col)
             for col in GENERATED_FEED_COLUMNS
         )
         conn.execute(_INSERT_GENERATED_FEED_SQL, row_values)
@@ -115,7 +115,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             run_id=row["run_id"],
             turn_number=row["turn_number"],
             agent_handle=row["agent_handle"],
-            post_uris=json.loads(row["post_uris"]),
+            post_ids=json.loads(row["post_ids"]),
             created_at=row["created_at"],
         )
 
@@ -154,10 +154,10 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     @validate_inputs(
         (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
     )
-    def read_post_uris_for_run(
+    def read_post_ids_for_run(
         self, agent_handle: str, run_id: str, *, conn: sqlite3.Connection
     ) -> set[str]:
-        """Read all post URIs from generated feeds for a specific agent and run.
+        """Read all post_ids from generated feeds for a specific agent and run.
 
         Args:
             agent_handle: Agent handle to filter by
@@ -165,7 +165,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             conn: Connection.
 
         Returns:
-            Set of post URIs from all generated feeds matching the agent and run.
+            Set of post_ids from all generated feeds matching the agent and run.
             Returns empty set if no feeds found.
 
         Raises:
@@ -174,13 +174,13 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         """
         rows = conn.execute(
             """
-            SELECT post_uris
+            SELECT post_ids
             FROM generated_feeds
             WHERE agent_handle = ? AND run_id = ?
         """,
             (agent_handle, run_id),
         ).fetchall()
-        return {uri for row in rows for uri in json.loads(row["post_uris"])}
+        return {pid for row in rows for pid in json.loads(row["post_ids"])}
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_feeds_for_turn(

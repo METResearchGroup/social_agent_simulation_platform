@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post, PostSource
 from tests.factories._helpers import _timestamp_utc_iso
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
@@ -16,13 +16,14 @@ def _post_key() -> str:
     return fake.uuid4().replace("-", "")[:16]
 
 
-class PostFactory(BaseFactory[BlueskyFeedPost]):
+class PostFactory(BaseFactory[Post]):
     @classmethod
     def create(
         cls,
         *,
         post_id: str | None = None,
         uri: str | None = None,
+        source: PostSource = PostSource.BLUESKY,
         author_handle: str | None = None,
         author_display_name: str | None = None,
         text: str | None = None,
@@ -32,7 +33,7 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         reply_count: int | None = None,
         repost_count: int | None = None,
         created_at: str | None = None,
-    ) -> BlueskyFeedPost:
+    ) -> Post:
         fake = get_faker()
         uri_value = (
             uri
@@ -66,9 +67,12 @@ class PostFactory(BaseFactory[BlueskyFeedPost]):
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_iso()
         )
-        id_value = post_id if post_id is not None else uri_value
-        return BlueskyFeedPost(
-            id=id_value,
+        post_id_value = (
+            post_id if post_id is not None else f"{source.value}:{uri_value}"
+        )
+        return Post(
+            post_id=post_id_value,
+            source=source,
             uri=uri_value,
             author_handle=author_handle_value,
             author_display_name=author_display_name_value,

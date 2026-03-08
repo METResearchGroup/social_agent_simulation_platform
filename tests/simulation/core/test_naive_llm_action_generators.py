@@ -25,28 +25,25 @@ from simulation.core.action_generators.like.algorithms.naive_llm import (
 from simulation.core.action_generators.like.algorithms.naive_llm.response_models import (
     LikePrediction,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from tests.factories import PostFactory
 
 
 def _post(
-    post_id: str,
+    uri: str,
     *,
     author_handle: str | None = None,
     like_count: int = 0,
     repost_count: int = 0,
     reply_count: int = 0,
     created_at: str = "2024_01_01-12:00:00",
-) -> BlueskyFeedPost:
-    """Build a BlueskyFeedPost for tests."""
-    handle = (
-        author_handle if author_handle is not None else f"author-{post_id}.bsky.social"
-    )
+) -> Post:
+    """Build a Post (Bluesky source) for tests."""
+    handle = author_handle if author_handle is not None else f"author-{uri}.bsky.social"
     return PostFactory.create(
-        post_id=post_id,
-        uri=post_id,
+        uri=uri,
         author_handle=handle,
-        author_display_name=f"Author {post_id}",
+        author_display_name=f"Author {uri}",
         text="content",
         like_count=like_count,
         bookmark_count=0,
@@ -58,7 +55,7 @@ def _post(
 
 
 @pytest.fixture
-def sample_candidates() -> list[BlueskyFeedPost]:
+def sample_candidates() -> list[Post]:
     """Sample feed posts for testing."""
     return [
         _post("post_1", author_handle="alice.bsky.social", like_count=10),
@@ -71,7 +68,7 @@ class TestNaiveLLMLikeGenerator:
     """Tests for NaiveLLMLikeGenerator."""
 
     def test_returns_empty_when_no_candidates(
-        self, sample_candidates: list[BlueskyFeedPost]
+        self, sample_candidates: list[Post]
     ) -> None:
         """Empty candidates returns empty list."""
         mock_llm = MagicMock()
@@ -90,12 +87,12 @@ class TestNaiveLLMLikeGenerator:
 
     def test_returns_likes_when_mock_returns_valid_ids(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """When mock returns valid post_ids, generator produces GeneratedLikes."""
         mock_llm = MagicMock()
         mock_llm.structured_completion.return_value = LikePrediction(
-            post_ids=["post_1", "post_3"],
+            post_ids=["bluesky:post_1", "bluesky:post_3"],
         )
         generator = NaiveLLMLikeGenerator(llm_service=mock_llm)
 
@@ -107,8 +104,8 @@ class TestNaiveLLMLikeGenerator:
         )
 
         expected_result = [
-            ("post_1", "agent.bsky.social"),
-            ("post_3", "agent.bsky.social"),
+            ("bluesky:post_1", "agent.bsky.social"),
+            ("bluesky:post_3", "agent.bsky.social"),
         ]
         assert [(g.like.post_id, g.like.agent_id) for g in result] == expected_result
         expected_result = "LLM prediction (naive_llm)"
@@ -117,12 +114,12 @@ class TestNaiveLLMLikeGenerator:
 
     def test_filters_invalid_ids(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """LLM returning post_ids not in candidates filters them out."""
         mock_llm = MagicMock()
         mock_llm.structured_completion.return_value = LikePrediction(
-            post_ids=["post_1", "nonexistent", "post_2"],
+            post_ids=["bluesky:post_1", "bluesky:nonexistent", "bluesky:post_2"],
         )
         generator = NaiveLLMLikeGenerator(llm_service=mock_llm)
 
@@ -134,19 +131,19 @@ class TestNaiveLLMLikeGenerator:
         )
 
         post_ids = [g.like.post_id for g in result]
-        expected_result = ["post_1", "post_2"]
+        expected_result = ["bluesky:post_1", "bluesky:post_2"]
         assert post_ids == expected_result
-        expected_result = "nonexistent"
+        expected_result = "bluesky:nonexistent"
         assert expected_result not in post_ids
 
     def test_ordering_is_sorted_by_post_id(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """Output is sorted by post_id."""
         mock_llm = MagicMock()
         mock_llm.structured_completion.return_value = LikePrediction(
-            post_ids=["post_3", "post_1"],
+            post_ids=["bluesky:post_3", "bluesky:post_1"],
         )
         generator = NaiveLLMLikeGenerator(llm_service=mock_llm)
 
@@ -157,7 +154,7 @@ class TestNaiveLLMLikeGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        expected_result = ["post_1", "post_3"]
+        expected_result = ["bluesky:post_1", "bluesky:post_3"]
         assert [g.like.post_id for g in result] == expected_result
 
 
@@ -165,7 +162,7 @@ class TestNaiveLLMCommentGenerator:
     """Tests for NaiveLLMCommentGenerator."""
 
     def test_returns_empty_when_no_candidates(
-        self, sample_candidates: list[BlueskyFeedPost]
+        self, sample_candidates: list[Post]
     ) -> None:
         """Empty candidates returns empty list."""
         mock_llm = MagicMock()
@@ -184,14 +181,14 @@ class TestNaiveLLMCommentGenerator:
 
     def test_returns_comments_when_mock_returns_valid_data(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """When mock returns valid comments, generator produces GeneratedComments."""
         mock_llm = MagicMock()
         mock_llm.structured_completion.return_value = CommentPrediction(
             comments=[
-                CommentPredictionItem(post_id="post_1", text="Nice post!"),
-                CommentPredictionItem(post_id="post_2", text="Interesting."),
+                CommentPredictionItem(post_id="bluesky:post_1", text="Nice post!"),
+                CommentPredictionItem(post_id="bluesky:post_2", text="Interesting."),
             ],
         )
         generator = NaiveLLMCommentGenerator(llm_service=mock_llm)
@@ -204,8 +201,8 @@ class TestNaiveLLMCommentGenerator:
         )
 
         expected_result = [
-            ("post_1", "Nice post!"),
-            ("post_2", "Interesting."),
+            ("bluesky:post_1", "Nice post!"),
+            ("bluesky:post_2", "Interesting."),
         ]
         assert [(g.comment.post_id, g.comment.text) for g in result] == expected_result
         expected_result = "LLM prediction (naive_llm)"
@@ -214,14 +211,14 @@ class TestNaiveLLMCommentGenerator:
 
     def test_filters_invalid_post_ids(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """LLM returning post_ids not in candidates filters them out."""
         mock_llm = MagicMock()
         mock_llm.structured_completion.return_value = CommentPrediction(
             comments=[
-                CommentPredictionItem(post_id="post_1", text="Ok"),
-                CommentPredictionItem(post_id="nonexistent", text="Skipped"),
+                CommentPredictionItem(post_id="bluesky:post_1", text="Ok"),
+                CommentPredictionItem(post_id="bluesky:nonexistent", text="Skipped"),
             ],
         )
         generator = NaiveLLMCommentGenerator(llm_service=mock_llm)
@@ -235,21 +232,21 @@ class TestNaiveLLMCommentGenerator:
 
         expected_result = 1
         assert len(result) == expected_result
-        expected_result = "post_1"
+        expected_result = "bluesky:post_1"
         assert result[0].comment.post_id == expected_result
         expected_result = "Ok"
         assert result[0].comment.text == expected_result
 
     def test_ordering_is_sorted_by_post_id(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """Output is sorted by post_id."""
         mock_llm = MagicMock()
         mock_llm.structured_completion.return_value = CommentPrediction(
             comments=[
-                CommentPredictionItem(post_id="post_3", text="C"),
-                CommentPredictionItem(post_id="post_1", text="A"),
+                CommentPredictionItem(post_id="bluesky:post_3", text="C"),
+                CommentPredictionItem(post_id="bluesky:post_1", text="A"),
             ],
         )
         generator = NaiveLLMCommentGenerator(llm_service=mock_llm)
@@ -261,7 +258,7 @@ class TestNaiveLLMCommentGenerator:
             agent_handle="agent.bsky.social",
         )
 
-        expected_result = ["post_1", "post_3"]
+        expected_result = ["bluesky:post_1", "bluesky:post_3"]
         assert [g.comment.post_id for g in result] == expected_result
 
 
@@ -269,7 +266,7 @@ class TestNaiveLLMFollowGenerator:
     """Tests for NaiveLLMFollowGenerator."""
 
     def test_returns_empty_when_no_candidates(
-        self, sample_candidates: list[BlueskyFeedPost]
+        self, sample_candidates: list[Post]
     ) -> None:
         """Empty candidates returns empty list."""
         mock_llm = MagicMock()
@@ -305,7 +302,7 @@ class TestNaiveLLMFollowGenerator:
 
     def test_returns_follows_when_mock_returns_valid_ids(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """When mock returns valid user_ids, generator produces GeneratedFollows."""
         mock_llm = MagicMock()
@@ -329,7 +326,7 @@ class TestNaiveLLMFollowGenerator:
 
     def test_filters_invalid_user_ids(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """LLM returning user_ids not in candidates filters them out."""
         mock_llm = MagicMock()
@@ -352,7 +349,7 @@ class TestNaiveLLMFollowGenerator:
 
     def test_ordering_is_sorted_by_user_id(
         self,
-        sample_candidates: list[BlueskyFeedPost],
+        sample_candidates: list[Post],
     ) -> None:
         """Output is sorted by user_id."""
         mock_llm = MagicMock()

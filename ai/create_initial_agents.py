@@ -7,7 +7,7 @@ from db.repositories.interfaces import (
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.generated.bio import GeneratedBio
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 
 
@@ -20,10 +20,10 @@ def create_initial_agents(
     """Create a list of agents from the database of Bluesky profiles and feed
     posts and pass into the network."""
     profiles: list[BlueskyProfile] = profile_repo.list_profiles()
-    feed_posts: list[BlueskyFeedPost] = feed_post_repo.list_all_feed_posts()
+    feed_posts: list[Post] = feed_post_repo.list_all_feed_posts()
     generated_bios: list[GeneratedBio] = generated_bio_repo.list_all_generated_bios()
 
-    handle_to_feed_posts: dict[str, list[BlueskyFeedPost]] = {}
+    handle_to_feed_posts: dict[str, list[Post]] = {}
     for post in feed_posts:
         handle_to_feed_posts.setdefault(post.author_handle, []).append(post)
 

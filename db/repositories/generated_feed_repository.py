@@ -104,15 +104,15 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
     @validate_inputs(
         (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
     )
-    def get_post_uris_for_run(self, agent_handle: str, run_id: str) -> set[str]:
-        """Get all post URIs from generated feeds for a specific agent and run.
+    def get_post_ids_for_run(self, agent_handle: str, run_id: str) -> set[str]:
+        """Get all post_ids from generated feeds for a specific agent and run.
 
         Args:
             agent_handle: Agent handle to filter by
             run_id: Run ID to filter by
 
         Returns:
-            Set of post URIs from all generated feeds matching the agent and run.
+            Set of post_ids from all generated feeds matching the agent and run.
             Returns empty set if no feeds found.
 
         Raises:
@@ -123,7 +123,7 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             parameters (not a GeneratedFeed model), we validate agent_handle and run_id here.
         """
         with self._transaction_provider.run_transaction() as c:
-            return self._db_adapter.read_post_uris_for_run(agent_handle, run_id, conn=c)
+            return self._db_adapter.read_post_ids_for_run(agent_handle, run_id, conn=c)
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def read_feeds_for_turn(self, run_id: str, turn_number: int) -> list[GeneratedFeed]:

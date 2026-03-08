@@ -8,7 +8,7 @@ from lib.validation_utils import (
     validate_turn_number,  # noqa: F401
 )
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.utils.exceptions import (
     InsufficientAgentsError,
@@ -187,6 +187,25 @@ def validate_uris_exist(uris: Iterable[str]) -> Iterable[str]:
     return validate_non_empty_iterable(uris, "uris")
 
 
-def validate_posts_exist(posts: list[BlueskyFeedPost] | None) -> list[BlueskyFeedPost]:
+def validate_post_id_exists(post_id: str) -> str:
+    """Validate that post_id is a non-empty string. Returns stripped value."""
+    return _validate_non_empty_string_labeled(post_id, label="post_id")
+
+
+def validate_post_ids_exist(post_ids: Iterable[str]) -> list[str]:
+    """Validate that post_ids is not None/empty and contains only valid post IDs.
+
+    Materializes the iterable so generator inputs are validated (and duplicates and
+    ordering are preserved). Returns a normalized list of stripped post IDs.
+    """
+    if post_ids is None:  # type: ignore[reportUnnecessaryComparison]
+        raise ValueError("post_ids cannot be None")
+
+    post_ids_list = list(post_ids)
+    validate_non_empty_iterable(post_ids_list, "post_ids")
+    return [validate_post_id_exists(pid) for pid in post_ids_list]
+
+
+def validate_posts_exist(posts: list[Post] | None) -> list[Post]:
     """Validate that posts is not None."""
     return validate_not_none(posts, "posts")

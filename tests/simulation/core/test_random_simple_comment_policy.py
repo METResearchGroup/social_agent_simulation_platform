@@ -5,24 +5,23 @@ from simulation.core.action_generators.comment.algorithms.random_simple import (
     TOP_K_POSTS_TO_COMMENT,
     RandomSimpleCommentGenerator,
 )
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from tests.factories import PostFactory
 
 
 def _post(
-    post_id: str,
+    uri: str,
     *,
     like_count: int = 0,
     repost_count: int = 0,
     reply_count: int = 0,
     created_at: str = "2024_01_01-12:00:00",
-) -> BlueskyFeedPost:
-    """Build a BlueskyFeedPost for tests."""
+) -> Post:
+    """Build a Post (Bluesky source) for tests."""
     return PostFactory.create(
-        post_id=post_id,
-        uri=post_id,
-        author_handle=f"author-{post_id}.bsky.social",
-        author_display_name=f"Author {post_id}",
+        uri=uri,
+        author_handle=f"author-{uri}.bsky.social",
+        author_display_name=f"Author {uri}",
         text="content",
         like_count=like_count,
         bookmark_count=0,
@@ -90,7 +89,9 @@ class TestRandomSimpleCommentGeneratorGenerate:
 
         # Assert
         assert len(result) == expected_count
-        assert all(c.comment.post_id in ("post_1", "post_2") for c in result)
+        assert all(
+            c.comment.post_id in ("bluesky:post_1", "bluesky:post_2") for c in result
+        )
         assert all(c.comment.text for c in result)
 
     def test_selection_prefers_higher_social_proof(self, monkeypatch):
@@ -106,7 +107,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             _post("post_4", like_count=4),
         ]
         start = max(0, len(candidates) - TOP_K_POSTS_TO_COMMENT)
-        expected_selected = {f"post_{i}" for i in range(start, len(candidates))}
+        expected_selected = {f"bluesky:post_{i}" for i in range(start, len(candidates))}
 
         # Act
         result = generator.generate(
@@ -158,7 +159,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
         monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
         generator = RandomSimpleCommentGenerator()
         candidates = [_post("b"), _post("a")]
-        expected_order = ["a", "b"]
+        expected_order = ["bluesky:a", "bluesky:b"]
 
         # Act
         result = generator.generate(
@@ -180,7 +181,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
         expected_run_id = "run_1"
         expected_turn = 2
         expected_handle = "agent.bsky.social"
-        expected_post_id = "post_1"
+        expected_post_id = "bluesky:post_1"
         expected_comment_id = f"comment_{expected_run_id}_{expected_turn}_{expected_handle}_{expected_post_id}"
 
         # Act

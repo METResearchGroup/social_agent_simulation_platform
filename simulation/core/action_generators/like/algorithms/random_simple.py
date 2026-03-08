@@ -14,7 +14,7 @@ from simulation.core.action_generators.interfaces import LikeGenerator
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.like import GeneratedLike
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 TOP_K_POSTS_TO_LIKE: int = 2
 LIKE_PROBABILITY: float = 0.30
@@ -33,7 +33,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
     def generate(
         self,
         *,
-        candidates: list[BlueskyFeedPost],
+        candidates: list[Post],
         run_id: str,
         turn_number: int,
         agent_handle: str,
@@ -43,7 +43,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
             return []
 
         scored = [(_score_post(post), post) for post in candidates]
-        scored.sort(key=lambda x: (-x[0], x[1].id))
+        scored.sort(key=lambda x: (-x[0], x[1].post_id))
         selected = [post for _, post in scored[:TOP_K_POSTS_TO_LIKE]]
 
         generated: list[GeneratedLike] = []
@@ -62,7 +62,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
         return generated
 
 
-def _score_post(post: BlueskyFeedPost) -> float:
+def _score_post(post: Post) -> float:
     """Compute score for a post (recency + social proof)."""
     recency = _recency_score(post.created_at)
     social = (
@@ -90,13 +90,13 @@ def _should_like() -> bool:
 
 def _build_generated_like(
     *,
-    post: BlueskyFeedPost,
+    post: Post,
     agent_handle: str,
     run_id: str,
     turn_number: int,
 ) -> GeneratedLike:
     """Build a GeneratedLike with IDs and metadata."""
-    post_id = post.id
+    post_id = post.post_id
     like_id = f"like_{run_id}_{turn_number}_{agent_handle}_{post_id}"
     created_at = get_current_timestamp()
     return GeneratedLike(
