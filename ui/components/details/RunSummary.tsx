@@ -11,10 +11,11 @@ interface RunSummaryProps {
 
 export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
   const [copiedRunId, setCopiedRunId] = useState<string | null>(null);
-  const copied = copiedRunId == run.runId;
+  const copied = copiedRunId === run.runId;
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [exportStatus, setExportStatus] = useState(false);
+  const [exportRunId, setExportRunId] = useState<string | null>(null)
+  const exportStatus = exportRunId === run.runId;
 
   useEffect(() => {
     return () => {
@@ -37,7 +38,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
   };
 
   const handleExportRun = async (): Promise<void> => {
-    setExportStatus(true) 
+    setExportRunId(run.runId)
     console.log(`run: ${JSON.stringify(run)}\n\n` + 
                 `agents: ${JSON.stringify(agents)}\n\n` + 
                 `completedTurns: ${JSON.stringify(completedTurns)}}`)
