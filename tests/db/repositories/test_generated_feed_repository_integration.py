@@ -212,7 +212,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
                 created_at="2024-01-01T00:00:00Z",
             )
 
-        assert "agent_handle cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_get_generated_feed_with_empty_agent_handle_raises_error(
         self, generated_feed_repo

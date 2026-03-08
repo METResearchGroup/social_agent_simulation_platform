@@ -64,6 +64,11 @@ class AgentRepository(ABC):
         """List a page of agents filtered by handle LIKE, ordered by updated_at DESC, handle ASC."""
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_agent(self, agent_id: str, conn: object | None = None) -> None:
+        """Delete an agent by ID."""
+        raise NotImplementedError
+
 
 class AgentBioRepository(ABC):
     """Abstract base class defining the interface for agent bio repositories."""
@@ -94,6 +99,11 @@ class AgentBioRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_agent_bios(self, agent_id: str, conn: object | None = None) -> None:
+        """Delete all bios for an agent."""
+        raise NotImplementedError
+
 
 class UserAgentProfileMetadataRepository(ABC):
     """Abstract base class defining the interface for user agent profile metadata repositories."""
@@ -118,6 +128,11 @@ class UserAgentProfileMetadataRepository(ABC):
 
         Keys are agent_ids; value is metadata or None if none exists.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_by_agent_id(self, agent_id: str, conn: object | None = None) -> None:
+        """Delete metadata by agent_id."""
         raise NotImplementedError
 
 

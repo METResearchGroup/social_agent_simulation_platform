@@ -287,7 +287,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
                 created_at="2024-01-01T00:00:00Z",
             )
 
-        assert "uri cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_get_feed_post_with_empty_uri_raises_error(self, feed_post_repo):
         """Test that get_feed_post raises ValueError when uri is empty."""

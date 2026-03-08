@@ -166,7 +166,7 @@ class TestSQLiteProfileRepositoryIntegration:
                 posts_count=25,
             )
 
-        assert "handle cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_get_profile_with_empty_handle_raises_error(self, profile_repo):
         """Test that get_profile raises ValueError when handle is empty."""

@@ -35,7 +35,7 @@
     "oxlint": "^1",
     "react-doctor": "^0.0.17",
     "tailwindcss": "^4",
-    "typescript": "5.9.3",
-    "tsx": "^3"
+    "tsx": "^3",
+    "typescript": "5.9.3"
   }
 }
