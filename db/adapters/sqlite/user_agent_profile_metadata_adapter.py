@@ -59,7 +59,7 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
         self, agent_id: str, *, conn: sqlite3.Connection
     ) -> UserAgentProfileMetadata | None:
         """Read metadata by agent_id."""
-        validate_non_empty_string(agent_id, "agent_id")
+        validate_non_empty_string(agent_id)
         row = conn.execute(
             "SELECT * FROM user_agent_profile_metadata WHERE agent_id = ?",
             (agent_id,),

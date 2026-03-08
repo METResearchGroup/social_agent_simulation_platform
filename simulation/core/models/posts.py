@@ -20,12 +20,12 @@ class Post(BaseModel):
     @field_validator("id")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        return validate_non_empty_string(v, "id")
+        return validate_non_empty_string(v)
 
     @field_validator("author_handle")
     @classmethod
     def validate_author_handle(cls, v: str) -> str:
-        return validate_non_empty_string(v, "author_handle")
+        return validate_non_empty_string(v)
 
 
 class BlueskyFeedPost(Post):
@@ -40,7 +40,7 @@ class BlueskyFeedPost(Post):
     @field_validator("uri")
     @classmethod
     def validate_uri(cls, v: str) -> str:
-        return validate_non_empty_string(v, "uri")
+        return validate_non_empty_string(v)
 
     @field_validator("bookmark_count")
     @classmethod

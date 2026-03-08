@@ -116,7 +116,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
                 posts_count=25,
             )
 
-        assert "handle cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_raises_validation_error_when_handle_is_whitespace(self):
         """Test that creating BlueskyProfile with whitespace handle raises ValidationError from Pydantic."""
@@ -133,7 +133,7 @@ class TestSQLiteProfileRepositoryCreateOrUpdateProfile:
                 posts_count=25,
             )
 
-        assert "handle cannot be empty" in str(exc_info.value)
+        assert "value cannot be empty" in str(exc_info.value)
 
     def test_propagates_adapter_exception_when_write_fails(self):
         """Test that create_or_update_profile propagates adapter exceptions when database write fails."""

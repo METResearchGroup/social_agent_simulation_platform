@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { Agent, Run } from '@/types';
 
 interface RunSummaryProps {
@@ -9,6 +10,29 @@ interface RunSummaryProps {
 }
 
 export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
+  const [copied, setCopied] = useState(false);
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, [run.runId]);
+
+  const handleCopyRunId = async (): Promise<void> => {
+      try {
+        await navigator.clipboard.writeText(run.runId)
+        setCopied(true)
+        if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
+        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
+      } catch (error) {
+        console.log(error instanceof Error ? error.message : 'Copy failed');
+        setCopied(false)
+      }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
@@ -28,7 +52,16 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
             <tr>
               <td className="px-4 py-3 text-sm text-beige-800">Run ID</td>
               <td className="px-4 py-3 text-sm text-beige-900 font-mono">
-                {run.runId}
+                <div className="flex items-center gap-2">
+                  {run.runId}
+                  <button 
+                    type="button"
+                    className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left" 
+                    onClick={handleCopyRunId}
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
               </td>
             </tr>
             <tr>

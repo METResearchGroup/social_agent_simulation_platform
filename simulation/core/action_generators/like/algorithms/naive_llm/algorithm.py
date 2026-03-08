@@ -16,6 +16,9 @@ from simulation.core.action_generators.like.algorithms.naive_llm.prompt import (
 from simulation.core.action_generators.like.algorithms.naive_llm.response_models import (
     LikePrediction,
 )
+from simulation.core.action_generators.mixins.llm_action_generator_mixin import (
+    LLMActionGeneratorMixin,
+)
 from simulation.core.action_generators.utils.llm_utils import (
     _posts_to_minimal_json,
     _resolve_model_used,
@@ -34,27 +37,6 @@ def _build_prompt(agent_handle: str, candidates: list[BlueskyFeedPost]) -> str:
     """Build the like prediction prompt."""
     posts_json = _posts_to_minimal_json(candidates)
     return LIKE_PROMPT.format(agent_handle=agent_handle, posts_json=posts_json)
-
-
-def _deduplicate_post_ids(candidate_post_ids: list[str]) -> list[str]:
-    """Return unique post IDs, preserving first occurrence order."""
-    seen: set[str] = set()
-    result: list[str] = []
-    for pid in candidate_post_ids:
-        if pid in seen:
-            continue
-        seen.add(pid)
-        result.append(pid)
-    return result
-
-
-def _get_ids_to_like(
-    *,
-    response_post_ids: list[str],
-    valid_post_ids: set[str],
-) -> list[str]:
-    candidate_ids = [pid for pid in response_post_ids if pid in valid_post_ids]
-    return _deduplicate_post_ids(candidate_ids)
 
 
 def _build_generated_like(
@@ -85,12 +67,12 @@ def _build_generated_like(
     )
 
 
-class NaiveLLMLikeGenerator(LikeGenerator):
+class NaiveLLMLikeGenerator(LLMActionGeneratorMixin, LikeGenerator):
     """Generates likes using LLM prediction."""
 
     def __init__(self, *, llm_service: LLMService) -> None:
         """Initialize with injected LLM service."""
-        self._llm = llm_service
+        super().__init__(llm_service=llm_service)
 
     def generate(
         self,
@@ -108,16 +90,15 @@ class NaiveLLMLikeGenerator(LikeGenerator):
             return []
 
         prompt = _build_prompt(agent_handle=agent_handle, candidates=candidates)
-        response: LikePrediction = self._llm.structured_completion(
-            messages=[{"role": "user", "content": prompt}],
-            response_model=LikePrediction,
+        response: LikePrediction = self._call_llm(
+            prompt=prompt, response_model=LikePrediction
         )
 
         valid_ids = {p.id for p in candidates}
         post_by_id = {p.id: p for p in candidates}
-        to_like_ids = _get_ids_to_like(
-            response_post_ids=response.post_ids,
-            valid_post_ids=valid_ids,
+        to_like_ids = self._filter_and_dedupe_ids(
+            response_ids=response.post_ids,
+            valid_ids=valid_ids,
         )
 
         model_used = _resolve_model_used()
