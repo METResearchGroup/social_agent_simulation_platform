@@ -34,15 +34,15 @@ class TestValidateNonEmptyString:
     @pytest.mark.parametrize(
         "string, expected_error",
         [
-            (None, "field_name cannot be None"),
-            (5, "field_name must be a string"),
-            ("", "field_name cannot be empty"),
-            ("   ", "field_name cannot be empty"),
+            (None, "value cannot be None"),
+            (5, "value must be a string"),
+            ("", "value cannot be empty"),
+            ("   ", "value cannot be empty"),
         ],
     )
     def test_validation_errors(self, string, expected_error):
         with pytest.raises(ValueError, match=expected_error):
-            validate_non_empty_string(string, "field_name")
+            validate_non_empty_string(string)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(
         "string, expected",
@@ -52,5 +52,5 @@ class TestValidateNonEmptyString:
         ],
     )
     def test_if_v_strip_works(self, string, expected):
-        result = validate_non_empty_string(string, "field_name")
+        result = validate_non_empty_string(string)
         assert expected == result

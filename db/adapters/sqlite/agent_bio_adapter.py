@@ -59,7 +59,7 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
         self, agent_id: str, *, conn: sqlite3.Connection
     ) -> AgentBio | None:
         """Read the latest bio for an agent by created_at DESC."""
-        validate_non_empty_string(agent_id, "agent_id")
+        validate_non_empty_string(agent_id)
         row = conn.execute(
             "SELECT * FROM agent_persona_bios WHERE agent_id = ? "
             "ORDER BY created_at DESC LIMIT 1",
@@ -74,7 +74,7 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
         self, agent_id: str, *, conn: sqlite3.Connection
     ) -> list[AgentBio]:
         """Read all bios for an agent, ordered by created_at DESC."""
-        validate_non_empty_string(agent_id, "agent_id")
+        validate_non_empty_string(agent_id)
         rows = conn.execute(
             "SELECT * FROM agent_persona_bios WHERE agent_id = ? "
             "ORDER BY created_at DESC",

@@ -27,7 +27,7 @@ class TurnMetrics(BaseModel):
     @field_validator("run_id", "created_at", mode="before")
     @classmethod
     def _validate_non_empty(cls, v: str, info: ValidationInfo) -> str:
-        return validate_non_empty_string(v, _field_name(info))
+        return validate_non_empty_string(v)
 
     @field_validator("turn_number")
     @classmethod
@@ -45,6 +45,6 @@ class RunMetrics(BaseModel):
     @field_validator("run_id", "created_at", mode="before")
     @classmethod
     def _validate_non_empty(cls, v: str, info: ValidationInfo) -> str:
-        return validate_non_empty_string(v, _field_name(info))
+        return validate_non_empty_string(v)
 
     model_config = {"frozen": True}

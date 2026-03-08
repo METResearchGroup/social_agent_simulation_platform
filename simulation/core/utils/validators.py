@@ -19,14 +19,25 @@ from simulation.core.utils.exceptions import (
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
 
+def _validate_non_empty_string_labeled(value: object, *, label: str) -> str:
+    if value is None:
+        raise ValueError(f"{label} cannot be None")
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be a string")
+    try:
+        return validate_non_empty_string(value)
+    except ValueError as exc:
+        raise ValueError(f"{label} cannot be empty") from exc
+
+
 def validate_run_id(run_id: str) -> str:
     """Validate that run_id is a non-empty string. Returns stripped value."""
-    return validate_non_empty_string(run_id, "run_id")
+    return _validate_non_empty_string_labeled(run_id, label="run_id")
 
 
 def validate_agent_id(agent_id: str) -> str:
     """Validate that agent_id is a non-empty string. Returns stripped value."""
-    return validate_non_empty_string(agent_id, "agent_id")
+    return _validate_non_empty_string_labeled(agent_id, label="agent_id")
 
 
 def validate_num_agents(num_agents: int) -> int:
@@ -108,7 +119,7 @@ def validate_insufficient_agents(agents: list[SocialMediaAgent], requested_agent
 
 def validate_handle_exists(handle: str) -> str:
     """Validate that handle is a non-empty string. Returns stripped value."""
-    return validate_non_empty_string(handle, "handle")
+    return _validate_non_empty_string_labeled(handle, label="handle")
 
 
 def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
@@ -168,7 +179,7 @@ def validate_run_status_transition(
 
 def validate_uri_exists(uri: str) -> str:
     """Validate that uri is a non-empty string. Returns stripped value."""
-    return validate_non_empty_string(uri, "uri")
+    return _validate_non_empty_string_labeled(uri, label="uri")
 
 
 def validate_uris_exist(uris: Iterable[str]) -> Iterable[str]:

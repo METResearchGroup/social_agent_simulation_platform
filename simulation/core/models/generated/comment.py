@@ -18,7 +18,7 @@ class GeneratedComment(BaseModel):
     @field_validator("explanation")
     @classmethod
     def validate_explanation(cls, v: str) -> str:
-        return validate_non_empty_string(v, "explanation")
+        return validate_non_empty_string(v)
 
     @field_validator("metadata")
     @classmethod

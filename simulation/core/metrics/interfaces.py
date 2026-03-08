@@ -126,24 +126,37 @@ class Metric(ABC):
                 f"{cls.__module__}.{cls.__name__} DEFAULT_ENABLED must be a bool"
             )
 
+        description = getattr(cls, "DESCRIPTION", None)
+        if not isinstance(description, str):
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define class var DESCRIPTION as str"
+            )
         try:
-            validate_non_empty_string(getattr(cls, "DESCRIPTION", None), "DESCRIPTION")
+            validate_non_empty_string(description)
         except ValueError:
             raise TypeError(
                 f"{cls.__module__}.{cls.__name__} must define non-empty class var DESCRIPTION"
             ) from None
 
+        author = getattr(cls, "AUTHOR", None)
+        if not isinstance(author, str):
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define class var AUTHOR as str"
+            )
         try:
-            validate_non_empty_string(getattr(cls, "AUTHOR", None), "AUTHOR")
+            validate_non_empty_string(author)
         except ValueError:
             raise TypeError(
                 f"{cls.__module__}.{cls.__name__} must define non-empty class var AUTHOR"
             ) from None
 
-        try:
-            validate_non_empty_string(
-                getattr(cls, "DISPLAY_NAME", None), "DISPLAY_NAME"
+        display_name = getattr(cls, "DISPLAY_NAME", None)
+        if not isinstance(display_name, str):
+            raise TypeError(
+                f"{cls.__module__}.{cls.__name__} must define class var DISPLAY_NAME as str"
             )
+        try:
+            validate_non_empty_string(display_name)
         except ValueError:
             raise TypeError(
                 f"{cls.__module__}.{cls.__name__} must define non-empty class var DISPLAY_NAME"
