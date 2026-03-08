@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AgentDetail from '@/components/details/AgentDetail';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Agent } from '@/types';
@@ -24,6 +24,9 @@ export default function AgentsView({
 }: AgentsViewProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  useEffect(() => {
+    setDeleteError(null);
+  }, [selectedAgentHandle]);
   if (agentsLoading && agents.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 py-16 text-beige-600">
@@ -69,6 +72,7 @@ export default function AgentsView({
     if (isDeleting) {
       return;
     }
+    setDeleteError(null);
     const confirmed = window.confirm(`Delete agent ${agent.name}?`);
     if (!confirmed) {
       return;
