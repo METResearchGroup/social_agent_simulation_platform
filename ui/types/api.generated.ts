@@ -48,6 +48,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/simulations/agents/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete simulation agent
+         * @description Delete a simulation agent by handle.
+         */
+        delete: operations["delete_simulation_agent_v1_simulations_agents__handle__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/simulations/config/default": {
         parameters: {
             query?: never;
@@ -598,9 +618,9 @@ export interface operations {
             query?: {
                 /** @description Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards. */
                 q?: string | null;
-                /** @description Maximum number of agents to return (ordered by handle). */
+                /** @description Maximum number of agents to return (ordered by updated_at DESC, handle ASC). */
                 limit?: number;
-                /** @description Number of agents to skip before returning results (ordered by handle). */
+                /** @description Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC). */
                 offset?: number;
             };
             header?: never;
@@ -650,6 +670,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AgentSchema"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_simulation_agent_v1_simulations_agents__handle__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
