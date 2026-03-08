@@ -310,7 +310,7 @@
         "type": "string"
       },
       "PostSchema": {
-        "description": "Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.",
+        "description": "Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.\n\nBreaking change (issue #200): This schema field was renamed from `uri` to `source_id`.",
         "properties": {
           "author_display_name": {
             "title": "Author Display Name",
@@ -344,17 +344,17 @@
             "title": "Repost Count",
             "type": "integer"
           },
-          "text": {
-            "title": "Text",
+          "source_id": {
+            "title": "Source Id",
             "type": "string"
           },
-          "uri": {
-            "title": "Uri",
+          "text": {
+            "title": "Text",
             "type": "string"
           }
         },
         "required": [
-          "uri",
+          "source_id",
           "author_display_name",
           "author_handle",
           "text",

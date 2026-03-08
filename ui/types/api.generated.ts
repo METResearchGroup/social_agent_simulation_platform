@@ -376,6 +376,8 @@ export interface components {
         /**
          * PostSchema
          * @description Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.
+         *
+         *     Breaking change (issue #200): This schema field was renamed from `uri` to `source_id`.
          */
         PostSchema: {
             /** Author Display Name */
@@ -394,10 +396,10 @@ export interface components {
             reply_count: number;
             /** Repost Count */
             repost_count: number;
+            /** Source Id */
+            source_id: string;
             /** Text */
             text: string;
-            /** Uri */
-            uri: string;
         };
         /**
          * RunConfigDetail

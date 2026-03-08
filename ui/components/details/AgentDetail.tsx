@@ -9,7 +9,7 @@ interface AgentDetailProps {
   agent: Agent;
   feed: Post[];
   actions: AgentAction[];
-  postsByUri: Record<string, Post>;
+  postsBySourceId: Record<string, Post>;
 }
 
 interface ExpandedSectionsState {
@@ -23,7 +23,7 @@ export default function AgentDetail({
   agent,
   feed,
   actions,
-  postsByUri,
+  postsBySourceId,
 }: AgentDetailProps) {
   const [expandedSections, setExpandedSections] = useState<ExpandedSectionsState>({
     metadata: false,
@@ -32,7 +32,7 @@ export default function AgentDetail({
     comments: false,
   });
 
-  const likedPosts: Post[] = getLikedPosts(actions, postsByUri);
+  const likedPosts: Post[] = getLikedPosts(actions, postsBySourceId);
   const comments: AgentAction[] = getCommentActions(actions);
 
   return (
@@ -81,7 +81,7 @@ export default function AgentDetail({
       >
         <div className="space-y-3">
           {feed.map((post) => (
-            <PostCard key={post.uri} post={post} />
+            <PostCard key={post.sourceId} post={post} />
           ))}
         </div>
       </CollapsibleSection>
@@ -94,7 +94,7 @@ export default function AgentDetail({
       >
         <div className="space-y-3">
           {likedPosts.length > 0 ? (
-            likedPosts.map((post) => <PostCard key={post.uri} post={post} />)
+            likedPosts.map((post) => <PostCard key={post.sourceId} post={post} />)
           ) : (
             <div className="p-3 text-sm text-beige-600 bg-beige-50 rounded">
               No liked posts
@@ -115,7 +115,7 @@ export default function AgentDetail({
               <CommentActionCard
                 key={action.actionId}
                 action={action}
-                postsByUri={postsByUri}
+                postsBySourceId={postsBySourceId}
               />
             ))
           ) : (
@@ -129,10 +129,13 @@ export default function AgentDetail({
   );
 }
 
-function getLikedPosts(actions: AgentAction[], postsByUri: Record<string, Post>): Post[] {
+function getLikedPosts(
+  actions: AgentAction[],
+  postsBySourceId: Record<string, Post>,
+): Post[] {
   return actions
     .filter((action) => action.type === 'like' && Boolean(action.postUri))
-    .map((action) => (action.postUri ? postsByUri[action.postUri] : undefined))
+    .map((action) => (action.postUri ? postsBySourceId[action.postUri] : undefined))
     .filter((post): post is Post => post !== undefined);
 }
 
@@ -142,11 +145,13 @@ function getCommentActions(actions: AgentAction[]): AgentAction[] {
 
 interface CommentActionCardProps {
   action: AgentAction;
-  postsByUri: Record<string, Post>;
+  postsBySourceId: Record<string, Post>;
 }
 
-function CommentActionCard({ action, postsByUri }: CommentActionCardProps) {
-  const post: Post | undefined = action.postUri ? postsByUri[action.postUri] : undefined;
+function CommentActionCard({ action, postsBySourceId }: CommentActionCardProps) {
+  const post: Post | undefined = action.postUri
+    ? postsBySourceId[action.postUri]
+    : undefined;
 
   if (!post) {
     return (

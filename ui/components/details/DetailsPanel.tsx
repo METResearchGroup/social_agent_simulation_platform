@@ -133,14 +133,14 @@ function TurnDetailContent({
     () => getPostUrisFromTurn(currentTurn),
     [currentTurn],
   );
-  const [postsByUri, setPostsByUri] = useState<Record<string, Post>>({});
+  const [postsBySourceId, setPostsBySourceId] = useState<Record<string, Post>>({});
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<Error | null>(null);
   const requestIdRef = useRef(0);
 
   const loadPosts = useCallback(async () => {
     if (postUris.length === 0) {
-      setPostsByUri({});
+      setPostsBySourceId({});
       setPostsLoading(false);
       setPostsError(null);
       return;
@@ -152,11 +152,11 @@ function TurnDetailContent({
     try {
       const posts: Post[] = await getPosts(postUris);
       if (requestId !== requestIdRef.current) return;
-      const byUri: Record<string, Post> = {};
+      const bySourceId: Record<string, Post> = {};
       for (const post of posts) {
-        byUri[post.uri] = post;
+        bySourceId[post.sourceId] = post;
       }
-      setPostsByUri(byUri);
+      setPostsBySourceId(bySourceId);
     } catch (error: unknown) {
       if (requestId !== requestIdRef.current) return;
       setPostsError(
@@ -217,7 +217,7 @@ function TurnDetailContent({
             const feed = currentTurn.agentFeeds[agent.handle];
             const feedPosts: Post[] = feed
               ? feed.postUris
-                  .map((uri) => postsByUri[uri])
+                  .map((uri) => postsBySourceId[uri])
                   .filter((post): post is Post => post !== undefined)
               : [];
             const agentActions = currentTurn.agentActions[agent.handle] || [];
@@ -231,7 +231,7 @@ function TurnDetailContent({
                   agent={agent}
                   feed={feedPosts}
                   actions={agentActions}
-                  postsByUri={postsByUri}
+                  postsBySourceId={postsBySourceId}
                 />
               </div>
             );

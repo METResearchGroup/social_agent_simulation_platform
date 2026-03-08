@@ -188,7 +188,7 @@ function mapAction(apiAction: ApiAgentAction): AgentAction {
 
 function mapPost(apiPost: ApiPost): Post {
   return {
-    uri: apiPost.uri,
+    sourceId: apiPost.source_id,
     authorDisplayName: apiPost.author_display_name,
     authorHandle: apiPost.author_handle,
     text: apiPost.text,
