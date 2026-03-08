@@ -19,8 +19,8 @@ def _post(
 ) -> Post:
     return Post(
         source=PostSource.BLUESKY,
-        post_id=f"bluesky:{uri}",
         uri=uri,
+        author_handle=author_handle,
         author_handle=author_handle,
         author_display_name="Alice",
         text=text,
