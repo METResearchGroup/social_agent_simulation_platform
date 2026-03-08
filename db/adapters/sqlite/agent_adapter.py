@@ -6,8 +6,9 @@ from db.adapters.base import AgentDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import agent as agent_table
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent import Agent, PersonaSource
+from simulation.core.utils.validators import validate_agent_id, validate_handle_exists
 
 AGENT_COLUMNS = ordered_column_names(agent_table)
 AGENT_REQUIRED_FIELDS = required_column_names(agent_table)
@@ -57,9 +58,9 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
         )
         conn.execute(_INSERT_AGENT_SQL, row_values)
 
+    @validate_inputs((validate_agent_id, "agent_id"))
     def read_agent(self, agent_id: str, *, conn: sqlite3.Connection) -> Agent | None:
         """Read an agent by ID."""
-        validate_non_empty_string(agent_id)
         row = conn.execute(
             "SELECT * FROM agent WHERE agent_id = ?", (agent_id,)
         ).fetchone()
@@ -68,11 +69,11 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
         self._validate_agent_row(row)
         return self._row_to_agent(row)
 
+    @validate_inputs((validate_handle_exists, "handle"))
     def read_agent_by_handle(
         self, handle: str, *, conn: sqlite3.Connection
     ) -> Agent | None:
         """Read an agent by handle."""
-        validate_non_empty_string(handle)
         row = conn.execute("SELECT * FROM agent WHERE handle = ?", (handle,)).fetchone()
         if row is None:
             return None
@@ -114,3 +115,8 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             (handle_like, limit, offset),
         ).fetchall()
         return self._map_rows_to_agents(rows)
+
+    @validate_inputs((validate_agent_id, "agent_id"))
+    def delete_agent(self, agent_id: str, *, conn: sqlite3.Connection) -> None:
+        """Delete an agent by agent_id."""
+        conn.execute("DELETE FROM agent WHERE agent_id = ?", (agent_id,))

@@ -11,8 +11,10 @@ from db.adapters.base import UserAgentProfileMetadataDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import user_agent_profile_metadata
+from lib.validation_decorators import validate_inputs
 from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+from simulation.core.utils.validators import validate_agent_id
 
 METADATA_COLUMNS = ordered_column_names(user_agent_profile_metadata)
 METADATA_REQUIRED_FIELDS = required_column_names(user_agent_profile_metadata)
@@ -84,3 +86,11 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
             self._validate_metadata_row(row)
             result[row["agent_id"]] = self._row_to_metadata(row)
         return result
+
+    @validate_inputs((validate_agent_id, "agent_id"))
+    def delete_by_agent_id(self, agent_id: str, *, conn: sqlite3.Connection) -> None:
+        """Delete metadata by agent_id."""
+        conn.execute(
+            "DELETE FROM user_agent_profile_metadata WHERE agent_id = ?",
+            (agent_id,),
+        )
