@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AgentDetail from '@/components/details/AgentDetail';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Agent } from '@/types';
@@ -24,8 +24,12 @@ export default function AgentsView({
 }: AgentsViewProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const deleteRequestIdRef = useRef(0);
+
   useEffect(() => {
+    deleteRequestIdRef.current += 1;
     setDeleteError(null);
+    setIsDeleting(false);
   }, [selectedAgentHandle]);
   if (agentsLoading && agents.length === 0) {
     return (
@@ -77,13 +81,20 @@ export default function AgentsView({
     if (!confirmed) {
       return;
     }
-    setDeleteError(null);
+    const requestId = deleteRequestIdRef.current + 1;
+    deleteRequestIdRef.current = requestId;
     setIsDeleting(true);
     try {
       await onDeleteAgent(agent.handle);
     } catch (err) {
+      if (deleteRequestIdRef.current !== requestId) {
+        return;
+      }
       setDeleteError(err instanceof Error ? err.message : String(err));
     } finally {
+      if (deleteRequestIdRef.current !== requestId) {
+        return;
+      }
       setIsDeleting(false);
     }
   };

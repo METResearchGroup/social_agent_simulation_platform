@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Agent, Run } from '@/types';
 
+const COPY_RESET_DELAY_MS: number = 1_000;
+
 interface RunSummaryProps {
   run: Run;
   agents: Agent[];
@@ -26,7 +28,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
         await navigator.clipboard.writeText(run.runId)
         setCopied(true)
         if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
-        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
+        copyResetTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
       } catch (error) {
         console.log(error instanceof Error ? error.message : 'Copy failed');
         setCopied(false)
