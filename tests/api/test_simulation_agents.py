@@ -493,7 +493,7 @@ def test_delete_simulations_agents_success_removes_agent(simulation_client, temp
 
     post_resp = client.post("/v1/simulations/agents", json=body)
     assert post_resp.status_code == 201
-    created = post_resp.json()
+    created: dict[str, str] = post_resp.json()
 
     delete_resp = client.delete(f"/v1/simulations/agents/{created['handle']}")
     assert delete_resp.status_code == 204
@@ -501,7 +501,8 @@ def test_delete_simulations_agents_success_removes_agent(simulation_client, temp
     get_resp = client.get("/v1/simulations/agents?limit=100&offset=0")
     assert get_resp.status_code == 200
     handles = [agent["handle"] for agent in get_resp.json()]
-    assert created["handle"] not in handles
+    expected_result = created["handle"]
+    assert expected_result not in handles
 
 
 def test_delete_simulations_agents_missing_returns_404(simulation_client, temp_db):
@@ -512,4 +513,5 @@ def test_delete_simulations_agents_missing_returns_404(simulation_client, temp_d
     resp = client.delete(f"/v1/simulations/agents/{missing_handle}")
     assert resp.status_code == 404
     err = resp.json()
-    assert err["error"]["code"] == "AGENT_NOT_FOUND"
+    expected_result = "AGENT_NOT_FOUND"
+    assert err["error"]["code"] == expected_result
