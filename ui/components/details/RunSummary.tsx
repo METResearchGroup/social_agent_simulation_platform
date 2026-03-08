@@ -38,9 +38,9 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
 
   const handleExportRun = async (): Promise<void> => {
     setExportStatus(true) 
-    console.log(run)
-    console.log(agents)
-    console.log(completedTurns)
+    console.log(`run: ${JSON.stringify(run)}\n\n` + 
+                `agents: ${JSON.stringify(agents)}\n\n` + 
+                `completedTurns: ${JSON.stringify(completedTurns)}}`)
   }
 
   return (
