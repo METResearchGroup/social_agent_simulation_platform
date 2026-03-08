@@ -52,7 +52,8 @@ class TestGetLikeGenerator:
         assert generator.__class__.__name__ == expected_result
 
 
-class TestActionGeneratorsRegistry:
+class TestGetFollowGenerator:
+    """Tests for get_follow_generator function."""
     def test_get_follow_generator_returns_follow_generator(self):
         """get_follow_generator returns a FollowGenerator instance."""
         generator = get_follow_generator(algorithm="random_simple")
