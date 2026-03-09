@@ -41,7 +41,7 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     setExportRunId(run.runId)
     console.log(`run: ${JSON.stringify(run)}\n\n` + 
                 `agents: ${JSON.stringify(agents)}\n\n` + 
-                `completedTurns: ${JSON.stringify(completedTurns)}}`)
+                `completedTurns: ${JSON.stringify(completedTurns)}`)
   }
 
   return (
