@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
 
@@ -12,7 +12,7 @@ class AgentFactory(BaseFactory[SocialMediaAgent]):
         cls,
         *,
         handle: str | None = None,
-        posts: list[BlueskyFeedPost] | None = None,
+        posts: list[Post] | None = None,
         followers: int | None = None,
         following: int | None = None,
         posts_count: int | None = None,

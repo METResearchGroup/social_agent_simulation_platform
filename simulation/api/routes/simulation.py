@@ -17,6 +17,7 @@ from simulation.api.constants import (
 )
 from simulation.api.dependencies.app_user import require_current_app_user
 from simulation.api.errors import (
+    ApiAgentNotFoundError,
     ApiHandleAlreadyExistsError,
     ApiRunCreationFailedError,
     ApiRunNotFoundError,
@@ -34,12 +35,12 @@ from simulation.api.schemas.simulation import (
     RunResponse,
     TurnSchema,
 )
-from simulation.api.services.agent_command_service import create_agent
+from simulation.api.services.agent_command_service import create_agent, delete_agent
 from simulation.api.services.agent_query_service import list_agents
 from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
-    get_posts_by_uris,
+    get_posts_by_ids,
     get_run_details,
     get_turns_for_run,
     list_runs,
@@ -57,6 +58,7 @@ SIMULATION_RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
 SIMULATION_AGENTS_CREATE_ROUTE: str = "POST /v1/simulations/agents"
+SIMULATION_AGENTS_DELETE_ROUTE: str = "DELETE /v1/simulations/agents/{handle}"
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
 SIMULATION_METRICS_ROUTE: str = "GET /v1/simulations/metrics"
@@ -152,18 +154,36 @@ async def get_simulation_agents(
         default=DEFAULT_AGENT_LIST_LIMIT,
         ge=1,
         le=MAX_AGENT_LIST_LIMIT,
-        description="Maximum number of agents to return (ordered by handle).",
+        description=(
+            "Maximum number of agents to return (ordered by updated_at DESC, handle ASC)."
+        ),
     ),
     offset: int = Query(
         default=DEFAULT_AGENT_LIST_OFFSET,
         ge=0,
-        description="Number of agents to skip before returning results (ordered by handle).",
+        description=(
+            "Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC)."
+        ),
     ),
 ) -> list[AgentSchema] | Response:
     """Return all simulation agents from the database."""
     return await _execute_get_simulation_agents(
         request, q=q, limit=limit, offset=offset
     )
+
+
+@router.delete(
+    "/simulations/agents/{handle}",
+    status_code=204,
+    summary="Delete simulation agent",
+    description="Delete a simulation agent by handle.",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENTS_DELETE_ROUTE, success_type=type(None)
+)
+async def delete_simulation_agent(request: Request, handle: str) -> Response:
+    """Delete an agent and its related data."""
+    return await _execute_delete_simulation_agent(request, handle=handle)
 
 
 @router.get(
@@ -223,15 +243,17 @@ async def get_simulation_run(
     response_model=list[PostSchema],
     status_code=200,
     summary="List simulation posts",
-    description="Return posts, optionally filtered by URIs. Batch lookup for feed resolution.",
+    description="Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.",
 )
 @log_route_completion_decorator(route=SIMULATION_POSTS_ROUTE, success_type=list)
 async def get_simulation_posts(
     request: Request,
-    uris: list[str] | None = Query(default=None, description="Filter by post URIs"),
+    post_ids: list[str] | None = Query(
+        default=None, description="Filter by canonical post_ids"
+    ),
 ) -> list[PostSchema] | Response:
     """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
-    return await _execute_get_simulation_posts(request, uris=uris)
+    return await _execute_get_simulation_posts(request, post_ids=post_ids)
 
 
 @router.get(
@@ -306,12 +328,14 @@ async def _execute_get_default_config(
 async def _execute_get_simulation_posts(
     request: Request,
     *,
-    uris: list[str] | None = None,
+    post_ids: list[str] | None = None,
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
         engine = request.app.state.engine
-        return await asyncio.to_thread(get_posts_by_uris, uris=uris, engine=engine)
+        return await asyncio.to_thread(
+            get_posts_by_ids, post_ids=post_ids, engine=engine
+        )
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")
         return _error_response(
@@ -402,6 +426,46 @@ async def _execute_get_simulation_agents(
         )
     except Exception:
         logger.exception("Unexpected error while listing simulation agents")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_delete_simulation_agent(
+    request: Request, *, handle: str
+) -> Response:
+    """Delete agent and convert known failures to HTTP responses."""
+    try:
+        app_state = request.app.state
+        await asyncio.to_thread(
+            delete_agent,
+            handle,
+            transaction_provider=app_state.transaction_provider,
+            agent_repo=app_state.agent_repo,
+            bio_repo=app_state.agent_bio_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+        )
+        return Response(status_code=204)
+    except ApiAgentNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="AGENT_NOT_FOUND",
+            message="Agent not found",
+            detail=e.handle,
+        )
+    except ValueError as e:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(e),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while deleting agent")
         return _error_response(
             status_code=500,
             code="INTERNAL_ERROR",

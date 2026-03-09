@@ -25,49 +25,49 @@ from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
 _INT_ADAPTER = TypeAdapter(int)
 
 
-def test_default_metric_key_lists_are_derived_and_ordered():
-    assert DEFAULT_TURN_METRIC_KEYS == [
-        TurnActionCountsByTypeMetric.KEY,
-        TurnActionTotalMetric.KEY,
-    ]
-    assert DEFAULT_RUN_METRIC_KEYS == [
-        RunActionTotalsByTypeMetric.KEY,
-        RunActionTotalMetric.KEY,
-    ]
+class TestMetricsDefaults:
+    def test_default_metric_key_lists_are_derived_and_ordered(self):
+        assert DEFAULT_TURN_METRIC_KEYS == [
+            TurnActionCountsByTypeMetric.KEY,
+            TurnActionTotalMetric.KEY,
+        ]
+        assert DEFAULT_RUN_METRIC_KEYS == [
+            RunActionTotalsByTypeMetric.KEY,
+            RunActionTotalMetric.KEY,
+        ]
 
+    def test_defaults_duplicate_key_validation_raises(self):
+        class _M1(Metric):
+            KEY = "turn.dup"
+            SCOPE = MetricScope.TURN
+            DESCRIPTION = "Test metric."
+            AUTHOR = "test"
+            DISPLAY_NAME = "M1 (test)"
 
-def test_defaults_duplicate_key_validation_raises():
-    class _M1(Metric):
-        KEY = "turn.dup"
-        SCOPE = MetricScope.TURN
-        DESCRIPTION = "Test metric."
-        AUTHOR = "test"
-        DISPLAY_NAME = "M1 (test)"
+            @property
+            def output_adapter(self):
+                return _INT_ADAPTER
 
-        @property
-        def output_adapter(self):
-            return _INT_ADAPTER
+            def compute(
+                self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+            ) -> ComputedMetricResult:
+                return 0
 
-        def compute(
-            self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
-        ) -> ComputedMetricResult:
-            return 0
+        class _M2(Metric):
+            KEY = "turn.dup"
+            SCOPE = MetricScope.TURN
+            DESCRIPTION = "Test metric."
+            AUTHOR = "test"
+            DISPLAY_NAME = "M2 (test)"
 
-    class _M2(Metric):
-        KEY = "turn.dup"
-        SCOPE = MetricScope.TURN
-        DESCRIPTION = "Test metric."
-        AUTHOR = "test"
-        DISPLAY_NAME = "M2 (test)"
+            @property
+            def output_adapter(self):
+                return _INT_ADAPTER
 
-        @property
-        def output_adapter(self):
-            return _INT_ADAPTER
+            def compute(
+                self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
+            ) -> ComputedMetricResult:
+                return 0
 
-        def compute(
-            self, *, ctx: MetricContext, deps: MetricDeps, prior: ComputedMetrics
-        ) -> ComputedMetricResult:
-            return 0
-
-    with pytest.raises(ValueError, match="Duplicate metric keys"):
-        _validate_no_duplicate_metric_keys(metric_classes=(_M1, _M2))
+        with pytest.raises(ValueError, match="Duplicate metric keys"):
+            _validate_no_duplicate_metric_keys(metric_classes=(_M1, _M2))

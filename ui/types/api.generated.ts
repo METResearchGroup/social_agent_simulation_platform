@@ -48,6 +48,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/simulations/agents/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete simulation agent
+         * @description Delete a simulation agent by handle.
+         */
+        delete: operations["delete_simulation_agent_v1_simulations_agents__handle__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/simulations/config/default": {
         parameters: {
             query?: never;
@@ -117,7 +137,7 @@ export interface paths {
         };
         /**
          * List simulation posts
-         * @description Return posts, optionally filtered by URIs. Batch lookup for feed resolution.
+         * @description Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.
          */
         get: operations["get_simulation_posts_v1_simulations_posts_get"];
         put?: never;
@@ -223,8 +243,8 @@ export interface components {
             agent_handle: string;
             /** Created At */
             created_at: string;
-            /** Post Uri */
-            post_uri?: string | null;
+            /** Post Id */
+            post_id?: string | null;
             type: components["schemas"]["TurnAction"];
             /** User Id */
             user_id?: string | null;
@@ -320,8 +340,8 @@ export interface components {
             created_at: string;
             /** Feed Id */
             feed_id: string;
-            /** Post Uris */
-            post_uris: string[];
+            /** Post Ids */
+            post_ids: string[];
             /** Run Id */
             run_id: string;
             /** Turn Number */
@@ -368,17 +388,26 @@ export interface components {
             created_at: string;
             /** Like Count */
             like_count: number;
+            /** Post Id */
+            post_id: string;
             /** Quote Count */
             quote_count: number;
             /** Reply Count */
             reply_count: number;
             /** Repost Count */
             repost_count: number;
+            source: components["schemas"]["PostSource"];
             /** Text */
             text: string;
             /** Uri */
             uri: string;
         };
+        /**
+         * PostSource
+         * @description Source platform/type for a post.
+         * @enum {string}
+         */
+        PostSource: "bluesky" | "ai_generated";
         /**
          * RunConfigDetail
          * @description Configuration for a persisted run.
@@ -598,9 +627,9 @@ export interface operations {
             query?: {
                 /** @description Optional handle search query (case-insensitive substring). Supports '*' (any-length) and '?' (single-character) wildcards. */
                 q?: string | null;
-                /** @description Maximum number of agents to return (ordered by handle). */
+                /** @description Maximum number of agents to return (ordered by updated_at DESC, handle ASC). */
                 limit?: number;
-                /** @description Number of agents to skip before returning results (ordered by handle). */
+                /** @description Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC). */
                 offset?: number;
             };
             header?: never;
@@ -650,6 +679,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AgentSchema"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_simulation_agent_v1_simulations_agents__handle__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -725,8 +783,8 @@ export interface operations {
     get_simulation_posts_v1_simulations_posts_get: {
         parameters: {
             query?: {
-                /** @description Filter by post URIs */
-                uris?: string[] | null;
+                /** @description Filter by canonical post_ids */
+                post_ids?: string[] | null;
             };
             header?: never;
             path?: never;

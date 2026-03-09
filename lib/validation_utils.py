@@ -143,29 +143,28 @@ def validate_turn_number(turn_number: int | None) -> None:
     validate_nonnegative_value(turn_number, "turn_number")
 
 
-def validate_non_empty_string(v: Any, field_name: str) -> str:
-    """Validate that a string field is non-empty after stripping.
+def validate_non_empty_string(value: str) -> str:
+    """Validate that a value is a non-empty string after stripping.
 
-    This function is intended to be called from Pydantic field_validators
-    after type coercion has occurred, so v should already be a str.
+    This function is intended to be called from Pydantic field validators after
+    type coercion has occurred, so value should typically already be a str.
     However, we include defensive None and type checking for robustness.
 
     Args:
-        v: The value to validate (expected to be str after Pydantic coercion,
-           but defensively handles None and non-str types)
-        field_name: The name of the field being validated (for error messages)
+        value: The value to validate (expected to be str after coercion, but
+            defensively handles None and non-str types at runtime).
 
     Returns:
-        The stripped string value
+        The stripped string value.
 
     Raises:
-        ValueError: If the value is None, not a string, or empty after stripping
+        ValueError: If the value is None, not a string, or empty after stripping.
     """
-    if v is None:
-        raise ValueError(f"{field_name} cannot be None")
-    if not isinstance(v, str):
-        raise ValueError(f"{field_name} must be a string")
-    v = v.strip()
-    if not v:
-        raise ValueError(f"{field_name} cannot be empty")
-    return v
+    if value is None:  # type: ignore[reportUnnecessaryComparison]
+        raise ValueError("value cannot be None")
+    if not isinstance(value, str):
+        raise ValueError("value must be a string")
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError("value cannot be empty")
+    return cleaned

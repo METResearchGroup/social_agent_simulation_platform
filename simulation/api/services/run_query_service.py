@@ -15,7 +15,7 @@ from simulation.api.schemas.simulation import (
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.utils.validators import validate_run_id
@@ -64,7 +64,7 @@ def get_turns_for_run(
                 run_id=feed.run_id,
                 turn_number=feed.turn_number,
                 agent_handle=feed.agent_handle,
-                post_uris=list(feed.post_uris),
+                post_ids=list(feed.post_ids),
                 created_at=feed.created_at,
             )
             for feed in feeds
@@ -77,8 +77,10 @@ def get_turns_for_run(
     return turns
 
 
-def _post_to_schema(post: BlueskyFeedPost) -> PostSchema:
+def _post_to_schema(post: Post) -> PostSchema:
     return PostSchema(
+        post_id=post.post_id,
+        source=post.source,
         uri=post.uri,
         author_display_name=post.author_display_name,
         author_handle=post.author_handle,
@@ -92,20 +94,20 @@ def _post_to_schema(post: BlueskyFeedPost) -> PostSchema:
     )
 
 
-def get_posts_by_uris(
-    *, uris: list[str] | None = None, engine: SimulationEngine
+def get_posts_by_ids(
+    *, post_ids: list[str] | None = None, engine: SimulationEngine
 ) -> list[PostSchema]:
     """Return posts from the database.
 
-    If uris is None/empty, returns up to MAX_UNFILTERED_POSTS posts.
+    If post_ids is None/empty, returns up to MAX_UNFILTERED_POSTS posts.
     """
-    posts: list[BlueskyFeedPost]
-    if not uris:
+    posts: list[Post]
+    if not post_ids:
         posts = engine.read_all_feed_posts()[:MAX_UNFILTERED_POSTS]
     else:
-        posts = engine.read_feed_posts_by_uris(uris)
+        posts = engine.read_feed_posts_by_ids(post_ids)
 
-    return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.uri)]
+    return [_post_to_schema(p) for p in sorted(posts, key=lambda p: p.post_id)]
 
 
 @validate_inputs((validate_run_id, "run_id"))

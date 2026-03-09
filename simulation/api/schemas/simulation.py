@@ -10,6 +10,7 @@ from feeds.algorithms.interfaces import FeedAlgorithmMetadata
 from simulation.core.metrics.interfaces import MetricScope
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.metrics import ComputedMetrics
+from simulation.core.models.posts import PostSource
 from simulation.core.models.runs import RunStatus
 from simulation.core.utils.validators import (
     validate_feed_algorithm,
@@ -155,14 +156,14 @@ class CreateAgentRequest(BaseModel):
     def _validate_handle(cls, v: str) -> str:
         from lib.validation_utils import validate_non_empty_string
 
-        return validate_non_empty_string(v.strip(), "handle")
+        return validate_non_empty_string(v.strip())
 
     @field_validator("display_name")
     @classmethod
     def _validate_display_name(cls, v: str) -> str:
         from lib.validation_utils import validate_non_empty_string
 
-        return validate_non_empty_string(v.strip(), "display_name")
+        return validate_non_empty_string(v.strip())
 
 
 class AgentSchema(BaseModel):
@@ -184,13 +185,15 @@ class FeedSchema(BaseModel):
     run_id: str
     turn_number: int
     agent_handle: str
-    post_uris: list[str]
+    post_ids: list[str]
     created_at: str
 
 
 class PostSchema(BaseModel):
     """Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts."""
 
+    post_id: str
+    source: PostSource
     uri: str
     author_display_name: str
     author_handle: str
@@ -208,7 +211,7 @@ class AgentActionSchema(BaseModel):
 
     action_id: str
     agent_handle: str
-    post_uri: str | None = None
+    post_id: str | None = None
     user_id: str | None = None
     type: TurnAction
     created_at: str

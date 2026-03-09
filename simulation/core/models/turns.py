@@ -47,7 +47,7 @@ class TurnMetadata(BaseModel):
     @classmethod
     def validate_run_id(cls, v: str) -> str:
         """Validate that run_id is a non-empty string."""
-        return validate_non_empty_string(v, "run_id")
+        return validate_non_empty_string(v)
 
     @field_validator("turn_number")
     @classmethod
@@ -66,9 +66,7 @@ class TurnData(BaseModel):
 
     turn_number: int
     agents: list[Any]  # SocialMediaAgent - using Any to avoid circular import
-    feeds: dict[
-        str, list[Any]
-    ]  # dict[str, list[BlueskyFeedPost]] - contains hydrated posts
+    feeds: dict[str, list[Any]]  # dict[str, list[Post]] - contains hydrated posts
     actions: dict[
         str, list[Any]
     ]  # dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]] - contains actions taken by the agents

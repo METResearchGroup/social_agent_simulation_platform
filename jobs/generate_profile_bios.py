@@ -14,7 +14,7 @@ from lib.langfuse_telemetry import get_langfuse_client, log_llm_request
 from lib.load_env_vars import EnvVarsContainer
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.generated.bio import GeneratedBio
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 
 GENERATE_BIO_PROMPT = ChatPromptTemplate.from_messages(
@@ -63,9 +63,7 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 langfuse_client = get_langfuse_client()
 
 
-def get_posts_sample(
-    posts: list[BlueskyFeedPost], max_posts: int = MAX_POSTS_SAMPLE
-) -> str:
+def get_posts_sample(posts: list[Post], max_posts: int = MAX_POSTS_SAMPLE) -> str:
     """Get a sample of posts formatted for the prompt.
 
     Args:
@@ -88,9 +86,7 @@ def get_posts_sample(
     return "\n".join(formatted)
 
 
-def generate_bio_for_profile(
-    profile: BlueskyProfile, posts: list[BlueskyFeedPost]
-) -> str:
+def generate_bio_for_profile(profile: BlueskyProfile, posts: list[Post]) -> str:
     """Generate a bio for a profile using Langchain.
 
     Args:
@@ -141,8 +137,8 @@ def main():
     feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
     generated_bio_repo = create_sqlite_generated_bio_repository(transaction_provider=tx)
     profiles: list[BlueskyProfile] = profile_repo.list_profiles()
-    feed_posts: list[BlueskyFeedPost] = feed_post_repo.list_all_feed_posts()
-    posts_by_author: dict[str, list[BlueskyFeedPost]] = {}
+    feed_posts: list[Post] = feed_post_repo.list_all_feed_posts()
+    posts_by_author: dict[str, list[Post]] = {}
     for post in feed_posts:
         posts_by_author.setdefault(post.author_handle, []).append(post)
 

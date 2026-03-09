@@ -19,7 +19,7 @@ class Like(BaseModel):
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""
-        return validate_non_empty_string(v, _field_name(info))
+        return validate_non_empty_string(v)
 
 
 class Comment(BaseModel):
@@ -33,7 +33,7 @@ class Comment(BaseModel):
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""
-        return validate_non_empty_string(v, _field_name(info))
+        return validate_non_empty_string(v)
 
 
 class Follow(BaseModel):
@@ -46,7 +46,7 @@ class Follow(BaseModel):
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""
-        return validate_non_empty_string(v, _field_name(info))
+        return validate_non_empty_string(v)
 
 
 class TurnAction(str, Enum):

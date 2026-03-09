@@ -70,61 +70,62 @@ def _count_runs_with_app_user_id(db_path: str) -> int:
         raise
 
 
-def test_authenticated_request_upserts_app_user_row(
-    client_with_temp_db, monkeypatch, tmp_path
-):
-    """Authenticated request upserts an app_user row keyed by JWT sub."""
-    monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
-    client: TestClient = client_with_temp_db
-    db_path = str(tmp_path / "test.sqlite")
-    token = _make_valid_token()
+class TestAppUserAttribution:
+    def test_authenticated_request_upserts_app_user_row(
+        self, client_with_temp_db, monkeypatch, tmp_path
+    ):
+        """Authenticated request upserts an app_user row keyed by JWT sub."""
+        monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+        client: TestClient = client_with_temp_db
+        db_path = str(tmp_path / "test.sqlite")
+        token = _make_valid_token()
 
-    assert _count_app_users_with_auth_provider_id(db_path, AUTH_PROVIDER_ID) == 0
+        assert _count_app_users_with_auth_provider_id(db_path, AUTH_PROVIDER_ID) == 0
 
-    response = client.get(
-        "/v1/simulations/config/default",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+        response = client.get(
+            "/v1/simulations/config/default",
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
-    assert response.status_code == 200
-    assert _count_app_users_with_auth_provider_id(db_path, AUTH_PROVIDER_ID) == 1
+        assert response.status_code == 200
+        assert _count_app_users_with_auth_provider_id(db_path, AUTH_PROVIDER_ID) == 1
 
+    def test_post_simulations_run_persists_app_user_id(
+        self, client_with_temp_db, monkeypatch, tmp_path
+    ):
+        """POST /v1/simulations/run persists runs.app_user_id when authenticated."""
+        monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+        client: TestClient = client_with_temp_db
+        db_path = str(tmp_path / "test.sqlite")
+        token = _make_valid_token()
 
-def test_post_simulations_run_persists_app_user_id(
-    client_with_temp_db, monkeypatch, tmp_path
-):
-    """POST /v1/simulations/run persists runs.app_user_id when authenticated."""
-    monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
-    client: TestClient = client_with_temp_db
-    db_path = str(tmp_path / "test.sqlite")
-    token = _make_valid_token()
+        initial_runs_with_user = _count_runs_with_app_user_id(db_path)
 
-    initial_runs_with_user = _count_runs_with_app_user_id(db_path)
+        response = client.post(
+            "/v1/simulations/run",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            json={"num_agents": 1, "num_turns": 1},
+        )
 
-    response = client.post(
-        "/v1/simulations/run",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={"num_agents": 1, "num_turns": 1},
-    )
+        assert response.status_code == 200
+        assert _count_runs_with_app_user_id(db_path) == initial_runs_with_user + 1
 
-    assert response.status_code == 200
-    assert _count_runs_with_app_user_id(db_path) == initial_runs_with_user + 1
+    def test_missing_email_claim_is_rejected(
+        self, client_with_temp_db, monkeypatch, tmp_path
+    ):
+        """Requests without an email claim now fail before touching the database."""
+        monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+        client: TestClient = client_with_temp_db
+        db_path = str(tmp_path / "test.sqlite")
+        token = _make_valid_token(email=None)
 
+        response = client.get(
+            "/v1/simulations/config/default",
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
-def test_missing_email_claim_is_rejected(client_with_temp_db, monkeypatch, tmp_path):
-    """Requests without an email claim now fail before touching the database."""
-    monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
-    client: TestClient = client_with_temp_db
-    db_path = str(tmp_path / "test.sqlite")
-    token = _make_valid_token(email=None)
-
-    response = client.get(
-        "/v1/simulations/config/default",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-
-    assert response.status_code == 400
-    assert _count_app_users_with_auth_provider_id(db_path, AUTH_PROVIDER_ID) == 0
+        assert response.status_code == 400
+        assert _count_app_users_with_auth_provider_id(db_path, AUTH_PROVIDER_ID) == 0
