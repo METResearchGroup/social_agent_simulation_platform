@@ -10,7 +10,7 @@ from db.adapters.sqlite.sqlite import SqliteTransactionProvider, initialize_data
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from lib.bluesky_client import BlueskyClient
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.profiles import BlueskyProfile
 
 bsky_client = BlueskyClient()
@@ -48,21 +48,23 @@ def transform_bsky_profile(profile: dict) -> BlueskyProfile:
     )
 
 
-def transform_bsky_author_feed(author_feed: list[dict]) -> list[BlueskyFeedPost]:
-    """Transform raw Bluesky author feed data into BlueskyFeedPost models.
+def transform_bsky_author_feed(author_feed: list[dict]) -> list[Post]:
+    """Transform raw Bluesky author feed data into Post models.
 
     Args:
         author_feed: List of post view dictionaries from Bluesky API
 
     Returns:
-        List of BlueskyFeedPost models
+        List of Post models
     """
     transformed_posts = []
 
     for post_view in author_feed:
-        post = BlueskyFeedPost(
-            id=post_view["uri"],
-            uri=post_view["uri"],
+        uri = post_view["uri"]
+        post = Post(
+            source=PostSource.BLUESKY,
+            uri=uri,
+            post_id=f"bluesky:{uri}",
             author_display_name=post_view["author"]["display_name"],
             author_handle=post_view["author"]["handle"],
             text=post_view["record"]["text"],

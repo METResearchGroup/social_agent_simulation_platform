@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from pydantic import JsonValue
 
 from simulation.core.models.agents import SocialMediaAgent
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 
 class FeedGenerator(ABC):
@@ -20,6 +20,6 @@ class FeedGenerator(ABC):
         turn_number: int,
         feed_algorithm: str,
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-    ) -> dict[str, list[BlueskyFeedPost]]:
+    ) -> dict[str, list[Post]]:
         """Generate feeds for all agents; returns mapping of agent handle to hydrated feed posts."""
         ...

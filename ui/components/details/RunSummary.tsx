@@ -10,9 +10,12 @@ interface RunSummaryProps {
 }
 
 export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedRunId, setCopiedRunId] = useState<string | null>(null);
+  const copied = copiedRunId === run.runId;
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [exportStatus, setExportStatus] = useState(false);
+
+  const [exportRunId, setExportRunId] = useState<string | null>(null)
+  const exportStatus = exportRunId === run.runId;
 
   useEffect(() => {
     return () => {
@@ -25,20 +28,20 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
   const handleCopyRunId = async (): Promise<void> => {
       try {
         await navigator.clipboard.writeText(run.runId)
-        setCopied(true)
+        setCopiedRunId(run.runId)
         if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
-        copyResetTimerRef.current = setTimeout(() => setCopied(false), 1000);
+        copyResetTimerRef.current = setTimeout(() => setCopiedRunId(null), 1000);
       } catch (error) {
         console.log(error instanceof Error ? error.message : 'Copy failed');
-        setCopied(false)
+        setCopiedRunId(null)
       }
   };
 
   const handleExportRun = async (): Promise<void> => {
-    setExportStatus(true) 
-    console.log(run)
-    console.log(agents)
-    console.log(completedTurns)
+    setExportRunId(run.runId)
+    console.log(`run: ${JSON.stringify(run)}\n\n` + 
+                `agents: ${JSON.stringify(agents)}\n\n` + 
+                `completedTurns: ${JSON.stringify(completedTurns)}`)
   }
 
   return (
@@ -47,9 +50,10 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
         <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
         <button
           type="button"
+          className="text-accent hover:text-accent-hover"
           onClick={handleExportRun}
         >
-          {exportStatus ? 'Clicked!' : 'Export Run '}
+          {exportStatus ? 'Clicked!' : 'Export Run'}
         </button>
       </div>
 

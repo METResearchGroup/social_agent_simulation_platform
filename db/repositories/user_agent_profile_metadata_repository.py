@@ -49,6 +49,15 @@ class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepositor
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_metadata_by_agent_ids(agent_ids, conn=c)
 
+    @validate_inputs((validate_agent_id, "agent_id"))
+    def delete_by_agent_id(self, agent_id: str, conn: object | None = None) -> None:
+        """Delete metadata by agent_id."""
+        if conn is not None:
+            self._db_adapter.delete_by_agent_id(agent_id, conn=conn)
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.delete_by_agent_id(agent_id, conn=c)
+
 
 def create_sqlite_user_agent_profile_metadata_repository(
     *,

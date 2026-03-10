@@ -23,13 +23,13 @@ class AppUser(BaseModel):
     @classmethod
     def validate_auth_provider_id(cls, v: str) -> str:
         """Validate that auth_provider_id is non-empty."""
-        return validate_non_empty_string(v, "auth_provider_id")
+        return validate_non_empty_string(v)
 
     @field_validator("id")
     @classmethod
     def validate_id(cls, v: str) -> str:
         """Ensure the id is non-empty and a valid UUID."""
-        validated = validate_non_empty_string(v, "id")
+        validated = validate_non_empty_string(v)
 
         try:
             uuid.UUID(validated)
@@ -42,10 +42,10 @@ class AppUser(BaseModel):
     @classmethod
     def validate_email(cls, v: str) -> str:
         """Validate that the email is non-empty."""
-        return validate_non_empty_string(v, "email")
+        return validate_non_empty_string(v)
 
     @field_validator("display_name")
     @classmethod
     def validate_display_name(cls, v: str) -> str:
         """Validate that the display name is non-empty."""
-        return validate_non_empty_string(v, "display_name")
+        return validate_non_empty_string(v)

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 
-from simulation.core.models.posts import BlueskyFeedPost
+from simulation.core.models.posts import Post
 
 
-def _posts_to_minimal_json(posts: list[BlueskyFeedPost]) -> str:
+def _posts_to_minimal_json(posts: list[Post]) -> str:
     """Serialize posts to minimal JSON for the prompt."""
     items = [
         {
-            "id": p.id,
+            "id": p.post_id,
             "text": p.text,
             "author_handle": p.author_handle,
             "like_count": p.like_count,

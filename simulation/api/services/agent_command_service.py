@@ -9,7 +9,7 @@ from db.repositories.interfaces import (
     UserAgentProfileMetadataRepository,
 )
 from lib.timestamp_utils import get_current_timestamp
-from simulation.api.errors import ApiHandleAlreadyExistsError
+from simulation.api.errors import ApiAgentNotFoundError, ApiHandleAlreadyExistsError
 from simulation.api.schemas.simulation import AgentSchema, CreateAgentRequest
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
@@ -49,6 +49,26 @@ def create_agent(
         metadata_repo.create_or_update_metadata(metadata, conn=conn)
 
     return _build_agent_schema(agent.handle, agent.display_name, bio_text)
+
+
+def delete_agent(
+    handle: str,
+    *,
+    transaction_provider: TransactionProvider,
+    agent_repo: AgentRepository,
+    bio_repo: AgentBioRepository,
+    metadata_repo: UserAgentProfileMetadataRepository,
+) -> None:
+    """Delete an agent and related rows. Atomic multi-table delete."""
+    normalized_handle = normalize_handle(handle)
+    agent = agent_repo.get_agent_by_handle(normalized_handle)
+    if agent is None:
+        raise ApiAgentNotFoundError(normalized_handle)
+
+    with transaction_provider.run_transaction() as conn:
+        bio_repo.delete_agent_bios(agent.agent_id, conn=conn)
+        metadata_repo.delete_by_agent_id(agent.agent_id, conn=conn)
+        agent_repo.delete_agent(agent.agent_id, conn=conn)
 
 
 def _build_agent_schema(handle: str, display_name: str, bio_text: str) -> AgentSchema:

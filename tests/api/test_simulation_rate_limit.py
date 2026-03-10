@@ -80,45 +80,47 @@ def _trigger_rate_limit(client, fastapi_app, ip: str, mock_engine) -> list:
     ]
 
 
-def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
-    simulation_client,
-    mock_engine_minimal_success,
-):
-    """Sixth request within limit window returns 429 with RATE_LIMITED error shape.
+class TestSimulationRateLimit:
+    def test_post_simulations_run_rate_limit_returns_429_after_limit_exceeded(
+        self,
+        simulation_client,
+        mock_engine_minimal_success,
+    ):
+        """Sixth request within limit window returns 429 with RATE_LIMITED error shape.
 
-    Resets the shared limiter storage so the six-request sequence is deterministic
-    regardless of test order.
-    """
-    client, fastapi_app = simulation_client
-    responses = _trigger_rate_limit(
-        client, fastapi_app, "192.168.100.1", mock_engine_minimal_success
-    )
+        Resets the shared limiter storage so the six-request sequence is deterministic
+        regardless of test order.
+        """
+        client, fastapi_app = simulation_client
+        responses = _trigger_rate_limit(
+            client, fastapi_app, "192.168.100.1", mock_engine_minimal_success
+        )
 
-    assert all(r.status_code == 200 for r in responses[:5]), (
-        "First 5 requests should succeed"
-    )
-    assert responses[5].status_code == 429, "Sixth request should be rate limited"
+        assert all(r.status_code == 200 for r in responses[:5]), (
+            "First 5 requests should succeed"
+        )
+        assert responses[5].status_code == 429, "Sixth request should be rate limited"
 
-    data = responses[5].json()
-    assert data["error"]["code"] == "RATE_LIMITED"
-    assert data["error"]["message"] == "Rate limit exceeded"
-    assert data["error"]["detail"] is None
+        data = responses[5].json()
+        assert data["error"]["code"] == "RATE_LIMITED"
+        assert data["error"]["message"] == "Rate limit exceeded"
+        assert data["error"]["detail"] is None
 
+    def test_post_simulations_run_rate_limit_429_error_shape(
+        self,
+        simulation_client,
+        mock_engine_minimal_success,
+    ):
+        """429 response has standard error structure matching other API errors."""
+        client, fastapi_app = simulation_client
+        responses = _trigger_rate_limit(
+            client, fastapi_app, "192.168.100.2", mock_engine_minimal_success
+        )
+        response = responses[5]
 
-def test_post_simulations_run_rate_limit_429_error_shape(
-    simulation_client,
-    mock_engine_minimal_success,
-):
-    """429 response has standard error structure matching other API errors."""
-    client, fastapi_app = simulation_client
-    responses = _trigger_rate_limit(
-        client, fastapi_app, "192.168.100.2", mock_engine_minimal_success
-    )
-    response = responses[5]
-
-    assert response.status_code == 429
-    data = response.json()
-    assert "error" in data
-    assert data["error"]["code"] == "RATE_LIMITED"
-    assert data["error"]["message"] == "Rate limit exceeded"
-    assert "detail" in data["error"]
+        assert response.status_code == 429
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == "RATE_LIMITED"
+        assert data["error"]["message"] == "Rate limit exceeded"
+        assert "detail" in data["error"]
