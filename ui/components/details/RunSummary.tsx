@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Agent, Run } from '@/types';
 
-const COPY_RESET_DELAY_MS: number = 1_000;
-
 interface RunSummaryProps {
   run: Run;
   agents: Agent[];
@@ -12,8 +10,12 @@ interface RunSummaryProps {
 }
 
 export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedRunId, setCopiedRunId] = useState<string | null>(null);
+  const copied = copiedRunId === run.runId;
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [exportRunId, setExportRunId] = useState<string | null>(null)
+  const exportStatus = exportRunId === run.runId;
 
   useEffect(() => {
     return () => {
@@ -26,18 +28,35 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
   const handleCopyRunId = async (): Promise<void> => {
       try {
         await navigator.clipboard.writeText(run.runId)
-        setCopied(true)
+        setCopiedRunId(run.runId)
         if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
-        copyResetTimerRef.current = setTimeout(() => setCopied(false), COPY_RESET_DELAY_MS);
+        copyResetTimerRef.current = setTimeout(() => setCopiedRunId(null), 1000);
       } catch (error) {
         console.log(error instanceof Error ? error.message : 'Copy failed');
-        setCopied(false)
+        setCopiedRunId(null)
       }
   };
 
+  const handleExportRun = async (): Promise<void> => {
+    setExportRunId(run.runId)
+    console.log(`run: ${JSON.stringify(run)}\n\n` + 
+                `agents: ${JSON.stringify(agents)}\n\n` + 
+                `completedTurns: ${JSON.stringify(completedTurns)}`)
+  }
+
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
+        <button
+          type="button"
+          className="text-accent hover:text-accent-hover"
+          onClick={handleExportRun}
+        >
+          {exportStatus ? 'Clicked!' : 'Export Run'}
+        </button>
+      </div>
+
       <div className="bg-white border border-beige-300 rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-beige-100">
@@ -110,3 +129,4 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     </div>
   );
 }
+
