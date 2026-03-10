@@ -172,6 +172,23 @@ Persistence and model boundaries
 
 - When adding computed or derived data (e.g. metrics), persist it in dedicated storage (e.g. turn_metrics / run_metrics tables and a dedicated repository) rather than overloading existing models or repositories. Keeps core models stable and avoids bloating a single repo with unrelated concerns.
 
+Persistence scopes
+
+- The persistence layer has three distinct lifecycles. Model them explicitly and do not mix them in one table:
+  - __Seed state (current, editable)__: the current “what exists before the next run starts” state. Use `agent_*` for new seed-state tables.
+  - __Run snapshot (immutable after run creation)__: the frozen “what existed when this run started” snapshot. Use `run_*` for new snapshot tables.
+  - __Turn events (append-only history)__: immutable per-turn outputs produced during a run. Use `turn_*` for new per-turn tables.
+- Legacy exceptions already in the repo:
+  - `agent`, `agent_persona_bios`, `user_agent_profile_metadata` are seed-state tables even though they predate the `agent_*` naming convention.
+  - `likes`, `comments`, `follows`, and `generated_feeds` are legacy-named __turn-event__ tables; they must keep their current semantics (they are not seed state).
+- Historical-run reads must not derive behaviorally relevant state from live seed-state tables. If a run needs a “starting state”, it must be snapshotted into `run_*` at run creation time.
+- Ban mixed-lifecycle modeling patterns:
+  - Do not create a single table that holds both seed state and run/turn state via nullable `run_id` / nullable `turn_number`.
+  - Do not add a lifecycle-collapsing `source = manual | simulation` field to reuse an event-log table as editable seed state.
+- Migration contract (lossy vs non-lossy):
+  - __Counts are lossy__ and may be preserved as summaries/caches (e.g. `*_count` fields) but do not imply row identities.
+  - __Row-level facts__ (edges, posts, likes, comments) may only be migrated/backfilled when there is row-level source data to infer them from. Never synthesize rows from aggregate counts.
+
 Frontend — Shared components
 
 - Extract shared UI patterns (e.g. LoadingSpinner) into common components when the same JSX/styling appears in multiple places. Reuse rather than duplicate.

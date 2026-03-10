@@ -24,4 +24,5 @@ Quick lookup table of contents for project documentation.
 |----------|-------------|
 | [RULES.md](RULES.md) | Project rules and conventions |
 | [api-contract.md](api-contract.md) | Backend ↔ frontend schema contract and generated types |
+| [architecture/seed-state-run-snapshot-turn-events.md](architecture/seed-state-run-snapshot-turn-events.md) | Persistence scopes: seed state vs run snapshot vs turn events |
 | [plans/](plans/) | Implementation plans and verification assets |
