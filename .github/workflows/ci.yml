@@ -38,7 +38,7 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --extra ner
+        run: uv sync
 
       - name: Run docs metadata check
         run: uv run python scripts/check_docs_metadata.py
@@ -337,7 +337,7 @@ jobs:
         run: uv lock
 
       - name: Install dependencies
-        run: uv sync --extra test
+        run: uv sync --extra test,ner
 
       - name: Add project directory to PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
