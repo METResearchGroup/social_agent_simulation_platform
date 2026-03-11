@@ -38,7 +38,7 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --extra ner
 
       - name: Run docs metadata check
         run: uv run python scripts/check_docs_metadata.py
