@@ -1,6 +1,17 @@
 import time
 
-from ml_tooling.ner.model import NERModel
+from transformers import logging as transformers_logging
+
+from ml_tooling.ner.classifier import NERModel
+
+transformers_logging.set_verbosity_error()
+
+
+def track_init_time():
+    start = time.perf_counter()
+    ner_model = NERModel()
+    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")
+    ner_model.extract_entities("")
 
 
 def timed_extract(ner_model, text, label):
@@ -9,13 +20,11 @@ def timed_extract(ner_model, text, label):
     elapsed = time.perf_counter() - start
     print(f"[{label}] ({elapsed:.4f}s)")
     print(result)
-    print("\n\n")
+    print()
 
 
 def verify_diff_cases():
-    start = time.perf_counter()
     ner_model = NERModel()
-    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")
 
     # "perfect" sequence
     timed_extract(ner_model, "My name is Wolfgang and I live in Berlin", "perfect")
@@ -38,15 +47,35 @@ def verify_diff_cases():
     )
 
 
-def run_10000():
-    start = time.perf_counter()
+def run_same_prompt(iters):
     ner_model = NERModel()
-    for i in range(10000):
+    start = time.perf_counter()
+    for _ in range(iters):
         ner_model.extract_entities("My name is Wolfgang and I live in Berlin")
-    elapsed = time.perf_counter() - start
-    print(f"10000 inferences took {elapsed}s")
+    return time.perf_counter() - start
+
+
+def run_model_track_time():
+    counts = [1, 10, 1000, 10000]
+    results = [(n, run_same_prompt(n)) for n in counts]
+
+    col1, col2, col3 = "iters", "total (s)", "iters/sec"
+    w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)
+    sep = f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
+    header = f"| {col1:<{w1}} | {col2:<{w2}} | {col3:<{w3}} |"
+
+    print(sep)
+    print(header)
+    print(sep)
+    for n, elapsed in results:
+        throughput = n / elapsed
+        print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")
+    print(sep)
 
 
 if __name__ == "__main__":
+    track_init_time()
+    print("\n\n")
     verify_diff_cases()
-    run_10000()
+    print("\n\n")
+    run_model_track_time()
