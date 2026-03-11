@@ -23,9 +23,7 @@ def timed_extract(ner_model, text, label):
     print()
 
 
-def verify_diff_cases():
-    ner_model = NERModel()
-
+def verify_diff_cases(ner_model):
     # "perfect" sequence
     timed_extract(ner_model, "My name is Wolfgang and I live in Berlin", "perfect")
 
@@ -47,17 +45,16 @@ def verify_diff_cases():
     )
 
 
-def run_same_prompt(iters):
-    ner_model = NERModel()
+def run_same_prompt(ner_model, iters):
     start = time.perf_counter()
     for _ in range(iters):
         ner_model.extract_entities("My name is Wolfgang and I live in Berlin")
     return time.perf_counter() - start
 
 
-def run_model_track_time():
+def run_model_track_time(ner_model):
     counts = [1, 10, 1000, 10000]
-    results = [(n, run_same_prompt(n)) for n in counts]
+    results = [(n, run_same_prompt(ner_model, n)) for n in counts]
 
     col1, col2, col3 = "iters", "total (s)", "iters/sec"
     w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)
@@ -76,6 +73,8 @@ def run_model_track_time():
 if __name__ == "__main__":
     track_init_time()
     print("\n\n")
-    verify_diff_cases()
+
+    ner_model = NERModel()
+    verify_diff_cases(ner_model)
     print("\n\n")
-    run_model_track_time()
+    run_model_track_time(ner_model)
