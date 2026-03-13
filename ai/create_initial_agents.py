@@ -6,9 +6,9 @@ from db.repositories.interfaces import (
     FeedPostRepository,
     UserAgentProfileMetadataRepository,
 )
-from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.models.posts import Post
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 

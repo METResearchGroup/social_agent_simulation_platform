@@ -19,8 +19,8 @@ from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from tests.factories import (
-    AgentFactory,
     AgentBioFactory,
+    AgentFactory,
     AgentRecordFactory,
     CommentFactory,
     FollowFactory,

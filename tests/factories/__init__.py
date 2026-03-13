@@ -23,8 +23,8 @@ from tests.factories.records import (
     AgentRecordFactory,
     UserAgentProfileMetadataFactory,
 )
-from tests.factories.runs import RunConfigFactory, RunFactory
 from tests.factories.run_agents import RunAgentSnapshotFactory
+from tests.factories.runs import RunConfigFactory, RunFactory
 from tests.factories.turns import TurnMetadataFactory, TurnResultFactory
 
 __all__ = [
