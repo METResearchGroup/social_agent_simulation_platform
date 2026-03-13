@@ -4,7 +4,7 @@
 
 We will build a standalone “Feature Extraction” microservice that accepts text (and optional metadata) and returns a set of deterministic, versioned NLP/ML features. These features will be used by other services in the simulation platform (e.g., feed ranking, agent policies, analytics) and will provide a practical path for implementing and deploying model-backed inference behind an API with production-grade observability.
 
-This PRD focuses on **five initial features**, the **API contract**, and an **implementation + rollout plan**.
+This PRD focuses on **eight candidate features** (with an **initial delivery** of the first five), the **API contract**, and an **implementation + rollout plan**.
 
 ## Goals
 
@@ -52,7 +52,7 @@ These are explicitly **not** part of the initial delivery plan for this PRD, but
 - **Feature key**: stable API name for a feature, e.g. `ner.v1`.
 - **Model version**: underlying model artifact identity (hash/commit/tag).
 
-## Feature Set (Initial 5)
+## Feature Set
 
 Each feature below is intended to be:
 
@@ -77,6 +77,8 @@ Each feature below is intended to be:
 - Can start with spaCy or a transformer NER model; keep the interface stable either way.
 - Must define how offsets are computed (byte vs codepoint); standardize on Unicode codepoint offsets.
 
+Implemented in [this GitHub issue](https://github.com/METResearchGroup/social_agent_simulation_platform/issues/205).
+
 ### 2) Sentiment + Emotion (`sentiment.v1`)
 
 **What**: Provide polarity (negative/neutral/positive) and a small emotion distribution (e.g., joy/anger/sadness/fear).
@@ -89,7 +91,7 @@ Each feature below is intended to be:
 **Outputs**:
 
 - `polarity_label` + `polarity_score`
-- `emotion_scores`: map of emotion → score (sums to 1.0)
+- `emotion_scores`: map of emotion to score (sums to 1.0)
 
 **Notes**:
 
@@ -139,7 +141,7 @@ Each feature below is intended to be:
 **Inputs**:
 
 - `text`
-- optional `embedding_model` (default configured server-side)
+- optional `embedding_model` (default configured server-side). Use OpenAI embedding model by default.
 
 **Outputs**:
 
@@ -153,6 +155,65 @@ Each feature below is intended to be:
 - Return embeddings as a **float32 array**.
 - Prefer normalizing embeddings server-side for consistent cosine similarity usage.
 - Consider payload sizes (vectors can be large); support gzip and/or an optional base64-encoded float16 representation later.
+
+### 6) Readability + Style (`readability.v1`)
+
+**What**: Text readability and style signals for “ease of consumption” and authoring-style control.
+
+**Inputs**:
+
+- `text`
+- `language` (optional, default `en`)
+
+**Outputs** (examples; exact shape can evolve as long as fields are versioned):
+
+- `grade_level`: float (readability proxy; e.g., Flesch–Kincaid-like)
+- `sentence_length_stats`: `{mean: float, p50: float, p90: float}`
+- `punctuation_density`: float
+
+**Notes**:
+
+- Keep deterministic and cheap (no model required initially).
+- Useful for ranking, formatting, and agent writing policy knobs.
+
+### 7) Intent / Dialogue Act (`intent.v1`)
+
+**What**: Classify the communicative intent of a post (e.g., question, request, complaint, announcement, advice).
+
+**Inputs**:
+
+- `text`
+- `language` (optional, default `en`)
+
+**Outputs**:
+
+- `top_k`: list of `{label, score}` (k configurable, default 5)
+
+**Notes**:
+
+- Improves reply selection and feed diversity (mix of asks/announcements/advice).
+- Label taxonomy must be stable and versioned.
+
+### 8) Stance toward a Target (`stance.v1`)
+
+**What**: Detect whether the author is supportive/opposed/neutral toward a target entity/topic mentioned in text.
+
+**Inputs**:
+
+- `text`
+- `language` (optional, default `en`)
+- optional `target`: string (explicit target; if omitted, the model may infer the most salient target)
+
+**Outputs**:
+
+- `target`: string (resolved/used target)
+- `stance_label`: one of `support` | `oppose` | `neutral` | `unclear`
+- `stance_score`: float (confidence)
+
+**Notes**:
+
+- More informative than sentiment for controversial topics.
+- If `target` is omitted, keep behavior deterministic (document target selection rules).
 
 ## API Design
 
@@ -375,7 +436,7 @@ For each of the above, keep the same two-part structure:
 
 Deliverables (end of Phase 1):
 
-- All five features are callable via their own endpoints.
+- All features are callable via their own endpoints.
 - Railway deployment supports the features (including Qdrant connectivity for embeddings/search).
 
 ### Phase 2 — (After features) add a strict feature schema registry (JSON Schema) (1–3 days)
