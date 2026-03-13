@@ -13,6 +13,8 @@ def track_init_time():
     print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")
     ner_model.extract_entities("")
 
+    return ner_model
+
 
 def timed_extract(ner_model, text, label):
     start = time.perf_counter()
@@ -70,10 +72,9 @@ def run_model_track_time(ner_model):
 
 
 if __name__ == "__main__":
-    track_init_time()
+    ner_model = track_init_time()
     print("\n\n")
 
-    ner_model = NERModel()
     verify_diff_cases(ner_model)
     print("\n\n")
     run_model_track_time(ner_model)
