@@ -16,6 +16,7 @@ from typing import Iterable
 
 import sqlalchemy as sa
 
+# TODO: Delete these legacy tables once migration renames/replaces them.
 LEGACY_SEED_STATE_TABLES: frozenset[str] = frozenset(
     {
         # Seed-state tables that predate the `agent_*` prefix.
@@ -25,6 +26,7 @@ LEGACY_SEED_STATE_TABLES: frozenset[str] = frozenset(
     }
 )
 
+# TODO: Delete these legacy tables once migration renames/replaces them.
 LEGACY_TURN_EVENT_TABLES: frozenset[str] = frozenset(
     {
         # Legacy-named turn event tables (treated like `turn_*`).
@@ -112,7 +114,7 @@ def lint_metadata(metadata: sa.MetaData) -> list[Violation]:
     for table in metadata.tables.values():
         name = table.name
 
-        if name.startswith("agent_"):
+        if name.startswith("agent_") or name in LEGACY_SEED_STATE_TABLES:
             violations.extend(_lint_agent_table(table))
             continue
 
