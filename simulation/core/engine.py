@@ -1,12 +1,16 @@
 from collections.abc import Callable, Iterable
 
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
+    RunAgentRepository,
     RunRepository,
+    UserAgentProfileMetadataRepository,
 )
 from simulation.core.action_history import (
     ActionHistoryStore,
@@ -48,6 +52,10 @@ class SimulationEngine:
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
+        agent_repo: AgentRepository,
+        agent_bio_repo: AgentBioRepository,
+        user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
+        run_agent_repo: RunAgentRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         query_service: SimulationQueryService,
@@ -59,6 +67,10 @@ class SimulationEngine:
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
+        self.agent_repo = agent_repo
+        self.agent_bio_repo = agent_bio_repo
+        self.user_agent_profile_metadata_repo = user_agent_profile_metadata_repo
+        self.run_agent_repo = run_agent_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.query_service = query_service

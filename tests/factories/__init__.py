@@ -24,6 +24,7 @@ from tests.factories.records import (
     UserAgentProfileMetadataFactory,
 )
 from tests.factories.runs import RunConfigFactory, RunFactory
+from tests.factories.run_agents import RunAgentSnapshotFactory
 from tests.factories.turns import TurnMetadataFactory, TurnResultFactory
 
 __all__ = [
@@ -46,6 +47,7 @@ __all__ = [
     "PersistedLikeFactory",
     "PostFactory",
     "RunConfigFactory",
+    "RunAgentSnapshotFactory",
     "RunFactory",
     "RunMetricsFactory",
     "TurnMetadataFactory",

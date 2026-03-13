@@ -3,9 +3,10 @@
 from collections.abc import Callable
 
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     FeedPostRepository,
-    GeneratedBioRepository,
-    ProfileRepository,
+    UserAgentProfileMetadataRepository,
 )
 from simulation.core.models.agents import SocialMediaAgent
 from simulation.core.utils.validators import (
@@ -16,9 +17,10 @@ from simulation.core.utils.validators import (
 
 def create_default_agent_factory(
     *,
-    profile_repo: ProfileRepository,
+    agent_repo: AgentRepository,
+    agent_bio_repo: AgentBioRepository,
+    user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
     feed_post_repo: FeedPostRepository,
-    generated_bio_repo: GeneratedBioRepository,
 ) -> Callable[[int], list[SocialMediaAgent]]:
     """Create the default agent factory that wraps create_initial_agents().
 
@@ -31,9 +33,10 @@ def create_default_agent_factory(
 
     Example:
         >>> factory = create_default_agent_factory(
-        ...     profile_repo=profile_repo,
+        ...     agent_repo=agent_repo,
+        ...     agent_bio_repo=agent_bio_repo,
+        ...     user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
         ...     feed_post_repo=feed_post_repo,
-        ...     generated_bio_repo=generated_bio_repo,
         ... )
         >>> agents = factory(10)  # Returns up to 10 agents
     """
@@ -55,9 +58,10 @@ def create_default_agent_factory(
 
         # Create all available agents
         all_agents = create_initial_agents(
-            profile_repo=profile_repo,
+            agent_repo=agent_repo,
+            agent_bio_repo=agent_bio_repo,
+            user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
             feed_post_repo=feed_post_repo,
-            generated_bio_repo=generated_bio_repo,
         )
 
         # Apply limit

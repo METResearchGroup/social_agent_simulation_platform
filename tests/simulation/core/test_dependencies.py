@@ -5,14 +5,17 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from db.repositories.agent_bio_repository import AgentBioRepository
+from db.repositories.agent_repository import AgentRepository
 from db.repositories.feed_post_repository import FeedPostRepository
-from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
     CommentRepository,
     FollowRepository,
     LikeRepository,
     MetricsRepository,
+    RunAgentRepository,
+    UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
@@ -32,20 +35,29 @@ from tests.factories import AgentFactory
 
 
 def _make_agent_factory_with_mocks() -> tuple[
-    ProfileRepository,
+    AgentRepository,
+    AgentBioRepository,
+    UserAgentProfileMetadataRepository,
     FeedPostRepository,
-    GeneratedBioRepository,
     Callable[[int], list[SocialMediaAgent]],
 ]:
-    profile_repo = Mock(spec=ProfileRepository)
+    agent_repo = Mock(spec=AgentRepository)
+    agent_bio_repo = Mock(spec=AgentBioRepository)
+    user_agent_profile_metadata_repo = Mock(spec=UserAgentProfileMetadataRepository)
     feed_post_repo = Mock(spec=FeedPostRepository)
-    generated_bio_repo = Mock(spec=GeneratedBioRepository)
     factory = create_default_agent_factory(
-        profile_repo=profile_repo,
+        agent_repo=agent_repo,
+        agent_bio_repo=agent_bio_repo,
+        user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
         feed_post_repo=feed_post_repo,
-        generated_bio_repo=generated_bio_repo,
     )
-    return profile_repo, feed_post_repo, generated_bio_repo, factory
+    return (
+        agent_repo,
+        agent_bio_repo,
+        user_agent_profile_metadata_repo,
+        feed_post_repo,
+        factory,
+    )
 
 
 class TestCreateEngine:
@@ -74,8 +86,13 @@ class TestCreateEngine:
         mock_run_repo = Mock(spec=RunRepository)
         mock_profile_repo = Mock(spec=ProfileRepository)
         mock_feed_post_repo = Mock(spec=FeedPostRepository)
-        mock_generated_bio_repo = Mock(spec=GeneratedBioRepository)
         mock_generated_feed_repo = Mock(spec=GeneratedFeedRepository)
+        mock_agent_repo = Mock(spec=AgentRepository)
+        mock_agent_bio_repo = Mock(spec=AgentBioRepository)
+        mock_user_agent_profile_metadata_repo = Mock(
+            spec=UserAgentProfileMetadataRepository
+        )
+        mock_run_agent_repo = Mock(spec=RunAgentRepository)
         mock_like_repo = Mock(spec=LikeRepository)
         mock_comment_repo = Mock(spec=CommentRepository)
         mock_follow_repo = Mock(spec=FollowRepository)
@@ -86,8 +103,11 @@ class TestCreateEngine:
             run_repo=mock_run_repo,
             profile_repo=mock_profile_repo,
             feed_post_repo=mock_feed_post_repo,
-            generated_bio_repo=mock_generated_bio_repo,
             generated_feed_repo=mock_generated_feed_repo,
+            agent_repo=mock_agent_repo,
+            agent_bio_repo=mock_agent_bio_repo,
+            user_agent_profile_metadata_repo=mock_user_agent_profile_metadata_repo,
+            run_agent_repo=mock_run_agent_repo,
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
@@ -99,8 +119,14 @@ class TestCreateEngine:
         assert engine.run_repo is mock_run_repo
         assert engine.profile_repo is mock_profile_repo
         assert engine.feed_post_repo is mock_feed_post_repo
-        assert engine.generated_bio_repo is mock_generated_bio_repo
         assert engine.generated_feed_repo is mock_generated_feed_repo
+        assert engine.agent_repo is mock_agent_repo
+        assert engine.agent_bio_repo is mock_agent_bio_repo
+        assert (
+            engine.user_agent_profile_metadata_repo
+            is mock_user_agent_profile_metadata_repo
+        )
+        assert engine.run_agent_repo is mock_run_agent_repo
         assert engine.agent_factory is mock_agent_factory
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
@@ -139,8 +165,11 @@ class TestCreateEngine:
         assert engine.metrics_repo is not None
         assert engine.profile_repo is not None
         assert engine.feed_post_repo is not None
-        assert engine.generated_bio_repo is not None
         assert engine.generated_feed_repo is not None
+        assert engine.agent_repo is not None
+        assert engine.agent_bio_repo is not None
+        assert engine.user_agent_profile_metadata_repo is not None
+        assert engine.run_agent_repo is not None
         assert engine.query_service is not None
         assert engine.command_service is not None
 
@@ -154,8 +183,14 @@ class TestCreateEngine:
         assert isinstance(engine.metrics_repo, MetricsRepository)
         assert isinstance(engine.profile_repo, ProfileRepository)
         assert isinstance(engine.feed_post_repo, FeedPostRepository)
-        assert isinstance(engine.generated_bio_repo, GeneratedBioRepository)
         assert isinstance(engine.generated_feed_repo, GeneratedFeedRepository)
+        assert isinstance(engine.agent_repo, AgentRepository)
+        assert isinstance(engine.agent_bio_repo, AgentBioRepository)
+        assert isinstance(
+            engine.user_agent_profile_metadata_repo,
+            UserAgentProfileMetadataRepository,
+        )
+        assert isinstance(engine.run_agent_repo, RunAgentRepository)
         assert callable(engine.agent_factory)
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
@@ -184,8 +219,14 @@ class TestServiceBuilders:
             simulation_persistence=mock_simulation_persistence,
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
-            generated_bio_repo=Mock(spec=GeneratedBioRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
+            agent_repo=Mock(spec=AgentRepository),
+            agent_bio_repo=Mock(spec=AgentBioRepository),
+            user_agent_profile_metadata_repo=Mock(
+                spec=UserAgentProfileMetadataRepository
+            ),
+            run_agent_repo=Mock(spec=RunAgentRepository),
+            generated_bio_repo=Mock(),
             agent_factory=Mock(return_value=[]),
         )
         assert isinstance(service, SimulationCommandService)
@@ -196,7 +237,7 @@ class TestCreateDefaultAgentFactory:
 
     def test_returns_callable(self):
         """Test that create_default_agent_factory() returns a callable."""
-        _, _, _, factory = _make_agent_factory_with_mocks()
+        _, _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Assert
         assert callable(factory)
@@ -210,9 +251,13 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
         ]
         mock_create_agents.return_value = mock_agents
-        profile_repo, feed_post_repo, generated_bio_repo, factory = (
-            _make_agent_factory_with_mocks()
-        )
+        (
+            agent_repo,
+            agent_bio_repo,
+            user_agent_profile_metadata_repo,
+            feed_post_repo,
+            factory,
+        ) = _make_agent_factory_with_mocks()
 
         # Act
         result = factory(5)  # Request 5 agents
@@ -221,9 +266,10 @@ class TestCreateDefaultAgentFactory:
         assert len(result) == 5
         assert all(isinstance(agent, SocialMediaAgent) for agent in result)
         mock_create_agents.assert_called_once_with(
-            profile_repo=profile_repo,
+            agent_repo=agent_repo,
+            agent_bio_repo=agent_bio_repo,
+            user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
             feed_post_repo=feed_post_repo,
-            generated_bio_repo=generated_bio_repo,
         )
 
     @patch("ai.create_initial_agents.create_initial_agents")
@@ -235,9 +281,7 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
         ]
         mock_create_agents.return_value = mock_agents
-        profile_repo, feed_post_repo, generated_bio_repo, factory = (
-            _make_agent_factory_with_mocks()
-        )
+        _, _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Act
         result = factory(3)  # Request 3 agents
@@ -254,9 +298,7 @@ class TestCreateDefaultAgentFactory:
         """Test that the factory raises InsufficientAgentsError when no agents are available."""
         # Arrange
         mock_create_agents.return_value = []  # No agents available
-        profile_repo, feed_post_repo, generated_bio_repo, factory = (
-            _make_agent_factory_with_mocks()
-        )
+        _, _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Act & Assert
         with pytest.raises(InsufficientAgentsError) as exc_info:
@@ -276,9 +318,7 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(3)
         ]
         mock_create_agents.return_value = mock_agents
-        profile_repo, feed_post_repo, generated_bio_repo, factory = (
-            _make_agent_factory_with_mocks()
-        )
+        _, _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Act & Assert
         with pytest.raises(InsufficientAgentsError) as exc_info:
@@ -298,9 +338,7 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(3)
         ]
         mock_create_agents.return_value = mock_agents
-        profile_repo, feed_post_repo, generated_bio_repo, factory = (
-            _make_agent_factory_with_mocks()
-        )
+        _, _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Act
         result = factory(3)  # Request exactly 3, which matches available
@@ -317,9 +355,7 @@ class TestCreateDefaultAgentFactory:
             AgentFactory.create(handle=f"agent{i}.bsky.social") for i in range(10)
         ]
         mock_create_agents.return_value = mock_agents
-        profile_repo, feed_post_repo, generated_bio_repo, factory = (
-            _make_agent_factory_with_mocks()
-        )
+        _, _, _, _, factory = _make_agent_factory_with_mocks()
 
         # Act
         factory(5)

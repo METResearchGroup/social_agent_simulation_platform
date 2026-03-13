@@ -20,6 +20,8 @@ from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from tests.factories import (
     AgentFactory,
+    AgentBioFactory,
+    AgentRecordFactory,
     CommentFactory,
     FollowFactory,
     GeneratedCommentFactory,
@@ -30,6 +32,7 @@ from tests.factories import (
     PostFactory,
     RunConfigFactory,
     TurnResultFactory,
+    UserAgentProfileMetadataFactory,
 )
 
 
@@ -63,6 +66,40 @@ def mock_feed_generator():
 
 @pytest.fixture
 def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
+    mock_repos["agent_repo"].list_all_agents.return_value = [
+        AgentRecordFactory.create(
+            agent_id=f"did:plc:agent{i}",
+            handle=f"agent{i}.bsky.social",
+            display_name=f"Agent {i}",
+            created_at="2026-03-13T00:00:00Z",
+            updated_at="2026-03-13T00:00:00Z",
+        )
+        for i in range(5)
+    ]
+    mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.side_effect = (
+        lambda agent_ids: {
+            agent_id: AgentBioFactory.create(
+                agent_id=agent_id,
+                persona_bio=f"Persona for {agent_id}",
+                created_at="2026-03-13T00:00:00Z",
+                updated_at="2026-03-13T00:00:00Z",
+            )
+            for agent_id in agent_ids
+        }
+    )
+    mock_repos[
+        "user_agent_profile_metadata_repo"
+    ].get_metadata_by_agent_ids.side_effect = lambda agent_ids: {
+        agent_id: UserAgentProfileMetadataFactory.create(
+            agent_id=agent_id,
+            followers_count=10,
+            follows_count=11,
+            posts_count=12,
+            created_at="2026-03-13T00:00:00Z",
+            updated_at="2026-03-13T00:00:00Z",
+        )
+        for agent_id in agent_ids
+    }
     action_history_store = Mock()
     action_history_store.has_liked.return_value = False
     action_history_store.has_commented.return_value = False
@@ -91,6 +128,10 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         feed_post_repo=mock_repos["feed_post_repo"],
         generated_bio_repo=mock_repos["generated_bio_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
+        agent_repo=mock_repos["agent_repo"],
+        agent_bio_repo=mock_repos["agent_bio_repo"],
+        user_agent_profile_metadata_repo=mock_repos["user_agent_profile_metadata_repo"],
+        run_agent_repo=mock_repos["run_agent_repo"],
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=mock_feed_generator,
@@ -170,6 +211,106 @@ class TestSimulationCommandServiceExecuteRun:
         call_args = command_service.simulation_persistence.write_run.call_args
         assert call_args[0][0] == sample_run.run_id
         assert call_args[0][1].run_id == sample_run.run_id
+
+    def test_persists_selected_run_agents_with_snapshot_fields(
+        self, command_service, mock_repos, sample_run, mock_agent_factory
+    ):
+        mock_repos["run_repo"].create_run.return_value = sample_run
+        mock_repos["run_repo"].update_run_status.return_value = None
+
+        selected_agents = [
+            AgentFactory.create(handle="agent1.bsky.social"),
+            AgentFactory.create(handle="agent2.bsky.social"),
+        ]
+        mock_agent_factory.return_value = selected_agents
+
+        seed_agents = [
+            AgentRecordFactory.create(
+                agent_id="did:plc:agent1",
+                handle="agent1.bsky.social",
+                display_name="Agent One",
+                created_at="2026-03-13T00:00:00Z",
+                updated_at="2026-03-13T00:00:00Z",
+            ),
+            AgentRecordFactory.create(
+                agent_id="did:plc:agent2",
+                handle="agent2.bsky.social",
+                display_name="Agent Two",
+                created_at="2026-03-13T00:00:01Z",
+                updated_at="2026-03-13T00:00:01Z",
+            ),
+        ]
+        mock_repos["agent_repo"].list_all_agents.return_value = seed_agents
+        mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.return_value = {
+            "did:plc:agent1": AgentBioFactory.create(
+                agent_id="did:plc:agent1",
+                persona_bio="Persona one",
+                created_at="2026-03-13T00:00:00Z",
+                updated_at="2026-03-13T00:00:00Z",
+            ),
+            "did:plc:agent2": AgentBioFactory.create(
+                agent_id="did:plc:agent2",
+                persona_bio="Persona two",
+                created_at="2026-03-13T00:00:01Z",
+                updated_at="2026-03-13T00:00:01Z",
+            ),
+        }
+        mock_repos[
+            "user_agent_profile_metadata_repo"
+        ].get_metadata_by_agent_ids.return_value = {
+            "did:plc:agent1": UserAgentProfileMetadataFactory.create(
+                agent_id="did:plc:agent1",
+                followers_count=10,
+                follows_count=11,
+                posts_count=12,
+                created_at="2026-03-13T00:00:00Z",
+                updated_at="2026-03-13T00:00:00Z",
+            ),
+            "did:plc:agent2": UserAgentProfileMetadataFactory.create(
+                agent_id="did:plc:agent2",
+                followers_count=20,
+                follows_count=21,
+                posts_count=22,
+                created_at="2026-03-13T00:00:01Z",
+                updated_at="2026-03-13T00:00:01Z",
+            ),
+        }
+
+        with patch(
+            "simulation.core.command_service.SimulationCommandService._simulate_turn"
+        ) as mock_sim_turn:
+            mock_sim_turn.return_value = TurnResultFactory.create(
+                turn_number=0, total_actions={}, execution_time_ms=10
+            )
+            command_service.execute_run(self._make_config(turns=1))
+
+        mock_repos["run_agent_repo"].write_run_agents.assert_called_once()
+        call_args = mock_repos["run_agent_repo"].write_run_agents.call_args
+        assert call_args[0][0] == sample_run.run_id
+        snapshots = call_args[0][1]
+        assert [snapshot.selection_order for snapshot in snapshots] == [0, 1]
+        assert [snapshot.agent_id for snapshot in snapshots] == [
+            "did:plc:agent1",
+            "did:plc:agent2",
+        ]
+        assert [snapshot.handle_at_start for snapshot in snapshots] == [
+            "agent1.bsky.social",
+            "agent2.bsky.social",
+        ]
+        assert [snapshot.display_name_at_start for snapshot in snapshots] == [
+            "Agent One",
+            "Agent Two",
+        ]
+        assert [snapshot.persona_bio_at_start for snapshot in snapshots] == [
+            "Persona one",
+            "Persona two",
+        ]
+        assert [snapshot.followers_count_at_start for snapshot in snapshots] == [10, 20]
+        assert [snapshot.follows_count_at_start for snapshot in snapshots] == [11, 21]
+        assert [snapshot.posts_count_at_start for snapshot in snapshots] == [12, 22]
+        assert all(
+            snapshot.created_at == sample_run.created_at for snapshot in snapshots
+        )
 
     def test_run_creation_failure_raises_simulation_run_failure_with_no_run_id(
         self, command_service, mock_repos
@@ -625,6 +766,10 @@ class TestSimulationCommandServiceActionPersistence:
             feed_post_repo=Mock(),
             generated_bio_repo=Mock(),
             generated_feed_repo=Mock(),
+            agent_repo=Mock(),
+            agent_bio_repo=Mock(),
+            user_agent_profile_metadata_repo=Mock(),
+            run_agent_repo=Mock(),
             agent_factory=lambda n: [agent],
             action_history_store_factory=lambda: action_history_store,
             feed_generator=feed_generator,

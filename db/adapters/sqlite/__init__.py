@@ -11,6 +11,7 @@ from db.adapters.sqlite.generated_feed_adapter import SQLiteGeneratedFeedAdapter
 from db.adapters.sqlite.like_adapter import SQLiteLikeAdapter
 from db.adapters.sqlite.metrics_adapter import SQLiteMetricsAdapter
 from db.adapters.sqlite.profile_adapter import SQLiteProfileAdapter
+from db.adapters.sqlite.run_agent_adapter import SQLiteRunAgentAdapter
 from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
     SQLiteUserAgentProfileMetadataAdapter,
@@ -28,6 +29,7 @@ __all__ = [
     "SQLiteLikeAdapter",
     "SQLiteMetricsAdapter",
     "SQLiteProfileAdapter",
+    "SQLiteRunAgentAdapter",
     "SQLiteRunAdapter",
     "SQLiteUserAgentProfileMetadataAdapter",
 ]
