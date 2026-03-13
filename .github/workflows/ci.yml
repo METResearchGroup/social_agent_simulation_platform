@@ -337,7 +337,7 @@ jobs:
         run: uv lock
 
       - name: Install dependencies
-        run: uv sync --extra test
+        run: uv sync --extra test,ner
 
       - name: Add project directory to PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
