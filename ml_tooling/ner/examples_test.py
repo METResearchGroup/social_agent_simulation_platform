@@ -19,8 +19,7 @@ def timed_extract(ner_model, text, label):
     result = ner_model.extract_entities(text)
     elapsed = time.perf_counter() - start
     print(f"[{label}] ({elapsed:.4f}s)")
-    print(result)
-    print()
+    print(f"{result}\n")
 
 
 def verify_diff_cases(ner_model):
