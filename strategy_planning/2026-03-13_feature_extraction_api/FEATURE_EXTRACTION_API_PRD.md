@@ -364,23 +364,7 @@ At minimum:
 
 This section is intended to be directly reusable as part of the PRD’s delivery plan.
 
-### Phase 0 — Foundations + deployment scaffold (1–3 days)
-
-- Create the dedicated FastAPI service with:
-  - `/health`, `/metrics`, `/docs`
-  - request ids + structured logging + baseline metrics/tracing plumbing stubs
-- Decide and enforce input policy:
-  - English-only: accept `language` field but reject anything other than `en` (or ignore/override to `en`)
-  - request limits: max text length, max batch size, timeouts
-- Add Railway deployment scaffold:
-  - Dockerfile (or Railway-native build), env var contract, health check config
-  - secrets management plan (OpenAI API key, Qdrant URL/key if hosted)
-
-Deliverables:
-
-- Service deploys on Railway and passes `/health` and `/docs`.
-
-### Phase 1 — Build the 5 features first (feature-by-feature)
+### Phase 1 — Build the 8 features first (feature-by-feature)
 
 For each feature, we implement it in two parts:
 
@@ -439,7 +423,7 @@ Deliverables (end of Phase 1):
 - All features are callable via their own endpoints.
 - Railway deployment supports the features (including Qdrant connectivity for embeddings/search).
 
-### Phase 2 — (After features) add a strict feature schema registry (JSON Schema) (1–3 days)
+### Phase 2 — (After features) add a strict feature schema registry (JSON Schema)
 
 We want strict schemas and discoverability, but we’ll do this after we have real feature outputs.
 
@@ -455,7 +439,23 @@ Deliverables:
 
 - A strict schema registry surfaced via `/v1/features` (JSON Schema) and reflected in OpenAPI.
 
-### Phase 3 — Build the `FeatureExtractor` orchestrator (2–5 days)
+### Phase 3 — Foundations + deployment scaffold
+
+- Create the dedicated FastAPI service with:
+  - `/health`, `/metrics`, `/docs`
+  - request ids + structured logging + baseline metrics/tracing plumbing stubs
+- Decide and enforce input policy:
+  - English-only: accept `language` field but reject anything other than `en` (or ignore/override to `en`)
+  - request limits: max text length, max batch size, timeouts
+- Add Railway deployment scaffold:
+  - Dockerfile (or Railway-native build), env var contract, health check config
+  - secrets management plan (OpenAI API key, Qdrant URL/key if hosted)
+
+Deliverables:
+
+- Service deploys on Railway and passes `/health` and `/docs`.
+
+### Phase 4 — Build the `FeatureExtractor` orchestrator
 
 After each feature is independently available, implement the orchestrator that composes them.
 
@@ -474,7 +474,7 @@ Deliverables:
 
 - `POST /v1/extract` is production-usable and composes the already-shipped features.
 
-### Phase 4 — Observability hardening + operational readiness (2–4 days)
+### Phase 5 — Observability hardening + operational readiness
 
 - Finalize structured logging policy and “no raw text by default” enforcement.
 - Add dashboards/queries runbook notes (where to find key metrics and logs).
@@ -484,7 +484,7 @@ Deliverables:
 
 - “Operational readiness checklist” for on-call debugging.
 
-### Phase 5 — Integration + adoption (ongoing)
+### Phase 6 — Integration + adoption (ongoing)
 
 - Add a small client library in the main platform that calls the service.
 - Integrate one feature into one downstream path (e.g., feed ranking) behind a feature flag.
@@ -513,7 +513,3 @@ Deliverables:
 - Default: do not persist or log text.
 - Add request size limits and timeouts to reduce abuse risk.
 - Rate limit by client/service identity.
-
-## Open Questions
-
-- None (decisions recorded above: float32 embeddings; CPU-only rollout).
