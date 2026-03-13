@@ -242,6 +242,7 @@ class TestSimulationCommandServiceExecuteRun:
             ),
         ]
         mock_repos["agent_repo"].list_all_agents.return_value = seed_agents
+        mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.side_effect = None
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.return_value = {
             "did:plc:agent1": AgentBioFactory.create(
                 agent_id="did:plc:agent1",
@@ -256,6 +257,9 @@ class TestSimulationCommandServiceExecuteRun:
                 updated_at="2026-03-13T00:00:01Z",
             ),
         }
+        mock_repos[
+            "user_agent_profile_metadata_repo"
+        ].get_metadata_by_agent_ids.side_effect = None
         mock_repos[
             "user_agent_profile_metadata_repo"
         ].get_metadata_by_agent_ids.return_value = {
