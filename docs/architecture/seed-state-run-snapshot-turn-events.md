@@ -70,9 +70,3 @@ The following patterns are incorrect by design and should be rejected in review:
 
 - **Counts are lossy**. Summary fields like `followers_count`, `follows_count`, `posts_count` are allowed as caches, but they do not imply the underlying row-level facts.
 - **Row-level facts must come from row-level source data**. Follow edges, posts, likes, and comments may only be migrated/backfilled when there is row-level source data to infer them from. Do not synthesize interaction rows from aggregate counters.
-
-## Non-goals for PR 1
-
-- No schema changes or Alembic migrations.
-- No new `agent_*` or `run_*` tables yet.
-- No runtime behavior changes, simulation startup cutovers, or history endpoint changes.

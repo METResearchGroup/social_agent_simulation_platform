@@ -44,6 +44,21 @@ class TestLintSchemaConventions:
 
         assert any(v.rule == "SCHEMA-2" for v in violations)
 
+    def test_rejects_legacy_seed_state_tables_with_run_id(self):
+        from scripts import lint_schema_conventions
+
+        md = sa.MetaData()
+        sa.Table(
+            "agent",
+            md,
+            sa.Column("agent_id", sa.Text(), primary_key=True),
+            sa.Column("run_id", sa.Text(), nullable=False),
+        )
+
+        violations = lint_schema_conventions.lint_metadata(md)
+
+        assert any(v.rule == "SCHEMA-1" for v in violations)
+
     def test_rejects_turn_tables_missing_turn_number(self):
         from scripts import lint_schema_conventions
 
