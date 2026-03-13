@@ -184,6 +184,9 @@ jobs:
       - name: Add project directory to PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
+      - name: Check DB schema conventions (persistence scopes)
+        run: uv run python scripts/lint_schema_conventions.py
+
       - name: Check DB schema docs are up to date
         run: uv run python scripts/generate_db_schema_docs.py --check
 

@@ -41,6 +41,11 @@ repos:
         entry: bash -lc "uv run python scripts/check_db_schema_drift.py"
         language: system
         pass_filenames: false
+      - id: db-schema-conventions
+        name: db schema conventions (persistence scopes)
+        entry: bash -lc "uv run python scripts/lint_schema_conventions.py"
+        language: system
+        pass_filenames: false
       - id: complexipy
         name: complexipy
         entry: bash -lc "uv run --extra test complexipy . --max-complexity-allowed 999"
