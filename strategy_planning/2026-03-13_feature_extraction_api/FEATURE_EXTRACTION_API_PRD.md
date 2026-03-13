@@ -16,6 +16,9 @@ This PRD focuses on **five initial features**, the **API contract**, and an **im
   - API layer (FastAPI routes + validation)
   - service layer (orchestration + policies)
   - extractor implementations (model loading + inference)
+- Deploy on **Railway** with a clear operational runbook (env vars, health checks, scaling knobs).
+- Only support **English (`en`)** initially.
+- Use the **OpenAI embeddings API** for `embeddings.v1` (no local embedding model in the first iteration).
 
 ## Non-goals (initially)
 
@@ -24,6 +27,14 @@ This PRD focuses on **five initial features**, the **API contract**, and an **im
 - Multi-modal features (images, audio, video).
 - Exactly-once processing semantics.
 - Feature store persistence (we return features; storing them can be a separate component later).
+- Non-English language support (English-only initially).
+
+## Out of scope (follow-ups to investigate)
+
+These are explicitly **not** part of the initial delivery plan for this PRD, but are likely follow-ups:
+
+1) **Train a generative recommender** using (a) embeddings and (b) extracted features to produce ranking decisions directly (e.g., a learned policy/model rather than hand-authored scoring).
+2) **Merge behind the planned API gateway** so the gateway handles cross-cutting concerns (auth, rate limiting, request identity) and this service focuses on feature computation.
 
 ## Primary Users / Consumers
 
@@ -138,6 +149,8 @@ Each feature below is intended to be:
 
 **Notes**:
 
+- Use the OpenAI embeddings API.
+- Return embeddings as a **float32 array**.
 - Prefer normalizing embeddings server-side for consistent cosine similarity usage.
 - Consider payload sizes (vectors can be large); support gzip and/or an optional base64-encoded float16 representation later.
 
@@ -290,92 +303,127 @@ At minimum:
 
 This section is intended to be directly reusable as part of the PRD’s delivery plan.
 
-### Phase 0 — Align on contracts (1–2 days)
+### Phase 0 — Foundations + deployment scaffold (1–3 days)
 
-- Define the canonical feature keys, schemas, and error handling rules.
-- Decide offset semantics for NER (`start`, `end`).
-- Write an API contract doc for `/v1/extract` and `/v1/features` (inputs, outputs, errors, limits).
-
-Deliverable:
-
-- A stable OpenAPI spec draft (even if implementation is not done yet).
-
-### Phase 1 — Core extractor framework (2–4 days)
-
-- Create a `FeatureExtractor` interface (e.g., `extract(text, *, language, metadata, options) -> FeatureResult`).
-- Create a registry that maps `feature_key -> extractor`.
-- Add a model/artifact loader abstraction so extractors don’t do ad-hoc global loads.
-- Implement consistent timing + error capture wrappers so each extractor reports:
-  - duration
-  - extractor_id
-  - structured errors (without swallowing exceptions at the wrong layer)
+- Create the dedicated FastAPI service with:
+  - `/health`, `/metrics`, `/docs`
+  - request ids + structured logging + baseline metrics/tracing plumbing stubs
+- Decide and enforce input policy:
+  - English-only: accept `language` field but reject anything other than `en` (or ignore/override to `en`)
+  - request limits: max text length, max batch size, timeouts
+- Add Railway deployment scaffold:
+  - Dockerfile (or Railway-native build), env var contract, health check config
+  - secrets management plan (OpenAI API key, Qdrant URL/key if hosted)
 
 Deliverables:
 
-- Unit tests for registry behavior and error normalization.
-- A reference “toy” extractor (e.g., `length.v1`) to validate wiring.
+- Service deploys on Railway and passes `/health` and `/docs`.
 
-### Phase 2 — Implement the five extractors (5–10 days)
+### Phase 1 — Build the 5 features first (feature-by-feature)
 
-For each of: `ner.v1`, `sentiment.v1`, `toxicity.v1`, `topic.v1`, `embeddings.v1`:
+For each feature, we implement it in two parts:
 
-- Choose an initial model/library that is:
-  - fast enough for a microservice
-  - easy to package reproducibly
-  - licensed acceptably for the project
-- Implement extractor with clear configuration and an explicit `extractor_id`.
-- Add golden tests (fixed inputs → fixed outputs within tolerances).
-- Add load-time caching so repeated calls do not reload models per request.
+- **Part A — Feature implementation**: the deterministic feature logic + tests (unit + golden where applicable).
+- **Part B — Feature service**: a stable internal “feature service” API that the future `FeatureExtractor` will call (initially an HTTP endpoint inside this same microservice, with a clean service boundary so it could be split later).
+
+The goal of this phase is: each feature is independently usable via its own endpoint and can be operationally observed before we build any orchestration.
+
+#### 1) `ner.v1` (Named Entities)
+
+- Part A: implement `ner.v1` extraction with stable Unicode codepoint offsets and deterministic output formatting.
+- Part B: expose the feature via `POST /v1/extract/ner.v1` (and/or `POST /v1/extract/{feature_key}`) with strict request validation and per-request timing.
+
+#### 2) `sentiment.v1` (Sentiment + Emotion)
+
+- Part A: implement polarity + emotion distribution with deterministic outputs (stable label set).
+- Part B: expose via `POST /v1/extract/sentiment.v1`.
+
+#### 3) `toxicity.v1` (Toxicity / Safety Signals)
+
+- Part A: implement safety scoring + threshold flags, with conservative defaults and strong observability (aggregate metrics; do not log text).
+- Part B: expose via `POST /v1/extract/toxicity.v1`.
+
+#### 4) `topic.v1` (Topic Classification)
+
+- Part A: implement classification against a stable initial taxonomy.
+- Part B: expose via `POST /v1/extract/topic.v1`.
+
+#### 5) `embeddings.v1` (OpenAI embeddings + Qdrant retrieval)
+
+This feature is intentionally more involved and is split into four parts:
+
+1) **Spin up Qdrant** for vector storage and similarity search
+   - Choose deployment mode: managed Qdrant vs self-hosted Qdrant container on Railway
+   - Define collections, distance metric (cosine), and payload schema (post id, author id, likes, etc.)
+2) **Write embeddings into Qdrant**
+   - Use OpenAI embeddings API to generate vectors
+   - Upsert vectors + payload into Qdrant
+   - Define id strategy (stable post ids) and update semantics (re-embed on content change)
+3) **Simple semantic search**
+   - Given an input text (or post id), return “similar posts” purely by vector similarity
+   - Provide basic ranking + score outputs, and include enough metadata to debug (dim, model id, distance)
+4) **Add filtering constraints**
+   - Add filtering to restrict candidate embeddings by:
+     - specific author (e.g., `author_id`)
+     - minimum likes / likes range (e.g., `likes >= N`)
+   - Ensure similarity is computed only within the filtered subset (Qdrant payload filters)
+
+For each of the above, keep the same two-part structure:
+
+- Part A: implementation + tests (including local Qdrant integration tests where feasible).
+- Part B: service endpoint(s) exposing the functionality (embedding generation, indexing, search).
+
+Deliverables (end of Phase 1):
+
+- All five features are callable via their own endpoints.
+- Railway deployment supports the features (including Qdrant connectivity for embeddings/search).
+
+### Phase 2 — (After features) add a strict feature schema registry (JSON Schema) (1–3 days)
+
+We want strict schemas and discoverability, but we’ll do this after we have real feature outputs.
+
+- Define a canonical JSON Schema per feature key (request + response).
+- Implement `/v1/features` to return:
+  - supported `feature_keys`
+  - schema versions
+  - extractor ids / model ids
+  - any per-feature limits or flags
+- Add CI checks that schemas are valid and versioned.
 
 Deliverables:
 
-- One PR per extractor (or grouped if small) with tests + docs.
+- A strict schema registry surfaced via `/v1/features` (JSON Schema) and reflected in OpenAPI.
 
-### Phase 3 — Microservice API (2–5 days)
+### Phase 3 — Build the `FeatureExtractor` orchestrator (2–5 days)
 
-- Build a dedicated FastAPI app (separate process/service) exposing:
-  - `/health`, `/v1/features`, `/v1/extract`, `/metrics`
-- Keep routes thin:
-  - validate request (Pydantic)
-  - resolve dependencies (registry, config, logger, tracer)
-  - call a single service function (orchestrator)
-- Add batch orchestration with:
-  - per-input error isolation (one bad input shouldn’t drop the batch unless configured)
-  - predictable ordering
-- Add request limits (text length, batch size, feature key count).
+After each feature is independently available, implement the orchestrator that composes them.
+
+- Implement a `FeatureExtractor` service that:
+  - accepts a batch of inputs + requested `feature_keys`
+  - calls the per-feature services (initially via in-process calls or HTTP to the same service; keep the interface swappable)
+  - merges results into the unified response shape of `POST /v1/extract`
+  - enforces per-feature timeouts and per-input error isolation
+- Add concurrency controls to avoid stampeding downstream calls (especially for embeddings).
+- Ensure observability is end-to-end:
+  - one span for the request
+  - one nested span per feature invocation
+  - per-feature latency histograms
 
 Deliverables:
 
-- OpenAPI served at `/docs`
-- Smoke test that calls the running service and asserts basic correctness.
+- `POST /v1/extract` is production-usable and composes the already-shipped features.
 
-### Phase 4 — Observability hardening (2–4 days)
+### Phase 4 — Observability hardening + operational readiness (2–4 days)
 
-- Add structured logging and correlation id propagation.
-- Add OpenTelemetry tracing and Prometheus metrics.
+- Finalize structured logging policy and “no raw text by default” enforcement.
 - Add dashboards/queries runbook notes (where to find key metrics and logs).
+- Define and test SLO-aligned alerts (latency, error rate, OpenAI error rates, Qdrant errors).
 
 Deliverables:
 
 - “Operational readiness checklist” for on-call debugging.
 
-### Phase 5 — Deployment (2–5 days)
-
-- Create Docker image for the service with pinned model artifacts.
-- Add environment-based config:
-  - default models per extractor
-  - concurrency settings
-  - debug logging gates
-- Decide deployment target (e.g., Railway, Kubernetes, or internal VM) and document:
-  - required env vars
-  - health checks
-  - scaling knobs
-
-Deliverables:
-
-- A deployable service in the target environment with `/health` and `/v1/extract` working.
-
-### Phase 6 — Integration + adoption (ongoing)
+### Phase 5 — Integration + adoption (ongoing)
 
 - Add a small client library in the main platform that calls the service.
 - Integrate one feature into one downstream path (e.g., feed ranking) behind a feature flag.
@@ -396,9 +444,7 @@ Deliverables:
 
 - Prefer process-level model caching (load once per worker).
 - Consider multi-process workers rather than per-request threads for CPU-heavy workloads.
-- If using GPU later:
-  - expose `FEATURE_EXTRACTION_DEVICE=cuda|cpu`
-  - explicitly document throughput/latency differences
+- CPU-only for the initial rollout (no CUDA/GPU support).
 
 ## Security and Privacy
 
@@ -409,7 +455,4 @@ Deliverables:
 
 ## Open Questions
 
-- What is the initial deployment target (Railway vs other)?
-- Do we need multi-language support immediately, or only English?
-- Do we want a strict schema registry for features (JSON Schema) returned by `/v1/features`?
-- Should embeddings be returned as float32 arrays (easy) or compressed (smaller)?
+- None (decisions recorded above: float32 embeddings; CPU-only rollout).
