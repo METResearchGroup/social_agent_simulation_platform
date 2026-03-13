@@ -37,15 +37,21 @@ class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepositor
         return metadata
 
     @validate_inputs((validate_agent_id, "agent_id"))
-    def get_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
+    def get_by_agent_id(
+        self, agent_id: str, conn: object | None = None
+    ) -> UserAgentProfileMetadata | None:
         """Get metadata by agent_id."""
+        if conn is not None:
+            return self._db_adapter.read_by_agent_id(agent_id, conn=conn)
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_by_agent_id(agent_id, conn=c)
 
     def get_metadata_by_agent_ids(
-        self, agent_ids: Iterable[str]
+        self, agent_ids: Iterable[str], conn: object | None = None
     ) -> dict[str, UserAgentProfileMetadata | None]:
         """Return metadata per agent_id for the given agent IDs."""
+        if conn is not None:
+            return self._db_adapter.read_metadata_by_agent_ids(agent_ids, conn=conn)
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_metadata_by_agent_ids(agent_ids, conn=c)
 

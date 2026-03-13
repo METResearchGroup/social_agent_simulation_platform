@@ -10,6 +10,7 @@ from collections.abc import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_follow_edge import AgentFollowEdge
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -38,13 +39,22 @@ class AgentRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_agent(self, agent_id: str) -> Agent | None:
+    def get_agent(self, agent_id: str, conn: object | None = None) -> Agent | None:
         """Get an agent by ID."""
         raise NotImplementedError
 
     @abstractmethod
-    def get_agent_by_handle(self, handle: str) -> Agent | None:
+    def get_agent_by_handle(
+        self, handle: str, conn: object | None = None
+    ) -> Agent | None:
         """Get an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agents_by_ids(
+        self, agent_ids: Iterable[str], conn: object | None = None
+    ) -> dict[str, Agent | None]:
+        """Return agents keyed by agent_id for the given IDs."""
         raise NotImplementedError
 
     @abstractmethod
@@ -116,13 +126,15 @@ class UserAgentProfileMetadataRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_by_agent_id(self, agent_id: str) -> UserAgentProfileMetadata | None:
+    def get_by_agent_id(
+        self, agent_id: str, conn: object | None = None
+    ) -> UserAgentProfileMetadata | None:
         """Get metadata by agent_id."""
         raise NotImplementedError
 
     @abstractmethod
     def get_metadata_by_agent_ids(
-        self, agent_ids: Iterable[str]
+        self, agent_ids: Iterable[str], conn: object | None = None
     ) -> dict[str, UserAgentProfileMetadata | None]:
         """Return metadata per agent_id for the given agent IDs.
 
@@ -133,6 +145,65 @@ class UserAgentProfileMetadataRepository(ABC):
     @abstractmethod
     def delete_by_agent_id(self, agent_id: str, conn: object | None = None) -> None:
         """Delete metadata by agent_id."""
+        raise NotImplementedError
+
+
+class AgentFollowEdgeRepository(ABC):
+    """Abstract base class defining the interface for seed follow-edge repositories."""
+
+    @abstractmethod
+    def create_agent_follow_edge(
+        self,
+        edge: AgentFollowEdge,
+        conn: object | None = None,
+    ) -> AgentFollowEdge:
+        """Create one seed-state follow edge."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agent_follow_edge(
+        self,
+        follower_agent_id: str,
+        target_agent_id: str,
+        conn: object | None = None,
+    ) -> AgentFollowEdge | None:
+        """Get a seed-state follow edge by its natural key."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_agent_follow_edges_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: object | None = None,
+    ) -> list[AgentFollowEdge]:
+        """List follow edges for one follower in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_agent_follow_edges_by_follower_agent_id(
+        self, follower_agent_id: str, conn: object | None = None
+    ) -> int:
+        """Count follow edges where the given agent is the follower."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_agent_follow_edges_by_target_agent_id(
+        self, target_agent_id: str, conn: object | None = None
+    ) -> int:
+        """Count follow edges where the given agent is the target."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_agent_follow_edge(
+        self,
+        follower_agent_id: str,
+        target_agent_id: str,
+        conn: object | None = None,
+    ) -> bool:
+        """Delete a seed-state follow edge by its natural key."""
         raise NotImplementedError
 
 

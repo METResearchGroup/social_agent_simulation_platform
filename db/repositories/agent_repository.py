@@ -1,5 +1,7 @@
 """SQLite implementation of agent repositories."""
 
+from collections.abc import Iterable
+
 from db.adapters.base import AgentDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentRepository
 from lib.validation_decorators import validate_inputs
@@ -30,16 +32,31 @@ class SQLiteAgentRepository(AgentRepository):
         return agent
 
     @validate_inputs((validate_agent_id, "agent_id"))
-    def get_agent(self, agent_id: str) -> Agent | None:
+    def get_agent(self, agent_id: str, conn: object | None = None) -> Agent | None:
         """Get an agent by ID."""
+        if conn is not None:
+            return self._db_adapter.read_agent(agent_id, conn=conn)
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_agent(agent_id, conn=c)
 
     @validate_inputs((validate_handle_exists, "handle"))
-    def get_agent_by_handle(self, handle: str) -> Agent | None:
+    def get_agent_by_handle(
+        self, handle: str, conn: object | None = None
+    ) -> Agent | None:
         """Get an agent by handle."""
+        if conn is not None:
+            return self._db_adapter.read_agent_by_handle(handle, conn=conn)
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_agent_by_handle(handle, conn=c)
+
+    def get_agents_by_ids(
+        self, agent_ids: Iterable[str], conn: object | None = None
+    ) -> dict[str, Agent | None]:
+        """Return agents keyed by agent_id for the given IDs."""
+        if conn is not None:
+            return self._db_adapter.read_agents_by_ids(agent_ids, conn=conn)
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_agents_by_ids(agent_ids, conn=c)
 
     def list_all_agents(self) -> list[Agent]:
         """List all agents, ordered by updated_at DESC and handle ASC."""
