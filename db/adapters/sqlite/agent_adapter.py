@@ -1,6 +1,7 @@
 """SQLite implementation of agent database adapter."""
 
 import sqlite3
+from collections.abc import Iterable
 
 from db.adapters.base import AgentDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
@@ -79,6 +80,32 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             return None
         self._validate_agent_row(row)
         return self._row_to_agent(row)
+
+    def read_agents_by_ids(
+        self, agent_ids: Iterable[str], *, conn: sqlite3.Connection
+    ) -> dict[str, Agent | None]:
+        """Read agents keyed by agent_id for the given IDs."""
+        agent_ids_list = list(agent_ids)
+        if not agent_ids_list:
+            return {}
+
+        for agent_id in agent_ids_list:
+            validate_agent_id(agent_id)
+
+        q_marks = ",".join("?" for _ in agent_ids_list)
+        rows = conn.execute(
+            f"SELECT * FROM agent WHERE agent_id IN ({q_marks})",
+            tuple(agent_ids_list),
+        ).fetchall()
+
+        result: dict[str, Agent | None] = {
+            agent_id: None for agent_id in agent_ids_list
+        }
+        for row in rows:
+            self._validate_agent_row(row)
+            agent = self._row_to_agent(row)
+            result[agent.agent_id] = agent
+        return result
 
     def read_all_agents(self, *, conn: sqlite3.Connection) -> list[Agent]:
         """Read all agents, ordered by updated_at DESC, handle ASC for determinism."""

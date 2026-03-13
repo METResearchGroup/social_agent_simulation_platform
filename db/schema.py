@@ -204,6 +204,34 @@ user_agent_profile_metadata = sa.Table(
     sa.UniqueConstraint("agent_id", name="uq_user_agent_profile_metadata_agent_id"),
 )
 
+agent_follow_edges = sa.Table(
+    "agent_follow_edges",
+    metadata,
+    sa.Column("agent_follow_edge_id", sa.Text(), primary_key=True),
+    sa.Column("follower_agent_id", sa.Text(), nullable=False),
+    sa.Column("target_agent_id", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["follower_agent_id"],
+        ["agent.agent_id"],
+        name="fk_agent_follow_edges_follower_agent_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["target_agent_id"],
+        ["agent.agent_id"],
+        name="fk_agent_follow_edges_target_agent_id",
+    ),
+    sa.UniqueConstraint(
+        "follower_agent_id",
+        "target_agent_id",
+        name="uq_agent_follow_edges_follower_target",
+    ),
+    sa.CheckConstraint(
+        "follower_agent_id != target_agent_id",
+        name="ck_agent_follow_edges_no_self_follow",
+    ),
+)
+
 
 # --- Run-scoped action tables (likes, comments, follows) ---
 
@@ -302,6 +330,14 @@ sa.Index(
     "idx_agent_persona_bios_agent_id_created_at",
     agent_persona_bios.c.agent_id,
     agent_persona_bios.c.created_at.desc(),
+)
+sa.Index(
+    "idx_agent_follow_edges_follower_agent_id",
+    agent_follow_edges.c.follower_agent_id,
+)
+sa.Index(
+    "idx_agent_follow_edges_target_agent_id",
+    agent_follow_edges.c.target_agent_id,
 )
 sa.Index(
     "idx_likes_run_turn_agent",

@@ -20,6 +20,7 @@ from tests.factories.posts import PostFactory
 from tests.factories.profiles import BlueskyProfileFactory
 from tests.factories.records import (
     AgentBioFactory,
+    AgentFollowEdgeFactory,
     AgentRecordFactory,
     UserAgentProfileMetadataFactory,
 )
@@ -29,6 +30,7 @@ from tests.factories.turns import TurnMetadataFactory, TurnResultFactory
 __all__ = [
     "AgentFactory",
     "AgentBioFactory",
+    "AgentFollowEdgeFactory",
     "AgentRecordFactory",
     "BlueskyProfileFactory",
     "CommentFactory",

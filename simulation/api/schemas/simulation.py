@@ -178,6 +178,35 @@ class AgentSchema(BaseModel):
     posts_count: int
 
 
+class CreateAgentFollowRequest(BaseModel):
+    """Request body for POST /v1/simulations/agents/{handle}/follows."""
+
+    target_handle: str
+
+    @field_validator("target_handle")
+    @classmethod
+    def _validate_target_handle(cls, v: str) -> str:
+        from lib.validation_utils import validate_non_empty_string
+
+        return validate_non_empty_string(v.strip())
+
+
+class AgentFollowEdgeSchema(BaseModel):
+    """Editable pre-run follow relationship for the simulation UI."""
+
+    agent_follow_edge_id: str
+    follower_handle: str
+    target_handle: str
+    created_at: str
+
+
+class ListAgentFollowsResponse(BaseModel):
+    """Paginated follow-edge response for one follower handle."""
+
+    total: int
+    items: list[AgentFollowEdgeSchema]
+
+
 class FeedSchema(BaseModel):
     """Feed metadata for one agent in a turn."""
 

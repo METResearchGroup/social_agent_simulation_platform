@@ -43,6 +43,10 @@ class TestLocalModeSeed:
 
             runs_count = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
             assert runs_count > 0
+            follow_edges_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_follow_edges"
+            ).fetchone()[0]
+            assert follow_edges_count > 0
         finally:
             conn.close()
 
@@ -74,6 +78,34 @@ class TestLocalModeSeed:
         assert runs_count_after == runs_count_before
 
         assert any("Local seed already applied" in r.message for r in caplog.records)
+
+    def test_seed_local_db_if_needed__syncs_follow_edge_metadata(
+        self,
+        temp_db,
+    ) -> None:
+        seed_local_db_if_needed(db_path=temp_db, fixtures_dir=FIXTURES_DIR)
+
+        conn = sqlite3.connect(temp_db)
+        try:
+            alice_counts = conn.execute(
+                """
+                SELECT followers_count, follows_count
+                FROM user_agent_profile_metadata
+                WHERE agent_id = 'agent_0240dc0d4a4c7e73'
+                """
+            ).fetchone()
+            edward_counts = conn.execute(
+                """
+                SELECT followers_count, follows_count
+                FROM user_agent_profile_metadata
+                WHERE agent_id = 'agent_d5aaff22974ebc2c'
+                """
+            ).fetchone()
+        finally:
+            conn.close()
+
+        assert alice_counts == (5, 2)
+        assert edward_counts == (0, 1)
 
     def test_api_endpoints__db_backed_with_seeded_db(
         self, temp_db, monkeypatch

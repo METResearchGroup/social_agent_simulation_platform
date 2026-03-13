@@ -10,6 +10,9 @@ from simulation.core.metrics.defaults import get_default_metric_keys
 DEFAULT_AGENT_LIST_LIMIT: int = 100
 MAX_AGENT_LIST_LIMIT: int = 500
 DEFAULT_AGENT_LIST_OFFSET: int = 0
+DEFAULT_AGENT_FOLLOWS_LIST_LIMIT: int = 100
+MAX_AGENT_FOLLOWS_LIST_LIMIT: int = 500
+DEFAULT_AGENT_FOLLOWS_LIST_OFFSET: int = 0
 
 DEFAULT_SIMULATION_CONFIG: DefaultConfigSchema = DefaultConfigSchema(
     num_agents=5,

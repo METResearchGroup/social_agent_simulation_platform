@@ -10,23 +10,33 @@ from lib.decorators import timed
 from lib.rate_limiting import RATE_LIMIT_AGENTS_CREATE, limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
 from simulation.api.constants import (
+    DEFAULT_AGENT_FOLLOWS_LIST_LIMIT,
+    DEFAULT_AGENT_FOLLOWS_LIST_OFFSET,
     DEFAULT_AGENT_LIST_LIMIT,
     DEFAULT_AGENT_LIST_OFFSET,
     DEFAULT_SIMULATION_CONFIG,
+    MAX_AGENT_FOLLOWS_LIST_LIMIT,
     MAX_AGENT_LIST_LIMIT,
 )
 from simulation.api.dependencies.app_user import require_current_app_user
 from simulation.api.errors import (
+    ApiAgentFollowEdgeAlreadyExistsError,
+    ApiAgentFollowEdgeNotFoundError,
     ApiAgentNotFoundError,
     ApiHandleAlreadyExistsError,
     ApiRunCreationFailedError,
     ApiRunNotFoundError,
+    ApiSelfFollowNotAllowedError,
+    ApiTargetAgentNotFoundError,
 )
 from simulation.api.schemas.simulation import (
+    AgentFollowEdgeSchema,
     AgentSchema,
+    CreateAgentFollowRequest,
     CreateAgentRequest,
     DefaultConfigSchema,
     FeedAlgorithmSchema,
+    ListAgentFollowsResponse,
     MetricSchema,
     PostSchema,
     RunDetailsResponse,
@@ -36,6 +46,11 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.api.services.agent_command_service import create_agent, delete_agent
+from simulation.api.services.agent_follows_command_service import (
+    create_agent_follow,
+    delete_agent_follow,
+)
+from simulation.api.services.agent_follows_query_service import list_agent_follows
 from simulation.api.services.agent_query_service import list_agents
 from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
 from simulation.api.services.run_execution_service import execute
@@ -59,6 +74,13 @@ SIMULATION_RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
 SIMULATION_AGENTS_ROUTE: str = "GET /v1/simulations/agents"
 SIMULATION_AGENTS_CREATE_ROUTE: str = "POST /v1/simulations/agents"
 SIMULATION_AGENTS_DELETE_ROUTE: str = "DELETE /v1/simulations/agents/{handle}"
+SIMULATION_AGENT_FOLLOWS_ROUTE: str = "GET /v1/simulations/agents/{handle}/follows"
+SIMULATION_AGENT_FOLLOWS_CREATE_ROUTE: str = (
+    "POST /v1/simulations/agents/{handle}/follows"
+)
+SIMULATION_AGENT_FOLLOWS_DELETE_ROUTE: str = (
+    "DELETE /v1/simulations/agents/{handle}/follows/{target_handle}"
+)
 SIMULATION_POSTS_ROUTE: str = "GET /v1/simulations/posts"
 SIMULATION_FEED_ALGORITHMS_ROUTE: str = "GET /v1/simulations/feed-algorithms"
 SIMULATION_METRICS_ROUTE: str = "GET /v1/simulations/metrics"
@@ -184,6 +206,88 @@ async def get_simulation_agents(
 async def delete_simulation_agent(request: Request, handle: str) -> Response:
     """Delete an agent and its related data."""
     return await _execute_delete_simulation_agent(request, handle=handle)
+
+
+@router.get(
+    "/simulations/agents/{handle}/follows",
+    response_model=ListAgentFollowsResponse,
+    status_code=200,
+    summary="List editable pre-run follows for an agent",
+    description="Return paginated internal agent-to-agent seed follow edges for the given follower handle.",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENT_FOLLOWS_ROUTE,
+    success_type=ListAgentFollowsResponse,
+)
+async def get_simulation_agent_follows(
+    request: Request,
+    handle: str,
+    limit: int = Query(
+        default=DEFAULT_AGENT_FOLLOWS_LIST_LIMIT,
+        ge=1,
+        le=MAX_AGENT_FOLLOWS_LIST_LIMIT,
+        description="Maximum number of follow edges to return.",
+    ),
+    offset: int = Query(
+        default=DEFAULT_AGENT_FOLLOWS_LIST_OFFSET,
+        ge=0,
+        description="Number of follow edges to skip before returning results.",
+    ),
+) -> ListAgentFollowsResponse | Response:
+    """Return editable pre-run follows for a specific follower handle."""
+    return await _execute_get_simulation_agent_follows(
+        request,
+        handle=handle,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post(
+    "/simulations/agents/{handle}/follows",
+    response_model=AgentFollowEdgeSchema,
+    status_code=201,
+    summary="Create editable pre-run follow edge",
+    description="Create an internal agent-to-agent seed follow edge for the given follower handle.",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENT_FOLLOWS_CREATE_ROUTE,
+    success_type=AgentFollowEdgeSchema,
+)
+async def post_simulation_agent_follow(
+    request: Request,
+    handle: str,
+    body: CreateAgentFollowRequest,
+) -> AgentFollowEdgeSchema | Response:
+    """Create an editable pre-run follow edge."""
+    return await _execute_post_simulation_agent_follow(
+        request,
+        handle=handle,
+        body=body,
+    )
+
+
+@router.delete(
+    "/simulations/agents/{handle}/follows/{target_handle}",
+    status_code=204,
+    summary="Delete editable pre-run follow edge",
+    description="Delete an internal agent-to-agent seed follow edge for the given follower handle.",
+)
+@log_route_completion_decorator(
+    route=SIMULATION_AGENT_FOLLOWS_DELETE_ROUTE,
+    success_type=type(None),
+)
+async def delete_simulation_agent_follow(
+    request: Request,
+    handle: str,
+    target_handle: str,
+) -> Response:
+    """Delete an editable pre-run follow edge."""
+    return await _execute_delete_simulation_agent_follow(
+        request,
+        handle=handle,
+        target_handle=target_handle,
+    )
 
 
 @router.get(
@@ -466,6 +570,171 @@ async def _execute_delete_simulation_agent(
         )
     except Exception:
         logger.exception("Unexpected error while deleting agent")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_get_simulation_agent_follows(
+    request: Request,
+    *,
+    handle: str,
+    limit: int,
+    offset: int,
+) -> ListAgentFollowsResponse | Response:
+    """Fetch editable follow edges and convert known failures to HTTP responses."""
+    try:
+        app_state = request.app.state
+        return await asyncio.to_thread(
+            list_agent_follows,
+            handle=handle,
+            agent_repo=app_state.agent_repo,
+            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
+            limit=limit,
+            offset=offset,
+        )
+    except ApiAgentNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="AGENT_NOT_FOUND",
+            message="Agent not found",
+            detail=e.handle,
+        )
+    except ValueError as e:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(e),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while listing simulation agent follows")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_post_simulation_agent_follow(
+    request: Request,
+    *,
+    handle: str,
+    body: CreateAgentFollowRequest,
+) -> AgentFollowEdgeSchema | Response:
+    """Create a follow edge and convert known failures to HTTP responses."""
+    try:
+        app_state = request.app.state
+        return await asyncio.to_thread(
+            create_agent_follow,
+            handle,
+            body,
+            transaction_provider=app_state.transaction_provider,
+            agent_repo=app_state.agent_repo,
+            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+        )
+    except ApiAgentNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="AGENT_NOT_FOUND",
+            message="Agent not found",
+            detail=e.handle,
+        )
+    except ApiTargetAgentNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="TARGET_AGENT_NOT_FOUND",
+            message="Target agent not found",
+            detail=e.handle,
+        )
+    except ApiAgentFollowEdgeAlreadyExistsError as e:
+        return _error_response(
+            status_code=409,
+            code="FOLLOW_EDGE_ALREADY_EXISTS",
+            message="Follow edge already exists",
+            detail=f"{e.follower_handle}->{e.target_handle}",
+        )
+    except ApiSelfFollowNotAllowedError as e:
+        return _error_response(
+            status_code=422,
+            code="SELF_FOLLOW_NOT_ALLOWED",
+            message="Agents cannot follow themselves",
+            detail=e.handle,
+        )
+    except ValueError as e:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(e),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while creating simulation agent follow")
+        return _error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_delete_simulation_agent_follow(
+    request: Request,
+    *,
+    handle: str,
+    target_handle: str,
+) -> Response:
+    """Delete a follow edge and convert known failures to HTTP responses."""
+    try:
+        app_state = request.app.state
+        await asyncio.to_thread(
+            delete_agent_follow,
+            handle,
+            target_handle,
+            transaction_provider=app_state.transaction_provider,
+            agent_repo=app_state.agent_repo,
+            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
+            metadata_repo=app_state.agent_metadata_repo,
+        )
+        return Response(status_code=204)
+    except ApiAgentNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="AGENT_NOT_FOUND",
+            message="Agent not found",
+            detail=e.handle,
+        )
+    except ApiTargetAgentNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="TARGET_AGENT_NOT_FOUND",
+            message="Target agent not found",
+            detail=e.handle,
+        )
+    except ApiAgentFollowEdgeNotFoundError as e:
+        return _error_response(
+            status_code=404,
+            code="FOLLOW_EDGE_NOT_FOUND",
+            message="Follow edge not found",
+            detail=f"{e.follower_handle}->{e.target_handle}",
+        )
+    except ValueError as e:
+        return _error_response(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=str(e),
+            detail=None,
+        )
+    except Exception:
+        logger.exception("Unexpected error while deleting simulation agent follow")
         return _error_response(
             status_code=500,
             code="INTERNAL_ERROR",

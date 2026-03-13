@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
+from simulation.core.models.agent_follow_edge import AgentFollowEdge
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 from tests.factories._helpers import _timestamp_utc_compact
 from tests.factories.base import BaseFactory
@@ -103,4 +104,40 @@ class UserAgentProfileMetadataFactory(BaseFactory[UserAgentProfileMetadata]):
             else fake.random_int(0, 10_000),
             created_at=created_at_value,
             updated_at=updated_at_value,
+        )
+
+
+class AgentFollowEdgeFactory(BaseFactory[AgentFollowEdge]):
+    @classmethod
+    def create(
+        cls,
+        *,
+        agent_follow_edge_id: str | None = None,
+        follower_agent_id: str | None = None,
+        target_agent_id: str | None = None,
+        created_at: str | None = None,
+    ) -> AgentFollowEdge:
+        fake = get_faker()
+        created_at_value = (
+            created_at if created_at is not None else _timestamp_utc_compact()
+        )
+        follower_agent_id_value = (
+            follower_agent_id
+            if follower_agent_id is not None
+            else f"did:plc:{fake.uuid4()}"
+        )
+        target_agent_id_value = (
+            target_agent_id
+            if target_agent_id is not None
+            else f"did:plc:{fake.uuid4()}"
+        )
+        return AgentFollowEdge(
+            agent_follow_edge_id=(
+                agent_follow_edge_id
+                if agent_follow_edge_id is not None
+                else f"afe_{fake.uuid4()}"
+            ),
+            follower_agent_id=follower_agent_id_value,
+            target_agent_id=target_agent_id_value,
+            created_at=created_at_value,
         )

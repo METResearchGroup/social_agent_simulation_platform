@@ -20,6 +20,32 @@ class ApiAgentNotFoundError(Exception):
         self.handle = handle
 
 
+class ApiTargetAgentNotFoundError(Exception):
+    def __init__(self, handle: str):
+        super().__init__(handle)
+        self.handle = handle
+
+
+class ApiAgentFollowEdgeAlreadyExistsError(Exception):
+    def __init__(self, follower_handle: str, target_handle: str):
+        super().__init__(follower_handle, target_handle)
+        self.follower_handle = follower_handle
+        self.target_handle = target_handle
+
+
+class ApiAgentFollowEdgeNotFoundError(Exception):
+    def __init__(self, follower_handle: str, target_handle: str):
+        super().__init__(follower_handle, target_handle)
+        self.follower_handle = follower_handle
+        self.target_handle = target_handle
+
+
+class ApiSelfFollowNotAllowedError(Exception):
+    def __init__(self, handle: str):
+        super().__init__(handle)
+        self.handle = handle
+
+
 class ApiRunNotFoundError(Exception):
     def __init__(self, run_id: str):
         super().__init__(run_id)

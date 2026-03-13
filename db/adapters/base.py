@@ -8,6 +8,7 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_follow_edge import AgentFollowEdge
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -730,6 +731,13 @@ class AgentDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def read_agents_by_ids(
+        self, agent_ids: Iterable[str], *, conn: object
+    ) -> dict[str, Agent | None]:
+        """Read agents for the given agent IDs, keyed by input ID."""
+        raise NotImplementedError
+
+    @abstractmethod
     def read_all_agents(self, *, conn: object) -> list[Agent]:
         """Read all agents. Returns empty list if none exist."""
         raise NotImplementedError
@@ -844,6 +852,63 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
     @abstractmethod
     def delete_by_agent_id(self, agent_id: str, *, conn: object) -> None:
         """Delete metadata rows by agent_id."""
+        raise NotImplementedError
+
+
+class AgentFollowEdgeDatabaseAdapter(ABC):
+    """Abstract interface for seed follow-edge database operations."""
+
+    @abstractmethod
+    def write_agent_follow_edge(self, edge: AgentFollowEdge, *, conn: object) -> None:
+        """Insert one seed-state follow edge."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_follow_edge(
+        self,
+        follower_agent_id: str,
+        target_agent_id: str,
+        *,
+        conn: object,
+    ) -> AgentFollowEdge | None:
+        """Read one seed-state follow edge by its natural key."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agent_follow_edges_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: object,
+    ) -> list[AgentFollowEdge]:
+        """Read follow edges for one follower in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_agent_follow_edges_by_follower_agent_id(
+        self, follower_agent_id: str, *, conn: object
+    ) -> int:
+        """Count follow edges where the given agent is the follower."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_agent_follow_edges_by_target_agent_id(
+        self, target_agent_id: str, *, conn: object
+    ) -> int:
+        """Count follow edges where the given agent is the target."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_agent_follow_edge(
+        self,
+        follower_agent_id: str,
+        target_agent_id: str,
+        *,
+        conn: object,
+    ) -> bool:
+        """Delete a seed-state follow edge by its natural key."""
         raise NotImplementedError
 
 
