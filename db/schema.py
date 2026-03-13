@@ -100,6 +100,31 @@ run_metrics = sa.Table(
     sa.PrimaryKeyConstraint("run_id", name="pk_run_metrics"),
 )
 
+run_agents = sa.Table(
+    "run_agents",
+    metadata,
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("selection_order", sa.Integer(), nullable=False),
+    sa.Column("handle_at_start", sa.Text(), nullable=False),
+    sa.Column("display_name_at_start", sa.Text(), nullable=False),
+    sa.Column("persona_bio_at_start", sa.Text(), nullable=False),
+    sa.Column("followers_count_at_start", sa.Integer(), nullable=False),
+    sa.Column("follows_count_at_start", sa.Integer(), nullable=False),
+    sa.Column("posts_count_at_start", sa.Integer(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_run_agents_run_id"),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_run_agents_agent_id"
+    ),
+    sa.PrimaryKeyConstraint("run_id", "agent_id", name="pk_run_agents"),
+    sa.UniqueConstraint(
+        "run_id",
+        "selection_order",
+        name="uq_run_agents_run_selection_order",
+    ),
+)
+
 generated_feeds = sa.Table(
     "generated_feeds",
     metadata,
@@ -298,6 +323,7 @@ sa.Index("idx_runs_app_user_id", runs.c.app_user_id)
 sa.Index("idx_feed_posts_author_handle", feed_posts.c.author_handle)
 sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
 sa.Index("idx_turn_metrics_run_id", turn_metrics.c.run_id)
+sa.Index("idx_run_agents_run_id", run_agents.c.run_id)
 sa.Index(
     "idx_agent_persona_bios_agent_id_created_at",
     agent_persona_bios.c.agent_id,

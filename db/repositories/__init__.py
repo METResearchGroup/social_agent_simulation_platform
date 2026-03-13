@@ -25,12 +25,17 @@ from db.repositories.interfaces import (
     GeneratedBioRepository,
     GeneratedFeedRepository,
     ProfileRepository,
+    RunAgentRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import (
     SQLiteProfileRepository,
     create_sqlite_profile_repository,
+)
+from db.repositories.run_agent_repository import (
+    SQLiteRunAgentRepository,
+    create_sqlite_run_agent_repository,
 )
 from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
 from db.repositories.user_agent_profile_metadata_repository import (
@@ -57,6 +62,9 @@ __all__ = [
     "ProfileRepository",
     "SQLiteProfileRepository",
     "create_sqlite_profile_repository",
+    "RunAgentRepository",
+    "SQLiteRunAgentRepository",
+    "create_sqlite_run_agent_repository",
     "RunRepository",
     "SQLiteRunRepository",
     "create_sqlite_repository",

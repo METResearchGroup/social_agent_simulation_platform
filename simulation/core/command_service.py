@@ -5,12 +5,16 @@ from collections.abc import Callable, Mapping
 from pydantic import JsonValue
 
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     FeedPostRepository,
     GeneratedBioRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
+    RunAgentRepository,
     RunRepository,
+    UserAgentProfileMetadataRepository,
 )
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
@@ -37,6 +41,7 @@ from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
+from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
@@ -71,6 +76,10 @@ class SimulationCommandService:
         feed_post_repo: FeedPostRepository,
         generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
+        agent_repo: AgentRepository,
+        agent_bio_repo: AgentBioRepository,
+        user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
+        run_agent_repo: RunAgentRepository,
         agent_factory: Callable[[int], list[SocialMediaAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
@@ -85,6 +94,10 @@ class SimulationCommandService:
         self.feed_post_repo = feed_post_repo
         self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
+        self.agent_repo = agent_repo
+        self.agent_bio_repo = agent_bio_repo
+        self.user_agent_profile_metadata_repo = user_agent_profile_metadata_repo
+        self.run_agent_repo = run_agent_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
@@ -109,6 +122,7 @@ class SimulationCommandService:
 
         try:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
+            self.snapshot_run_agents(run=run, agents=agents)
             action_history_store = self.action_history_store_factory()
 
             turn_keys, run_keys = resolve_metric_keys_by_scope(run.metric_keys)
@@ -404,6 +418,72 @@ class SimulationCommandService:
         )
 
         return agents
+
+    def snapshot_run_agents(self, run: Run, agents: list[SocialMediaAgent]) -> None:
+        """Persist the exact ordered seed-state agents selected for a run."""
+        selected_handles: list[str] = [agent.handle for agent in agents]
+        selected_handle_set = set(selected_handles)
+
+        seed_agents = [
+            agent
+            for agent in self.agent_repo.list_all_agents()
+            if agent.handle in selected_handle_set
+        ]
+        seed_agent_by_handle = {agent.handle: agent for agent in seed_agents}
+
+        missing_handles = [
+            handle for handle in selected_handles if handle not in seed_agent_by_handle
+        ]
+        if missing_handles:
+            raise ValueError(
+                "Selected agents are missing from the seed-state agent catalog: "
+                f"{missing_handles}"
+            )
+
+        selected_agent_ids = [
+            seed_agent_by_handle[handle].agent_id for handle in selected_handles
+        ]
+        latest_bios = self.agent_bio_repo.get_latest_bios_by_agent_ids(
+            selected_agent_ids
+        )
+        metadata_by_agent_id = (
+            self.user_agent_profile_metadata_repo.get_metadata_by_agent_ids(
+                selected_agent_ids
+            )
+        )
+
+        snapshot_rows: list[RunAgentSnapshot] = []
+        for selection_order, handle in enumerate(selected_handles):
+            seed_agent = seed_agent_by_handle[handle]
+            latest_bio = latest_bios.get(seed_agent.agent_id)
+            if latest_bio is None:
+                raise ValueError(
+                    f"Missing latest agent bio for selected agent {seed_agent.agent_id}"
+                )
+
+            metadata = metadata_by_agent_id.get(seed_agent.agent_id)
+            if metadata is None:
+                raise ValueError(
+                    "Missing user agent profile metadata for selected agent "
+                    f"{seed_agent.agent_id}"
+                )
+
+            snapshot_rows.append(
+                RunAgentSnapshot(
+                    run_id=run.run_id,
+                    agent_id=seed_agent.agent_id,
+                    selection_order=selection_order,
+                    handle_at_start=seed_agent.handle,
+                    display_name_at_start=seed_agent.display_name,
+                    persona_bio_at_start=latest_bio.persona_bio,
+                    followers_count_at_start=metadata.followers_count,
+                    follows_count_at_start=metadata.follows_count,
+                    posts_count_at_start=metadata.posts_count,
+                    created_at=run.created_at,
+                )
+            )
+
+        self.run_agent_repo.write_run_agents(run.run_id, snapshot_rows)
 
     def _convert_action_counts_to_enum(
         self, action_counts: dict[str, int]

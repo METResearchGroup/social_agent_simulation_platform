@@ -10,10 +10,14 @@ from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_bio_repository import GeneratedBioRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     CommentRepository,
     FollowRepository,
     LikeRepository,
     MetricsRepository,
+    RunAgentRepository,
+    UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
@@ -36,6 +40,12 @@ def mock_repos():
         "feed_post_repo": Mock(spec=FeedPostRepository),
         "generated_bio_repo": Mock(spec=GeneratedBioRepository),
         "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
+        "agent_repo": Mock(spec=AgentRepository),
+        "agent_bio_repo": Mock(spec=AgentBioRepository),
+        "user_agent_profile_metadata_repo": Mock(
+            spec=UserAgentProfileMetadataRepository
+        ),
+        "run_agent_repo": Mock(spec=RunAgentRepository),
         "like_repo": like_repo,
         "comment_repo": comment_repo,
         "follow_repo": follow_repo,
