@@ -12,7 +12,7 @@ class NERModel:
             aggregation_strategy="simple",
         )
 
-    def to_entity_span(self, entities) -> list[EntitySpan]:
+    def _to_entity_span(self, entities: list[dict]) -> list[EntitySpan]:
         timestamp = get_current_timestamp()
 
         lo_entity_span = []
@@ -29,10 +29,10 @@ class NERModel:
     def extract_entities(self, text: str) -> list[EntitySpan]:
         response = self.ner(text)
 
-        return self.to_entity_span(response)
+        return self._to_entity_span(response)
 
     def extract_entities_batch(self, texts: list[str]) -> list[list[EntitySpan]]:
         response = self.ner(texts)
 
-        lolo_entity_span = [self.to_entity_span(entity) for entity in response]
+        lolo_entity_span = [self._to_entity_span(entity) for entity in response]
         return lolo_entity_span
