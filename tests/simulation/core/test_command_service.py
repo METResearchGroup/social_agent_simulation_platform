@@ -222,6 +222,7 @@ class TestSimulationCommandServiceExecuteRun:
             AgentFactory.create(handle="agent1.bsky.social"),
             AgentFactory.create(handle="agent2.bsky.social"),
         ]
+        mock_agent_factory.side_effect = None
         mock_agent_factory.return_value = selected_agents
 
         seed_agents = [
