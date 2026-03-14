@@ -129,4 +129,3 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     </div>
   );
 }
-
