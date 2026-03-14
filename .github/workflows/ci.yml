@@ -300,7 +300,7 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --extra test,ner
+        run: uv sync --extra test --extra ner
 
       - name: Enforce python testing conventions
         run: uv run python scripts/lint_python_testing_syntax_conventions.py
