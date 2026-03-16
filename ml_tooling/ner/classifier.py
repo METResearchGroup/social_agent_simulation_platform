@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import cast
+from typing import Final, Literal, cast
 
 from transformers import pipeline
 
@@ -12,9 +12,9 @@ NerSingleResponse = list[RawEntity]
 NerResponse = NerSingleResponse | NerBatchResponse
 NerCallable = Callable[[str | list[str]], NerResponse]
 
-NER_TASK: str = "token-classification"
+NER_TASK: Final[Literal["token-classification"]] = "token-classification"
 NER_MODEL: str = "dslim/bert-base-NER"
-NER_AGGREGATION_STRATEGY: str = "simple"
+NER_AGGREGATION_STRATEGY: Final[Literal["simple"]] = "simple"
 
 
 def build_default_ner_pipeline() -> NerCallable:
