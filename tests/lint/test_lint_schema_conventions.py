@@ -28,7 +28,8 @@ class TestLintSchemaConventions:
 
         violations = lint_schema_conventions.lint_metadata(md)
 
-        assert any(v.rule == "SCHEMA-1" for v in violations)
+        expected_result = True
+        assert any(v.rule == "SCHEMA-1" for v in violations) is expected_result
 
     def test_rejects_legacy_seed_state_tables_with_run_id(self):
         from scripts import lint_schema_conventions
@@ -43,7 +44,8 @@ class TestLintSchemaConventions:
 
         violations = lint_schema_conventions.lint_metadata(md)
 
-        assert any(v.rule == "SCHEMA-1" for v in violations)
+        expected_result = True
+        assert any(v.rule == "SCHEMA-1" for v in violations) is expected_result
 
     def test_rejects_run_tables_missing_run_id(self):
         from scripts import lint_schema_conventions
@@ -57,7 +59,8 @@ class TestLintSchemaConventions:
 
         violations = lint_schema_conventions.lint_metadata(md)
 
-        assert any(v.rule == "SCHEMA-2" for v in violations)
+        expected_result = True
+        assert any(v.rule == "SCHEMA-2" for v in violations) is expected_result
 
     def test_rejects_turn_tables_missing_turn_number(self):
         from scripts import lint_schema_conventions
@@ -72,4 +75,5 @@ class TestLintSchemaConventions:
 
         violations = lint_schema_conventions.lint_metadata(md)
 
-        assert any(v.rule == "SCHEMA-3" for v in violations)
+        expected_result = True
+        assert any(v.rule == "SCHEMA-3" for v in violations) is expected_result
