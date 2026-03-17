@@ -307,6 +307,11 @@ agent_posts = sa.Table(
     sa.Column("imported_author_handle", sa.Text(), nullable=True),
     sa.Column("imported_author_display_name", sa.Text(), nullable=True),
     sa.Column("import_metadata_json", sa.Text(), nullable=True),
+    sa.CheckConstraint(
+        "(source IS NULL AND source_post_id IS NULL) OR "
+        "(source IS NOT NULL AND source_post_id IS NOT NULL)",
+        name="ck_agent_posts_source_pair",
+    ),
     sa.ForeignKeyConstraint(
         ["agent_id"],
         ["agent.agent_id"],
@@ -445,11 +450,6 @@ sa.Index(
     "idx_agent_posts_agent_id_published_at",
     agent_posts.c.agent_id,
     agent_posts.c.published_at,
-)
-sa.Index(
-    "idx_agent_posts_source_source_post_id",
-    agent_posts.c.source,
-    agent_posts.c.source_post_id,
 )
 sa.Index(
     "idx_likes_run_turn_agent",

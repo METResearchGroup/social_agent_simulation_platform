@@ -339,7 +339,10 @@ This documentation is generated from a fresh SQLite database after applying Alem
 ### Indexes (`agent_posts`)
 
 - `idx_agent_posts_agent_id_published_at`: `agent_id`, `published_at`
-- `idx_agent_posts_source_source_post_id`: `source`, `source_post_id`
+
+### Check constraints (`agent_posts`)
+
+- `ck_agent_posts_source_pair`: `(source IS NULL AND source_post_id IS NULL) OR (source IS NOT NULL AND source_post_id IS NOT NULL)`
 
 ## `app_users`
 

@@ -157,7 +157,7 @@ class TestSQLiteAgentPostRepositoryIntegration:
         with sqlite3.connect(temp_db) as conn:
             conn.execute("PRAGMA foreign_keys = ON")
             conn.execute("BEGIN")
-            with pytest.raises(sqlite3.IntegrityError):
+            with pytest.raises(sqlite3.IntegrityError) as excinfo:
                 agent_post_repo.upsert_imported_agent_posts(
                     [
                         AgentPost(
@@ -183,6 +183,7 @@ class TestSQLiteAgentPostRepositoryIntegration:
                     ],
                     conn=conn,
                 )
+            assert "FOREIGN KEY" in str(excinfo.value)
             conn.execute("ROLLBACK")
 
         assert agent_post_repo.count_all_posts() == 0

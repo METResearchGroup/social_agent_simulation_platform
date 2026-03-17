@@ -471,7 +471,12 @@
       "unique_constraints": []
     },
     "agent_posts": {
-      "check_constraints": [],
+      "check_constraints": [
+        {
+          "name": "ck_agent_posts_source_pair",
+          "sqltext": "(source IS NULL AND source_post_id IS NULL) OR (source IS NOT NULL AND source_post_id IS NOT NULL)"
+        }
+      ],
       "columns": [
         {
           "default": null,
@@ -579,14 +584,6 @@
             "published_at"
           ],
           "name": "idx_agent_posts_agent_id_published_at",
-          "unique": false
-        },
-        {
-          "columns": [
-            "source",
-            "source_post_id"
-          ],
-          "name": "idx_agent_posts_source_source_post_id",
           "unique": false
         }
       ],

@@ -34,6 +34,11 @@ def upgrade() -> None:
         sa.Column("imported_author_handle", sa.Text(), nullable=True),
         sa.Column("imported_author_display_name", sa.Text(), nullable=True),
         sa.Column("import_metadata_json", sa.Text(), nullable=True),
+        sa.CheckConstraint(
+            "(source IS NULL AND source_post_id IS NULL) OR "
+            "(source IS NOT NULL AND source_post_id IS NOT NULL)",
+            name="ck_agent_posts_source_pair",
+        ),
         sa.ForeignKeyConstraint(
             ["agent_id"],
             ["agent.agent_id"],
@@ -55,16 +60,10 @@ def upgrade() -> None:
             ["agent_id", "published_at"],
             unique=False,
         )
-        batch_op.create_index(
-            "idx_agent_posts_source_source_post_id",
-            ["source", "source_post_id"],
-            unique=False,
-        )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     with op.batch_alter_table("agent_posts") as batch_op:
-        batch_op.drop_index("idx_agent_posts_source_source_post_id")
         batch_op.drop_index("idx_agent_posts_agent_id_published_at")
     op.drop_table("agent_posts")
