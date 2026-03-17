@@ -118,7 +118,11 @@ def _create_simulation_agents_from_seed_state(
                 f"{agent_record.agent_id}"
             )
 
-        agent = SimulationAgent(agent_record.handle)
+        agent = SimulationAgent(
+            agent_record.handle,
+            agent_id=agent_record.agent_id,
+            display_name=agent_record.display_name,
+        )
         agent.bio = latest_bio.persona_bio
         agent.followers = metadata.followers_count
         agent.following = metadata.follows_count

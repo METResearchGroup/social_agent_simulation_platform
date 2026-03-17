@@ -419,6 +419,61 @@ class SimulationCommandService:
 
     def snapshot_run_agents(self, run: Run, agents: list[SimulationAgent]) -> None:
         """Persist the exact ordered seed-state agents selected for a run."""
+        snapshots = self._try_build_run_agent_snapshots_from_agents(
+            run=run, agents=agents
+        )
+        if snapshots is not None:
+            self.run_agent_repo.write_run_agents(run.run_id, snapshots)
+            return
+
+        snapshots = self._build_run_agent_snapshots_from_repos(run=run, agents=agents)
+        self.run_agent_repo.write_run_agents(run.run_id, snapshots)
+
+    def _try_build_run_agent_snapshots_from_agents(
+        self, *, run: Run, agents: list[SimulationAgent]
+    ) -> list[RunAgentSnapshot] | None:
+        """Return snapshots built directly from hydrated SimulationAgent objects."""
+        if not agents:
+            return []
+
+        if not all(
+            getattr(agent, "agent_id", None)
+            and getattr(agent, "display_name", None)
+            and getattr(agent, "bio", None)
+            for agent in agents
+        ):
+            return None
+
+        snapshots: list[RunAgentSnapshot] = []
+        for selection_order, agent in enumerate(agents):
+            agent_id = agent.agent_id
+            display_name = agent.display_name
+            if agent_id is None or display_name is None:
+                raise ValueError(
+                    "Invariant violation: hydrated agent missing identifier fields"
+                )
+
+            snapshots.append(
+                RunAgentSnapshot(
+                    run_id=run.run_id,
+                    agent_id=agent_id,
+                    selection_order=selection_order,
+                    handle_at_start=agent.handle,
+                    display_name_at_start=display_name,
+                    persona_bio_at_start=agent.bio,
+                    followers_count_at_start=agent.followers,
+                    follows_count_at_start=agent.following,
+                    posts_count_at_start=agent.posts_count,
+                    created_at=run.created_at,
+                )
+            )
+
+        return snapshots
+
+    def _build_run_agent_snapshots_from_repos(
+        self, *, run: Run, agents: list[SimulationAgent]
+    ) -> list[RunAgentSnapshot]:
+        """Build snapshots by querying the seed-state catalog."""
         selected_handles: list[str] = [agent.handle for agent in agents]
         selected_handle_set = set(selected_handles)
 
@@ -476,7 +531,7 @@ class SimulationCommandService:
                 )
             )
 
-        self.run_agent_repo.write_run_agents(run.run_id, snapshot_rows)
+        return snapshot_rows
 
     def _handle_missing_handles(
         self,
