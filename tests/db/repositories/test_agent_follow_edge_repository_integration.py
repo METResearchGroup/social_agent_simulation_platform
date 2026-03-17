@@ -1,10 +1,9 @@
 """Integration tests for db.repositories.agent_follow_edge_repository module."""
 
-import sqlite3
-
 import pytest
 
 from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.utils.exceptions import DuplicateAgentFollowEdgeError
 from tests.factories import AgentRecordFactory
 
 
@@ -111,7 +110,7 @@ class TestSQLiteAgentFollowEdgeRepositoryIntegration:
         )
         agent_follow_edge_repo.create_edge(edge)
 
-        with pytest.raises(sqlite3.IntegrityError):
+        with pytest.raises(DuplicateAgentFollowEdgeError):
             agent_follow_edge_repo.create_edge(
                 _build_edge(
                     edge_id="edge_2",
