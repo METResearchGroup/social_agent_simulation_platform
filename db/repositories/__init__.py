@@ -6,6 +6,10 @@ from db.repositories.agent_follow_edge_repository import (
     SQLiteAgentFollowEdgeRepository,
     create_sqlite_agent_follow_edge_repository,
 )
+from db.repositories.agent_post_repository import (
+    SQLiteAgentPostRepository,
+    create_sqlite_agent_post_repository,
+)
 from db.repositories.agent_repository import (
     SQLiteAgentRepository,
     create_sqlite_agent_repository,
@@ -25,6 +29,7 @@ from db.repositories.generated_feed_repository import (
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedBioRepository,
@@ -63,6 +68,9 @@ __all__ = [
     "AgentRepository",
     "SQLiteAgentRepository",
     "create_sqlite_agent_repository",
+    "AgentPostRepository",
+    "SQLiteAgentPostRepository",
+    "create_sqlite_agent_post_repository",
     "FeedPostRepository",
     "SQLiteFeedPostRepository",
     "create_sqlite_feed_post_repository",

@@ -15,6 +15,7 @@ from db.repositories.agent_bio_repository import create_sqlite_agent_bio_reposit
 from db.repositories.agent_follow_edge_repository import (
     create_sqlite_agent_follow_edge_repository,
 )
+from db.repositories.agent_post_repository import create_sqlite_agent_post_repository
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.comment_repository import create_sqlite_comment_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
@@ -93,6 +94,11 @@ def agent_bio_repo(temp_db, sqlite_tx):
 @pytest.fixture
 def agent_follow_edge_repo(temp_db, sqlite_tx):
     return create_sqlite_agent_follow_edge_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def agent_post_repo(temp_db, sqlite_tx):
+    return create_sqlite_agent_post_repository(transaction_provider=sqlite_tx)
 
 
 @pytest.fixture

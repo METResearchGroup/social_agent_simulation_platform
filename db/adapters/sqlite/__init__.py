@@ -3,6 +3,7 @@
 from db.adapters.sqlite.agent_adapter import SQLiteAgentAdapter
 from db.adapters.sqlite.agent_bio_adapter import SQLiteAgentBioAdapter
 from db.adapters.sqlite.agent_follow_edge_adapter import SQLiteAgentFollowEdgeAdapter
+from db.adapters.sqlite.agent_post_adapter import SQLiteAgentPostAdapter
 from db.adapters.sqlite.app_user_adapter import SQLiteAppUserAdapter
 from db.adapters.sqlite.comment_adapter import SQLiteCommentAdapter
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
@@ -24,6 +25,7 @@ __all__ = [
     "SQLiteAgentAdapter",
     "SQLiteAgentBioAdapter",
     "SQLiteAgentFollowEdgeAdapter",
+    "SQLiteAgentPostAdapter",
     "SQLiteCommentAdapter",
     "SQLiteFeedPostAdapter",
     "SQLiteFollowAdapter",

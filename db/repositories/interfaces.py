@@ -14,6 +14,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -157,6 +158,18 @@ class UserAgentProfileMetadataRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Update cached follow counts while preserving posts_count."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_posts_count(
+        self,
+        *,
+        agent_id: str,
+        posts_count: int,
+        updated_at: str,
+        conn: object | None = None,
+    ) -> None:
+        """Update cached posts_count while preserving follow counts."""
         raise NotImplementedError
 
 
@@ -376,6 +389,39 @@ class AgentFollowEdgeRepository(ABC):
     @abstractmethod
     def delete_edges_for_agent(self, agent_id: str, conn: object | None = None) -> None:
         """Delete all follow edges where the agent is follower or target."""
+        raise NotImplementedError
+
+
+class AgentPostRepository(ABC):
+    """Abstract repository for editable seed-state agent posts."""
+
+    @abstractmethod
+    def write_agent_posts(
+        self, posts: list[AgentPost], conn: object | None = None
+    ) -> None:
+        """Write posts by agent_post_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def upsert_imported_agent_posts(
+        self, posts: list[AgentPost], conn: object | None = None
+    ) -> None:
+        """Upsert imported posts by (source, source_post_id)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_posts_for_agent_ids(self, agent_ids: list[str]) -> list[AgentPost]:
+        """List posts for the provided agent IDs in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_posts_by_agent_ids(self, agent_ids: list[str]) -> dict[str, int]:
+        """Return counts keyed by agent_id for the provided agent IDs."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_all_posts(self) -> int:
+        """Count all agent_posts rows."""
         raise NotImplementedError
 
 
