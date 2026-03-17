@@ -1,6 +1,5 @@
 """Write-side CQRS service for seed-state agent follow edges."""
 
-import sqlite3
 import uuid
 
 from db.adapters.base import TransactionProvider
@@ -23,6 +22,10 @@ from simulation.api.schemas.simulation import (
 )
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.utils.exceptions import (
+    DuplicateAgentFollowEdgeError,
+    SelfFollowEdgeNotAllowedError,
+)
 from simulation.core.utils.handle_utils import normalize_handle
 
 
@@ -59,13 +62,13 @@ def create_agent_follow(
                 agent_follow_edge_repo=agent_follow_edge_repo,
                 conn=conn,
             )
-    except sqlite3.IntegrityError as exc:
-        _raise_follow_write_error(
-            exc,
-            follower_agent=follower_agent,
-            target_agent=target_agent,
-            agent_repo=agent_repo,
-        )
+    except DuplicateAgentFollowEdgeError as exc:
+        raise ApiAgentFollowEdgeAlreadyExistsError(
+            follower_agent.handle,
+            target_agent.handle,
+        ) from exc
+    except SelfFollowEdgeNotAllowedError as exc:
+        raise ApiSelfFollowNotAllowedError(follower_agent.handle) from exc
 
     return _edge_to_schema(
         edge,
@@ -148,36 +151,6 @@ def _get_target_agent(raw_handle: str, *, agent_repo: AgentRepository) -> Agent:
     if target_agent is None:
         raise ApiTargetAgentNotFoundError(target_handle)
     return target_agent
-
-
-def _raise_follow_write_error(
-    exc: sqlite3.IntegrityError,
-    *,
-    follower_agent: Agent,
-    target_agent: Agent,
-    agent_repo: AgentRepository,
-) -> None:
-    """Translate SQLite integrity errors into stable API-layer exceptions."""
-    message = str(exc)
-    if (
-        "UNIQUE constraint failed" in message
-        or "uq_agent_follow_edges_follower_target" in message
-    ):
-        raise ApiAgentFollowEdgeAlreadyExistsError(
-            follower_agent.handle,
-            target_agent.handle,
-        ) from exc
-    if (
-        "CHECK constraint failed" in message
-        or "ck_agent_follow_edges_no_self_follow" in message
-    ):
-        raise ApiSelfFollowNotAllowedError(follower_agent.handle) from exc
-    if "FOREIGN KEY constraint failed" in message:
-        if agent_repo.get_agent(follower_agent.agent_id) is None:
-            raise ApiAgentNotFoundError(follower_agent.handle) from exc
-        if agent_repo.get_agent(target_agent.agent_id) is None:
-            raise ApiTargetAgentNotFoundError(target_agent.handle) from exc
-    raise exc
 
 
 def _edge_to_schema(

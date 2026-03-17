@@ -1,9 +1,15 @@
 """SQLite repository for editable seed-state follow edges."""
 
+import sqlite3
+
 from db.adapters.base import AgentFollowEdgeDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentFollowEdgeRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.utils.exceptions import (
+    DuplicateAgentFollowEdgeError,
+    SelfFollowEdgeNotAllowedError,
+)
 from simulation.core.utils.validators import validate_agent_id
 
 
@@ -23,11 +29,14 @@ class SQLiteAgentFollowEdgeRepository(AgentFollowEdgeRepository):
         self, edge: AgentFollowEdge, conn: object | None = None
     ) -> AgentFollowEdge:
         """Insert one follow edge row."""
-        if conn is not None:
-            self._db_adapter.write_agent_follow_edge(edge, conn=conn)
-        else:
-            with self._transaction_provider.run_transaction() as c:
-                self._db_adapter.write_agent_follow_edge(edge, conn=c)
+        try:
+            if conn is not None:
+                self._db_adapter.write_agent_follow_edge(edge, conn=conn)
+            else:
+                with self._transaction_provider.run_transaction() as c:
+                    self._db_adapter.write_agent_follow_edge(edge, conn=c)
+        except sqlite3.IntegrityError as exc:
+            _raise_follow_edge_write_error(exc, edge=edge)
         return edge
 
     @validate_inputs((validate_agent_id, "follower_agent_id"))
@@ -142,3 +151,24 @@ def create_sqlite_agent_follow_edge_repository(
         db_adapter=SQLiteAgentFollowEdgeAdapter(),
         transaction_provider=transaction_provider,
     )
+
+
+def _raise_follow_edge_write_error(
+    exc: sqlite3.IntegrityError, *, edge: AgentFollowEdge
+) -> None:
+    """Translate SQLite constraint failures into stable domain exceptions."""
+    message = str(exc)
+    if (
+        "UNIQUE constraint failed" in message
+        or "uq_agent_follow_edges_follower_target" in message
+    ):
+        raise DuplicateAgentFollowEdgeError(
+            edge.follower_agent_id,
+            edge.target_agent_id,
+        ) from exc
+    if (
+        "CHECK constraint failed" in message
+        or "ck_agent_follow_edges_no_self_follow" in message
+    ):
+        raise SelfFollowEdgeNotAllowedError(edge.follower_agent_id) from exc
+    raise exc
