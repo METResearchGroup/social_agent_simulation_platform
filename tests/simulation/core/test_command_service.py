@@ -486,12 +486,14 @@ class TestSimulationCommandServiceExecuteRun:
             ]
         )
         assert persisted_follows == []
-        mock_generate_follows.assert_called_once_with(
-            [],
-            run_id=sample_run.run_id,
-            turn_number=0,
-            agent_handle="agent1.bsky.social",
-        )
+        assert mock_generate_follows.call_count == sample_run.total_turns
+        for turn_number, call in enumerate(mock_generate_follows.call_args_list):
+            assert call.args == ([],)
+            assert call.kwargs == {
+                "run_id": sample_run.run_id,
+                "turn_number": turn_number,
+                "agent_handle": "agent1.bsky.social",
+            }
         assert (
             mock_repos[
                 "agent_follow_edge_repo"
