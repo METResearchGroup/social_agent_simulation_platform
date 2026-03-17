@@ -1,8 +1,8 @@
 """Editable seed-state post authored by an internal agent.
 
 This table represents the canonical, mutable "starting posts" state used to seed
-future run snapshots (PR 6: run_posts). It is intentionally decoupled from
-feed_posts, which is treated as an ingest/import catalog.
+future run snapshots. It is intentionally decoupled from feed_posts, which is
+treated as an ingest/import catalog.
 """
 
 from pydantic import BaseModel, ConfigDict, field_validator
