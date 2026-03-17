@@ -344,17 +344,24 @@ async def get_simulation_run(
     response_model=list[PostSchema],
     status_code=200,
     summary="List simulation posts",
-    description="Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.",
+    description="Return posts, optionally filtered by post_ids. When run_id is provided with post_ids, resolve from run_posts (run-scoped). Otherwise resolve from feed_posts.",
 )
 @log_route_completion_decorator(route=SIMULATION_POSTS_ROUTE, success_type=list)
 async def get_simulation_posts(
     request: Request,
     post_ids: list[str] | None = Query(
-        default=None, description="Filter by canonical post_ids"
+        default=None,
+        description="Filter by post_ids (run_post_ids when run_id provided)",
+    ),
+    run_id: str | None = Query(
+        default=None,
+        description="Run ID for run-scoped post lookup (post_ids must be run_post_ids)",
     ),
 ) -> list[PostSchema] | Response:
     """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
-    return await _execute_get_simulation_posts(request, post_ids=post_ids)
+    return await _execute_get_simulation_posts(
+        request, post_ids=post_ids, run_id=run_id
+    )
 
 
 @router.get(
@@ -430,12 +437,16 @@ async def _execute_get_simulation_posts(
     request: Request,
     *,
     post_ids: list[str] | None = None,
+    run_id: str | None = None,
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
         engine = request.app.state.engine
         return await asyncio.to_thread(
-            get_posts_by_ids, post_ids=post_ids, engine=engine
+            get_posts_by_ids,
+            post_ids=post_ids,
+            run_id=run_id,
+            engine=engine,
         )
     except Exception:
         logger.exception("Unexpected error while listing simulation posts")

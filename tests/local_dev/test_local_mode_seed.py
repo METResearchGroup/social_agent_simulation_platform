@@ -45,9 +45,16 @@ class TestLocalModeSeed:
             follow_edges_count = conn.execute(
                 "SELECT COUNT(*) FROM agent_follow_edges"
             ).fetchone()[0]
+            agent_posts_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts"
+            ).fetchone()[0]
+            alice_posts_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
+                ("agent_0240dc0d4a4c7e73",),
+            ).fetchone()[0]
             alice_counts = conn.execute(
                 """
-                SELECT followers_count, follows_count
+                SELECT followers_count, follows_count, posts_count
                 FROM user_agent_profile_metadata
                 WHERE agent_id = ?
                 """,
@@ -55,7 +62,8 @@ class TestLocalModeSeed:
             ).fetchone()
             assert runs_count > 0
             assert follow_edges_count > 0
-            assert alice_counts == (4, 2)
+            assert agent_posts_count > 0
+            assert alice_counts == (4, 2, alice_posts_count)
         finally:
             conn.close()
 
@@ -66,6 +74,13 @@ class TestLocalModeSeed:
                 "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
             ).fetchone()[0]
             runs_count_before = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+            agent_posts_count_before = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts"
+            ).fetchone()[0]
+            alice_posts_count_before = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
+                ("agent_0240dc0d4a4c7e73",),
+            ).fetchone()[0]
         finally:
             conn.close()
 
@@ -77,6 +92,13 @@ class TestLocalModeSeed:
                 "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
             ).fetchone()[0]
             runs_count_after = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+            agent_posts_count_after = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts"
+            ).fetchone()[0]
+            alice_posts_count_after = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
+                ("agent_0240dc0d4a4c7e73",),
+            ).fetchone()[0]
         finally:
             conn.close()
 
@@ -85,6 +107,8 @@ class TestLocalModeSeed:
         assert fixtures_sha256_after == expected_digest
         assert fixtures_sha256_after == fixtures_sha256_before
         assert runs_count_after == runs_count_before
+        assert agent_posts_count_after == agent_posts_count_before
+        assert alice_posts_count_after == alice_posts_count_before
 
         assert any("Local seed already applied" in r.message for r in caplog.records)
 

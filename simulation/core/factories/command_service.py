@@ -6,6 +6,7 @@ from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedFeedRepository,
@@ -13,6 +14,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -54,6 +56,8 @@ def create_command_service(
     user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
     run_agent_repo: RunAgentRepository,
     run_follow_edge_repo: RunFollowEdgeRepository,
+    run_post_repo: RunPostRepository,
+    agent_post_repo: AgentPostRepository,
     transaction_provider: TransactionProvider,
     agent_factory: Callable[[int], list[SimulationAgent]],
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
@@ -69,6 +73,7 @@ def create_command_service(
         feed_generator = FeedGeneratorAdapter(
             generated_feed_repo=generated_feed_repo,
             feed_post_repo=feed_post_repo,
+            run_post_repo=run_post_repo,
         )
 
     if metrics_collector is None:
@@ -97,6 +102,8 @@ def create_command_service(
         user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
         run_agent_repo=run_agent_repo,
         run_follow_edge_repo=run_follow_edge_repo,
+        run_post_repo=run_post_repo,
+        agent_post_repo=agent_post_repo,
         transaction_provider=transaction_provider,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,

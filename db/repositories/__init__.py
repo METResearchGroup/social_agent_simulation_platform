@@ -6,6 +6,10 @@ from db.repositories.agent_follow_edge_repository import (
     SQLiteAgentFollowEdgeRepository,
     create_sqlite_agent_follow_edge_repository,
 )
+from db.repositories.agent_post_repository import (
+    SQLiteAgentPostRepository,
+    create_sqlite_agent_post_repository,
+)
 from db.repositories.agent_repository import (
     SQLiteAgentRepository,
     create_sqlite_agent_repository,
@@ -25,6 +29,7 @@ from db.repositories.generated_feed_repository import (
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedBioRepository,
@@ -32,6 +37,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -46,6 +52,10 @@ from db.repositories.run_agent_repository import (
 from db.repositories.run_follow_edge_repository import (
     SQLiteRunFollowEdgeRepository,
     create_sqlite_run_follow_edge_repository,
+)
+from db.repositories.run_post_repository import (
+    SQLiteRunPostRepository,
+    create_sqlite_run_post_repository,
 )
 from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
 from db.repositories.user_agent_profile_metadata_repository import (
@@ -63,6 +73,9 @@ __all__ = [
     "AgentRepository",
     "SQLiteAgentRepository",
     "create_sqlite_agent_repository",
+    "AgentPostRepository",
+    "SQLiteAgentPostRepository",
+    "create_sqlite_agent_post_repository",
     "FeedPostRepository",
     "SQLiteFeedPostRepository",
     "create_sqlite_feed_post_repository",
@@ -81,6 +94,9 @@ __all__ = [
     "RunFollowEdgeRepository",
     "SQLiteRunFollowEdgeRepository",
     "create_sqlite_run_follow_edge_repository",
+    "RunPostRepository",
+    "SQLiteRunPostRepository",
+    "create_sqlite_run_post_repository",
     "RunRepository",
     "SQLiteRunRepository",
     "create_sqlite_repository",

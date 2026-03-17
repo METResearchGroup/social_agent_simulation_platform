@@ -1,6 +1,7 @@
 import logging
 import time
 from collections.abc import Callable, Mapping
+from uuid import uuid4
 
 from pydantic import JsonValue
 
@@ -8,6 +9,7 @@ from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedFeedRepository,
@@ -15,6 +17,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -45,6 +48,7 @@ from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetr
 from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
@@ -85,6 +89,8 @@ class SimulationCommandService:
         user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
         run_agent_repo: RunAgentRepository,
         run_follow_edge_repo: RunFollowEdgeRepository,
+        run_post_repo: RunPostRepository,
+        agent_post_repo: AgentPostRepository,
         transaction_provider: TransactionProvider,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
@@ -105,6 +111,8 @@ class SimulationCommandService:
         self.user_agent_profile_metadata_repo = user_agent_profile_metadata_repo
         self.run_agent_repo = run_agent_repo
         self.run_follow_edge_repo = run_follow_edge_repo
+        self.run_post_repo = run_post_repo
+        self.agent_post_repo = agent_post_repo
         self.transaction_provider = transaction_provider
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
@@ -177,7 +185,7 @@ class SimulationCommandService:
         run: Run,
         agents: list[SimulationAgent],
     ) -> tuple[list[RunAgentSnapshot], list[RunFollowEdgeSnapshot]]:
-        """Persist run-start agent/follow-edge snapshots in one transaction."""
+        """Persist run-start agent/follow-edge/post snapshots in one transaction."""
         with self.transaction_provider.run_transaction() as conn:
             run_agent_snapshots = self.snapshot_run_agents(
                 run=run,
@@ -187,6 +195,11 @@ class SimulationCommandService:
             run_follow_edge_snapshots = self.snapshot_run_follow_edges(
                 run=run,
                 agent_snapshots=run_agent_snapshots,
+                conn=conn,
+            )
+            self.snapshot_run_posts(
+                run=run,
+                run_agent_snapshots=run_agent_snapshots,
                 conn=conn,
             )
         return run_agent_snapshots, run_follow_edge_snapshots
@@ -512,6 +525,53 @@ class SimulationCommandService:
             snapshots,
             conn=conn,
         )
+        return snapshots
+
+    def snapshot_run_posts(
+        self,
+        run: Run,
+        run_agent_snapshots: list[RunAgentSnapshot],
+        *,
+        conn: object | None = None,
+    ) -> list[RunPostSnapshot]:
+        """Persist run-start post snapshots from agent_posts for selected agents."""
+        if not run_agent_snapshots:
+            return []
+
+        agent_ids = [s.agent_id for s in run_agent_snapshots]
+        agent_posts = self.agent_post_repo.list_posts_for_agent_ids(agent_ids)
+
+        handle_by_agent_id: dict[str, str] = {
+            s.agent_id: s.handle_at_start for s in run_agent_snapshots
+        }
+        display_name_by_agent_id: dict[str, str] = {
+            s.agent_id: s.display_name_at_start for s in run_agent_snapshots
+        }
+
+        snapshots: list[RunPostSnapshot] = []
+        for agent_post in agent_posts:
+            author_handle = handle_by_agent_id.get(agent_post.agent_id)
+            author_display_name = display_name_by_agent_id.get(agent_post.agent_id)
+            if author_handle is None or author_display_name is None:
+                continue
+            snapshots.append(
+                RunPostSnapshot(
+                    run_post_id=str(uuid4()),
+                    run_id=run.run_id,
+                    agent_post_id=agent_post.agent_post_id,
+                    author_agent_id=agent_post.agent_id,
+                    author_handle_at_start=author_handle,
+                    author_display_name_at_start=author_display_name,
+                    body_text_at_start=agent_post.body_text,
+                    published_at_start=agent_post.published_at,
+                    source_post_id_at_start=agent_post.source_post_id,
+                    source_at_start=agent_post.source,
+                    source_uri_at_start=agent_post.source_uri,
+                    created_at=run.created_at,
+                )
+            )
+
+        self.run_post_repo.write_run_posts(run.run_id, snapshots, conn=conn)
         return snapshots
 
     def preload_follow_history_from_snapshots(

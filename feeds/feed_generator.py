@@ -3,14 +3,18 @@ from collections.abc import Mapping
 
 from pydantic import JsonValue
 
-from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
+from db.repositories.interfaces import (
+    FeedPostRepository,
+    GeneratedFeedRepository,
+    RunPostRepository,
+)
 from feeds.algorithms import FeedAlgorithmResult, get_feed_generator
 from feeds.candidate_generation import load_candidate_posts
 from feeds.constants import MAX_POSTS_PER_FEED
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
-from simulation.core.models.posts import Post
+from simulation.core.models.posts import Post, run_post_snapshot_to_post
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,7 @@ def generate_feeds(
     generated_feed_repo: GeneratedFeedRepository,
     feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
+    run_post_repo: RunPostRepository,
     feed_algorithm_config: Mapping[str, JsonValue] | None = None,
 ) -> dict[str, list[Post]]:
     """Generate feeds for all the agents.
@@ -31,8 +36,9 @@ def generate_feeds(
         run_id: The run ID for this simulation.
         turn_number: The turn number for this simulation.
         generated_feed_repo: Repository for writing generated feeds.
-        feed_post_repo: Repository for reading feed posts.
+        feed_post_repo: Repository (unused; kept for signature compatibility).
         feed_algorithm: Algorithm name to use (must be registered in feeds.algorithms).
+        run_post_repo: Load candidates and hydrate from run_posts.
 
     Returns:
         Dictionary mapping agent handles to lists of hydrated Post objects.
@@ -48,13 +54,14 @@ def generate_feeds(
         feed_post_repo=feed_post_repo,
         feed_algorithm=feed_algorithm,
         feed_algorithm_config=feed_algorithm_config,
+        run_post_repo=run_post_repo,
     )
     _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
     return _hydrate_generated_feeds(
         feeds=feeds,
-        feed_post_repo=feed_post_repo,
         run_id=run_id,
         turn_number=turn_number,
+        run_post_repo=run_post_repo,
     )
 
 
@@ -66,12 +73,11 @@ def _generate_feeds(
     feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
+    run_post_repo: RunPostRepository,
 ) -> dict[str, GeneratedFeed]:
     """Generate a feed per agent via the feed algorithm; no persistence."""
     feeds: dict[str, GeneratedFeed] = {}
     for agent in agents:
-        # TODO: right now we load all posts per agent, but obviously
-        # can optimize and personalize later to save on queries.
         feed = _generate_single_agent_feed(
             agent=agent,
             run_id=run_id,
@@ -80,6 +86,7 @@ def _generate_feeds(
             feed_post_repo=feed_post_repo,
             feed_algorithm=feed_algorithm,
             feed_algorithm_config=feed_algorithm_config,
+            run_post_repo=run_post_repo,
         )
         feeds[agent.handle] = feed
     return feeds
@@ -96,25 +103,29 @@ def _write_generated_feeds(
 
 def _load_hydrated_posts(
     feeds: dict[str, GeneratedFeed],
-    feed_post_repo: FeedPostRepository,
+    run_id: str,
+    run_post_repo: RunPostRepository,
 ) -> dict[str, Post]:
-    """Collect all post IDs from feeds, fetch posts in one batch, return post_id -> post map."""
+    """Collect all post IDs from feeds, fetch posts from run_posts, return post_id -> post map."""
     all_post_ids: set[str] = set()
     for feed in feeds.values():
         all_post_ids.update(feed.post_ids)
-    hydrated_posts: list[Post] = feed_post_repo.read_feed_posts_by_ids(all_post_ids)
-    return {p.post_id: p for p in hydrated_posts}
+    snapshots = run_post_repo.list_run_posts(run_id)
+    post_by_id = {s.run_post_id: run_post_snapshot_to_post(s) for s in snapshots}
+    return {pid: post_by_id[pid] for pid in all_post_ids if pid in post_by_id}
 
 
 def _hydrate_generated_feeds(
     feeds: dict[str, GeneratedFeed],
-    feed_post_repo: FeedPostRepository,
     run_id: str,
     turn_number: int,
+    run_post_repo: RunPostRepository,
 ) -> dict[str, list[Post]]:
     """Hydrate feeds using a single batch query, then map each feed's post IDs to posts."""
     post_id_to_post: dict[str, Post] = _load_hydrated_posts(
-        feeds=feeds, feed_post_repo=feed_post_repo
+        feeds=feeds,
+        run_id=run_id,
+        run_post_repo=run_post_repo,
     )
     agent_to_hydrated_feeds, missing_post_ids_by_agent = _hydrate_feed_items(
         feeds=feeds, post_id_to_post=post_id_to_post
@@ -204,13 +215,14 @@ def _generate_single_agent_feed(
     feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
+    run_post_repo: RunPostRepository,
 ) -> GeneratedFeed:
     """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
     candidate_posts: list[Post] = load_candidate_posts(
         agent=agent,
         run_id=run_id,
-        feed_post_repo=feed_post_repo,
         generated_feed_repo=generated_feed_repo,
+        run_post_repo=run_post_repo,
     )
     return _generate_feed(
         agent=agent,

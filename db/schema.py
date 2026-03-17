@@ -125,6 +125,39 @@ run_agents = sa.Table(
     ),
 )
 
+run_posts = sa.Table(
+    "run_posts",
+    metadata,
+    sa.Column("run_post_id", sa.Text(), nullable=False),
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("agent_post_id", sa.Text(), nullable=False),
+    sa.Column("author_agent_id", sa.Text(), nullable=False),
+    sa.Column("author_handle_at_start", sa.Text(), nullable=False),
+    sa.Column("author_display_name_at_start", sa.Text(), nullable=False),
+    sa.Column("body_text_at_start", sa.Text(), nullable=False),
+    sa.Column("published_at_start", sa.Text(), nullable=False),
+    sa.Column("source_post_id_at_start", sa.Text(), nullable=True),
+    sa.Column("source_at_start", sa.Text(), nullable=True),
+    sa.Column("source_uri_at_start", sa.Text(), nullable=True),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["run_id"],
+        ["runs.run_id"],
+        name="fk_run_posts_run_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "author_agent_id"],
+        ["run_agents.run_id", "run_agents.agent_id"],
+        name="fk_run_posts_run_author",
+    ),
+    sa.PrimaryKeyConstraint("run_post_id", name="pk_run_posts"),
+    sa.UniqueConstraint(
+        "run_id",
+        "agent_post_id",
+        name="uq_run_posts_run_agent_post",
+    ),
+)
+
 run_follow_edges = sa.Table(
     "run_follow_edges",
     metadata,
@@ -291,6 +324,42 @@ agent_follow_edges = sa.Table(
     ),
 )
 
+agent_posts = sa.Table(
+    "agent_posts",
+    metadata,
+    sa.Column("agent_post_id", sa.Text(), primary_key=True),
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("body_text", sa.Text(), nullable=False),
+    sa.Column("published_at", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("updated_at", sa.Text(), nullable=False),
+    # Import provenance from canonical feed_posts and other upstream sources.
+    sa.Column("source_post_id", sa.Text(), nullable=True),
+    sa.Column("source", sa.Text(), nullable=True),
+    sa.Column("source_uri", sa.Text(), nullable=True),
+    sa.Column("imported_author_handle", sa.Text(), nullable=True),
+    sa.Column("imported_author_display_name", sa.Text(), nullable=True),
+    sa.Column("import_metadata_json", sa.Text(), nullable=True),
+    sa.CheckConstraint(
+        "(source IS NULL AND source_post_id IS NULL) OR "
+        "(source IS NOT NULL AND source_post_id IS NOT NULL)",
+        name="ck_agent_posts_source_pair",
+    ),
+    sa.ForeignKeyConstraint(
+        ["agent_id"],
+        ["agent.agent_id"],
+        name="fk_agent_posts_agent_id",
+    ),
+    # Idempotent import key for backfills from canonical catalogs (e.g. feed_posts).
+    # SQLite UNIQUE allows multiple rows when any constrained column is NULL, which
+    # matches the desired "only enforce for imported rows" behavior.
+    sa.UniqueConstraint(
+        "source",
+        "source_post_id",
+        name="uq_agent_posts_source_source_post_id",
+    ),
+)
+
 
 # --- Run-scoped action tables (likes, comments, follows) ---
 
@@ -386,6 +455,13 @@ sa.Index("idx_feed_posts_author_handle", feed_posts.c.author_handle)
 sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
 sa.Index("idx_turn_metrics_run_id", turn_metrics.c.run_id)
 sa.Index("idx_run_agents_run_id", run_agents.c.run_id)
+sa.Index(
+    "idx_run_posts_run_author_published",
+    run_posts.c.run_id,
+    run_posts.c.author_agent_id,
+    run_posts.c.published_at_start,
+)
+sa.Index("idx_run_posts_run_id", run_posts.c.run_id)
 sa.Index("idx_run_follow_edges_run_id", run_follow_edges.c.run_id)
 sa.Index(
     "idx_run_follow_edges_run_follower",
@@ -409,6 +485,11 @@ sa.Index(
 sa.Index(
     "idx_agent_follow_edges_target_agent_id",
     agent_follow_edges.c.target_agent_id,
+)
+sa.Index(
+    "idx_agent_posts_agent_id_published_at",
+    agent_posts.c.agent_id,
+    agent_posts.c.published_at,
 )
 sa.Index(
     "idx_likes_run_turn_agent",

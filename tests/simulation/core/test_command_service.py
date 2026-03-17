@@ -145,6 +145,8 @@ def command_service(
         user_agent_profile_metadata_repo=mock_repos["user_agent_profile_metadata_repo"],
         run_agent_repo=mock_repos["run_agent_repo"],
         run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
+        run_post_repo=mock_repos["run_post_repo"],
+        agent_post_repo=mock_repos["agent_post_repo"],
         transaction_provider=mock_transaction_provider,
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
@@ -295,6 +297,12 @@ class TestSimulationCommandServiceExecuteRun:
         assert all(
             snapshot.created_at == sample_run.created_at
             for snapshot in follow_snapshots
+        )
+        # Run posts are persisted in the same transaction
+        mock_repos["run_post_repo"].write_run_posts.assert_called_once_with(
+            sample_run.run_id,
+            ANY,
+            conn=mock_transaction_provider.mock_conn,
         )
 
     def test_persists_selected_run_agents_with_snapshot_fields(
@@ -960,6 +968,8 @@ class TestSimulationCommandServiceActionPersistence:
             user_agent_profile_metadata_repo=Mock(),
             run_agent_repo=Mock(),
             run_follow_edge_repo=Mock(),
+            run_post_repo=Mock(),
+            agent_post_repo=Mock(),
             transaction_provider=transaction_provider,
             agent_factory=lambda n: [agent],
             action_history_store_factory=lambda: action_history_store,

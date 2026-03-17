@@ -5,6 +5,7 @@ from enum import Enum
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
+from simulation.core.models.run_posts import RunPostSnapshot
 
 
 class PostSource(str, Enum):
@@ -12,6 +13,7 @@ class PostSource(str, Enum):
 
     BLUESKY = "bluesky"
     AI_GENERATED = "ai_generated"
+    SEED_STATE = "seed_state"
 
 
 def canonical_post_id(*, source: PostSource, uri: str) -> str:
@@ -105,6 +107,16 @@ class Post(BaseModel):
         if cleaned_uri == "":
             return data
 
+        # SEED_STATE: post_id is run_post_id; uri is "seed_state:{run_post_id}"
+        if source is PostSource.SEED_STATE:
+            if "post_id" not in data:
+                # uri format: "seed_state:{run_post_id}" -> post_id = run_post_id
+                if cleaned_uri.startswith("seed_state:"):
+                    data["post_id"] = cleaned_uri[len("seed_state:") :]
+                else:
+                    data["post_id"] = canonical_post_id(source=source, uri=cleaned_uri)
+            return data
+
         expected = canonical_post_id(source=source, uri=cleaned_uri)
 
         if "post_id" not in data:
@@ -123,3 +135,25 @@ class Post(BaseModel):
             )
 
         return data
+
+
+def run_post_snapshot_to_post(snapshot: RunPostSnapshot) -> Post:
+    """Map RunPostSnapshot to runtime Post for run-scoped feed generation.
+
+    Uses post_id=run_post_id, source=SEED_STATE, uri=f"seed_state:{run_post_id}"
+    so generated_feeds.post_ids store run_post_id for query/history hydration.
+    """
+    return Post(
+        post_id=snapshot.run_post_id,
+        source=PostSource.SEED_STATE,
+        uri=f"seed_state:{snapshot.run_post_id}",
+        author_handle=snapshot.author_handle_at_start,
+        author_display_name=snapshot.author_display_name_at_start,
+        text=snapshot.body_text_at_start,
+        created_at=snapshot.published_at_start,
+        bookmark_count=0,
+        like_count=0,
+        quote_count=0,
+        reply_count=0,
+        repost_count=0,
+    )

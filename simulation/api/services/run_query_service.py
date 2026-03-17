@@ -95,15 +95,26 @@ def _post_to_schema(post: Post) -> PostSchema:
 
 
 def get_posts_by_ids(
-    *, post_ids: list[str] | None = None, engine: SimulationEngine
+    *,
+    post_ids: list[str] | None = None,
+    run_id: str | None = None,
+    engine: SimulationEngine,
 ) -> list[PostSchema]:
     """Return posts from the database.
 
-    If post_ids is None/empty, returns up to MAX_UNFILTERED_POSTS posts.
+    When run_id is provided with post_ids, resolve from run_posts (run-scoped).
+    Otherwise resolve from feed_posts (global catalog).
+    If post_ids is None/empty and run_id is None, returns up to MAX_UNFILTERED_POSTS
+    from feed_posts.
     """
     posts: list[Post]
     if not post_ids:
-        posts = engine.read_all_feed_posts()[:MAX_UNFILTERED_POSTS]
+        if run_id is not None:
+            posts = []
+        else:
+            posts = engine.read_all_feed_posts()[:MAX_UNFILTERED_POSTS]
+    elif run_id is not None:
+        posts = engine.read_posts_for_run(run_id, post_ids)
     else:
         posts = engine.read_feed_posts_by_ids(post_ids)
 

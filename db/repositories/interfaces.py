@@ -14,6 +14,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -30,6 +31,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -157,6 +159,18 @@ class UserAgentProfileMetadataRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Update cached follow counts while preserving posts_count."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_posts_count(
+        self,
+        *,
+        agent_id: str,
+        posts_count: int,
+        updated_at: str,
+        conn: object | None = None,
+    ) -> None:
+        """Update cached posts_count while preserving follow counts."""
         raise NotImplementedError
 
 
@@ -299,6 +313,40 @@ class RunFollowEdgeRepository(ABC):
         raise NotImplementedError
 
 
+class RunPostRepository(ABC):
+    """Abstract repository for immutable run-start post snapshots."""
+
+    @abstractmethod
+    def write_run_posts(
+        self,
+        run_id: str,
+        rows: list[RunPostSnapshot],
+        conn: object | None = None,
+    ) -> None:
+        """Write all run-post snapshot rows for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_run_posts(self, run_id: str) -> list[RunPostSnapshot]:
+        """List run-post snapshots ordered by author_agent_id, published_at_start, run_post_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_posts_by_ids(
+        self, run_id: str, post_ids: Iterable[str]
+    ) -> list[RunPostSnapshot]:
+        """Read run-post snapshots by run_post_ids for a run.
+
+        Args:
+            run_id: The run to scope the lookup.
+            post_ids: Iterable of run_post_ids (from generated_feeds.post_ids).
+
+        Returns:
+            List of RunPostSnapshot in the same order as post_ids, skipping missing.
+        """
+        raise NotImplementedError
+
+
 class AgentFollowEdgeRepository(ABC):
     """Abstract repository for editable seed-state follow edges."""
 
@@ -376,6 +424,39 @@ class AgentFollowEdgeRepository(ABC):
     @abstractmethod
     def delete_edges_for_agent(self, agent_id: str, conn: object | None = None) -> None:
         """Delete all follow edges where the agent is follower or target."""
+        raise NotImplementedError
+
+
+class AgentPostRepository(ABC):
+    """Abstract repository for editable seed-state agent posts."""
+
+    @abstractmethod
+    def write_agent_posts(
+        self, posts: list[AgentPost], conn: object | None = None
+    ) -> None:
+        """Write posts by agent_post_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def upsert_imported_agent_posts(
+        self, posts: list[AgentPost], conn: object | None = None
+    ) -> None:
+        """Upsert imported posts by (source, source_post_id)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_posts_for_agent_ids(self, agent_ids: list[str]) -> list[AgentPost]:
+        """List posts for the provided agent IDs in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_posts_by_agent_ids(self, agent_ids: list[str]) -> dict[str, int]:
+        """Return counts keyed by agent_id for the provided agent IDs."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_all_posts(self) -> int:
+        """Count all agent_posts rows."""
         raise NotImplementedError
 
 
