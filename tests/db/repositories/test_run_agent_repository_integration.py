@@ -173,3 +173,5 @@ class TestSQLiteRunAgentRepositoryIntegration:
                     ),
                 ],
             )
+
+        assert run_agent_repo.list_run_agents(run.run_id) == []
