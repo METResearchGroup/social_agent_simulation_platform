@@ -5,6 +5,7 @@ get_metadata_by_agent_ids or an async batch loader (e.g. DataLoader).
 """
 
 import sqlite3
+import uuid
 from collections.abc import Iterable
 
 from db.adapters.base import UserAgentProfileMetadataDatabaseAdapter
@@ -12,7 +13,7 @@ from db.adapters.sqlite.schema_utils import ordered_column_names, required_colum
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import user_agent_profile_metadata
 from lib.validation_decorators import validate_inputs
-from lib.validation_utils import validate_non_empty_string
+from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 from simulation.core.utils.validators import validate_agent_id
 
@@ -22,6 +23,35 @@ _INSERT_METADATA_SQL = (
     f"INSERT OR REPLACE INTO user_agent_profile_metadata ({', '.join(METADATA_COLUMNS)}) "
     f"VALUES ({', '.join('?' for _ in METADATA_COLUMNS)})"
 )
+_SYNC_FOLLOW_COUNTS_SQL = """
+INSERT INTO user_agent_profile_metadata (
+    id,
+    agent_id,
+    followers_count,
+    follows_count,
+    posts_count,
+    created_at,
+    updated_at
+) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    COALESCE(
+        (SELECT posts_count FROM user_agent_profile_metadata WHERE agent_id = ?),
+        0
+    ),
+    COALESCE(
+        (SELECT created_at FROM user_agent_profile_metadata WHERE agent_id = ?),
+        ?
+    ),
+    ?
+)
+ON CONFLICT(agent_id) DO UPDATE SET
+    followers_count = excluded.followers_count,
+    follows_count = excluded.follows_count,
+    updated_at = excluded.updated_at
+"""
 
 
 class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdapter):
@@ -93,4 +123,32 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
         conn.execute(
             "DELETE FROM user_agent_profile_metadata WHERE agent_id = ?",
             (agent_id,),
+        )
+
+    def sync_follow_counts(
+        self,
+        *,
+        agent_id: str,
+        followers_count: int,
+        follows_count: int,
+        updated_at: str,
+        conn: sqlite3.Connection,
+    ) -> None:
+        """Update cached follow counts while preserving posts_count and row identity."""
+        validate_agent_id(agent_id)
+        validate_nonnegative_value(followers_count, "followers_count")
+        validate_nonnegative_value(follows_count, "follows_count")
+        validate_non_empty_string(updated_at)
+        conn.execute(
+            _SYNC_FOLLOW_COUNTS_SQL,
+            (
+                uuid.uuid4().hex,
+                agent_id,
+                followers_count,
+                follows_count,
+                agent_id,
+                agent_id,
+                updated_at,
+                updated_at,
+            ),
         )

@@ -20,6 +20,7 @@ from pathlib import Path
 
 from db.adapters.sqlite.agent_adapter import SQLiteAgentAdapter
 from db.adapters.sqlite.agent_bio_adapter import SQLiteAgentBioAdapter
+from db.adapters.sqlite.agent_follow_edge_adapter import SQLiteAgentFollowEdgeAdapter
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
 from db.adapters.sqlite.generated_feed_adapter import SQLiteGeneratedFeedAdapter
 from db.adapters.sqlite.metrics_adapter import SQLiteMetricsAdapter
@@ -31,6 +32,7 @@ from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
+from simulation.core.models.agent_follow_edge import AgentFollowEdge
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post, PostSource
@@ -61,6 +63,7 @@ class SeedFixtures:
     agents: list[Agent]
     agent_persona_bios: list[AgentBio]
     user_agent_profile_metadata: list[UserAgentProfileMetadata]
+    agent_follow_edges: list[AgentFollowEdge]
 
 
 def _read_json_list(path: Path) -> list[dict]:
@@ -113,6 +116,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     agents_raw = _read_json_list(fixtures_dir / "agents.json")
     bios_raw = _read_json_list(fixtures_dir / "agent_persona_bios.json")
     metadata_raw = _read_json_list(fixtures_dir / "user_agent_profile_metadata.json")
+    follow_edges_raw = _read_json_list(fixtures_dir / "agent_follow_edges.json")
     posts_raw = _read_json_list(fixtures_dir / "bluesky_feed_posts.json")
     feeds_raw = _read_json_list(fixtures_dir / "generated_feeds.json")
     turn_md_raw = _read_json_list(fixtures_dir / "turn_metadata.json")
@@ -146,6 +150,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
             )
         )
     user_md = [UserAgentProfileMetadata.model_validate(item) for item in metadata_raw]
+    follow_edges = [AgentFollowEdge.model_validate(item) for item in follow_edges_raw]
     posts = [
         Post.model_validate({**item, "source": PostSource.BLUESKY})
         for item in posts_raw
@@ -179,6 +184,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         agents=agents,
         agent_persona_bios=bios,
         user_agent_profile_metadata=user_md,
+        agent_follow_edges=follow_edges,
     )
 
 
@@ -218,6 +224,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
         post_adapter = SQLiteFeedPostAdapter()
         agent_adapter = SQLiteAgentAdapter()
         bio_adapter = SQLiteAgentBioAdapter()
+        agent_follow_edge_adapter = SQLiteAgentFollowEdgeAdapter()
         user_md_adapter = SQLiteUserAgentProfileMetadataAdapter()
 
         now = get_current_timestamp()
@@ -233,6 +240,22 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                 bio_adapter.write_agent_bio(bio, conn=conn)
             for md in fixtures.user_agent_profile_metadata:
                 user_md_adapter.write_user_agent_profile_metadata(md, conn=conn)
+            for edge in fixtures.agent_follow_edges:
+                agent_follow_edge_adapter.write_agent_follow_edge(edge, conn=conn)
+            for agent in fixtures.agents:
+                user_md_adapter.sync_follow_counts(
+                    agent_id=agent.agent_id,
+                    followers_count=agent_follow_edge_adapter.count_edges_by_target_agent_id(
+                        agent.agent_id,
+                        conn=conn,
+                    ),
+                    follows_count=agent_follow_edge_adapter.count_edges_by_follower_agent_id(
+                        agent.agent_id,
+                        conn=conn,
+                    ),
+                    updated_at=now,
+                    conn=conn,
+                )
 
             post_adapter.write_feed_posts(fixtures.feed_posts, conn=conn)
             for feed in fixtures.generated_feeds:
