@@ -7,18 +7,28 @@ tags: [pre-commit, linting, ruff, pyright, complexipy, code-quality]
 
 This runbook covers pre-commit hooks and code quality tools (Ruff, Pyright, complexipy).
 
+## Setup for repo-wide checks
+
+Install the quality-gate dependencies before running repo-wide checks:
+
+```bash
+uv sync --frozen --extra test --extra ner
+```
+
+The `test` extra provides `pre-commit`, `pyright`, and related tooling. The `ner` extra is also required because whole-repo type checking reaches `ml_tooling/ner/`, which imports `transformers`.
+
 ## Pre-commit
 
 Install hooks so Ruff, complexipy, and pyright run before each commit:
 
 ```bash
-pre-commit install
+uv run pre-commit install
 ```
 
 Run on all files:
 
 ```bash
-pre-commit run --all-files
+uv run pre-commit run --all-files
 ```
 
 ## Ruff (lint and format)
