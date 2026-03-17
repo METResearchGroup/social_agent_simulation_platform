@@ -753,6 +753,13 @@ class AgentDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def read_agents_by_handles(
+        self, handles: Iterable[str], *, conn: object
+    ) -> dict[str, Agent]:
+        """Read agents matching the provided handles."""
+        raise NotImplementedError
+
+    @abstractmethod
     def read_all_agents(self, *, conn: object) -> list[Agent]:
         """Read all agents. Returns empty list if none exist."""
         raise NotImplementedError

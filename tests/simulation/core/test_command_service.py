@@ -66,7 +66,7 @@ def mock_feed_generator():
 
 @pytest.fixture
 def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
-    mock_repos["agent_repo"].list_all_agents.return_value = [
+    seed_agent_records = [
         AgentRecordFactory.create(
             agent_id=f"did:plc:agent{i}",
             handle=f"agent{i}.bsky.social",
@@ -76,6 +76,12 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         )
         for i in range(5)
     ]
+    mock_repos["agent_repo"].list_all_agents.return_value = seed_agent_records
+    mock_repos["agent_repo"].get_agents_by_handles.side_effect = lambda handles: {
+        record.handle: record
+        for record in seed_agent_records
+        if record.handle in handles
+    }
     mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.side_effect = (
         lambda agent_ids: {
             agent_id: AgentBioFactory.create(
@@ -241,6 +247,9 @@ class TestSimulationCommandServiceExecuteRun:
             ),
         ]
         mock_repos["agent_repo"].list_all_agents.return_value = seed_agents
+        mock_repos["agent_repo"].get_agents_by_handles.side_effect = lambda handles: {
+            record.handle: record for record in seed_agents if record.handle in handles
+        }
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.side_effect = None
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.return_value = {
             "did:plc:agent1": AgentBioFactory.create(
