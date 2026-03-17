@@ -7,6 +7,7 @@ from db.repositories.interfaces import (
     GeneratedFeedRepository,
     LikeRepository,
     MetricsRepository,
+    RunFollowEdgeRepository,
     RunRepository,
 )
 from simulation.core.query_service import SimulationQueryService
@@ -21,6 +22,7 @@ def create_query_service(
     like_repo: LikeRepository,
     comment_repo: CommentRepository,
     follow_repo: FollowRepository,
+    run_follow_edge_repo: RunFollowEdgeRepository,
 ) -> SimulationQueryService:
     """Create query-side service with read dependencies."""
     return SimulationQueryService(
@@ -31,4 +33,5 @@ def create_query_service(
         like_repo=like_repo,
         comment_repo=comment_repo,
         follow_repo=follow_repo,
+        run_follow_edge_repo=run_follow_edge_repo,
     )

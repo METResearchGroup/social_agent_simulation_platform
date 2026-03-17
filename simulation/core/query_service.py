@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     GeneratedFeedRepository,
     LikeRepository,
     MetricsRepository,
+    RunFollowEdgeRepository,
     RunRepository,
 )
 from lib.validation_decorators import validate_inputs
@@ -17,6 +18,7 @@ from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
+from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.utils.exceptions import RunNotFoundError
@@ -40,6 +42,7 @@ class SimulationQueryService:
         like_repo: LikeRepository,
         comment_repo: CommentRepository,
         follow_repo: FollowRepository,
+        run_follow_edge_repo: RunFollowEdgeRepository,
     ):
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
@@ -48,6 +51,7 @@ class SimulationQueryService:
         self.like_repo = like_repo
         self.comment_repo = comment_repo
         self.follow_repo = follow_repo
+        self.run_follow_edge_repo = run_follow_edge_repo
 
     @validate_inputs((validate_run_id, "run_id"))
     def get_run(self, run_id: str) -> Run | None:
@@ -85,6 +89,11 @@ class SimulationQueryService:
     @validate_inputs((validate_run_id, "run_id"))
     def get_run_metrics(self, run_id: str) -> RunMetrics | None:
         return self.metrics_repo.get_run_metrics(run_id)
+
+    @validate_inputs((validate_run_id, "run_id"))
+    def list_run_follow_edges(self, run_id: str) -> list[RunFollowEdgeSnapshot]:
+        """List frozen run-start follow edges for a run."""
+        return self.run_follow_edge_repo.list_run_follow_edges(run_id)
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:

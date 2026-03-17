@@ -92,6 +92,25 @@ class SQLiteAgentFollowEdgeRepository(AgentFollowEdgeRepository):
                 conn=c,
             )
 
+    def list_edges_for_follower_agent_ids(
+        self,
+        follower_agent_ids: list[str],
+        conn: object | None = None,
+    ) -> list[AgentFollowEdge]:
+        """List follow edges for multiple followers in deterministic order."""
+        if not follower_agent_ids:
+            return []
+        if conn is not None:
+            return self._db_adapter.read_edges_for_follower_agent_ids(
+                follower_agent_ids,
+                conn=conn,
+            )
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_edges_for_follower_agent_ids(
+                follower_agent_ids,
+                conn=c,
+            )
+
     @validate_inputs((validate_agent_id, "follower_agent_id"))
     def count_edges_by_follower_agent_id(
         self, follower_agent_id: str, conn: object | None = None

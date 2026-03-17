@@ -8,6 +8,7 @@ from db.repositories.interfaces import (
     MetricsRepository,
     ProfileRepository,
     RunAgentRepository,
+    RunFollowEdgeRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -23,6 +24,7 @@ from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
+from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.query_service import SimulationQueryService
@@ -54,6 +56,7 @@ class SimulationEngine:
         agent_bio_repo: AgentBioRepository,
         user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
         run_agent_repo: RunAgentRepository,
+        run_follow_edge_repo: RunFollowEdgeRepository,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         query_service: SimulationQueryService,
@@ -68,6 +71,7 @@ class SimulationEngine:
         self.agent_bio_repo = agent_bio_repo
         self.user_agent_profile_metadata_repo = user_agent_profile_metadata_repo
         self.run_agent_repo = run_agent_repo
+        self.run_follow_edge_repo = run_follow_edge_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.query_service = query_service
@@ -100,6 +104,9 @@ class SimulationEngine:
 
     def get_run_metrics(self, run_id: str) -> RunMetrics | None:
         return self.query_service.get_run_metrics(run_id)
+
+    def list_run_follow_edges(self, run_id: str) -> list[RunFollowEdgeSnapshot]:
+        return self.query_service.list_run_follow_edges(run_id)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
         return self.query_service.get_turn_data(run_id, turn_number)

@@ -28,6 +28,7 @@ def query_service(mock_repos):
         like_repo=mock_repos["like_repo"],
         comment_repo=mock_repos["comment_repo"],
         follow_repo=mock_repos["follow_repo"],
+        run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
     )
 
 
@@ -244,6 +245,7 @@ class TestSimulationQueryServiceGetTurnData:
             like_repo=like_repo,
             comment_repo=comment_repo,
             follow_repo=follow_repo,
+            run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
         )
         feed = GeneratedFeedFactory.create(
             feed_id="f1",
@@ -279,3 +281,16 @@ class TestSimulationQueryServiceGetTurnData:
         assert agent_actions[0].like.like_id == "like_1"
         assert agent_actions[0].like.post_id == "bluesky:at://did:plc:post1"
         like_repo.read_likes_by_run_turn.assert_called_once_with(sample_run.run_id, 0)
+
+
+class TestSimulationQueryServiceRunFollowEdges:
+    def test_lists_run_follow_edges(self, query_service, mock_repos):
+        expected = [Mock()]
+        mock_repos["run_follow_edge_repo"].list_run_follow_edges.return_value = expected
+
+        result = query_service.list_run_follow_edges("run_123")
+
+        assert result == expected
+        mock_repos[
+            "run_follow_edge_repo"
+        ].list_run_follow_edges.assert_called_once_with("run_123")

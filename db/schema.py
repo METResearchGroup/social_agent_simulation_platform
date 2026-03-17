@@ -125,6 +125,36 @@ run_agents = sa.Table(
     ),
 )
 
+run_follow_edges = sa.Table(
+    "run_follow_edges",
+    metadata,
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("follower_agent_id", sa.Text(), nullable=False),
+    sa.Column("target_agent_id", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["run_id"],
+        ["runs.run_id"],
+        name="fk_run_follow_edges_run_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "follower_agent_id"],
+        ["run_agents.run_id", "run_agents.agent_id"],
+        name="fk_run_follow_edges_follower_run_agent",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "target_agent_id"],
+        ["run_agents.run_id", "run_agents.agent_id"],
+        name="fk_run_follow_edges_target_run_agent",
+    ),
+    sa.PrimaryKeyConstraint(
+        "run_id",
+        "follower_agent_id",
+        "target_agent_id",
+        name="pk_run_follow_edges",
+    ),
+)
+
 generated_feeds = sa.Table(
     "generated_feeds",
     metadata,
@@ -352,6 +382,17 @@ sa.Index("idx_feed_posts_author_handle", feed_posts.c.author_handle)
 sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
 sa.Index("idx_turn_metrics_run_id", turn_metrics.c.run_id)
 sa.Index("idx_run_agents_run_id", run_agents.c.run_id)
+sa.Index("idx_run_follow_edges_run_id", run_follow_edges.c.run_id)
+sa.Index(
+    "idx_run_follow_edges_run_follower",
+    run_follow_edges.c.run_id,
+    run_follow_edges.c.follower_agent_id,
+)
+sa.Index(
+    "idx_run_follow_edges_run_target",
+    run_follow_edges.c.run_id,
+    run_follow_edges.c.target_agent_id,
+)
 sa.Index(
     "idx_agent_persona_bios_agent_id_created_at",
     agent_persona_bios.c.agent_id,

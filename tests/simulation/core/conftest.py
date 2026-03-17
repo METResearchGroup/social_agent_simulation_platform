@@ -2,20 +2,24 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
 
+from db.adapters.base import TransactionProvider
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
     AgentBioRepository,
+    AgentFollowEdgeRepository,
     AgentRepository,
     CommentRepository,
     FollowRepository,
     LikeRepository,
     MetricsRepository,
     RunAgentRepository,
+    RunFollowEdgeRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
@@ -31,6 +35,10 @@ def mock_repos():
     comment_repo.read_comments_by_run_turn.return_value = []
     follow_repo = Mock(spec=FollowRepository)
     follow_repo.read_follows_by_run_turn.return_value = []
+    agent_follow_edge_repo = Mock(spec=AgentFollowEdgeRepository)
+    agent_follow_edge_repo.list_edges_for_follower_agent_ids.return_value = []
+    run_follow_edge_repo = Mock(spec=RunFollowEdgeRepository)
+    run_follow_edge_repo.list_run_follow_edges.return_value = []
 
     return {
         "run_repo": Mock(spec=RunRepository),
@@ -40,10 +48,12 @@ def mock_repos():
         "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
         "agent_repo": Mock(spec=AgentRepository),
         "agent_bio_repo": Mock(spec=AgentBioRepository),
+        "agent_follow_edge_repo": agent_follow_edge_repo,
         "user_agent_profile_metadata_repo": Mock(
             spec=UserAgentProfileMetadataRepository
         ),
         "run_agent_repo": Mock(spec=RunAgentRepository),
+        "run_follow_edge_repo": run_follow_edge_repo,
         "like_repo": like_repo,
         "comment_repo": comment_repo,
         "follow_repo": follow_repo,
@@ -53,6 +63,20 @@ def mock_repos():
 @pytest.fixture
 def deps(mock_repos):
     return mock_repos
+
+
+@pytest.fixture
+def mock_transaction_provider():
+    provider = Mock(spec=TransactionProvider)
+    mock_conn = Mock()
+
+    @contextmanager
+    def _run_transaction():
+        yield mock_conn
+
+    provider.run_transaction.side_effect = _run_transaction
+    provider.mock_conn = mock_conn
+    return provider
 
 
 @pytest.fixture

@@ -4,14 +4,17 @@ from collections.abc import Callable, Mapping
 
 from pydantic import JsonValue
 
+from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
+    AgentFollowEdgeRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
     RunAgentRepository,
+    RunFollowEdgeRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -41,6 +44,7 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
+from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
@@ -77,8 +81,11 @@ class SimulationCommandService:
         generated_feed_repo: GeneratedFeedRepository,
         agent_repo: AgentRepository,
         agent_bio_repo: AgentBioRepository,
+        agent_follow_edge_repo: AgentFollowEdgeRepository,
         user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
         run_agent_repo: RunAgentRepository,
+        run_follow_edge_repo: RunFollowEdgeRepository,
+        transaction_provider: TransactionProvider,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
@@ -94,8 +101,11 @@ class SimulationCommandService:
         self.generated_feed_repo = generated_feed_repo
         self.agent_repo = agent_repo
         self.agent_bio_repo = agent_bio_repo
+        self.agent_follow_edge_repo = agent_follow_edge_repo
         self.user_agent_profile_metadata_repo = user_agent_profile_metadata_repo
         self.run_agent_repo = run_agent_repo
+        self.run_follow_edge_repo = run_follow_edge_repo
+        self.transaction_provider = transaction_provider
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.feed_generator = feed_generator
@@ -120,8 +130,24 @@ class SimulationCommandService:
 
         try:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
-            self.snapshot_run_agents(run=run, agents=agents)
+            with self.transaction_provider.run_transaction() as conn:
+                run_agent_snapshots = self.snapshot_run_agents(
+                    run=run,
+                    agents=agents,
+                    conn=conn,
+                )
+                run_follow_edge_snapshots = self.snapshot_run_follow_edges(
+                    run=run,
+                    agent_snapshots=run_agent_snapshots,
+                    conn=conn,
+                )
             action_history_store = self.action_history_store_factory()
+            self.preload_follow_history_from_snapshots(
+                run_id=run.run_id,
+                run_agent_snapshots=run_agent_snapshots,
+                run_follow_edge_snapshots=run_follow_edge_snapshots,
+                action_history_store=action_history_store,
+            )
 
             turn_keys, run_keys = resolve_metric_keys_by_scope(run.metric_keys)
             self.simulate_turns(
@@ -417,17 +443,86 @@ class SimulationCommandService:
 
         return agents
 
-    def snapshot_run_agents(self, run: Run, agents: list[SimulationAgent]) -> None:
+    def snapshot_run_agents(
+        self,
+        run: Run,
+        agents: list[SimulationAgent],
+        *,
+        conn: object | None = None,
+    ) -> list[RunAgentSnapshot]:
         """Persist the exact ordered seed-state agents selected for a run."""
         snapshots = self._try_build_run_agent_snapshots_from_agents(
             run=run, agents=agents
         )
         if snapshots is not None:
-            self.run_agent_repo.write_run_agents(run.run_id, snapshots)
-            return
+            self.run_agent_repo.write_run_agents(run.run_id, snapshots, conn=conn)
+            return snapshots
 
         snapshots = self._build_run_agent_snapshots_from_repos(run=run, agents=agents)
-        self.run_agent_repo.write_run_agents(run.run_id, snapshots)
+        self.run_agent_repo.write_run_agents(run.run_id, snapshots, conn=conn)
+        return snapshots
+
+    def snapshot_run_follow_edges(
+        self,
+        run: Run,
+        agent_snapshots: list[RunAgentSnapshot],
+        *,
+        conn: object | None = None,
+    ) -> list[RunFollowEdgeSnapshot]:
+        """Persist the run-start internal follow graph for the selected agents."""
+        if not agent_snapshots:
+            return []
+
+        selected_agent_ids: list[str] = [
+            snapshot.agent_id for snapshot in agent_snapshots
+        ]
+        selected_agent_id_set: set[str] = set(selected_agent_ids)
+        seed_edges = self.agent_follow_edge_repo.list_edges_for_follower_agent_ids(
+            selected_agent_ids,
+            conn=conn,
+        )
+
+        snapshots: list[RunFollowEdgeSnapshot] = []
+        for edge in seed_edges:
+            if edge.target_agent_id not in selected_agent_id_set:
+                continue
+            snapshots.append(
+                RunFollowEdgeSnapshot(
+                    run_id=run.run_id,
+                    follower_agent_id=edge.follower_agent_id,
+                    target_agent_id=edge.target_agent_id,
+                    created_at=run.created_at,
+                )
+            )
+
+        self.run_follow_edge_repo.write_run_follow_edges(
+            run.run_id,
+            snapshots,
+            conn=conn,
+        )
+        return snapshots
+
+    def preload_follow_history_from_snapshots(
+        self,
+        *,
+        run_id: str,
+        run_agent_snapshots: list[RunAgentSnapshot],
+        run_follow_edge_snapshots: list[RunFollowEdgeSnapshot],
+        action_history_store: ActionHistoryStore,
+    ) -> None:
+        """Seed follow history so duplicate-follow suppression uses the run snapshot."""
+        handle_by_agent_id: dict[str, str] = {
+            snapshot.agent_id: snapshot.handle_at_start
+            for snapshot in run_agent_snapshots
+        }
+        for snapshot in run_follow_edge_snapshots:
+            follower_handle = handle_by_agent_id.get(snapshot.follower_agent_id)
+            target_handle = handle_by_agent_id.get(snapshot.target_agent_id)
+            if follower_handle is None or target_handle is None:
+                raise ValueError(
+                    "Run follow edge snapshot references an agent missing from run_agents"
+                )
+            action_history_store.record_follow(run_id, follower_handle, target_handle)
 
     def _try_build_run_agent_snapshots_from_agents(
         self, *, run: Run, agents: list[SimulationAgent]
