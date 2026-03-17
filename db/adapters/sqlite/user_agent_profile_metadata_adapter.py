@@ -52,6 +52,38 @@ ON CONFLICT(agent_id) DO UPDATE SET
     follows_count = excluded.follows_count,
     updated_at = excluded.updated_at
 """
+_SYNC_POSTS_COUNT_SQL = """
+INSERT INTO user_agent_profile_metadata (
+    id,
+    agent_id,
+    followers_count,
+    follows_count,
+    posts_count,
+    created_at,
+    updated_at
+) VALUES (
+    ?,
+    ?,
+    COALESCE(
+        (SELECT followers_count FROM user_agent_profile_metadata WHERE agent_id = ?),
+        0
+    ),
+    COALESCE(
+        (SELECT follows_count FROM user_agent_profile_metadata WHERE agent_id = ?),
+        0
+    ),
+    ?,
+    COALESCE(
+        (SELECT created_at FROM user_agent_profile_metadata WHERE agent_id = ?),
+        ?
+    ),
+    ?
+)
+ON CONFLICT(agent_id) DO UPDATE SET
+    posts_count = excluded.posts_count,
+    updated_at = excluded.updated_at
+WHERE user_agent_profile_metadata.posts_count != excluded.posts_count
+"""
 
 
 class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdapter):
@@ -149,6 +181,34 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
                 followers_count,
                 follows_count,
                 agent_id,
+                agent_id,
+                updated_at,
+                updated_at,
+            ),
+        )
+
+    @validate_inputs(
+        (validate_agent_id, "agent_id"),
+        (lambda v: validate_nonnegative_value(v, "posts_count"), "posts_count"),
+        (validate_non_empty_string, "updated_at"),
+    )
+    def sync_posts_count(
+        self,
+        *,
+        agent_id: str,
+        posts_count: int,
+        updated_at: str,
+        conn: sqlite3.Connection,
+    ) -> None:
+        """Update cached posts_count while preserving follow counts and row identity."""
+        conn.execute(
+            _SYNC_POSTS_COUNT_SQL,
+            (
+                uuid.uuid4().hex,
+                agent_id,
+                agent_id,
+                agent_id,
+                posts_count,
                 agent_id,
                 updated_at,
                 updated_at,

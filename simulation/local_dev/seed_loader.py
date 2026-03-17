@@ -28,6 +28,7 @@ from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
     SQLiteUserAgentProfileMetadataAdapter,
 )
+from db.backfills.agent_posts import backfill_agent_posts_from_feed_posts
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
@@ -258,6 +259,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                 )
 
             post_adapter.write_feed_posts(fixtures.feed_posts, conn=conn)
+            backfill_agent_posts_from_feed_posts(conn=conn, now_timestamp=now)
             for feed in fixtures.generated_feeds:
                 feed_adapter.write_generated_feed(feed, conn=conn)
             for tm in fixtures.turn_metadata:

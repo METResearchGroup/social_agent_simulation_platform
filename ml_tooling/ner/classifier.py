@@ -1,7 +1,7 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import Final, Literal, cast
-
-from transformers import pipeline
 
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.ner.models import EntitySpan
@@ -18,6 +18,13 @@ NER_AGGREGATION_STRATEGY: Final[Literal["simple"]] = "simple"
 
 
 def build_default_ner_pipeline() -> NerCallable:
+    try:
+        from transformers import pipeline  # pyright: ignore[reportMissingImports]
+    except ModuleNotFoundError as exc:  # pragma: no cover
+        raise ModuleNotFoundError(
+            "transformers is required to build the default NER pipeline. "
+            "Install the optional dependency group: `uv sync --extra ner`."
+        ) from exc
     return cast(
         NerCallable,
         pipeline(

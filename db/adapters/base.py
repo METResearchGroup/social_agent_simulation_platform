@@ -12,6 +12,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -360,6 +361,64 @@ class AgentFollowEdgeDatabaseAdapter(ABC):
     @abstractmethod
     def delete_edges_for_agent(self, agent_id: str, *, conn: object) -> None:
         """Delete all follow edges where the agent is follower or target."""
+        raise NotImplementedError
+
+
+class AgentPostDatabaseAdapter(ABC):
+    """Abstract interface for editable seed-state agent posts."""
+
+    @abstractmethod
+    def write_agent_posts(
+        self,
+        posts: Iterable[AgentPost],
+        *,
+        conn: object,
+    ) -> None:
+        """Write agent posts by agent_post_id.
+
+        Implementations should treat this as an idempotent write keyed by
+        agent_post_id (e.g., INSERT OR REPLACE for SQLite).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def upsert_imported_agent_posts(
+        self,
+        posts: Iterable[AgentPost],
+        *,
+        conn: object,
+    ) -> None:
+        """Upsert imported agent posts by (source, source_post_id).
+
+        This method is intended for idempotent imports/backfills from upstream
+        catalogs (e.g., feed_posts). It assumes source_post_id is non-null on all
+        provided rows.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_posts_for_agent_ids(
+        self,
+        agent_ids: Iterable[str],
+        *,
+        conn: object,
+    ) -> list[AgentPost]:
+        """Read posts for multiple agents in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_posts_by_agent_ids(
+        self,
+        agent_ids: Iterable[str],
+        *,
+        conn: object,
+    ) -> dict[str, int]:
+        """Count posts grouped by agent_id for the provided agent IDs."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_all_posts(self, *, conn: object) -> int:
+        """Count all agent_posts rows."""
         raise NotImplementedError
 
 
@@ -985,6 +1044,18 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
         conn: object,
     ) -> None:
         """Update cached follow counts while preserving posts_count and row identity."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_posts_count(
+        self,
+        *,
+        agent_id: str,
+        posts_count: int,
+        updated_at: str,
+        conn: object,
+    ) -> None:
+        """Update cached posts_count while preserving follow counts and row identity."""
         raise NotImplementedError
 
 

@@ -1,10 +1,21 @@
-import time
+from __future__ import annotations
 
-from transformers import logging as transformers_logging
+import time
 
 from ml_tooling.ner.classifier import NERModel
 
-transformers_logging.set_verbosity_error()
+
+def _set_transformers_verbosity_error() -> None:
+    try:
+        from transformers import logging as transformers_logging  # pyright: ignore[reportMissingImports]  # noqa: I001
+    except ModuleNotFoundError as exc:  # pragma: no cover
+        raise ModuleNotFoundError(
+            "transformers is required to run this example. Install: `uv sync --extra ner`."
+        ) from exc
+    transformers_logging.set_verbosity_error()
+
+
+_set_transformers_verbosity_error()
 
 
 def track_init_time():

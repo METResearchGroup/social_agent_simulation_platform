@@ -45,9 +45,16 @@ class TestLocalModeSeed:
             follow_edges_count = conn.execute(
                 "SELECT COUNT(*) FROM agent_follow_edges"
             ).fetchone()[0]
+            agent_posts_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts"
+            ).fetchone()[0]
+            alice_posts_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
+                ("agent_0240dc0d4a4c7e73",),
+            ).fetchone()[0]
             alice_counts = conn.execute(
                 """
-                SELECT followers_count, follows_count
+                SELECT followers_count, follows_count, posts_count
                 FROM user_agent_profile_metadata
                 WHERE agent_id = ?
                 """,
@@ -55,7 +62,8 @@ class TestLocalModeSeed:
             ).fetchone()
             assert runs_count > 0
             assert follow_edges_count > 0
-            assert alice_counts == (4, 2)
+            assert agent_posts_count > 0
+            assert alice_counts == (4, 2, alice_posts_count)
         finally:
             conn.close()
 
