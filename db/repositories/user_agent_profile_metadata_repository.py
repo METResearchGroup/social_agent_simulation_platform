@@ -58,6 +58,35 @@ class SQLiteUserAgentProfileMetadataRepository(UserAgentProfileMetadataRepositor
             with self._transaction_provider.run_transaction() as c:
                 self._db_adapter.delete_by_agent_id(agent_id, conn=c)
 
+    @validate_inputs((validate_agent_id, "agent_id"))
+    def sync_follow_counts(
+        self,
+        *,
+        agent_id: str,
+        followers_count: int,
+        follows_count: int,
+        updated_at: str,
+        conn: object | None = None,
+    ) -> None:
+        """Update cached follow counts while preserving posts_count."""
+        if conn is not None:
+            self._db_adapter.sync_follow_counts(
+                agent_id=agent_id,
+                followers_count=followers_count,
+                follows_count=follows_count,
+                updated_at=updated_at,
+                conn=conn,
+            )
+        else:
+            with self._transaction_provider.run_transaction() as c:
+                self._db_adapter.sync_follow_counts(
+                    agent_id=agent_id,
+                    followers_count=followers_count,
+                    follows_count=follows_count,
+                    updated_at=updated_at,
+                    conn=c,
+                )
+
 
 def create_sqlite_user_agent_profile_metadata_repository(
     *,

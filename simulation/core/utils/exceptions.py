@@ -212,6 +212,25 @@ class HandleAlreadyExistsError(Exception):
         super().__init__(f"Agent with handle '{handle}' already exists")
 
 
+class DuplicateAgentFollowEdgeError(Exception):
+    """Raised when creating a seed-state follow edge that already exists."""
+
+    def __init__(self, follower_agent_id: str, target_agent_id: str):
+        self.follower_agent_id = follower_agent_id
+        self.target_agent_id = target_agent_id
+        super().__init__(
+            f"Follow edge already exists for {follower_agent_id}->{target_agent_id}"
+        )
+
+
+class SelfFollowEdgeNotAllowedError(Exception):
+    """Raised when creating a seed-state self-follow edge."""
+
+    def __init__(self, agent_id: str):
+        self.agent_id = agent_id
+        super().__init__(f"Agent '{agent_id}' cannot follow itself")
+
+
 class MetricsComputationError(Exception):
     """Raised when a required metric cannot be computed."""
 

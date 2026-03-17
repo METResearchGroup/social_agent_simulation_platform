@@ -8,6 +8,10 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
+from simulation.core.models.agent_follow_edge import (
+    AgentFollowEdge,
+    AgentFollowEdgePage,
+)
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -262,6 +266,70 @@ class RunAgentDatabaseAdapter(ABC):
         self, run_id: str, *, conn: object
     ) -> list[RunAgentSnapshot]:
         """Read run-agent snapshots ordered by selection_order ascending."""
+        raise NotImplementedError
+
+
+class AgentFollowEdgeDatabaseAdapter(ABC):
+    """Abstract interface for editable seed-state follow edges."""
+
+    @abstractmethod
+    def write_agent_follow_edge(self, edge: AgentFollowEdge, *, conn: object) -> None:
+        """Insert a single follow edge row."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_edges_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: object,
+    ) -> list[AgentFollowEdge]:
+        """Read follow edges for a follower in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_edge_page_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: object,
+    ) -> AgentFollowEdgePage:
+        """Read a consistent page of follow edges with resolved target handles."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_edges_by_follower_agent_id(
+        self, follower_agent_id: str, *, conn: object
+    ) -> int:
+        """Count follow edges originating from a follower agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_edges_by_target_agent_id(
+        self, target_agent_id: str, *, conn: object
+    ) -> int:
+        """Count follow edges pointing at a target agent."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_edge(
+        self, follower_agent_id: str, target_agent_id: str, *, conn: object
+    ) -> bool:
+        """Delete one follow edge and return whether a row was removed."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_connected_agent_ids(self, agent_id: str, *, conn: object) -> list[str]:
+        """Read all distinct agent_ids connected to the given agent by a follow edge."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_edges_for_agent(self, agent_id: str, *, conn: object) -> None:
+        """Delete all follow edges where the agent is follower or target."""
         raise NotImplementedError
 
 
@@ -874,6 +942,19 @@ class UserAgentProfileMetadataDatabaseAdapter(ABC):
     @abstractmethod
     def delete_by_agent_id(self, agent_id: str, *, conn: object) -> None:
         """Delete metadata rows by agent_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_follow_counts(
+        self,
+        *,
+        agent_id: str,
+        followers_count: int,
+        follows_count: int,
+        updated_at: str,
+        conn: object,
+    ) -> None:
+        """Update cached follow counts while preserving posts_count and row identity."""
         raise NotImplementedError
 
 

@@ -42,7 +42,20 @@ class TestLocalModeSeed:
             assert row[0] == _fixtures_digest(FIXTURES_DIR)
 
             runs_count = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+            follow_edges_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_follow_edges"
+            ).fetchone()[0]
+            alice_counts = conn.execute(
+                """
+                SELECT followers_count, follows_count
+                FROM user_agent_profile_metadata
+                WHERE agent_id = ?
+                """,
+                ("agent_0240dc0d4a4c7e73",),
+            ).fetchone()
             assert runs_count > 0
+            assert follow_edges_count > 0
+            assert alice_counts == (4, 2)
         finally:
             conn.close()
 

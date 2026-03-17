@@ -25,6 +25,9 @@ from db.adapters.sqlite.sqlite import (
     initialize_database,
 )
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
+from db.repositories.agent_follow_edge_repository import (
+    create_sqlite_agent_follow_edge_repository,
+)
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.app_user_repository import create_sqlite_app_user_repository
 from db.repositories.run_agent_repository import create_sqlite_run_agent_repository
@@ -95,6 +98,9 @@ async def lifespan(app: FastAPI):
         create_sqlite_user_agent_profile_metadata_repository(
             transaction_provider=transaction_provider
         )
+    )
+    app.state.agent_follow_edge_repo = create_sqlite_agent_follow_edge_repository(
+        transaction_provider=transaction_provider
     )
     app.state.run_agent_repo = create_sqlite_run_agent_repository(
         transaction_provider=transaction_provider

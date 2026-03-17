@@ -51,6 +51,35 @@
         "title": "AgentActionSchema",
         "type": "object"
       },
+      "AgentFollowEdgeSchema": {
+        "description": "Seed-state follow edge exposed through the simulation API.",
+        "properties": {
+          "agent_follow_edge_id": {
+            "title": "Agent Follow Edge Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "follower_handle": {
+            "title": "Follower Handle",
+            "type": "string"
+          },
+          "target_handle": {
+            "title": "Target Handle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_follow_edge_id",
+          "follower_handle",
+          "target_handle",
+          "created_at"
+        ],
+        "title": "AgentFollowEdgeSchema",
+        "type": "object"
+      },
       "AgentSchema": {
         "description": "Agent profile for the simulation UI.",
         "properties": {
@@ -93,6 +122,20 @@
           "posts_count"
         ],
         "title": "AgentSchema",
+        "type": "object"
+      },
+      "CreateAgentFollowRequest": {
+        "description": "Request body for POST /v1/simulations/agents/{handle}/follows.",
+        "properties": {
+          "target_handle": {
+            "title": "Target Handle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_handle"
+        ],
+        "title": "CreateAgentFollowRequest",
         "type": "object"
       },
       "CreateAgentRequest": {
@@ -268,6 +311,28 @@
         "type": "object"
       },
       "JsonValue": {},
+      "ListAgentFollowsResponse": {
+        "description": "Paginated response for GET /v1/simulations/agents/{handle}/follows.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgentFollowEdgeSchema"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "ListAgentFollowsResponse",
+        "type": "object"
+      },
       "MetricSchema": {
         "description": "API response for GET /v1/simulations/metrics.",
         "properties": {
@@ -1025,6 +1090,187 @@
           }
         ],
         "summary": "Delete simulation agent",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/agents/{handle}/follows": {
+      "get": {
+        "description": "Return editable pre-run follow edges for the given agent handle.",
+        "operationId": "get_simulation_agent_follows_v1_simulations_agents__handle__follows_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "title": "Handle",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of follow edges to return.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Maximum number of follow edges to return.",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of follow edges to skip before returning results.",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of follow edges to skip before returning results.",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListAgentFollowsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List seed-state follows for an agent",
+        "tags": [
+          "simulation"
+        ]
+      },
+      "post": {
+        "description": "Create an editable pre-run follow edge between two internal agents.",
+        "operationId": "post_simulation_agent_follows_v1_simulations_agents__handle__follows_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "title": "Handle",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentFollowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentFollowEdgeSchema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create seed-state follow edge",
+        "tags": [
+          "simulation"
+        ]
+      }
+    },
+    "/v1/simulations/agents/{handle}/follows/{target_handle}": {
+      "delete": {
+        "description": "Delete an editable pre-run follow edge between two internal agents.",
+        "operationId": "delete_simulation_agent_follow_v1_simulations_agents__handle__follows__target_handle__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "title": "Handle",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_handle",
+            "required": true,
+            "schema": {
+              "title": "Target Handle",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete seed-state follow edge",
         "tags": [
           "simulation"
         ]

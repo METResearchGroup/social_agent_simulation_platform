@@ -5,12 +5,16 @@ import uuid
 from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
+    AgentFollowEdgeRepository,
     AgentRepository,
     UserAgentProfileMetadataRepository,
 )
 from lib.timestamp_utils import get_current_timestamp
 from simulation.api.errors import ApiAgentNotFoundError, ApiHandleAlreadyExistsError
 from simulation.api.schemas.simulation import AgentSchema, CreateAgentRequest
+from simulation.api.services.agent_follows_command_service import (
+    sync_follow_counts_for_agents,
+)
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -57,6 +61,7 @@ def delete_agent(
     transaction_provider: TransactionProvider,
     agent_repo: AgentRepository,
     bio_repo: AgentBioRepository,
+    agent_follow_edge_repo: AgentFollowEdgeRepository,
     metadata_repo: UserAgentProfileMetadataRepository,
 ) -> None:
     """Delete an agent and related rows. Atomic multi-table delete."""
@@ -66,6 +71,18 @@ def delete_agent(
         raise ApiAgentNotFoundError(normalized_handle)
 
     with transaction_provider.run_transaction() as conn:
+        connected_agent_ids = agent_follow_edge_repo.list_connected_agent_ids(
+            agent.agent_id,
+            conn=conn,
+        )
+        agent_follow_edge_repo.delete_edges_for_agent(agent.agent_id, conn=conn)
+        sync_follow_counts_for_agents(
+            agent_ids=connected_agent_ids,
+            now=get_current_timestamp(),
+            metadata_repo=metadata_repo,
+            agent_follow_edge_repo=agent_follow_edge_repo,
+            conn=conn,
+        )
         bio_repo.delete_agent_bios(agent.agent_id, conn=conn)
         metadata_repo.delete_by_agent_id(agent.agent_id, conn=conn)
         agent_repo.delete_agent(agent.agent_id, conn=conn)
