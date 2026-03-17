@@ -5,11 +5,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from db.repositories.agent_bio_repository import AgentBioRepository
-from db.repositories.agent_repository import AgentRepository
 from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     CommentRepository,
     FollowRepository,
     LikeRepository,
@@ -74,7 +74,6 @@ class TestCreateEngine:
         assert engine.metrics_repo is not None
         assert engine.profile_repo is not None
         assert engine.feed_post_repo is not None
-        assert engine.generated_bio_repo is not None
         assert engine.generated_feed_repo is not None
         assert engine.agent_factory is not None
         assert engine.query_service is not None
@@ -226,7 +225,6 @@ class TestServiceBuilders:
                 spec=UserAgentProfileMetadataRepository
             ),
             run_agent_repo=Mock(spec=RunAgentRepository),
-            generated_bio_repo=Mock(),
             agent_factory=Mock(return_value=[]),
         )
         assert isinstance(service, SimulationCommandService)

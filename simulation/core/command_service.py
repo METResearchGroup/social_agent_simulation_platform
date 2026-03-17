@@ -8,7 +8,6 @@ from db.repositories.interfaces import (
     AgentBioRepository,
     AgentRepository,
     FeedPostRepository,
-    GeneratedBioRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
@@ -75,7 +74,6 @@ class SimulationCommandService:
         simulation_persistence: SimulationPersistenceService,
         profile_repo: ProfileRepository,
         feed_post_repo: FeedPostRepository,
-        generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_repo: AgentRepository,
         agent_bio_repo: AgentBioRepository,
@@ -93,7 +91,6 @@ class SimulationCommandService:
         self.simulation_persistence = simulation_persistence
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
-        self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_repo = agent_repo
         self.agent_bio_repo = agent_bio_repo
