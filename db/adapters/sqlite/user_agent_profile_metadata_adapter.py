@@ -125,6 +125,12 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
             (agent_id,),
         )
 
+    @validate_inputs(
+        (validate_agent_id, "agent_id"),
+        (lambda v: validate_nonnegative_value(v, "followers_count"), "followers_count"),
+        (lambda v: validate_nonnegative_value(v, "follows_count"), "follows_count"),
+        (validate_non_empty_string, "updated_at"),
+    )
     def sync_follow_counts(
         self,
         *,
@@ -135,10 +141,6 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
         conn: sqlite3.Connection,
     ) -> None:
         """Update cached follow counts while preserving posts_count and row identity."""
-        validate_agent_id(agent_id)
-        validate_nonnegative_value(followers_count, "followers_count")
-        validate_nonnegative_value(follows_count, "follows_count")
-        validate_non_empty_string(updated_at)
         conn.execute(
             _SYNC_FOLLOW_COUNTS_SQL,
             (
