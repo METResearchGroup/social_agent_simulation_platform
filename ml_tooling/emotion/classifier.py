@@ -79,6 +79,8 @@ class EmotionModel:
         return self._to_emotion_label(response[0], text)
 
     def extract_emotions_batch(self, texts: list[str]) -> list[EmotionLabel]:
+        if not texts:
+            return []
         response = cast(EmotionsBatchResponse, self._emotions_pipeline(texts))
         if len(response) != len(texts):
             raise ValueError("Emotion pipeline returned unexpected batch size")
