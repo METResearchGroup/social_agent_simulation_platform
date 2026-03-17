@@ -51,6 +51,7 @@ def engine(
         agent_bio_repo=deps["agent_bio_repo"],
         user_agent_profile_metadata_repo=deps["user_agent_profile_metadata_repo"],
         run_agent_repo=deps["run_agent_repo"],
+        run_follow_edge_repo=deps["run_follow_edge_repo"],
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         query_service=query_service,
@@ -78,6 +79,7 @@ class TestSimulationEngineCompatibility:
             is deps["user_agent_profile_metadata_repo"]
         )
         assert engine.run_agent_repo is deps["run_agent_repo"]
+        assert engine.run_follow_edge_repo is deps["run_follow_edge_repo"]
         assert engine.agent_factory is agent_factory
         assert engine.action_history_store_factory is action_history_store_factory
 
@@ -91,6 +93,7 @@ class TestSimulationEngineDelegation:
         engine.get_turn_metrics("run_123", 0)
         engine.list_turn_metrics("run_123")
         engine.get_run_metrics("run_123")
+        engine.list_run_follow_edges("run_123")
         engine.get_turn_data("run_123", 0)
 
         query_service.get_run.assert_called_once_with("run_123")
@@ -100,6 +103,7 @@ class TestSimulationEngineDelegation:
         query_service.get_turn_metrics.assert_called_once_with("run_123", 0)
         query_service.list_turn_metrics.assert_called_once_with("run_123")
         query_service.get_run_metrics.assert_called_once_with("run_123")
+        query_service.list_run_follow_edges.assert_called_once_with("run_123")
         query_service.get_turn_data.assert_called_once_with("run_123", 0)
 
     def test_delegates_command_methods(self, engine, command_service):

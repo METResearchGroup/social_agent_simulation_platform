@@ -2,14 +2,17 @@
 
 from collections.abc import Callable
 
+from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
+    AgentFollowEdgeRepository,
     AgentRepository,
     FeedPostRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
     RunAgentRepository,
+    RunFollowEdgeRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -47,8 +50,11 @@ def create_command_service(
     generated_feed_repo: GeneratedFeedRepository,
     agent_repo: AgentRepository,
     agent_bio_repo: AgentBioRepository,
+    agent_follow_edge_repo: AgentFollowEdgeRepository,
     user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
     run_agent_repo: RunAgentRepository,
+    run_follow_edge_repo: RunFollowEdgeRepository,
+    transaction_provider: TransactionProvider,
     agent_factory: Callable[[int], list[SimulationAgent]],
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     feed_generator: FeedGenerator | None = None,
@@ -87,8 +93,11 @@ def create_command_service(
         generated_feed_repo=generated_feed_repo,
         agent_repo=agent_repo,
         agent_bio_repo=agent_bio_repo,
+        agent_follow_edge_repo=agent_follow_edge_repo,
         user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
         run_agent_repo=run_agent_repo,
+        run_follow_edge_repo=run_follow_edge_repo,
+        transaction_provider=transaction_provider,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=feed_generator,

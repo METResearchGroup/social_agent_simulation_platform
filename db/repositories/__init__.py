@@ -31,6 +31,7 @@ from db.repositories.interfaces import (
     GeneratedFeedRepository,
     ProfileRepository,
     RunAgentRepository,
+    RunFollowEdgeRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -41,6 +42,10 @@ from db.repositories.profile_repository import (
 from db.repositories.run_agent_repository import (
     SQLiteRunAgentRepository,
     create_sqlite_run_agent_repository,
+)
+from db.repositories.run_follow_edge_repository import (
+    SQLiteRunFollowEdgeRepository,
+    create_sqlite_run_follow_edge_repository,
 )
 from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
 from db.repositories.user_agent_profile_metadata_repository import (
@@ -73,6 +78,9 @@ __all__ = [
     "RunAgentRepository",
     "SQLiteRunAgentRepository",
     "create_sqlite_run_agent_repository",
+    "RunFollowEdgeRepository",
+    "SQLiteRunFollowEdgeRepository",
+    "create_sqlite_run_follow_edge_repository",
     "RunRepository",
     "SQLiteRunRepository",
     "create_sqlite_repository",

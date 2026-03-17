@@ -31,6 +31,9 @@ from db.repositories.agent_follow_edge_repository import (
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.app_user_repository import create_sqlite_app_user_repository
 from db.repositories.run_agent_repository import create_sqlite_run_agent_repository
+from db.repositories.run_follow_edge_repository import (
+    create_sqlite_run_follow_edge_repository,
+)
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
@@ -105,6 +108,9 @@ async def lifespan(app: FastAPI):
     app.state.run_agent_repo = create_sqlite_run_agent_repository(
         transaction_provider=transaction_provider
     )
+    app.state.run_follow_edge_repo = create_sqlite_run_follow_edge_repository(
+        transaction_provider=transaction_provider
+    )
     app.state.app_user_repository = create_sqlite_app_user_repository()
 
     app.state.engine = await asyncio.to_thread(
@@ -112,8 +118,10 @@ async def lifespan(app: FastAPI):
             transaction_provider=transaction_provider,
             agent_repo=app.state.agent_repo,
             agent_bio_repo=app.state.agent_bio_repo,
+            agent_follow_edge_repo=app.state.agent_follow_edge_repo,
             user_agent_profile_metadata_repo=app.state.agent_metadata_repo,
             run_agent_repo=app.state.run_agent_repo,
+            run_follow_edge_repo=app.state.run_follow_edge_repo,
         )
     )
     yield

@@ -1,6 +1,7 @@
 """SQLite implementation of editable seed-state follow edge persistence."""
 
 import sqlite3
+from collections.abc import Iterable
 
 from db.adapters.base import AgentFollowEdgeDatabaseAdapter
 from lib.validation_decorators import validate_inputs
@@ -45,6 +46,9 @@ WHERE edge.follower_agent_id = ?
 ORDER BY edge.target_agent_id ASC, edge.agent_follow_edge_id ASC
 LIMIT ? OFFSET ?
 """
+_LIST_EDGES_FOR_FOLLOWER_AGENT_IDS_ORDER_BY = (
+    "ORDER BY follower_agent_id ASC, target_agent_id ASC, agent_follow_edge_id ASC"
+)
 _DELETE_EDGE_SQL = """
 DELETE FROM agent_follow_edges
 WHERE follower_agent_id = ? AND target_agent_id = ?
@@ -164,6 +168,30 @@ class SQLiteAgentFollowEdgeAdapter(AgentFollowEdgeDatabaseAdapter):
             total=int(total_row[0]) if total_row is not None else 0,
             items=[self._row_to_edge_with_target_handle(row) for row in rows],
         )
+
+    def read_edges_for_follower_agent_ids(
+        self,
+        follower_agent_ids: Iterable[str],
+        *,
+        conn: sqlite3.Connection,
+    ) -> list[AgentFollowEdge]:
+        """Read follow edges for multiple followers in deterministic order."""
+        follower_agent_id_list = [
+            validate_agent_id(follower_agent_id)
+            for follower_agent_id in follower_agent_ids
+        ]
+        if not follower_agent_id_list:
+            return []
+
+        placeholders = ", ".join("?" for _ in follower_agent_id_list)
+        sql = (
+            "SELECT agent_follow_edge_id, follower_agent_id, target_agent_id, created_at "
+            "FROM agent_follow_edges "
+            f"WHERE follower_agent_id IN ({placeholders}) "
+            f"{_LIST_EDGES_FOR_FOLLOWER_AGENT_IDS_ORDER_BY}"
+        )
+        rows = conn.execute(sql, tuple(follower_agent_id_list)).fetchall()
+        return [self._row_to_edge(row) for row in rows]
 
     @validate_inputs(
         (validate_agent_id, "follower_agent_id"),

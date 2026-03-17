@@ -9,12 +9,14 @@ from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
     AgentBioRepository,
+    AgentFollowEdgeRepository,
     AgentRepository,
     CommentRepository,
     FollowRepository,
     LikeRepository,
     MetricsRepository,
     RunAgentRepository,
+    RunFollowEdgeRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
@@ -88,10 +90,12 @@ class TestCreateEngine:
         mock_generated_feed_repo = Mock(spec=GeneratedFeedRepository)
         mock_agent_repo = Mock(spec=AgentRepository)
         mock_agent_bio_repo = Mock(spec=AgentBioRepository)
+        mock_agent_follow_edge_repo = Mock(spec=AgentFollowEdgeRepository)
         mock_user_agent_profile_metadata_repo = Mock(
             spec=UserAgentProfileMetadataRepository
         )
         mock_run_agent_repo = Mock(spec=RunAgentRepository)
+        mock_run_follow_edge_repo = Mock(spec=RunFollowEdgeRepository)
         mock_like_repo = Mock(spec=LikeRepository)
         mock_comment_repo = Mock(spec=CommentRepository)
         mock_follow_repo = Mock(spec=FollowRepository)
@@ -105,8 +109,10 @@ class TestCreateEngine:
             generated_feed_repo=mock_generated_feed_repo,
             agent_repo=mock_agent_repo,
             agent_bio_repo=mock_agent_bio_repo,
+            agent_follow_edge_repo=mock_agent_follow_edge_repo,
             user_agent_profile_metadata_repo=mock_user_agent_profile_metadata_repo,
             run_agent_repo=mock_run_agent_repo,
+            run_follow_edge_repo=mock_run_follow_edge_repo,
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
@@ -126,12 +132,18 @@ class TestCreateEngine:
             is mock_user_agent_profile_metadata_repo
         )
         assert engine.run_agent_repo is mock_run_agent_repo
+        assert engine.run_follow_edge_repo is mock_run_follow_edge_repo
         assert engine.agent_factory is mock_agent_factory
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
         assert engine.query_service.like_repo is mock_like_repo
         assert engine.query_service.comment_repo is mock_comment_repo
         assert engine.query_service.follow_repo is mock_follow_repo
+        assert engine.query_service.run_follow_edge_repo is mock_run_follow_edge_repo
+        assert (
+            engine.command_service.agent_follow_edge_repo is mock_agent_follow_edge_repo
+        )
+        assert engine.command_service.run_follow_edge_repo is mock_run_follow_edge_repo
         assert (
             engine.command_service.simulation_persistence._like_repo is mock_like_repo
         )
@@ -169,6 +181,7 @@ class TestCreateEngine:
         assert engine.agent_bio_repo is not None
         assert engine.user_agent_profile_metadata_repo is not None
         assert engine.run_agent_repo is not None
+        assert engine.run_follow_edge_repo is not None
         assert engine.query_service is not None
         assert engine.command_service is not None
 
@@ -190,6 +203,7 @@ class TestCreateEngine:
             UserAgentProfileMetadataRepository,
         )
         assert isinstance(engine.run_agent_repo, RunAgentRepository)
+        assert isinstance(engine.run_follow_edge_repo, RunFollowEdgeRepository)
         assert callable(engine.agent_factory)
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
@@ -207,8 +221,10 @@ class TestServiceBuilders:
             like_repo=Mock(spec=LikeRepository),
             comment_repo=Mock(spec=CommentRepository),
             follow_repo=Mock(spec=FollowRepository),
+            run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
         )
         assert isinstance(service, SimulationQueryService)
+        assert service.run_follow_edge_repo is not None
 
     def test_create_command_service(self):
         mock_simulation_persistence = Mock(spec=SimulationPersistenceService)
@@ -221,13 +237,18 @@ class TestServiceBuilders:
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
             agent_repo=Mock(spec=AgentRepository),
             agent_bio_repo=Mock(spec=AgentBioRepository),
+            agent_follow_edge_repo=Mock(spec=AgentFollowEdgeRepository),
             user_agent_profile_metadata_repo=Mock(
                 spec=UserAgentProfileMetadataRepository
             ),
             run_agent_repo=Mock(spec=RunAgentRepository),
+            run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
+            transaction_provider=Mock(),
             agent_factory=Mock(return_value=[]),
         )
         assert isinstance(service, SimulationCommandService)
+        assert service.agent_follow_edge_repo is not None
+        assert service.run_follow_edge_repo is not None
 
 
 class TestCreateDefaultAgentFactory:

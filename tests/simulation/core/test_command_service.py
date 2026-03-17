@@ -1,6 +1,6 @@
 """Tests for simulation.core.command_service module."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 
@@ -16,6 +16,7 @@ from simulation.core.command_service import SimulationCommandService
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
 from simulation.core.models.actions import TurnAction
+from simulation.core.models.agent_follow_edge import AgentFollowEdge
 from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from tests.factories import (
@@ -65,7 +66,12 @@ def mock_feed_generator():
 
 
 @pytest.fixture
-def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
+def command_service(
+    mock_repos,
+    mock_agent_factory,
+    mock_feed_generator,
+    mock_transaction_provider,
+):
     seed_agent_records = [
         AgentRecordFactory.create(
             agent_id=f"did:plc:agent{i}",
@@ -135,8 +141,11 @@ def command_service(mock_repos, mock_agent_factory, mock_feed_generator):
         generated_feed_repo=mock_repos["generated_feed_repo"],
         agent_repo=mock_repos["agent_repo"],
         agent_bio_repo=mock_repos["agent_bio_repo"],
+        agent_follow_edge_repo=mock_repos["agent_follow_edge_repo"],
         user_agent_profile_metadata_repo=mock_repos["user_agent_profile_metadata_repo"],
         run_agent_repo=mock_repos["run_agent_repo"],
+        run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
+        transaction_provider=mock_transaction_provider,
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=mock_feed_generator,
@@ -188,6 +197,7 @@ class TestSimulationCommandServiceExecuteRun:
     ):
         mock_repos["run_repo"].create_run.return_value = sample_run
         mock_repos["run_repo"].update_run_status.return_value = None
+        mock_agent_factory.side_effect = None
         mock_agent_factory.return_value = [
             AgentFactory.create(handle="agent1.bsky.social"),
             AgentFactory.create(handle="agent2.bsky.social"),
@@ -216,6 +226,76 @@ class TestSimulationCommandServiceExecuteRun:
         call_args = command_service.simulation_persistence.write_run.call_args
         assert call_args[0][0] == sample_run.run_id
         assert call_args[0][1].run_id == sample_run.run_id
+
+    def test_persists_internal_run_follow_edge_snapshots_only(
+        self,
+        command_service,
+        mock_repos,
+        sample_run,
+        mock_agent_factory,
+        mock_transaction_provider,
+    ):
+        mock_repos["run_repo"].create_run.return_value = sample_run
+        mock_repos["run_repo"].update_run_status.return_value = None
+        mock_agent_factory.side_effect = None
+        mock_agent_factory.return_value = [
+            AgentFactory.create(handle="agent1.bsky.social"),
+            AgentFactory.create(handle="agent2.bsky.social"),
+        ]
+        mock_repos[
+            "agent_follow_edge_repo"
+        ].list_edges_for_follower_agent_ids.return_value = [
+            AgentFollowEdge(
+                agent_follow_edge_id="edge_internal",
+                follower_agent_id="did:plc:agent1",
+                target_agent_id="did:plc:agent2",
+                created_at="2026-03-17T00:00:00Z",
+            ),
+            AgentFollowEdge(
+                agent_follow_edge_id="edge_external",
+                follower_agent_id="did:plc:agent1",
+                target_agent_id="did:plc:agent3",
+                created_at="2026-03-17T00:00:00Z",
+            ),
+        ]
+
+        with patch(
+            "simulation.core.command_service.SimulationCommandService._simulate_turn"
+        ) as mock_sim_turn:
+            mock_sim_turn.return_value = TurnResultFactory.create(
+                turn_number=0, total_actions={}, execution_time_ms=10
+            )
+            command_service.execute_run(self._make_config(turns=1))
+
+        mock_repos[
+            "agent_follow_edge_repo"
+        ].list_edges_for_follower_agent_ids.assert_called_once_with(
+            ["did:plc:agent1", "did:plc:agent2"],
+            conn=mock_transaction_provider.mock_conn,
+        )
+        mock_repos["run_agent_repo"].write_run_agents.assert_called_once_with(
+            sample_run.run_id,
+            ANY,
+            conn=mock_transaction_provider.mock_conn,
+        )
+        mock_repos[
+            "run_follow_edge_repo"
+        ].write_run_follow_edges.assert_called_once_with(
+            sample_run.run_id,
+            ANY,
+            conn=mock_transaction_provider.mock_conn,
+        )
+        follow_snapshots = mock_repos[
+            "run_follow_edge_repo"
+        ].write_run_follow_edges.call_args.args[1]
+        assert [
+            (snapshot.follower_agent_id, snapshot.target_agent_id)
+            for snapshot in follow_snapshots
+        ] == [("did:plc:agent1", "did:plc:agent2")]
+        assert all(
+            snapshot.created_at == sample_run.created_at
+            for snapshot in follow_snapshots
+        )
 
     def test_persists_selected_run_agents_with_snapshot_fields(
         self, command_service, mock_repos, sample_run, mock_agent_factory
@@ -323,6 +403,102 @@ class TestSimulationCommandServiceExecuteRun:
         assert [snapshot.posts_count_at_start for snapshot in snapshots] == [12, 22]
         assert all(
             snapshot.created_at == sample_run.created_at for snapshot in snapshots
+        )
+
+    def test_preloads_baseline_follows_to_suppress_duplicate_follow_generation(
+        self,
+        command_service,
+        mock_repos,
+        sample_run,
+        mock_agent_factory,
+    ):
+        mock_repos["run_repo"].create_run.return_value = sample_run
+        mock_repos["run_repo"].update_run_status.return_value = None
+
+        agent_one = AgentFactory.create(handle="agent1.bsky.social")
+        agent_two = AgentFactory.create(handle="agent2.bsky.social")
+        mock_agent_factory.side_effect = None
+        mock_agent_factory.return_value = [agent_one, agent_two]
+        mock_repos[
+            "agent_follow_edge_repo"
+        ].list_edges_for_follower_agent_ids.return_value = [
+            AgentFollowEdge(
+                agent_follow_edge_id="edge_internal",
+                follower_agent_id="did:plc:agent1",
+                target_agent_id="did:plc:agent2",
+                created_at="2026-03-17T00:00:00Z",
+            )
+        ]
+
+        feed_post = PostFactory.create(
+            uri="at://did:plc:post1",
+            author_display_name="Agent Two",
+            author_handle="agent2.bsky.social",
+            text="already followed",
+            bookmark_count=0,
+            like_count=0,
+            quote_count=0,
+            reply_count=0,
+            repost_count=0,
+            created_at="2026-03-17T00:00:00Z",
+        )
+        command_service.feed_generator.generate_feeds.return_value = {
+            agent_one.handle: [feed_post],
+            agent_two.handle: [],
+        }
+        command_service.feed_generator.generate_feeds.side_effect = None
+        command_service.action_history_store_factory = lambda: (
+            InMemoryActionHistoryStore()
+        )
+        command_service.agent_action_feed_filter = HistoryAwareActionFeedFilter()
+        command_service.agent_action_rules_validator = AgentActionRulesValidator()
+
+        with (
+            patch(
+                "simulation.core.command_service.generate_likes",
+                return_value=[],
+            ),
+            patch(
+                "simulation.core.command_service.generate_comments",
+                return_value=[],
+            ),
+            patch(
+                "simulation.core.command_service.generate_follows",
+                side_effect=lambda candidates, **kwargs: (
+                    [
+                        GeneratedFollowFactory.create(
+                            follow=FollowFactory.create(
+                                agent_id=kwargs["agent_handle"],
+                                user_id=candidates[0].author_handle,
+                            )
+                        )
+                    ]
+                    if candidates
+                    else []
+                ),
+            ) as mock_generate_follows,
+        ):
+            command_service.execute_run(self._make_config(turns=1))
+
+        persisted_follows = (
+            command_service.simulation_persistence.write_turn.call_args.kwargs[
+                "follows"
+            ]
+        )
+        assert persisted_follows == []
+        assert mock_generate_follows.call_count == sample_run.total_turns
+        for turn_number, call in enumerate(mock_generate_follows.call_args_list):
+            assert call.args == ([],)
+            assert call.kwargs == {
+                "run_id": sample_run.run_id,
+                "turn_number": turn_number,
+                "agent_handle": "agent1.bsky.social",
+            }
+        assert (
+            mock_repos[
+                "agent_follow_edge_repo"
+            ].list_edges_for_follower_agent_ids.call_count
+            == 1
         )
 
     def test_run_creation_failure_raises_simulation_run_failure_with_no_run_id(
@@ -780,8 +956,11 @@ class TestSimulationCommandServiceActionPersistence:
             generated_feed_repo=Mock(),
             agent_repo=Mock(),
             agent_bio_repo=Mock(),
+            agent_follow_edge_repo=Mock(),
             user_agent_profile_metadata_repo=Mock(),
             run_agent_repo=Mock(),
+            run_follow_edge_repo=Mock(),
+            transaction_provider=transaction_provider,
             agent_factory=lambda n: [agent],
             action_history_store_factory=lambda: action_history_store,
             feed_generator=feed_generator,

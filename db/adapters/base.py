@@ -27,6 +27,7 @@ from simulation.core.models.persisted_actions import (
 from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
+from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -269,6 +270,28 @@ class RunAgentDatabaseAdapter(ABC):
         raise NotImplementedError
 
 
+class RunFollowEdgeDatabaseAdapter(ABC):
+    """Abstract interface for immutable run-follow-edge snapshot persistence."""
+
+    @abstractmethod
+    def write_run_follow_edges(
+        self,
+        run_id: str,
+        rows: Iterable[RunFollowEdgeSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert run-follow-edge snapshots for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_follow_edges_for_run(
+        self, run_id: str, *, conn: object
+    ) -> list[RunFollowEdgeSnapshot]:
+        """Read run-follow-edge snapshots ordered by follower and target ascending."""
+        raise NotImplementedError
+
+
 class AgentFollowEdgeDatabaseAdapter(ABC):
     """Abstract interface for editable seed-state follow edges."""
 
@@ -299,6 +322,13 @@ class AgentFollowEdgeDatabaseAdapter(ABC):
         conn: object,
     ) -> AgentFollowEdgePage:
         """Read a consistent page of follow edges with resolved target handles."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_edges_for_follower_agent_ids(
+        self, follower_agent_ids: Iterable[str], *, conn: object
+    ) -> list[AgentFollowEdge]:
+        """Read follow edges for multiple followers in deterministic order."""
         raise NotImplementedError
 
     @abstractmethod

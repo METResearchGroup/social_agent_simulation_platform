@@ -29,6 +29,9 @@ from db.repositories.like_repository import create_sqlite_like_repository
 from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from db.repositories.run_agent_repository import create_sqlite_run_agent_repository
+from db.repositories.run_follow_edge_repository import (
+    create_sqlite_run_follow_edge_repository,
+)
 from db.repositories.run_repository import create_sqlite_repository
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
@@ -70,6 +73,11 @@ def generated_bio_repo(temp_db, sqlite_tx):
 @pytest.fixture
 def run_agent_repo(temp_db, sqlite_tx):
     return create_sqlite_run_agent_repository(transaction_provider=sqlite_tx)
+
+
+@pytest.fixture
+def run_follow_edge_repo(temp_db, sqlite_tx):
+    return create_sqlite_run_follow_edge_repository(transaction_provider=sqlite_tx)
 
 
 @pytest.fixture
