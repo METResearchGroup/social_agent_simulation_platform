@@ -130,17 +130,9 @@ class SimulationCommandService:
 
         try:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
-            with self.transaction_provider.run_transaction() as conn:
-                run_agent_snapshots = self.snapshot_run_agents(
-                    run=run,
-                    agents=agents,
-                    conn=conn,
-                )
-                run_follow_edge_snapshots = self.snapshot_run_follow_edges(
-                    run=run,
-                    agent_snapshots=run_agent_snapshots,
-                    conn=conn,
-                )
+            run_agent_snapshots, run_follow_edge_snapshots = (
+                self.snapshot_run_initial_state(run=run, agents=agents)
+            )
             action_history_store = self.action_history_store_factory()
             self.preload_follow_history_from_snapshots(
                 run_id=run.run_id,
@@ -178,6 +170,26 @@ class SimulationCommandService:
                 run_id=run.run_id,
                 cause=e,
             ) from e
+
+    def snapshot_run_initial_state(
+        self,
+        *,
+        run: Run,
+        agents: list[SimulationAgent],
+    ) -> tuple[list[RunAgentSnapshot], list[RunFollowEdgeSnapshot]]:
+        """Persist run-start agent/follow-edge snapshots in one transaction."""
+        with self.transaction_provider.run_transaction() as conn:
+            run_agent_snapshots = self.snapshot_run_agents(
+                run=run,
+                agents=agents,
+                conn=conn,
+            )
+            run_follow_edge_snapshots = self.snapshot_run_follow_edges(
+                run=run,
+                agent_snapshots=run_agent_snapshots,
+                conn=conn,
+            )
+        return run_agent_snapshots, run_follow_edge_snapshots
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         for attempt in range(STATUS_UPDATE_MAX_ATTEMPTS):
