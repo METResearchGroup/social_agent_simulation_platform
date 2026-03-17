@@ -33,9 +33,7 @@ class RunAgentSnapshotFactory(BaseFactory[RunAgentSnapshot]):
             selection_order=selection_order,
             handle_at_start=handle,
             display_name_at_start=(
-                display_name_at_start
-                if display_name_at_start is not None
-                else handle
+                display_name_at_start if display_name_at_start is not None else handle
             ),
             persona_bio_at_start=(
                 persona_bio_at_start
