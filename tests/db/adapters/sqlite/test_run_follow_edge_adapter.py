@@ -50,6 +50,19 @@ class TestSQLiteRunFollowEdgeAdapterWriteRunFollowEdges:
 
         mock_conn.executemany.assert_not_called()
 
+    def test_raises_when_row_is_self_follow(self, adapter, mock_db_connection):
+        row = RunFollowEdgeSnapshotFactory.create(
+            run_id="run_123",
+            follower_agent_id="did:plc:agent1",
+            target_agent_id="did:plc:agent1",
+        )
+
+        with mock_db_connection() as (mock_conn, _):
+            with pytest.raises(ValueError, match="cannot contain self-follow"):
+                adapter.write_run_follow_edges("run_123", [row], conn=mock_conn)
+
+        mock_conn.executemany.assert_not_called()
+
 
 class TestSQLiteRunFollowEdgeAdapterReadRunFollowEdgesForRun:
     def test_returns_snapshots_in_deterministic_order(

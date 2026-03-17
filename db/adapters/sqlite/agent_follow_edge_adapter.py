@@ -176,12 +176,12 @@ class SQLiteAgentFollowEdgeAdapter(AgentFollowEdgeDatabaseAdapter):
         conn: sqlite3.Connection,
     ) -> list[AgentFollowEdge]:
         """Read follow edges for multiple followers in deterministic order."""
-        follower_agent_id_list = list(follower_agent_ids)
+        follower_agent_id_list = [
+            validate_agent_id(follower_agent_id)
+            for follower_agent_id in follower_agent_ids
+        ]
         if not follower_agent_id_list:
             return []
-
-        for follower_agent_id in follower_agent_id_list:
-            validate_agent_id(follower_agent_id)
 
         placeholders = ", ".join("?" for _ in follower_agent_id_list)
         sql = (

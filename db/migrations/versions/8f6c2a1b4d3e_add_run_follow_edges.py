@@ -26,6 +26,10 @@ def upgrade() -> None:
         sa.Column("follower_agent_id", sa.Text(), nullable=False),
         sa.Column("target_agent_id", sa.Text(), nullable=False),
         sa.Column("created_at", sa.Text(), nullable=False),
+        sa.CheckConstraint(
+            "follower_agent_id != target_agent_id",
+            name="ck_run_follow_edges_no_self_follow",
+        ),
         sa.ForeignKeyConstraint(
             ["run_id"],
             ["runs.run_id"],

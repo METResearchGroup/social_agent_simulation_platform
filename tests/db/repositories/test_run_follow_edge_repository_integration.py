@@ -185,3 +185,45 @@ class TestSQLiteRunFollowEdgeRepositoryIntegration:
             )
 
         assert run_follow_edge_repo.list_run_follow_edges(run.run_id) == []
+
+    def test_db_constraint_rejects_self_follow_rows(
+        self,
+        temp_db,
+        run_repo,
+        run_agent_repo,
+        agent_repo,
+    ):
+        run = run_repo.create_run(
+            RunConfigFactory.create(
+                num_agents=1,
+                num_turns=1,
+                feed_algorithm="chronological",
+            )
+        )
+        _seed_agent(
+            agent_repo,
+            agent_id="did:plc:agent1",
+            handle="agent1.bsky.social",
+        )
+        _seed_run_membership(
+            run_agent_repo=run_agent_repo,
+            run_id=run.run_id,
+            agent_ids=["did:plc:agent1"],
+        )
+
+        with sqlite3.connect(temp_db) as conn:
+            conn.execute("PRAGMA foreign_keys = ON")
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    """
+                    INSERT INTO run_follow_edges
+                    (run_id, follower_agent_id, target_agent_id, created_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        run.run_id,
+                        "did:plc:agent1",
+                        "did:plc:agent1",
+                        run.created_at,
+                    ),
+                )

@@ -147,6 +147,10 @@ run_follow_edges = sa.Table(
         ["run_agents.run_id", "run_agents.agent_id"],
         name="fk_run_follow_edges_target_run_agent",
     ),
+    sa.CheckConstraint(
+        "follower_agent_id != target_agent_id",
+        name="ck_run_follow_edges_no_self_follow",
+    ),
     sa.PrimaryKeyConstraint(
         "run_id",
         "follower_agent_id",

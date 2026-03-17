@@ -56,6 +56,10 @@ class SQLiteRunFollowEdgeAdapter(RunFollowEdgeDatabaseAdapter):
                 raise ValueError(
                     "All run follow edge snapshot rows must match the provided run_id"
                 )
+            if row.follower_agent_id == row.target_agent_id:
+                raise ValueError(
+                    "Run follow edge snapshot rows cannot contain self-follow edges"
+                )
 
         conn.executemany(
             _INSERT_RUN_FOLLOW_EDGE_SQL,
