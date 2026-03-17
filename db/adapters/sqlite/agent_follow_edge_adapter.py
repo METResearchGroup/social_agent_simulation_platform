@@ -4,7 +4,11 @@ import sqlite3
 
 from db.adapters.base import AgentFollowEdgeDatabaseAdapter
 from lib.validation_decorators import validate_inputs
-from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.models.agent_follow_edge import (
+    AgentFollowEdge,
+    AgentFollowEdgePage,
+    AgentFollowEdgeWithTargetHandle,
+)
 from simulation.core.utils.validators import validate_agent_id
 
 _LIST_EDGES_BY_FOLLOWER_SQL = """
@@ -27,6 +31,19 @@ _COUNT_EDGES_BY_TARGET_SQL = """
 SELECT COUNT(*)
 FROM agent_follow_edges
 WHERE target_agent_id = ?
+"""
+_LIST_EDGES_WITH_TARGETS_BY_FOLLOWER_SQL = """
+SELECT
+    edge.agent_follow_edge_id,
+    edge.follower_agent_id,
+    edge.target_agent_id,
+    agent.handle AS target_handle,
+    edge.created_at
+FROM agent_follow_edges AS edge
+INNER JOIN agent ON agent.agent_id = edge.target_agent_id
+WHERE edge.follower_agent_id = ?
+ORDER BY edge.target_agent_id ASC, edge.agent_follow_edge_id ASC
+LIMIT ? OFFSET ?
 """
 _DELETE_EDGE_SQL = """
 DELETE FROM agent_follow_edges
@@ -59,6 +76,17 @@ class SQLiteAgentFollowEdgeAdapter(AgentFollowEdgeDatabaseAdapter):
             agent_follow_edge_id=row["agent_follow_edge_id"],
             follower_agent_id=row["follower_agent_id"],
             target_agent_id=row["target_agent_id"],
+            created_at=row["created_at"],
+        )
+
+    def _row_to_edge_with_target_handle(
+        self, row: sqlite3.Row
+    ) -> AgentFollowEdgeWithTargetHandle:
+        return AgentFollowEdgeWithTargetHandle(
+            agent_follow_edge_id=row["agent_follow_edge_id"],
+            follower_agent_id=row["follower_agent_id"],
+            target_agent_id=row["target_agent_id"],
+            target_handle=row["target_handle"],
             created_at=row["created_at"],
         )
 
@@ -113,6 +141,29 @@ class SQLiteAgentFollowEdgeAdapter(AgentFollowEdgeDatabaseAdapter):
         """Count incoming follow edges for a target agent."""
         row = conn.execute(_COUNT_EDGES_BY_TARGET_SQL, (target_agent_id,)).fetchone()
         return int(row[0]) if row is not None else 0
+
+    @validate_inputs((validate_agent_id, "follower_agent_id"))
+    def read_edge_page_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: sqlite3.Connection,
+    ) -> AgentFollowEdgePage:
+        """Read a consistent page of follow edges with resolved target handles."""
+        total_row = conn.execute(
+            _COUNT_EDGES_BY_FOLLOWER_SQL,
+            (follower_agent_id,),
+        ).fetchone()
+        rows = conn.execute(
+            _LIST_EDGES_WITH_TARGETS_BY_FOLLOWER_SQL,
+            (follower_agent_id, limit, offset),
+        ).fetchall()
+        return AgentFollowEdgePage(
+            total=int(total_row[0]) if total_row is not None else 0,
+            items=[self._row_to_edge_with_target_handle(row) for row in rows],
+        )
 
     @validate_inputs(
         (validate_agent_id, "follower_agent_id"),

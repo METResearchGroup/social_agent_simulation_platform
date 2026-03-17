@@ -5,7 +5,10 @@ import sqlite3
 from db.adapters.base import AgentFollowEdgeDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentFollowEdgeRepository
 from lib.validation_decorators import validate_inputs
-from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.models.agent_follow_edge import (
+    AgentFollowEdge,
+    AgentFollowEdgePage,
+)
 from simulation.core.utils.exceptions import (
     DuplicateAgentFollowEdgeError,
     SelfFollowEdgeNotAllowedError,
@@ -58,6 +61,31 @@ class SQLiteAgentFollowEdgeRepository(AgentFollowEdgeRepository):
             )
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_edges_by_follower_agent_id(
+                follower_agent_id,
+                limit=limit,
+                offset=offset,
+                conn=c,
+            )
+
+    @validate_inputs((validate_agent_id, "follower_agent_id"))
+    def get_edge_page_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: object | None = None,
+    ) -> AgentFollowEdgePage:
+        """Read a consistent page of follow edges with resolved target handles."""
+        if conn is not None:
+            return self._db_adapter.read_edge_page_by_follower_agent_id(
+                follower_agent_id,
+                limit=limit,
+                offset=offset,
+                conn=conn,
+            )
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_edge_page_by_follower_agent_id(
                 follower_agent_id,
                 limit=limit,
                 offset=offset,

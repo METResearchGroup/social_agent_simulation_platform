@@ -8,7 +8,10 @@ from typing import Iterable
 
 from simulation.core.models.agent import Agent
 from simulation.core.models.agent_bio import AgentBio
-from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.models.agent_follow_edge import (
+    AgentFollowEdge,
+    AgentFollowEdgePage,
+)
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.bio import GeneratedBio
@@ -284,6 +287,18 @@ class AgentFollowEdgeDatabaseAdapter(ABC):
         conn: object,
     ) -> list[AgentFollowEdge]:
         """Read follow edges for a follower in deterministic order."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_edge_page_by_follower_agent_id(
+        self,
+        follower_agent_id: str,
+        *,
+        limit: int,
+        offset: int,
+        conn: object,
+    ) -> AgentFollowEdgePage:
+        """Read a consistent page of follow edges with resolved target handles."""
         raise NotImplementedError
 
     @abstractmethod

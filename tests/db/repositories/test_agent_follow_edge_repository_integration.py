@@ -97,6 +97,24 @@ class TestSQLiteAgentFollowEdgeRepositoryIntegration:
         expected_paged_edge_ids = ["edge_2"]
         assert [edge.agent_follow_edge_id for edge in paged] == expected_paged_edge_ids
 
+        edge_page = agent_follow_edge_repo.get_edge_page_by_follower_agent_id(
+            "agent_a",
+            limit=1,
+            offset=1,
+        )
+        expected_page = {
+            "total": 2,
+            "edge_ids": ["edge_2"],
+            "target_handles": ["@charlie.bsky.social"],
+        }
+        assert edge_page.total == expected_page["total"]
+        assert [edge.agent_follow_edge_id for edge in edge_page.items] == expected_page[
+            "edge_ids"
+        ]
+        assert [edge.target_handle for edge in edge_page.items] == expected_page[
+            "target_handles"
+        ]
+
     def test_duplicate_edge_raises_integrity_error(
         self,
         agent_repo,

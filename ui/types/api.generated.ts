@@ -68,6 +68,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/simulations/agents/{handle}/follows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List seed-state follows for an agent
+         * @description Return editable pre-run follow edges for the given agent handle.
+         */
+        get: operations["get_simulation_agent_follows_v1_simulations_agents__handle__follows_get"];
+        put?: never;
+        /**
+         * Create seed-state follow edge
+         * @description Create an editable pre-run follow edge between two internal agents.
+         */
+        post: operations["post_simulation_agent_follows_v1_simulations_agents__handle__follows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/simulations/agents/{handle}/follows/{target_handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete seed-state follow edge
+         * @description Delete an editable pre-run follow edge between two internal agents.
+         */
+        delete: operations["delete_simulation_agent_follow_v1_simulations_agents__handle__follows__target_handle__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/simulations/config/default": {
         parameters: {
             query?: never;
@@ -250,6 +294,20 @@ export interface components {
             user_id?: string | null;
         };
         /**
+         * AgentFollowEdgeSchema
+         * @description Seed-state follow edge exposed through the simulation API.
+         */
+        AgentFollowEdgeSchema: {
+            /** Agent Follow Edge Id */
+            agent_follow_edge_id: string;
+            /** Created At */
+            created_at: string;
+            /** Follower Handle */
+            follower_handle: string;
+            /** Target Handle */
+            target_handle: string;
+        };
+        /**
          * AgentSchema
          * @description Agent profile for the simulation UI.
          */
@@ -268,6 +326,14 @@ export interface components {
             name: string;
             /** Posts Count */
             posts_count: number;
+        };
+        /**
+         * CreateAgentFollowRequest
+         * @description Request body for POST /v1/simulations/agents/{handle}/follows.
+         */
+        CreateAgentFollowRequest: {
+            /** Target Handle */
+            target_handle: string;
         };
         /**
          * CreateAgentRequest
@@ -353,6 +419,16 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         JsonValue: unknown;
+        /**
+         * ListAgentFollowsResponse
+         * @description Paginated response for GET /v1/simulations/agents/{handle}/follows.
+         */
+        ListAgentFollowsResponse: {
+            /** Items */
+            items: components["schemas"]["AgentFollowEdgeSchema"][];
+            /** Total */
+            total: number;
+        };
         /**
          * MetricSchema
          * @description API response for GET /v1/simulations/metrics.
@@ -697,6 +773,107 @@ export interface operations {
             header?: never;
             path: {
                 handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_simulation_agent_follows_v1_simulations_agents__handle__follows_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of follow edges to return. */
+                limit?: number;
+                /** @description Number of follow edges to skip before returning results. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAgentFollowsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_simulation_agent_follows_v1_simulations_agents__handle__follows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentFollowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentFollowEdgeSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_simulation_agent_follow_v1_simulations_agents__handle__follows__target_handle__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+                target_handle: string;
             };
             cookie?: never;
         };
