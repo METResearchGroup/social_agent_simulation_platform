@@ -17,6 +17,15 @@ EmotionsCallable = Callable[[str | list[str]], EmotionsResponse]
 EMOTIONS_TASK: Final[Literal["text-classification"]] = "text-classification"
 EMOTIONS_MODEL: Final[str] = "j-hartmann/emotion-english-distilroberta-base"
 EMOTIONS_RETURN_TOP_K: Final = None
+EXPECTED_EMOTIONS: Final[list[str]] = [
+    "anger",
+    "disgust",
+    "fear",
+    "joy",
+    "neutral",
+    "sadness",
+    "surprise",
+]
 NUM_EMOTIONS: Final[int] = 7
 
 
@@ -45,6 +54,12 @@ class EmotionModel:
         for dictionary in emotion_distribution:
             label = str(dictionary["label"])
             emotion_scores[label] = dictionary["score"]
+
+        missing = set(EXPECTED_EMOTIONS) - set(emotion_scores.keys())
+        if missing:
+            raise ValueError(
+                f"Emotion pipeline response missing expected labels: {missing}"
+            )
 
         return EmotionLabel(
             text_id=text_id,
