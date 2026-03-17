@@ -49,6 +49,11 @@ class AgentRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_agents_by_handles(self, handles: Iterable[str]) -> dict[str, Agent]:
+        """Return agents keyed by handle for the provided handles."""
+        raise NotImplementedError
+
+    @abstractmethod
     def list_all_agents(self) -> list[Agent]:
         """List all agents, ordered by updated_at DESC and handle ASC for determinism."""
         raise NotImplementedError

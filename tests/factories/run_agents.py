@@ -32,9 +32,16 @@ class RunAgentSnapshotFactory(BaseFactory[RunAgentSnapshot]):
             agent_id=agent_id if agent_id is not None else f"did:plc:{fake.uuid4()}",
             selection_order=selection_order,
             handle_at_start=handle,
-            display_name_at_start=display_name_at_start or handle,
-            persona_bio_at_start=persona_bio_at_start
-            or "Persona bio at the start of the run.",
+            display_name_at_start=(
+                display_name_at_start
+                if display_name_at_start is not None
+                else handle
+            ),
+            persona_bio_at_start=(
+                persona_bio_at_start
+                if persona_bio_at_start is not None
+                else "Persona bio at the start of the run."
+            ),
             followers_count_at_start=followers_count_at_start,
             follows_count_at_start=follows_count_at_start,
             posts_count_at_start=posts_count_at_start,
