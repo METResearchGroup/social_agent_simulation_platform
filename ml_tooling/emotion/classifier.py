@@ -15,9 +15,9 @@ EmotionsResponse = EmotionsSingleResponse | EmotionsBatchResponse
 EmotionsCallable = Callable[[str | list[str]], EmotionsResponse]
 
 EMOTIONS_TASK: Final[Literal["text-classification"]] = "text-classification"
-EMOTIONS_MODEL: str = "j-hartmann/emotion-english-distilroberta-base"
+EMOTIONS_MODEL: Final[str] = "j-hartmann/emotion-english-distilroberta-base"
 EMOTIONS_RETURN_TOP_K: Final = None
-NUM_EMOTIONS: Final = 7
+NUM_EMOTIONS: Final[int] = 7
 
 
 def build_default_emotion_pipeline() -> EmotionsCallable:
@@ -43,7 +43,8 @@ class EmotionModel:
 
         emotion_scores = {}
         for dictionary in emotion_distribution:
-            emotion_scores[dictionary["label"]] = dictionary["score"]
+            label = str(dictionary["label"])
+            emotion_scores[label] = dictionary["score"]
 
         return EmotionLabel(
             text_id=text_id,
@@ -64,6 +65,8 @@ class EmotionModel:
 
     def extract_emotions_batch(self, texts: list[str]) -> list[EmotionLabel]:
         response = cast(EmotionsBatchResponse, self._emotions_pipeline(texts))
+        if len(response) != len(texts):
+            raise ValueError("Emotion pipeline returned unexpected batch size")
         return [
             self._to_emotion_label(response[i], text) for i, text in enumerate(texts)
         ]
