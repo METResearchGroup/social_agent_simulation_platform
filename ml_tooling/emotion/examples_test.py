@@ -102,7 +102,7 @@ def run_model_track_time(emotion_model: EmotionModel) -> None:
     print(header)
     print(sep)
     for n, elapsed in results:
-        throughput = n / elapsed
+        throughput = n / elapsed if elapsed > 0 else float("inf")
         print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")
     print(sep)
 
