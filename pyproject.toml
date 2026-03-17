@@ -100,7 +100,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.ruff.lint.isort]
-known-first-party = ["simulation", "db", "ai", "lib", "feeds", "jobs", "ml_tooling"]
+known-first-party = ["simulation", "db", "lib", "feeds", "jobs", "ml_tooling"]
 
 [tool.pyright]
 include = ["."]
@@ -114,7 +114,7 @@ typeCheckingMode = "basic"
 reportMissingTypeStubs = false
 
 [tool.importlinter]
-root_packages = ["simulation", "db", "lib", "feeds", "ai", "jobs", "ml_tooling"]
+root_packages = ["simulation", "db", "lib", "feeds", "jobs", "ml_tooling"]
 include_external_packages = false
 exclude_type_checking_imports = true
 
@@ -126,7 +126,6 @@ forbidden_modules = [
     "simulation.api",
     "db",
     "feeds",
-    "ai",
     "jobs",
     "ml_tooling",
     # simulation.core.* excluding simulation.core.models
@@ -148,19 +147,19 @@ forbidden_modules = [
 name = "lib is leaf"
 type = "forbidden"
 source_modules = ["lib"]
-forbidden_modules = ["simulation", "db", "feeds", "ai", "jobs", "ml_tooling"]
+forbidden_modules = ["simulation", "db", "feeds", "jobs", "ml_tooling"]
 
 [[tool.importlinter.contracts]]
 name = "ml_tooling constraints"
 type = "forbidden"
 source_modules = ["ml_tooling"]
-forbidden_modules = ["simulation", "db", "feeds", "ai", "jobs"]
+forbidden_modules = ["simulation", "db", "feeds", "jobs"]
 
 [[tool.importlinter.contracts]]
 name = "API routes boundary: simulation.api.routes"
 type = "forbidden"
 source_modules = ["simulation.api.routes"]
-forbidden_modules = ["simulation.core", "db", "feeds", "ai", "jobs", "ml_tooling"]
+forbidden_modules = ["simulation.core", "db", "feeds", "jobs", "ml_tooling"]
 allow_indirect_imports = true
 
 

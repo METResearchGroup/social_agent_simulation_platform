@@ -28,7 +28,7 @@ def mock_feed_post_repo():
 
 @pytest.fixture
 def sample_agent():
-    """Fixture providing a sample SocialMediaAgent."""
+    """Fixture providing a sample SimulationAgent."""
     return AgentFactory.create(handle="test.bsky.social")
 
 

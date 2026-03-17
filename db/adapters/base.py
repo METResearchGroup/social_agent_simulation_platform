@@ -22,6 +22,7 @@ from simulation.core.models.persisted_actions import (
 )
 from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
+from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -239,6 +240,28 @@ class RunDatabaseAdapter(ABC):
                       the operation fails. Implementations should document the
                       specific exception types they raise.
         """
+        raise NotImplementedError
+
+
+class RunAgentDatabaseAdapter(ABC):
+    """Abstract interface for immutable run-agent snapshot persistence."""
+
+    @abstractmethod
+    def write_run_agents(
+        self,
+        run_id: str,
+        rows: Iterable[RunAgentSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert run-agent snapshots for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_agents_for_run(
+        self, run_id: str, *, conn: object
+    ) -> list[RunAgentSnapshot]:
+        """Read run-agent snapshots ordered by selection_order ascending."""
         raise NotImplementedError
 
 
@@ -727,6 +750,13 @@ class AgentDatabaseAdapter(ABC):
     @abstractmethod
     def read_agent_by_handle(self, handle: str, *, conn: object) -> Agent | None:
         """Read an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_agents_by_handles(
+        self, handles: Iterable[str], *, conn: object
+    ) -> dict[str, Agent]:
+        """Read agents matching the provided handles."""
         raise NotImplementedError
 
     @abstractmethod

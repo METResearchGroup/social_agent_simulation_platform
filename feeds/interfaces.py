@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 from pydantic import JsonValue
 
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.posts import Post
 
 
@@ -15,7 +15,7 @@ class FeedGenerator(ABC):
     @abstractmethod
     def generate_feeds(
         self,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
         run_id: str,
         turn_number: int,
         feed_algorithm: str,

@@ -24,6 +24,7 @@ from simulation.core.models.persisted_actions import (
 )
 from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
+from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -45,6 +46,11 @@ class AgentRepository(ABC):
     @abstractmethod
     def get_agent_by_handle(self, handle: str) -> Agent | None:
         """Get an agent by handle."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_agents_by_handles(self, handles: Iterable[str]) -> dict[str, Agent]:
+        """Return agents keyed by handle for the provided handles."""
         raise NotImplementedError
 
     @abstractmethod
@@ -234,6 +240,25 @@ class RunRepository(ABC):
             ValueError: If turn_metadata is invalid
             DuplicateTurnMetadataError: If turn metadata already exists
         """
+        raise NotImplementedError
+
+
+class RunAgentRepository(ABC):
+    """Abstract repository for immutable run-start agent snapshots."""
+
+    @abstractmethod
+    def write_run_agents(
+        self,
+        run_id: str,
+        rows: list[RunAgentSnapshot],
+        conn: object | None = None,
+    ) -> None:
+        """Write all run-agent snapshot rows for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_run_agents(self, run_id: str) -> list[RunAgentSnapshot]:
+        """List run-agent snapshots ordered by selection_order ascending."""
         raise NotImplementedError
 
 

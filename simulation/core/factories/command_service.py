@@ -3,12 +3,15 @@
 from collections.abc import Callable
 
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     FeedPostRepository,
-    GeneratedBioRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
+    RunAgentRepository,
     RunRepository,
+    UserAgentProfileMetadataRepository,
 )
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.feed_generator_adapter import FeedGeneratorAdapter
@@ -31,7 +34,7 @@ from simulation.core.metrics.defaults import (
 )
 from simulation.core.metrics.interfaces import MetricDeps
 from simulation.core.metrics.registry import MetricsRegistry
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 
 
 def create_command_service(
@@ -41,9 +44,12 @@ def create_command_service(
     simulation_persistence: SimulationPersistenceService,
     profile_repo: ProfileRepository,
     feed_post_repo: FeedPostRepository,
-    generated_bio_repo: GeneratedBioRepository,
     generated_feed_repo: GeneratedFeedRepository,
-    agent_factory: Callable[[int], list[SocialMediaAgent]],
+    agent_repo: AgentRepository,
+    agent_bio_repo: AgentBioRepository,
+    user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
+    run_agent_repo: RunAgentRepository,
+    agent_factory: Callable[[int], list[SimulationAgent]],
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     feed_generator: FeedGenerator | None = None,
     metrics_collector: MetricsCollector | None = None,
@@ -78,8 +84,11 @@ def create_command_service(
         simulation_persistence=simulation_persistence,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
-        generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
+        agent_repo=agent_repo,
+        agent_bio_repo=agent_bio_repo,
+        user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
+        run_agent_repo=run_agent_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=feed_generator,

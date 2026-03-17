@@ -4,30 +4,36 @@ from collections.abc import Callable
 
 from db.adapters.base import TransactionProvider
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider
+from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
+from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.comment_repository import create_sqlite_comment_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.follow_repository import create_sqlite_follow_repository
-from db.repositories.generated_bio_repository import (
-    create_sqlite_generated_bio_repository,
-)
 from db.repositories.generated_feed_repository import (
     create_sqlite_generated_feed_repository,
 )
 from db.repositories.interfaces import (
+    AgentBioRepository,
+    AgentRepository,
     CommentRepository,
     FeedPostRepository,
     FollowRepository,
-    GeneratedBioRepository,
     GeneratedFeedRepository,
     LikeRepository,
     MetricsRepository,
     ProfileRepository,
+    RunAgentRepository,
     RunRepository,
+    UserAgentProfileMetadataRepository,
 )
 from db.repositories.like_repository import create_sqlite_like_repository
 from db.repositories.metrics_repository import create_sqlite_metrics_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
+from db.repositories.run_agent_repository import create_sqlite_run_agent_repository
 from db.repositories.run_repository import create_sqlite_repository
+from db.repositories.user_agent_profile_metadata_repository import (
+    create_sqlite_user_agent_profile_metadata_repository,
+)
 from db.services.simulation_persistence_service import (
     create_simulation_persistence_service,
 )
@@ -39,7 +45,7 @@ from simulation.core.engine import SimulationEngine
 from simulation.core.factories.agent import create_default_agent_factory
 from simulation.core.factories.command_service import create_command_service
 from simulation.core.factories.query_service import create_query_service
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 
 
 def create_engine(
@@ -48,12 +54,15 @@ def create_engine(
     metrics_repo: MetricsRepository | None = None,
     profile_repo: ProfileRepository | None = None,
     feed_post_repo: FeedPostRepository | None = None,
-    generated_bio_repo: GeneratedBioRepository | None = None,
     generated_feed_repo: GeneratedFeedRepository | None = None,
+    agent_repo: AgentRepository | None = None,
+    agent_bio_repo: AgentBioRepository | None = None,
+    user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository | None = None,
+    run_agent_repo: RunAgentRepository | None = None,
     like_repo: LikeRepository | None = None,
     comment_repo: CommentRepository | None = None,
     follow_repo: FollowRepository | None = None,
-    agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
+    agent_factory: Callable[[int], list[SimulationAgent]] | None = None,
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     transaction_provider: TransactionProvider | None = None,
 ) -> SimulationEngine:
@@ -67,13 +76,12 @@ def create_engine(
         run_repo: Optional. Run repository. Defaults to SQLite implementation.
         profile_repo: Optional. Profile repository. Defaults to SQLite implementation.
         feed_post_repo: Optional. Feed post repository. Defaults to SQLite implementation.
-        generated_bio_repo: Optional. Generated bio repository. Defaults to SQLite implementation.
         generated_feed_repo: Optional. Generated feed repository. Defaults to SQLite implementation.
         like_repo: Optional. Like repository. Defaults to SQLite implementation.
         comment_repo: Optional. Comment repository. Defaults to SQLite implementation.
         follow_repo: Optional. Follow repository. Defaults to SQLite implementation.
         agent_factory: Optional. Agent factory function. Defaults to create_default_agent_factory(...)
-            wired with the default profile/feed_post/generated_bio repositories.
+            wired with the seed-state agent/bio/metadata repositories plus feed posts.
         transaction_provider: Optional. Provider for persistence transactions. Defaults to SQLite.
 
     Returns:
@@ -108,21 +116,36 @@ def create_engine(
         feed_post_repo = create_sqlite_feed_post_repository(
             transaction_provider=transaction_provider
         )
-    if generated_bio_repo is None:
-        generated_bio_repo = create_sqlite_generated_bio_repository(
-            transaction_provider=transaction_provider
-        )
     if generated_feed_repo is None:
         generated_feed_repo = create_sqlite_generated_feed_repository(
+            transaction_provider=transaction_provider
+        )
+    if agent_repo is None:
+        agent_repo = create_sqlite_agent_repository(
+            transaction_provider=transaction_provider
+        )
+    if agent_bio_repo is None:
+        agent_bio_repo = create_sqlite_agent_bio_repository(
+            transaction_provider=transaction_provider
+        )
+    if user_agent_profile_metadata_repo is None:
+        user_agent_profile_metadata_repo = (
+            create_sqlite_user_agent_profile_metadata_repository(
+                transaction_provider=transaction_provider
+            )
+        )
+    if run_agent_repo is None:
+        run_agent_repo = create_sqlite_run_agent_repository(
             transaction_provider=transaction_provider
         )
 
     # Create default agent factory if not provided
     if agent_factory is None:
         agent_factory = create_default_agent_factory(
-            profile_repo=profile_repo,
+            agent_repo=agent_repo,
+            agent_bio_repo=agent_bio_repo,
+            user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
             feed_post_repo=feed_post_repo,
-            generated_bio_repo=generated_bio_repo,
         )
     if action_history_store_factory is None:
         action_history_store_factory = create_default_action_history_store_factory()
@@ -162,8 +185,11 @@ def create_engine(
         simulation_persistence=simulation_persistence,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
-        generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
+        agent_repo=agent_repo,
+        agent_bio_repo=agent_bio_repo,
+        user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
+        run_agent_repo=run_agent_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
     )
@@ -173,8 +199,11 @@ def create_engine(
         metrics_repo=metrics_repo,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
-        generated_bio_repo=generated_bio_repo,
         generated_feed_repo=generated_feed_repo,
+        agent_repo=agent_repo,
+        agent_bio_repo=agent_bio_repo,
+        user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
+        run_agent_repo=run_agent_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         query_service=query_service,

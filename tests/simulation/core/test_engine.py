@@ -46,8 +46,11 @@ def engine(
         metrics_repo=deps["metrics_repo"],
         profile_repo=deps["profile_repo"],
         feed_post_repo=deps["feed_post_repo"],
-        generated_bio_repo=deps["generated_bio_repo"],
         generated_feed_repo=deps["generated_feed_repo"],
+        agent_repo=deps["agent_repo"],
+        agent_bio_repo=deps["agent_bio_repo"],
+        user_agent_profile_metadata_repo=deps["user_agent_profile_metadata_repo"],
+        run_agent_repo=deps["run_agent_repo"],
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         query_service=query_service,
@@ -67,8 +70,14 @@ class TestSimulationEngineCompatibility:
         assert engine.metrics_repo is deps["metrics_repo"]
         assert engine.profile_repo is deps["profile_repo"]
         assert engine.feed_post_repo is deps["feed_post_repo"]
-        assert engine.generated_bio_repo is deps["generated_bio_repo"]
         assert engine.generated_feed_repo is deps["generated_feed_repo"]
+        assert engine.agent_repo is deps["agent_repo"]
+        assert engine.agent_bio_repo is deps["agent_bio_repo"]
+        assert (
+            engine.user_agent_profile_metadata_repo
+            is deps["user_agent_profile_metadata_repo"]
+        )
+        assert engine.run_agent_repo is deps["run_agent_repo"]
         assert engine.agent_factory is agent_factory
         assert engine.action_history_store_factory is action_history_store_factory
 

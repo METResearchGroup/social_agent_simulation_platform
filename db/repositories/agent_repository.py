@@ -1,5 +1,7 @@
 """SQLite implementation of agent repositories."""
 
+from collections.abc import Iterable
+
 from db.adapters.base import AgentDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentRepository
 from lib.validation_decorators import validate_inputs
@@ -59,6 +61,14 @@ class SQLiteAgentRepository(AgentRepository):
             return self._db_adapter.read_agents_page_by_handle_like(
                 handle_like=handle_like, limit=limit, offset=offset, conn=c
             )
+
+    def get_agents_by_handles(self, handles: Iterable[str]) -> dict[str, Agent]:
+        """Return agents keyed by handle for the provided handles."""
+        handle_list = list(handles)
+        if not handle_list:
+            return {}
+        with self._transaction_provider.run_transaction() as c:
+            return self._db_adapter.read_agents_by_handles(handle_list, conn=c)
 
     @validate_inputs((validate_agent_id, "agent_id"))
     def delete_agent(self, agent_id: str, conn: object | None = None) -> None:

@@ -1,7 +1,7 @@
 """Generate candidate posts for the feeds."""
 
 from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.posts import Post
 
 
@@ -14,7 +14,7 @@ def load_posts(*, feed_post_repo: FeedPostRepository) -> list[Post]:
 
 def load_seen_post_ids(
     *,
-    agent: SocialMediaAgent,
+    agent: SimulationAgent,
     run_id: str,
     generated_feed_repo: GeneratedFeedRepository,
 ) -> set[str]:
@@ -30,7 +30,7 @@ def load_seen_post_ids(
 def filter_candidate_posts(
     *,
     candidate_posts: list[Post],
-    agent: SocialMediaAgent,
+    agent: SimulationAgent,
     run_id: str,
     generated_feed_repo: GeneratedFeedRepository,
 ) -> list[Post]:
@@ -55,7 +55,7 @@ def filter_candidate_posts(
 
 def load_candidate_posts(
     *,
-    agent: SocialMediaAgent,
+    agent: SimulationAgent,
     run_id: str,
     feed_post_repo: FeedPostRepository,
     generated_feed_repo: GeneratedFeedRepository,
