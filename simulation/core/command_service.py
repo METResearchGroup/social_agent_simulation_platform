@@ -8,7 +8,6 @@ from db.repositories.interfaces import (
     AgentBioRepository,
     AgentRepository,
     FeedPostRepository,
-    GeneratedBioRepository,
     GeneratedFeedRepository,
     MetricsRepository,
     ProfileRepository,
@@ -35,7 +34,6 @@ from simulation.core.metrics.defaults import (
     resolve_metric_keys_by_scope,
 )
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.agent import Agent
 from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
@@ -45,6 +43,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
+from simulation.core.seed_state import hydrate_seed_state
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.utils.validators import (
     validate_agents_without_feeds,
@@ -75,7 +74,6 @@ class SimulationCommandService:
         simulation_persistence: SimulationPersistenceService,
         profile_repo: ProfileRepository,
         feed_post_repo: FeedPostRepository,
-        generated_bio_repo: GeneratedBioRepository,
         generated_feed_repo: GeneratedFeedRepository,
         agent_repo: AgentRepository,
         agent_bio_repo: AgentBioRepository,
@@ -93,7 +91,6 @@ class SimulationCommandService:
         self.simulation_persistence = simulation_persistence
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
-        self.generated_bio_repo = generated_bio_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_repo = agent_repo
         self.agent_bio_repo = agent_bio_repo
@@ -422,31 +419,72 @@ class SimulationCommandService:
 
     def snapshot_run_agents(self, run: Run, agents: list[SimulationAgent]) -> None:
         """Persist the exact ordered seed-state agents selected for a run."""
-        selected_handles: list[str] = [agent.handle for agent in agents]
-        selected_handle_set = set(selected_handles)
-
-        seed_agents = [
-            agent
-            for agent in self.agent_repo.list_all_agents()
-            if agent.handle in selected_handle_set
-        ]
-        seed_agent_by_handle: dict[str, Agent] = {
-            agent.handle: agent for agent in seed_agents
-        }
-
-        self._handle_missing_handles(selected_handles, seed_agent_by_handle)
-
-        selected_agent_ids = [
-            seed_agent_by_handle[handle].agent_id for handle in selected_handles
-        ]
-        latest_bios = self.agent_bio_repo.get_latest_bios_by_agent_ids(
-            selected_agent_ids
+        snapshots = self._try_build_run_agent_snapshots_from_agents(
+            run=run, agents=agents
         )
-        metadata_by_agent_id = (
-            self.user_agent_profile_metadata_repo.get_metadata_by_agent_ids(
-                selected_agent_ids
+        if snapshots is not None:
+            self.run_agent_repo.write_run_agents(run.run_id, snapshots)
+            return
+
+        snapshots = self._build_run_agent_snapshots_from_repos(run=run, agents=agents)
+        self.run_agent_repo.write_run_agents(run.run_id, snapshots)
+
+    def _try_build_run_agent_snapshots_from_agents(
+        self, *, run: Run, agents: list[SimulationAgent]
+    ) -> list[RunAgentSnapshot] | None:
+        """Return snapshots built directly from hydrated SimulationAgent objects."""
+        if not agents:
+            return []
+
+        if not all(
+            getattr(agent, "agent_id", None)
+            and getattr(agent, "display_name", None)
+            and getattr(agent, "bio", None)
+            for agent in agents
+        ):
+            return None
+
+        snapshots: list[RunAgentSnapshot] = []
+        for selection_order, agent in enumerate(agents):
+            agent_id = agent.agent_id
+            display_name = agent.display_name
+            if agent_id is None or display_name is None:
+                raise ValueError(
+                    "Invariant violation: hydrated agent missing identifier fields"
+                )
+
+            snapshots.append(
+                RunAgentSnapshot(
+                    run_id=run.run_id,
+                    agent_id=agent_id,
+                    selection_order=selection_order,
+                    handle_at_start=agent.handle,
+                    display_name_at_start=display_name,
+                    persona_bio_at_start=agent.bio,
+                    followers_count_at_start=agent.followers,
+                    follows_count_at_start=agent.following,
+                    posts_count_at_start=agent.posts_count,
+                    created_at=run.created_at,
+                )
             )
+
+        return snapshots
+
+    def _build_run_agent_snapshots_from_repos(
+        self, *, run: Run, agents: list[SimulationAgent]
+    ) -> list[RunAgentSnapshot]:
+        """Build snapshots by querying the seed-state catalog."""
+        selected_handles: list[str] = [agent.handle for agent in agents]
+
+        seed_state = hydrate_seed_state(
+            agent_repo=self.agent_repo,
+            agent_bio_repo=self.agent_bio_repo,
+            user_agent_profile_metadata_repo=self.user_agent_profile_metadata_repo,
+            handles=selected_handles,
         )
+        seed_agent_by_handle = seed_state.agent_by_handle
+        latest_bios = seed_state.latest_bios
+        metadata_by_agent_id = seed_state.metadata_by_agent_id
 
         snapshot_rows: list[RunAgentSnapshot] = []
         for selection_order, handle in enumerate(selected_handles):
@@ -479,22 +517,7 @@ class SimulationCommandService:
                 )
             )
 
-        self.run_agent_repo.write_run_agents(run.run_id, snapshot_rows)
-
-    def _handle_missing_handles(
-        self,
-        selected_handles: list[str],
-        seed_agent_by_handle: dict[str, Agent],
-    ) -> None:
-        """Handle missing handles in the seed-state agent catalog."""
-        missing_handles = [
-            handle for handle in selected_handles if handle not in seed_agent_by_handle
-        ]
-        if missing_handles:
-            raise ValueError(
-                "Selected agents are missing from the seed-state agent catalog: "
-                f"{missing_handles}"
-            )
+        return snapshot_rows
 
     def _convert_action_counts_to_enum(
         self, action_counts: dict[str, int]

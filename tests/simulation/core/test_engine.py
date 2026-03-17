@@ -46,7 +46,6 @@ def engine(
         metrics_repo=deps["metrics_repo"],
         profile_repo=deps["profile_repo"],
         feed_post_repo=deps["feed_post_repo"],
-        generated_bio_repo=deps["generated_bio_repo"],
         generated_feed_repo=deps["generated_feed_repo"],
         agent_repo=deps["agent_repo"],
         agent_bio_repo=deps["agent_bio_repo"],
@@ -71,7 +70,6 @@ class TestSimulationEngineCompatibility:
         assert engine.metrics_repo is deps["metrics_repo"]
         assert engine.profile_repo is deps["profile_repo"]
         assert engine.feed_post_repo is deps["feed_post_repo"]
-        assert engine.generated_bio_repo is deps["generated_bio_repo"]
         assert engine.generated_feed_repo is deps["generated_feed_repo"]
         assert engine.agent_repo is deps["agent_repo"]
         assert engine.agent_bio_repo is deps["agent_bio_repo"]
