@@ -12,7 +12,7 @@ EmotionsBatchResponse = list[list[RawEmotions]]
 EmotionsSingleResponse = list[RawEmotions]
 EmotionsResponse = EmotionsSingleResponse | EmotionsBatchResponse
 # NOTE: EmotionsCallable actually can only return an EmotionsBatchResponse with j-hartmann/emotion-english-distilroberta-base
-EmotionsCallable = Callable[[str | list[list[str]]], EmotionsResponse]
+EmotionsCallable = Callable[[str | list[str]], EmotionsResponse]
 
 EMOTIONS_TASK: Final[Literal["text-classification"]] = "text-classification"
 EMOTIONS_MODEL: str = "j-hartmann/emotion-english-distilroberta-base"
@@ -63,5 +63,7 @@ class EmotionModel:
         return self._to_emotion_label(response[0], text)
 
     def extract_emotions_batch(self, texts: list[str]) -> list[EmotionLabel]:
-        batch_emotion_labels = [self.extract_emotions(text) for text in texts]
-        return batch_emotion_labels
+        response = cast(EmotionsBatchResponse, self._emotions_pipeline(texts))
+        return [
+            self._to_emotion_label(response[i], text) for i, text in enumerate(texts)
+        ]
