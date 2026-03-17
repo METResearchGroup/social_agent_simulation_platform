@@ -13,7 +13,7 @@ from feeds.algorithms.interfaces import (
     FeedAlgorithmMetadata,
     FeedAlgorithmResult,
 )
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import Post
 
@@ -47,7 +47,7 @@ class ChronologicalFeedAlgorithm(FeedAlgorithm):
         self,
         *,
         candidate_posts: list[Post],
-        agent: SocialMediaAgent,
+        agent: SimulationAgent,
         limit: int,
         config: Mapping[str, JsonValue] | None = None,
     ) -> FeedAlgorithmResult:

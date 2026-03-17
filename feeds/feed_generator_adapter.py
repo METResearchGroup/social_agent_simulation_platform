@@ -7,7 +7,7 @@ from pydantic import JsonValue
 from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
 from feeds.interfaces import FeedGenerator
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.posts import Post
 
 
@@ -25,7 +25,7 @@ class FeedGeneratorAdapter(FeedGenerator):
 
     def generate_feeds(
         self,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
         run_id: str,
         turn_number: int,
         feed_algorithm: str,

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, JsonValue
 
 if TYPE_CHECKING:
-    from simulation.core.models.agents import SocialMediaAgent
+    from simulation.core.models.agents import SimulationAgent
     from simulation.core.models.posts import Post
 
 
@@ -47,7 +47,7 @@ class FeedAlgorithm(ABC):
         self,
         *,
         candidate_posts: list[Post],
-        agent: SocialMediaAgent,
+        agent: SimulationAgent,
         limit: int,
         config: Mapping[str, JsonValue] | None = None,
     ) -> FeedAlgorithmResult:

@@ -28,7 +28,7 @@ from simulation.core.factories import (
     create_engine,
     create_query_service,
 )
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.query_service import SimulationQueryService
 from simulation.core.utils.exceptions import InsufficientAgentsError
 from tests.factories import AgentFactory
@@ -39,7 +39,7 @@ def _make_agent_factory_with_mocks() -> tuple[
     AgentBioRepository,
     UserAgentProfileMetadataRepository,
     FeedPostRepository,
-    Callable[[int], list[SocialMediaAgent]],
+    Callable[[int], list[SimulationAgent]],
 ]:
     agent_repo = Mock(spec=AgentRepository)
     agent_bio_repo = Mock(spec=AgentBioRepository)
@@ -242,7 +242,7 @@ class TestCreateDefaultAgentFactory:
         # Assert
         assert callable(factory)
 
-    @patch("ai.create_initial_agents.create_initial_agents")
+    @patch("simulation.core.factories.agent._create_simulation_agents_from_seed_state")
     def test_returns_correct_number_of_agents(self, mock_create_agents):
         """Test that the factory returns the correct number of agents."""
         # Arrange
@@ -264,7 +264,7 @@ class TestCreateDefaultAgentFactory:
 
         # Assert
         assert len(result) == 5
-        assert all(isinstance(agent, SocialMediaAgent) for agent in result)
+        assert all(isinstance(agent, SimulationAgent) for agent in result)
         mock_create_agents.assert_called_once_with(
             agent_repo=agent_repo,
             agent_bio_repo=agent_bio_repo,
@@ -272,7 +272,7 @@ class TestCreateDefaultAgentFactory:
             feed_post_repo=feed_post_repo,
         )
 
-    @patch("ai.create_initial_agents.create_initial_agents")
+    @patch("simulation.core.factories.agent._create_simulation_agents_from_seed_state")
     def test_handles_limit_correctly(self, mock_create_agents):
         """Test that the factory correctly limits the number of agents returned."""
         # Arrange
@@ -293,7 +293,7 @@ class TestCreateDefaultAgentFactory:
         assert result[1].handle == "agent1.bsky.social"
         assert result[2].handle == "agent2.bsky.social"
 
-    @patch("ai.create_initial_agents.create_initial_agents")
+    @patch("simulation.core.factories.agent._create_simulation_agents_from_seed_state")
     def test_raises_insufficient_agents_error_when_no_agents(self, mock_create_agents):
         """Test that the factory raises InsufficientAgentsError when no agents are available."""
         # Arrange
@@ -307,7 +307,7 @@ class TestCreateDefaultAgentFactory:
         assert exc_info.value.requested == 5
         assert exc_info.value.available == 0
 
-    @patch("ai.create_initial_agents.create_initial_agents")
+    @patch("simulation.core.factories.agent._create_simulation_agents_from_seed_state")
     def test_raises_insufficient_agents_error_when_fewer_than_requested(
         self, mock_create_agents
     ):
@@ -327,7 +327,7 @@ class TestCreateDefaultAgentFactory:
         assert exc_info.value.requested == 10
         assert exc_info.value.available == 3
 
-    @patch("ai.create_initial_agents.create_initial_agents")
+    @patch("simulation.core.factories.agent._create_simulation_agents_from_seed_state")
     def test_returns_all_agents_when_requested_exactly_available(
         self, mock_create_agents
     ):
@@ -345,9 +345,9 @@ class TestCreateDefaultAgentFactory:
 
         # Assert
         assert len(result) == 3
-        assert all(isinstance(agent, SocialMediaAgent) for agent in result)
+        assert all(isinstance(agent, SimulationAgent) for agent in result)
 
-    @patch("ai.create_initial_agents.create_initial_agents")
+    @patch("simulation.core.factories.agent._create_simulation_agents_from_seed_state")
     def test_calls_create_initial_agents_once_per_call(self, mock_create_agents):
         """Test that the factory calls create_initial_agents once per factory call."""
         # Arrange

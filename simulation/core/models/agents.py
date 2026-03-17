@@ -5,7 +5,11 @@ from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.posts import Post
 
 
-class SocialMediaAgent:
+class SimulationAgent:
+    """The in-memory runtime object used during simulation turns. It carries
+    hydrated profile/runtime state and mutable per-run collections like posts
+    and generated actions."""
+
     def __init__(self, handle: str):
         self.handle: str = handle
         self.bio: str = ""

@@ -35,7 +35,7 @@ from simulation.core.metrics.defaults import (
 )
 from simulation.core.metrics.interfaces import MetricDeps
 from simulation.core.metrics.registry import MetricsRegistry
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 
 
 def create_command_service(
@@ -51,7 +51,7 @@ def create_command_service(
     agent_bio_repo: AgentBioRepository,
     user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
     run_agent_repo: RunAgentRepository,
-    agent_factory: Callable[[int], list[SocialMediaAgent]],
+    agent_factory: Callable[[int], list[SimulationAgent]],
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     feed_generator: FeedGenerator | None = None,
     metrics_collector: MetricsCollector | None = None,

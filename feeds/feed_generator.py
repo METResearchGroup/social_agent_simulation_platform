@@ -8,7 +8,7 @@ from feeds.algorithms import FeedAlgorithmResult, get_feed_generator
 from feeds.candidate_generation import load_candidate_posts
 from feeds.constants import MAX_POSTS_PER_FEED
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import Post
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_feeds(
-    agents: list[SocialMediaAgent],
+    agents: list[SimulationAgent],
     run_id: str,
     turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,
@@ -59,7 +59,7 @@ def generate_feeds(
 
 
 def _generate_feeds(
-    agents: list[SocialMediaAgent],
+    agents: list[SimulationAgent],
     run_id: str,
     turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,
@@ -171,7 +171,7 @@ def _log_warning_missing_posts(
 
 
 def _generate_feed(
-    agent: SocialMediaAgent,
+    agent: SimulationAgent,
     candidate_posts: list[Post],
     run_id: str,
     turn_number: int,
@@ -197,7 +197,7 @@ def _generate_feed(
 
 
 def _generate_single_agent_feed(
-    agent: SocialMediaAgent,
+    agent: SimulationAgent,
     run_id: str,
     turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.posts import Post
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
 
 
-class AgentFactory(BaseFactory[SocialMediaAgent]):
+class AgentFactory(BaseFactory[SimulationAgent]):
     @classmethod
     def create(
         cls,
@@ -16,9 +16,9 @@ class AgentFactory(BaseFactory[SocialMediaAgent]):
         followers: int | None = None,
         following: int | None = None,
         posts_count: int | None = None,
-    ) -> SocialMediaAgent:
+    ) -> SimulationAgent:
         fake = get_faker()
-        agent = SocialMediaAgent(
+        agent = SimulationAgent(
             handle=handle if handle is not None else f"{fake.user_name()}.bsky.social"
         )
         if posts is not None:

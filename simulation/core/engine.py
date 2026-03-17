@@ -20,7 +20,7 @@ from simulation.core.metrics.defaults import (
     get_default_metric_keys,
     resolve_metric_keys_by_scope,
 )
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
@@ -56,7 +56,7 @@ class SimulationEngine:
         agent_bio_repo: AgentBioRepository,
         user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
         run_agent_repo: RunAgentRepository,
-        agent_factory: Callable[[int], list[SocialMediaAgent]],
+        agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         query_service: SimulationQueryService,
         command_service: SimulationCommandService,
@@ -124,7 +124,7 @@ class SimulationEngine:
         run: Run,
         run_config: RunConfig,
         turn_number: int,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
     ) -> None:
         turn_keys = _get_turn_keys(run_config)
         self.command_service.simulate_turn(
@@ -141,7 +141,7 @@ class SimulationEngine:
         total_turns: int,
         run: Run,
         run_config: RunConfig,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
     ) -> None:
         turn_keys = _get_turn_keys(run_config)
         self.command_service.simulate_turns(
@@ -157,5 +157,5 @@ class SimulationEngine:
         self,
         run: Run,
         run_config: RunConfig,
-    ) -> list[SocialMediaAgent]:
+    ) -> list[SimulationAgent]:
         return self.command_service.create_agents_for_run(run, run_config)

@@ -7,7 +7,7 @@ from lib.validation_utils import (
     validate_not_none,
     validate_turn_number,  # noqa: F401
 )
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run, RunStatus
 from simulation.core.utils.exceptions import (
@@ -108,7 +108,7 @@ def validate_agents_without_feeds(
         )
 
 
-def validate_insufficient_agents(agents: list[SocialMediaAgent], requested_agents: int):
+def validate_insufficient_agents(agents: list[SimulationAgent], requested_agents: int):
     """Validate that the number of agents is sufficient."""
     if len(agents) < requested_agents:
         raise InsufficientAgentsError(
@@ -122,7 +122,7 @@ def validate_handle_exists(handle: str) -> str:
     return _validate_non_empty_string_labeled(handle, label="handle")
 
 
-def validate_duplicate_agent_handles(agents: list[SocialMediaAgent]):
+def validate_duplicate_agent_handles(agents: list[SimulationAgent]):
     """Validate that the agent handles are unique."""
     handles = [agent.handle for agent in agents]
     if len(handles) != len(set(handles)):

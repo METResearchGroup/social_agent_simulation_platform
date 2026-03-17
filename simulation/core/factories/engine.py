@@ -49,7 +49,7 @@ from simulation.core.engine import SimulationEngine
 from simulation.core.factories.agent import create_default_agent_factory
 from simulation.core.factories.command_service import create_command_service
 from simulation.core.factories.query_service import create_query_service
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agents import SimulationAgent
 
 
 def create_engine(
@@ -67,7 +67,7 @@ def create_engine(
     like_repo: LikeRepository | None = None,
     comment_repo: CommentRepository | None = None,
     follow_repo: FollowRepository | None = None,
-    agent_factory: Callable[[int], list[SocialMediaAgent]] | None = None,
+    agent_factory: Callable[[int], list[SimulationAgent]] | None = None,
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
     transaction_provider: TransactionProvider | None = None,
 ) -> SimulationEngine:

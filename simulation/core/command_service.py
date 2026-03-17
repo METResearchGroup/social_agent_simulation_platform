@@ -35,7 +35,8 @@ from simulation.core.metrics.defaults import (
     resolve_metric_keys_by_scope,
 )
 from simulation.core.models.actions import TurnAction
-from simulation.core.models.agents import SocialMediaAgent
+from simulation.core.models.agent import Agent
+from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
@@ -80,7 +81,7 @@ class SimulationCommandService:
         agent_bio_repo: AgentBioRepository,
         user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
         run_agent_repo: RunAgentRepository,
-        agent_factory: Callable[[int], list[SocialMediaAgent]],
+        agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         feed_generator: FeedGenerator,
         agent_action_rules_validator: AgentActionRulesValidator,
@@ -188,7 +189,7 @@ class SimulationCommandService:
         run: Run,
         run_config: RunConfig,
         turn_number: int,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
         action_history_store: ActionHistoryStore,
         turn_metric_keys: list[str],
     ) -> None:
@@ -230,7 +231,7 @@ class SimulationCommandService:
         total_turns: int,
         run: Run,
         run_config: RunConfig,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
         action_history_store: ActionHistoryStore,
         turn_metric_keys: list[str],
     ) -> None:
@@ -248,9 +249,9 @@ class SimulationCommandService:
         self,
         run: Run,
         run_config: RunConfig,
-    ) -> list[SocialMediaAgent]:
+    ) -> list[SimulationAgent]:
         try:
-            agents: list[SocialMediaAgent] = self._create_agents_for_run(
+            agents: list[SimulationAgent] = self._create_agents_for_run(
                 run_config, run.run_id
             )
             return agents
@@ -263,7 +264,7 @@ class SimulationCommandService:
         self,
         run_id: str,
         turn_number: int,
-        agents: list[SocialMediaAgent],
+        agents: list[SimulationAgent],
         feed_algorithm: str,
         action_history_store: ActionHistoryStore,
         turn_metric_keys: list[str],
@@ -400,7 +401,7 @@ class SimulationCommandService:
 
     def _create_agents_for_run(
         self, config: RunConfig, run_id: str
-    ) -> list[SocialMediaAgent]:
+    ) -> list[SimulationAgent]:
         """Create agents for a simulation run."""
         agents = self.agent_factory(config.num_agents)
         validate_insufficient_agents(
@@ -419,7 +420,7 @@ class SimulationCommandService:
 
         return agents
 
-    def snapshot_run_agents(self, run: Run, agents: list[SocialMediaAgent]) -> None:
+    def snapshot_run_agents(self, run: Run, agents: list[SimulationAgent]) -> None:
         """Persist the exact ordered seed-state agents selected for a run."""
         selected_handles: list[str] = [agent.handle for agent in agents]
         selected_handle_set = set(selected_handles)
@@ -429,16 +430,11 @@ class SimulationCommandService:
             for agent in self.agent_repo.list_all_agents()
             if agent.handle in selected_handle_set
         ]
-        seed_agent_by_handle = {agent.handle: agent for agent in seed_agents}
+        seed_agent_by_handle: dict[str, Agent] = {
+            agent.handle: agent for agent in seed_agents
+        }
 
-        missing_handles = [
-            handle for handle in selected_handles if handle not in seed_agent_by_handle
-        ]
-        if missing_handles:
-            raise ValueError(
-                "Selected agents are missing from the seed-state agent catalog: "
-                f"{missing_handles}"
-            )
+        self._handle_missing_handles(selected_handles, seed_agent_by_handle)
 
         selected_agent_ids = [
             seed_agent_by_handle[handle].agent_id for handle in selected_handles
@@ -484,6 +480,21 @@ class SimulationCommandService:
             )
 
         self.run_agent_repo.write_run_agents(run.run_id, snapshot_rows)
+
+    def _handle_missing_handles(
+        self,
+        selected_handles: list[str],
+        seed_agent_by_handle: dict[str, Agent],
+    ) -> None:
+        """Handle missing handles in the seed-state agent catalog."""
+        missing_handles = [
+            handle for handle in selected_handles if handle not in seed_agent_by_handle
+        ]
+        if missing_handles:
+            raise ValueError(
+                "Selected agents are missing from the seed-state agent catalog: "
+                f"{missing_handles}"
+            )
 
     def _convert_action_counts_to_enum(
         self, action_counts: dict[str, int]
