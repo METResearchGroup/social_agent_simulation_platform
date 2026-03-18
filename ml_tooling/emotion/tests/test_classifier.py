@@ -122,11 +122,11 @@ class TestToEmotionLabel:
 
     def test_normal_case_valid_timestamp(self, normal_case):
         result = self._run_normal_case(normal_case)
-        datetime.strptime(result.label_timestamp, "%Y_%m_%d-%H:%M:%S")
+        assert datetime.strptime(result.label_timestamp, "%Y_%m_%d-%H:%M:%S")
 
     def test_normal_case_valid_uuid(self, normal_case):
         result = self._run_normal_case(normal_case)
-        uuid.UUID(result.text_id)
+        assert uuid.UUID(result.text_id)
 
     def test_normal_case_text_kept(self, normal_case):
         result = self._run_normal_case(normal_case)
