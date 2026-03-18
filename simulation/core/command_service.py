@@ -60,11 +60,6 @@ logger = logging.getLogger(__name__)
 
 STATUS_UPDATE_MAX_ATTEMPTS: int = 3
 STATUS_UPDATE_BACKOFF_BASE: int = 2
-ACTION_KEY_TO_TURN_ACTION: dict[str, TurnAction] = {
-    "likes": TurnAction.LIKE,
-    "comments": TurnAction.COMMENT,
-    "follows": TurnAction.FOLLOW,
-}
 
 
 class SimulationCommandService:
@@ -325,9 +320,7 @@ class SimulationCommandService:
             agents_with_feeds=set(agent_to_hydrated_feeds.keys()),
         )
 
-        total_actions: dict[str, int] = {
-            action_key: 0 for action_key in ACTION_KEY_TO_TURN_ACTION
-        }
+        total_actions: dict[TurnAction, int] = {action: 0 for action in TurnAction}
         turn_likes: list[GeneratedLike] = []
         turn_comments: list[GeneratedComment] = []
         turn_follows: list[GeneratedFollow] = []
@@ -394,17 +387,16 @@ class SimulationCommandService:
             turn_likes.extend(likes)
             turn_comments.extend(comments)
             turn_follows.extend(follows)
-            total_actions["likes"] += len(likes)
-            total_actions["comments"] += len(comments)
-            total_actions["follows"] += len(follows)
+            total_actions[TurnAction.LIKE] += len(likes)
+            total_actions[TurnAction.COMMENT] += len(comments)
+            total_actions[TurnAction.FOLLOW] += len(follows)
 
-        converted_actions = self._convert_action_counts_to_enum(total_actions)
         created_at: str = get_current_timestamp()
 
         turn_metadata = TurnMetadata(
             run_id=run_id,
             turn_number=turn_number,
-            total_actions=converted_actions,
+            total_actions=total_actions,
             created_at=created_at,
         )
 
@@ -430,7 +422,7 @@ class SimulationCommandService:
 
         return TurnResult(
             turn_number=turn_number,
-            total_actions=converted_actions,
+            total_actions=total_actions,
             execution_time_ms=None,
         )
 
@@ -625,25 +617,3 @@ class SimulationCommandService:
             )
 
         return snapshot_rows
-
-    def _convert_action_counts_to_enum(
-        self, action_counts: dict[str, int]
-    ) -> dict[TurnAction, int]:
-        """Convert action counts from string keys to TurnAction enum keys."""
-        converted: dict[TurnAction, int] = {}
-
-        all_enum_values = set(TurnAction)
-        mapped_values = set(ACTION_KEY_TO_TURN_ACTION.values())
-        if all_enum_values != mapped_values:
-            missing = all_enum_values - mapped_values
-            raise ValueError(
-                f"Missing mapping for TurnAction enum values: {missing}. "
-                "All enum values must be mapped."
-            )
-
-        for key, count in action_counts.items():
-            if key not in ACTION_KEY_TO_TURN_ACTION:
-                raise ValueError(f"Unknown action type: {key}")
-            converted[ACTION_KEY_TO_TURN_ACTION[key]] = count
-
-        return converted
