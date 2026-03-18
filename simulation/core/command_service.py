@@ -229,12 +229,12 @@ class SimulationCommandService:
                 run_config.feed_algorithm_config
             )
             self._simulate_turn(
-                run.run_id,
-                turn_number,
-                agents,
-                run_config.feed_algorithm,
-                action_history_store,
-                turn_metric_keys,
+                run=run,
+                turn_number=turn_number,
+                agents=agents,
+                feed_algorithm=run_config.feed_algorithm,
+                action_history_store=action_history_store,
+                turn_metric_keys=turn_metric_keys,
                 feed_algorithm_config=feed_algorithm_config,
             )
         except Exception as e:
@@ -265,6 +265,7 @@ class SimulationCommandService:
         action_history_store: ActionHistoryStore,
         turn_metric_keys: list[str],
     ) -> None:
+        validate_run_exists(run=run, run_id=run.run_id)
         for turn_number in range(total_turns):
             self.simulate_turn(
                 run=run,
@@ -292,7 +293,7 @@ class SimulationCommandService:
     @timed()
     def _simulate_turn(
         self,
-        run_id: str,
+        run: Run,
         turn_number: int,
         agents: list[SimulationAgent],
         feed_algorithm: str,
@@ -301,9 +302,7 @@ class SimulationCommandService:
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
     ) -> TurnResult:
         """Simulate a single turn of the simulation."""
-
-        run = self.run_repo.get_run(run_id)
-        validate_run_exists(run=run, run_id=run_id)
+        run_id: str = run.run_id
 
         agent_to_hydrated_feeds: dict[str, list[Post]] = (
             self.feed_generator.generate_feeds(
