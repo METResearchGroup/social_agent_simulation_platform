@@ -445,8 +445,13 @@ class AgentPostRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list_posts_for_agent_ids(self, agent_ids: list[str]) -> list[AgentPost]:
-        """List posts for the provided agent IDs in deterministic order."""
+    def list_posts_for_agent_ids(
+        self, agent_ids: list[str], conn: object | None = None
+    ) -> list[AgentPost]:
+        """List posts for the provided agent IDs in deterministic order.
+
+        If `conn` is provided, the read must participate in that transaction.
+        """
         raise NotImplementedError
 
     @abstractmethod

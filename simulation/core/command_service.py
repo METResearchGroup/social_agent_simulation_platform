@@ -530,7 +530,10 @@ class SimulationCommandService:
             return []
 
         agent_ids = [s.agent_id for s in run_agent_snapshots]
-        agent_posts = self.agent_post_repo.list_posts_for_agent_ids(agent_ids)
+        agent_posts = self.agent_post_repo.list_posts_for_agent_ids(
+            agent_ids,
+            conn=conn,
+        )
 
         handle_by_agent_id: dict[str, str] = {
             s.agent_id: s.handle_at_start for s in run_agent_snapshots
