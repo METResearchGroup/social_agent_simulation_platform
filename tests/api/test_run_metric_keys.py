@@ -16,7 +16,7 @@ class TestRunMetricKeys:
             "turn.actions.total",
             "run.actions.total",
         ]
-        fastapi_app.state.engine = EngineFactory.create_completed_run_engine(
+        fastapi_app.state.deps.engine = EngineFactory.create_completed_run_engine(
             run_id="run-metrics-test",
             total_turns=1,
             total_agents=1,
@@ -46,7 +46,7 @@ class TestRunMetricKeys:
         """POST without metric_keys uses default built-in keys."""
         client, fastapi_app = simulation_client
         default_keys = get_default_metric_keys()
-        fastapi_app.state.engine = EngineFactory.create_completed_run_engine(
+        fastapi_app.state.deps.engine = EngineFactory.create_completed_run_engine(
             run_id="run-metrics-test",
             total_turns=1,
             total_agents=1,
@@ -71,7 +71,7 @@ class TestRunMetricKeys:
         """POST with unknown metric key returns 422 validation error."""
         client, fastapi_app = simulation_client
         default_keys = get_default_metric_keys()
-        fastapi_app.state.engine = EngineFactory.create_completed_run_engine(
+        fastapi_app.state.deps.engine = EngineFactory.create_completed_run_engine(
             run_id="run-metrics-test",
             total_turns=1,
             total_agents=1,
@@ -92,7 +92,7 @@ class TestRunMetricKeys:
         """POST with empty metric_keys returns 422; omit the field or use valid keys."""
         client, fastapi_app = simulation_client
         default_keys = get_default_metric_keys()
-        fastapi_app.state.engine = EngineFactory.create_completed_run_engine(
+        fastapi_app.state.deps.engine = EngineFactory.create_completed_run_engine(
             run_id="run-metrics-test",
             total_turns=1,
             total_agents=1,

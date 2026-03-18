@@ -646,7 +646,7 @@ class TestSimulationCommandServiceExecuteRun:
         ):
             action_history_store = Mock()
             result = command_service._simulate_turn(
-                run_id=sample_run.run_id,
+                run=sample_run,
                 turn_number=0,
                 agents=[agent],
                 feed_algorithm="chronological",
@@ -755,7 +755,7 @@ class TestSimulationCommandServiceExecuteRun:
         ):
             action_history_store = Mock()
             result = command_service._simulate_turn(
-                run_id=sample_run.run_id,
+                run=sample_run,
                 turn_number=0,
                 agents=[agent],
                 feed_algorithm="chronological",
@@ -832,7 +832,7 @@ class TestSimulationCommandServiceExecuteRun:
 
         action_history_store = InMemoryActionHistoryStore()
         result = command_service._simulate_turn(
-            run_id=sample_run.run_id,
+            run=sample_run,
             turn_number=0,
             agents=[agent],
             feed_algorithm="chronological",
@@ -992,7 +992,7 @@ class TestSimulationCommandServiceActionPersistence:
             ),
         ):
             command_service._simulate_turn(
-                run_id=run_id,
+                run=run,
                 turn_number=0,
                 agents=[agent],
                 feed_algorithm="chronological",

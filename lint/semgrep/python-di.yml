@@ -25,6 +25,7 @@ rules:
       exclude:
         - /simulation/core/factories/
         - /simulation/api/main.py
+        - /simulation/api/context.py
         - /db/
         - /jobs/
         - /simulation/local_dev/
