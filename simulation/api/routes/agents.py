@@ -208,14 +208,14 @@ async def _execute_post_simulation_agents(
 ) -> AgentSchema | Response:
     """Create agent and convert known failures to HTTP responses."""
     try:
-        app_state = request.app.state
+        deps = request.app.state.deps
         return await asyncio.to_thread(
             create_agent,
             body,
-            transaction_provider=app_state.transaction_provider,
-            agent_repo=app_state.agent_repo,
-            bio_repo=app_state.agent_bio_repo,
-            metadata_repo=app_state.agent_metadata_repo,
+            transaction_provider=deps.transaction_provider,
+            agent_repo=deps.agent_repo,
+            bio_repo=deps.agent_bio_repo,
+            metadata_repo=deps.agent_metadata_repo,
         )
     except ApiHandleAlreadyExistsError as e:
         return error_response(
@@ -251,12 +251,12 @@ async def _execute_get_simulation_agents(
 ) -> list[AgentSchema] | Response:
     """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
     try:
-        app_state = request.app.state
+        deps = request.app.state.deps
         return await asyncio.to_thread(
             list_agents,
-            agent_repo=app_state.agent_repo,
-            bio_repo=app_state.agent_bio_repo,
-            metadata_repo=app_state.agent_metadata_repo,
+            agent_repo=deps.agent_repo,
+            bio_repo=deps.agent_bio_repo,
+            metadata_repo=deps.agent_metadata_repo,
             q=q,
             limit=limit,
             offset=offset,
@@ -281,12 +281,12 @@ async def _execute_get_simulation_agent_follows(
 ) -> ListAgentFollowsResponse | Response:
     """Fetch seed-state follow edges and convert known failures to HTTP responses."""
     try:
-        app_state = request.app.state
+        deps = request.app.state.deps
         return await asyncio.to_thread(
             list_agent_follows,
             handle,
-            agent_repo=app_state.agent_repo,
-            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
+            agent_repo=deps.agent_repo,
+            agent_follow_edge_repo=deps.agent_follow_edge_repo,
             limit=limit,
             offset=offset,
         )
@@ -323,15 +323,15 @@ async def _execute_post_simulation_agent_follows(
 ) -> AgentFollowEdgeSchema | Response:
     """Create seed-state follow edge and convert known failures to HTTP responses."""
     try:
-        app_state = request.app.state
+        deps = request.app.state.deps
         return await asyncio.to_thread(
             create_agent_follow,
             handle,
             body,
-            transaction_provider=app_state.transaction_provider,
-            agent_repo=app_state.agent_repo,
-            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
-            metadata_repo=app_state.agent_metadata_repo,
+            transaction_provider=deps.transaction_provider,
+            agent_repo=deps.agent_repo,
+            agent_follow_edge_repo=deps.agent_follow_edge_repo,
+            metadata_repo=deps.agent_metadata_repo,
         )
     except ApiAgentNotFoundError as e:
         return error_response(
@@ -387,15 +387,15 @@ async def _execute_delete_simulation_agent_follow(
 ) -> Response:
     """Delete seed-state follow edge and convert known failures to HTTP responses."""
     try:
-        app_state = request.app.state
+        deps = request.app.state.deps
         await asyncio.to_thread(
             delete_agent_follow,
             handle,
             target_handle,
-            transaction_provider=app_state.transaction_provider,
-            agent_repo=app_state.agent_repo,
-            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
-            metadata_repo=app_state.agent_metadata_repo,
+            transaction_provider=deps.transaction_provider,
+            agent_repo=deps.agent_repo,
+            agent_follow_edge_repo=deps.agent_follow_edge_repo,
+            metadata_repo=deps.agent_metadata_repo,
         )
         return Response(status_code=204)
     except ApiAgentNotFoundError as e:
@@ -442,15 +442,15 @@ async def _execute_delete_simulation_agent(
 ) -> Response:
     """Delete agent and convert known failures to HTTP responses."""
     try:
-        app_state = request.app.state
+        deps = request.app.state.deps
         await asyncio.to_thread(
             delete_agent,
             handle,
-            transaction_provider=app_state.transaction_provider,
-            agent_repo=app_state.agent_repo,
-            bio_repo=app_state.agent_bio_repo,
-            agent_follow_edge_repo=app_state.agent_follow_edge_repo,
-            metadata_repo=app_state.agent_metadata_repo,
+            transaction_provider=deps.transaction_provider,
+            agent_repo=deps.agent_repo,
+            bio_repo=deps.agent_bio_repo,
+            agent_follow_edge_repo=deps.agent_follow_edge_repo,
+            metadata_repo=deps.agent_metadata_repo,
         )
         return Response(status_code=204)
     except ApiAgentNotFoundError as e:
