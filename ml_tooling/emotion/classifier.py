@@ -7,7 +7,7 @@ from transformers import pipeline
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.emotion.models import EmotionLabel
 
-RawEmotions = dict[str, str | float]
+RawEmotions = dict[str, float]
 EmotionsBatchResponse = list[list[RawEmotions]]
 EmotionsSingleResponse = list[RawEmotions]
 EmotionsResponse = EmotionsSingleResponse | EmotionsBatchResponse
@@ -50,7 +50,7 @@ class EmotionModel:
         timestamp = get_current_timestamp()
         text_id = str(uuid.uuid4())
 
-        emotion_scores = {}
+        emotion_scores: dict[str, float] = {}
         for dictionary in emotion_distribution:
             label = str(dictionary["label"])
             emotion_scores[label] = dictionary["score"]
