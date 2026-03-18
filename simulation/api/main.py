@@ -19,11 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from db.adapters.sqlite.sqlite import (
-    SqliteTransactionProvider,
-    get_db_path,
-    initialize_database,
-)
+from db.adapters.sqlite.sqlite import get_db_path, initialize_database
 from lib.env_utils import is_local_mode, parse_bool_env
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
@@ -76,8 +72,7 @@ async def lifespan(app: FastAPI):
     if is_local_mode():
         await asyncio.to_thread(_ensure_local_seed_data)
 
-    transaction_provider = SqliteTransactionProvider()
-    app.state.deps = await asyncio.to_thread(build_app_context, transaction_provider)
+    app.state.deps = await asyncio.to_thread(build_app_context)
     yield
 
 

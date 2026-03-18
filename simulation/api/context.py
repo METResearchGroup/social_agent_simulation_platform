@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from db.adapters.base import TransactionProvider
+from db.adapters.sqlite.sqlite import SqliteTransactionProvider
 from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
 from db.repositories.agent_follow_edge_repository import (
     create_sqlite_agent_follow_edge_repository,
@@ -50,8 +51,9 @@ class AppContext:
     engine: SimulationEngine
 
 
-def build_app_context(transaction_provider: TransactionProvider) -> AppContext:
-    """Create repositories and engine, return bundled AppContext."""
+def build_app_context() -> AppContext:
+    """Create transaction provider, repositories, and engine; return bundled AppContext."""
+    transaction_provider = SqliteTransactionProvider()
     agent_repo = create_sqlite_agent_repository(
         transaction_provider=transaction_provider
     )
