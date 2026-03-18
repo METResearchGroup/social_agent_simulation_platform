@@ -56,12 +56,14 @@ def _mock_require_auth() -> dict:
 
 @pytest.fixture
 def simulation_client(temp_db):
-    """TestClient for simulation API. Saves and restores app.state.engine after each test.
+    """TestClient for simulation API. Saves and restores app.state.deps.engine after each test.
 
     Overrides require_auth to bypass JWT verification so simulation route tests
     do not need tokens.
     """
-    original_engine = getattr(app.state, "engine", None)
+    original_engine: object | None = None
+    if hasattr(app.state, "deps") and app.state.deps is not None:
+        original_engine = app.state.deps.engine
     app.dependency_overrides[require_auth] = _mock_require_auth
     app.dependency_overrides[require_current_app_user] = _mock_require_current_app_user
     try:
@@ -71,7 +73,12 @@ def simulation_client(temp_db):
     finally:
         app.dependency_overrides.pop(require_auth, None)
         app.dependency_overrides.pop(require_current_app_user, None)
-        app.state.engine = original_engine
+        if (
+            hasattr(app.state, "deps")
+            and app.state.deps is not None
+            and original_engine is not None
+        ):
+            app.state.deps.engine = original_engine
 
 
 @pytest.fixture
