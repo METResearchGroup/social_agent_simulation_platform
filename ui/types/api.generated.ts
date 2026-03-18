@@ -181,7 +181,7 @@ export interface paths {
         };
         /**
          * List simulation posts
-         * @description Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.
+         * @description Return posts, optionally filtered by post_ids. When run_id is provided with post_ids, resolve from run_posts (run-scoped). Otherwise resolve from feed_posts.
          */
         get: operations["get_simulation_posts_v1_simulations_posts_get"];
         put?: never;
@@ -483,7 +483,7 @@ export interface components {
          * @description Source platform/type for a post.
          * @enum {string}
          */
-        PostSource: "bluesky" | "ai_generated";
+        PostSource: "bluesky" | "ai_generated" | "seed_state";
         /**
          * RunConfigDetail
          * @description Configuration for a persisted run.
@@ -960,8 +960,10 @@ export interface operations {
     get_simulation_posts_v1_simulations_posts_get: {
         parameters: {
             query?: {
-                /** @description Filter by canonical post_ids */
+                /** @description Filter by post_ids (run_post_ids when run_id provided) */
                 post_ids?: string[] | null;
+                /** @description Run ID for run-scoped post lookup (post_ids must be run_post_ids) */
+                run_id?: string | null;
             };
             header?: never;
             path?: never;

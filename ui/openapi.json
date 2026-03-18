@@ -446,7 +446,8 @@
         "description": "Source platform/type for a post.",
         "enum": [
           "bluesky",
-          "ai_generated"
+          "ai_generated",
+          "seed_state"
         ],
         "title": "PostSource",
         "type": "string"
@@ -1367,11 +1368,11 @@
     },
     "/v1/simulations/posts": {
       "get": {
-        "description": "Return posts, optionally filtered by canonical post_ids. Batch lookup for feed resolution.",
+        "description": "Return posts, optionally filtered by post_ids. When run_id is provided with post_ids, resolve from run_posts (run-scoped). Otherwise resolve from feed_posts.",
         "operationId": "get_simulation_posts_v1_simulations_posts_get",
         "parameters": [
           {
-            "description": "Filter by canonical post_ids",
+            "description": "Filter by post_ids (run_post_ids when run_id provided)",
             "in": "query",
             "name": "post_ids",
             "required": false,
@@ -1387,8 +1388,26 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by canonical post_ids",
+              "description": "Filter by post_ids (run_post_ids when run_id provided)",
               "title": "Post Ids"
+            }
+          },
+          {
+            "description": "Run ID for run-scoped post lookup (post_ids must be run_post_ids)",
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Run ID for run-scoped post lookup (post_ids must be run_post_ids)",
+              "title": "Run Id"
             }
           }
         ],
