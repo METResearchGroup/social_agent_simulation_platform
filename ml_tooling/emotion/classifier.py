@@ -74,9 +74,18 @@ class EmotionModel:
             label_timestamp=timestamp,
         )
 
+    def _normalize_single_response(
+        self, raw: EmotionsResponse
+    ) -> EmotionsSingleResponse:
+        if not raw:
+            raise ValueError("Emotion pipeline returned empty response")
+        if isinstance(raw[0], dict):
+            return cast(EmotionsSingleResponse, raw)
+        return cast(EmotionsBatchResponse, raw)[0]
+
     def extract_emotions(self, text: str) -> EmotionLabel:
-        response = cast(EmotionsBatchResponse, self._emotions_pipeline(text))
-        return self._to_emotion_label(response[0], text)
+        raw = self._emotions_pipeline(text)
+        return self._to_emotion_label(self._normalize_single_response(raw), text)
 
     def extract_emotions_batch(self, texts: list[str]) -> list[EmotionLabel]:
         if not texts:
