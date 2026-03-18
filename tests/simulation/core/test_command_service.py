@@ -171,20 +171,12 @@ class TestSimulationCommandServiceUpdateRunStatus:
             RunStatusUpdateError(sample_run.run_id, "second"),
             None,
         ]
-        delays: list[float] = []
-
-        def _fake_sleep(delay_s: float) -> None:
-            delays.append(delay_s)
-
-        command_service.update_run_status(
-            sample_run,
-            RunStatus.RUNNING,
-            sleeper=_fake_sleep,
-        )
+        with patch("simulation.core.command_service.time.sleep") as mock_sleep:
+            command_service.update_run_status(sample_run, RunStatus.RUNNING)
         assert mock_repos["run_repo"].update_run_status.call_count == 3
-        assert delays == [
-            float(STATUS_UPDATE_BACKOFF_BASE**0),
-            float(STATUS_UPDATE_BACKOFF_BASE**1),
+        assert mock_sleep.call_args_list == [
+            ((float(STATUS_UPDATE_BACKOFF_BASE**0),), {}),
+            ((float(STATUS_UPDATE_BACKOFF_BASE**1),), {}),
         ]
 
     def test_retries_then_fails_marks_run_failed(
@@ -202,18 +194,9 @@ class TestSimulationCommandServiceUpdateRunStatus:
             raise AssertionError(f"Unexpected status: {status}")
 
         mock_repos["run_repo"].update_run_status.side_effect = _update_run_status
-
-        delays: list[float] = []
-
-        def _fake_sleep(delay_s: float) -> None:
-            delays.append(delay_s)
-
-        with pytest.raises(RunStatusUpdateError) as exc_info:
-            command_service.update_run_status(
-                sample_run,
-                RunStatus.RUNNING,
-                sleeper=_fake_sleep,
-            )
+        with patch("simulation.core.command_service.time.sleep") as mock_sleep:
+            with pytest.raises(RunStatusUpdateError) as exc_info:
+                command_service.update_run_status(sample_run, RunStatus.RUNNING)
 
         assert exc_info.value.run_id == sample_run.run_id
         assert (
@@ -225,9 +208,9 @@ class TestSimulationCommandServiceUpdateRunStatus:
         assert mock_repos["run_repo"].update_run_status.call_count == (
             STATUS_UPDATE_MAX_ATTEMPTS + 1
         )
-        assert delays == [
-            float(STATUS_UPDATE_BACKOFF_BASE**0),
-            float(STATUS_UPDATE_BACKOFF_BASE**1),
+        assert mock_sleep.call_args_list == [
+            ((float(STATUS_UPDATE_BACKOFF_BASE**0),), {}),
+            ((float(STATUS_UPDATE_BACKOFF_BASE**1),), {}),
         ]
 
 

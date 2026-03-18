@@ -191,8 +191,6 @@ class SimulationCommandService:
         self,
         run: Run,
         status: RunStatus,
-        *,
-        sleeper: Callable[[float], None] = time.sleep,
     ) -> None:
         """Update run status, retrying transient DB errors with backoff."""
 
@@ -205,7 +203,7 @@ class SimulationCommandService:
                 retry_on=RunStatusUpdateError,
                 max_attempts=STATUS_UPDATE_MAX_ATTEMPTS,
                 backoff_base=STATUS_UPDATE_BACKOFF_BASE,
-                sleeper=sleeper,
+                sleeper=time.sleep,
             )
         except RunStatusUpdateError as e:
             # Best-effort: if the requested status isn't terminal, attempt to
