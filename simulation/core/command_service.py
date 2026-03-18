@@ -1,5 +1,4 @@
 import logging
-import time
 from collections.abc import Callable, Mapping
 
 from pydantic import JsonValue
@@ -203,7 +202,6 @@ class SimulationCommandService:
                 retry_on=RunStatusUpdateError,
                 max_attempts=STATUS_UPDATE_MAX_ATTEMPTS,
                 backoff_base=STATUS_UPDATE_BACKOFF_BASE,
-                sleeper=time.sleep,
             )
         except RunStatusUpdateError as e:
             # Best-effort: if the requested status isn't terminal, attempt to

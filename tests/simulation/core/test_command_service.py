@@ -171,7 +171,7 @@ class TestSimulationCommandServiceUpdateRunStatus:
             RunStatusUpdateError(sample_run.run_id, "second"),
             None,
         ]
-        with patch("simulation.core.command_service.time.sleep") as mock_sleep:
+        with patch("simulation.core.utils.retry.time.sleep") as mock_sleep:
             command_service.update_run_status(sample_run, RunStatus.RUNNING)
         assert mock_repos["run_repo"].update_run_status.call_count == 3
         assert mock_sleep.call_args_list == [
@@ -194,7 +194,7 @@ class TestSimulationCommandServiceUpdateRunStatus:
             raise AssertionError(f"Unexpected status: {status}")
 
         mock_repos["run_repo"].update_run_status.side_effect = _update_run_status
-        with patch("simulation.core.command_service.time.sleep") as mock_sleep:
+        with patch("simulation.core.utils.retry.time.sleep") as mock_sleep:
             with pytest.raises(RunStatusUpdateError) as exc_info:
                 command_service.update_run_status(sample_run, RunStatus.RUNNING)
 
