@@ -72,7 +72,7 @@ class Violation:
 
 def _is_composition_root(path: str) -> bool:
     p = path.replace("\\", "/")
-    if p in {"simulation/api/main.py"}:
+    if p in {"simulation/api/main.py", "simulation/api/context.py"}:
         return True
     return any(p.startswith(prefix) for prefix in COMPOSITION_ROOT_PREFIXES)
 

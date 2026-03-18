@@ -27,7 +27,7 @@ def require_current_app_user(
             detail="Display name must be present in the Supabase claims.",
         )
 
-    repo = request.app.state.app_user_repository
+    repo = request.app.state.deps.app_user_repository
     app_user = repo.upsert_from_auth(
         auth_provider_id=auth_provider_id,
         email=email,

@@ -71,7 +71,7 @@ def mock_engine_minimal_success():
 def _trigger_rate_limit(client, fastapi_app, ip: str, mock_engine) -> list:
     """Exceed rate limit by making 6 requests. Returns list of 6 responses."""
     fastapi_app.state.limiter.reset()
-    fastapi_app.state.engine = mock_engine
+    fastapi_app.state.deps.engine = mock_engine
     headers = {"Content-Type": "application/json", "X-Forwarded-For": ip}
     payload = {"num_agents": 1, "num_turns": 1}
     return [
