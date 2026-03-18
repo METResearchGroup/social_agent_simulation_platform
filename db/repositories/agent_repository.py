@@ -1,11 +1,13 @@
 """SQLite implementation of agent repositories."""
 
+import sqlite3
 from collections.abc import Iterable
 
 from db.adapters.base import AgentDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import AgentRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.agent import Agent
+from simulation.core.utils.exceptions import HandleAlreadyExistsError
 from simulation.core.utils.validators import validate_agent_id, validate_handle_exists
 
 
@@ -24,11 +26,22 @@ class SQLiteAgentRepository(AgentRepository):
 
     def create_or_update_agent(self, agent: Agent, conn: object | None = None) -> Agent:
         """Create or update an agent in SQLite."""
-        if conn is not None:
-            self._db_adapter.write_agent(agent, conn=conn)
-        else:
-            with self._transaction_provider.run_transaction() as c:
-                self._db_adapter.write_agent(agent, conn=c)
+        try:
+            if conn is not None:
+                self._db_adapter.write_agent(agent, conn=conn)
+            else:
+                with self._transaction_provider.run_transaction() as c:
+                    self._db_adapter.write_agent(agent, conn=c)
+        except sqlite3.IntegrityError as exc:
+            # `agent.handle` is unique; translate constraint violations into a
+            # stable domain error so API services can map to HTTP 409.
+            msg = str(exc).lower()
+            is_unique_handle_violation = "uq_agent_handle" in msg or (
+                "unique constraint failed" in msg and "agent.handle" in msg
+            )
+            if is_unique_handle_violation:
+                raise HandleAlreadyExistsError(agent.handle) from exc
+            raise
         return agent
 
     @validate_inputs((validate_agent_id, "agent_id"))
