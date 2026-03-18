@@ -12,7 +12,11 @@ from simulation.core.action_policy import (
     AgentActionRulesValidator,
     HistoryAwareActionFeedFilter,
 )
-from simulation.core.command_service import SimulationCommandService
+from simulation.core.command_service import (
+    STATUS_UPDATE_BACKOFF_BASE,
+    STATUS_UPDATE_MAX_ATTEMPTS,
+    SimulationCommandService,
+)
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
 from simulation.core.models.actions import TurnAction
@@ -167,10 +171,64 @@ class TestSimulationCommandServiceUpdateRunStatus:
             RunStatusUpdateError(sample_run.run_id, "second"),
             None,
         ]
-        with patch("simulation.core.command_service.time.sleep") as mock_sleep:
-            command_service.update_run_status(sample_run, RunStatus.RUNNING)
+        delays: list[float] = []
+
+        def _fake_sleep(delay_s: float) -> None:
+            delays.append(delay_s)
+
+        command_service.update_run_status(
+            sample_run,
+            RunStatus.RUNNING,
+            sleeper=_fake_sleep,
+        )
         assert mock_repos["run_repo"].update_run_status.call_count == 3
-        assert mock_sleep.call_count == 2
+        assert delays == [
+            float(STATUS_UPDATE_BACKOFF_BASE**0),
+            float(STATUS_UPDATE_BACKOFF_BASE**1),
+        ]
+
+    def test_retries_then_fails_marks_run_failed(
+        self, command_service, mock_repos, sample_run
+    ):
+        attempts = 0
+
+        def _update_run_status(run_id: str, status: RunStatus) -> None:
+            nonlocal attempts
+            if status == RunStatus.RUNNING:
+                attempts += 1
+                raise RunStatusUpdateError(run_id, "transient")
+            if status == RunStatus.FAILED:
+                return None
+            raise AssertionError(f"Unexpected status: {status}")
+
+        mock_repos["run_repo"].update_run_status.side_effect = _update_run_status
+
+        delays: list[float] = []
+
+        def _fake_sleep(delay_s: float) -> None:
+            delays.append(delay_s)
+
+        with pytest.raises(RunStatusUpdateError) as exc_info:
+            command_service.update_run_status(
+                sample_run,
+                RunStatus.RUNNING,
+                sleeper=_fake_sleep,
+            )
+
+        assert exc_info.value.run_id == sample_run.run_id
+        assert (
+            f"Failed to update status to {RunStatus.RUNNING.value} after {STATUS_UPDATE_MAX_ATTEMPTS} attempts"
+            in str(exc_info.value)
+        )
+        assert attempts == STATUS_UPDATE_MAX_ATTEMPTS
+        # `max_attempts` failed attempts + one best-effort FAILED mark.
+        assert mock_repos["run_repo"].update_run_status.call_count == (
+            STATUS_UPDATE_MAX_ATTEMPTS + 1
+        )
+        assert delays == [
+            float(STATUS_UPDATE_BACKOFF_BASE**0),
+            float(STATUS_UPDATE_BACKOFF_BASE**1),
+        ]
 
 
 class TestSimulationCommandServiceExecuteRun:

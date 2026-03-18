@@ -49,6 +49,7 @@ from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
+from simulation.core.utils.retry import retry_with_exponential_backoff
 from simulation.core.utils.validators import (
     validate_agents_without_feeds,
     validate_duplicate_agent_handles,
@@ -186,33 +187,47 @@ class SimulationCommandService:
             )
         return run_agent_snapshots, run_follow_edge_snapshots
 
-    def update_run_status(self, run: Run, status: RunStatus) -> None:
-        for attempt in range(STATUS_UPDATE_MAX_ATTEMPTS):
-            try:
-                self.run_repo.update_run_status(run.run_id, status)
-                break
-            except RunStatusUpdateError as e:
-                if attempt == STATUS_UPDATE_MAX_ATTEMPTS - 1:
-                    if status != RunStatus.FAILED:
-                        try:
-                            self.run_repo.update_run_status(
-                                run.run_id, RunStatus.FAILED
-                            )
-                        except Exception:
-                            logger.warning(
-                                "Failed to update run %s status to %s",
-                                run.run_id,
-                                RunStatus.FAILED,
-                                exc_info=True,
-                            )
-                    raise RunStatusUpdateError(
+    def update_run_status(
+        self,
+        run: Run,
+        status: RunStatus,
+        *,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
+        """Update run status, retrying transient DB errors with backoff."""
+
+        def _attempt_update() -> None:
+            self.run_repo.update_run_status(run.run_id, status)
+
+        try:
+            retry_with_exponential_backoff(
+                operation=_attempt_update,
+                retry_on=RunStatusUpdateError,
+                max_attempts=STATUS_UPDATE_MAX_ATTEMPTS,
+                backoff_base=STATUS_UPDATE_BACKOFF_BASE,
+                sleeper=sleeper,
+            )
+        except RunStatusUpdateError as e:
+            # Best-effort: if the requested status isn't terminal, attempt to
+            # mark the run as FAILED on final retry exhaustion.
+            if status != RunStatus.FAILED:
+                try:
+                    self.run_repo.update_run_status(run.run_id, RunStatus.FAILED)
+                except Exception:
+                    logger.warning(
+                        "Failed to update run %s status to %s",
                         run.run_id,
-                        (
-                            "Failed to update status to "
-                            f"{status.value} after {STATUS_UPDATE_MAX_ATTEMPTS} attempts"
-                        ),
-                    ) from e
-                time.sleep(STATUS_UPDATE_BACKOFF_BASE**attempt)
+                        RunStatus.FAILED,
+                        exc_info=True,
+                    )
+
+            raise RunStatusUpdateError(
+                run.run_id,
+                (
+                    "Failed to update status to "
+                    f"{status.value} after {STATUS_UPDATE_MAX_ATTEMPTS} attempts"
+                ),
+            ) from e
 
     def simulate_turn(
         self,
