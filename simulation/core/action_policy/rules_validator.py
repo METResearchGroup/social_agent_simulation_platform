@@ -1,12 +1,139 @@
 from __future__ import annotations
 
 from collections import Counter
+from typing import Callable
 
 from simulation.core.action_history.interfaces import ActionHistoryStore
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+
+# Type alias for duplicate validator: (validator, run_id, turn_number, agent_handle, identifiers) -> None
+_DuplicateValidator = Callable[
+    ["AgentActionRulesValidator", str, int, str, list[str]], None
+]
+# Type alias for history validator: (validator, run_id, turn_number, agent_handle, identifiers, store) -> None
+_HistoryValidator = Callable[
+    [
+        "AgentActionRulesValidator",
+        str,
+        int,
+        str,
+        list[str],
+        ActionHistoryStore,
+    ],
+    None,
+]
+
+
+def _dispatch_duplicate_like(
+    validator: AgentActionRulesValidator,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    identifiers: list[str],
+) -> None:
+    validator._validate_duplicate_likes(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        like_post_ids=identifiers,
+    )
+
+
+def _dispatch_duplicate_comment(
+    validator: AgentActionRulesValidator,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    identifiers: list[str],
+) -> None:
+    validator._validate_duplicate_comments(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        comment_post_ids=identifiers,
+    )
+
+
+def _dispatch_duplicate_follow(
+    validator: AgentActionRulesValidator,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    identifiers: list[str],
+) -> None:
+    validator._validate_duplicate_follows(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        follow_user_ids=identifiers,
+    )
+
+
+def _dispatch_history_like(
+    validator: AgentActionRulesValidator,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    identifiers: list[str],
+    action_history_store: ActionHistoryStore,
+) -> None:
+    validator._validate_previously_liked(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        like_post_ids=identifiers,
+        action_history_store=action_history_store,
+    )
+
+
+def _dispatch_history_comment(
+    validator: AgentActionRulesValidator,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    identifiers: list[str],
+    action_history_store: ActionHistoryStore,
+) -> None:
+    validator._validate_previously_commented(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        comment_post_ids=identifiers,
+        action_history_store=action_history_store,
+    )
+
+
+def _dispatch_history_follow(
+    validator: AgentActionRulesValidator,
+    run_id: str,
+    turn_number: int,
+    agent_handle: str,
+    identifiers: list[str],
+    action_history_store: ActionHistoryStore,
+) -> None:
+    validator._validate_previously_followed(
+        run_id=run_id,
+        turn_number=turn_number,
+        agent_handle=agent_handle,
+        follow_user_ids=identifiers,
+        action_history_store=action_history_store,
+    )
+
+
+_DUPLICATE_DISPATCH: dict[TurnAction, _DuplicateValidator] = {
+    TurnAction.LIKE: _dispatch_duplicate_like,
+    TurnAction.COMMENT: _dispatch_duplicate_comment,
+    TurnAction.FOLLOW: _dispatch_duplicate_follow,
+}
+
+_HISTORY_DISPATCH: dict[TurnAction, _HistoryValidator] = {
+    TurnAction.LIKE: _dispatch_history_like,
+    TurnAction.COMMENT: _dispatch_history_comment,
+    TurnAction.FOLLOW: _dispatch_history_follow,
+}
 
 
 class AgentActionRulesValidator:
@@ -126,31 +253,12 @@ class AgentActionRulesValidator:
         agent_handle: str,
         identifiers: list[str],
     ) -> None:
-        if action_type == TurnAction.LIKE:
-            self._validate_duplicate_likes(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                like_post_ids=identifiers,
-            )
-        elif action_type == TurnAction.COMMENT:
-            self._validate_duplicate_comments(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                comment_post_ids=identifiers,
-            )
-        elif action_type == TurnAction.FOLLOW:
-            self._validate_duplicate_follows(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                follow_user_ids=identifiers,
-            )
-        else:
+        validator_fn = _DUPLICATE_DISPATCH.get(action_type)
+        if validator_fn is None:
             raise ValueError(
                 f"Unknown action_type for duplicate validation: {action_type}"
             )
+        validator_fn(self, run_id, turn_number, agent_handle, identifiers)
 
     def _validate_previously_acted_on(
         self,
@@ -162,34 +270,19 @@ class AgentActionRulesValidator:
         identifiers: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
-        if action_type == TurnAction.LIKE:
-            self._validate_previously_liked(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                like_post_ids=identifiers,
-                action_history_store=action_history_store,
-            )
-        elif action_type == TurnAction.COMMENT:
-            self._validate_previously_commented(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                comment_post_ids=identifiers,
-                action_history_store=action_history_store,
-            )
-        elif action_type == TurnAction.FOLLOW:
-            self._validate_previously_followed(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                follow_user_ids=identifiers,
-                action_history_store=action_history_store,
-            )
-        else:
+        validator_fn = _HISTORY_DISPATCH.get(action_type)
+        if validator_fn is None:
             raise ValueError(
                 f"Unknown action_type for history validation: {action_type}"
             )
+        validator_fn(
+            self,
+            run_id,
+            turn_number,
+            agent_handle,
+            identifiers,
+            action_history_store,
+        )
 
     def _validate_duplicate_likes(
         self,
