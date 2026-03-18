@@ -9,7 +9,10 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import run_follow_edges as run_follow_edges_table
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
-from simulation.core.utils.validators import validate_run_id
+from simulation.core.utils.validators import (
+    validate_all_rows_match_run_id,
+    validate_run_id,
+)
 
 RUN_FOLLOW_EDGE_COLUMNS = ordered_column_names(run_follow_edges_table)
 RUN_FOLLOW_EDGE_REQUIRED_FIELDS = required_column_names(run_follow_edges_table)
@@ -48,18 +51,7 @@ class SQLiteRunFollowEdgeAdapter(RunFollowEdgeDatabaseAdapter):
         conn: sqlite3.Connection,
     ) -> None:
         row_list = list(rows)
-        if not row_list:
-            return
-
-        for row in row_list:
-            if row.run_id != run_id:
-                raise ValueError(
-                    "All run follow edge snapshot rows must match the provided run_id"
-                )
-            if row.follower_agent_id == row.target_agent_id:
-                raise ValueError(
-                    "Run follow edge snapshot rows cannot contain self-follow edges"
-                )
+        self._validate_run_follow_edges(row_list, run_id)
 
         conn.executemany(
             _INSERT_RUN_FOLLOW_EDGE_SQL,
@@ -79,3 +71,22 @@ class SQLiteRunFollowEdgeAdapter(RunFollowEdgeDatabaseAdapter):
             self._validate_run_follow_edge_row(row)
             result.append(self._row_to_run_follow_edge_snapshot(row))
         return result
+
+    def _validate_run_follow_edges(
+        self, row_list: list[RunFollowEdgeSnapshot], run_id: str
+    ) -> None:
+        """Validate run follow edge snapshot rows."""
+        if not row_list:
+            return
+
+        validate_all_rows_match_run_id(
+            row_list,
+            run_id,
+            message="All run follow edge snapshot rows must match the provided run_id",
+        )
+
+        for row in row_list:
+            if row.follower_agent_id == row.target_agent_id:
+                raise ValueError(
+                    "Run follow edge snapshot rows cannot contain self-follow edges"
+                )
