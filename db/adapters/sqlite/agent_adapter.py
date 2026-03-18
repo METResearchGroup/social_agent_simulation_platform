@@ -14,8 +14,15 @@ from simulation.core.utils.validators import validate_agent_id, validate_handle_
 AGENT_COLUMNS = ordered_column_names(agent_table)
 AGENT_REQUIRED_FIELDS = required_column_names(agent_table)
 _INSERT_AGENT_SQL = (
-    f"INSERT OR REPLACE INTO agent ({', '.join(AGENT_COLUMNS)}) "
-    f"VALUES ({', '.join('?' for _ in AGENT_COLUMNS)})"
+    # Intentionally *not* using `OR REPLACE`:
+    # - `OR REPLACE` can delete+reinsert on conflicts, which prevents unique
+    #   handle violations from reliably surfacing to the API layer.
+    # - For correct semantics, we want `uq_agent_handle` violations to raise
+    #   `sqlite3.IntegrityError` so the service can map them to HTTP 409.
+    f"INSERT INTO agent ({', '.join(AGENT_COLUMNS)}) "
+    f"VALUES ({', '.join('?' for _ in AGENT_COLUMNS)}) "
+    f"ON CONFLICT(agent_id) DO UPDATE SET "
+    + ", ".join(f"{col}=excluded.{col}" for col in AGENT_COLUMNS if col != "agent_id")
 )
 
 

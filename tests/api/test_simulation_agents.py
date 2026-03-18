@@ -1,8 +1,16 @@
 """Tests for agent API endpoints."""
 
+import queue
+import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 from simulation.api.constants import DEFAULT_AGENT_LIST_LIMIT
+from simulation.api.errors import ApiHandleAlreadyExistsError
+from simulation.api.schemas.simulation import CreateAgentRequest
+from simulation.api.services.agent_command_service import (
+    create_agent as create_agent_service,
+)
 from simulation.core.models.agent import PersonaSource
 from tests.factories import AgentRecordFactory
 
@@ -126,6 +134,56 @@ class TestSimulationAgents:
         err = r2.json()
         assert "error" in err
         assert err["error"]["code"] == expected_result["error_code"]
+
+    def test_post_simulations_agents_duplicate_handle_concurrent_returns_409(
+        self,
+        temp_db,
+        sqlite_tx,
+        agent_repo,
+        agent_bio_repo,
+        user_agent_profile_metadata_repo,
+    ):
+        """Concurrent create attempts for the same handle produce exactly one 409."""
+        handle = f"dup-{uuid.uuid4().hex[:8]}.bsky.social"
+        req = CreateAgentRequest(handle=handle, display_name="First", bio="")
+
+        barrier = threading.Barrier(2)
+        result_queue: queue.Queue[tuple[str, str]] = queue.Queue()
+
+        def worker() -> None:
+            barrier.wait()
+            try:
+                res = create_agent_service(
+                    req,
+                    transaction_provider=sqlite_tx,
+                    agent_repo=agent_repo,
+                    bio_repo=agent_bio_repo,
+                    metadata_repo=user_agent_profile_metadata_repo,
+                )
+                result_queue.put(("ok", res.handle))
+            except ApiHandleAlreadyExistsError:
+                result_queue.put(("dup", req.handle))
+            except Exception as e:  # pragma: no cover (diagnostic)
+                result_queue.put(("err", f"{type(e).__name__}: {e}"))
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(worker) for _ in range(2)]
+            for f in futures:
+                f.result()
+
+        results = [result_queue.get() for _ in range(2)]
+        ok = [r for (kind, r) in results if kind == "ok"]
+        dup = [r for (kind, r) in results if kind == "dup"]
+        errs = [r for (kind, r) in results if kind == "err"]
+
+        assert not errs, f"Unexpected errors during concurrent create: {errs}"
+        assert len(ok) == 1
+        assert len(dup) == 1
+
+        normalized_handle = f"@{handle.lower()}"
+        created = agent_repo.get_agent_by_handle(normalized_handle)
+        assert created is not None
+        assert created.handle == normalized_handle
 
     def test_post_simulations_agents_validation_empty_handle_returns_422(
         self,

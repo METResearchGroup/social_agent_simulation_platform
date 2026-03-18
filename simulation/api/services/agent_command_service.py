@@ -18,6 +18,7 @@ from simulation.api.services.agent_follows_command_service import (
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+from simulation.core.utils.exceptions import HandleAlreadyExistsError
 from simulation.core.utils.handle_utils import normalize_handle
 
 
@@ -34,12 +35,6 @@ def create_agent(
     display_name = req.display_name.strip()
     bio_text = (req.bio or "").strip() or "No bio provided."
 
-    # TODO: that this can cause a slight race condition if we do this check
-    # before the below context manager for writing the agent to the database.
-    # This is a known issue, and we'll revisit this in the future.
-    if agent_repo.get_agent_by_handle(handle) is not None:
-        raise ApiHandleAlreadyExistsError(handle)
-
     agent_id = _generate_agent_id()
     now = get_current_timestamp()
 
@@ -47,10 +42,15 @@ def create_agent(
     agent_bio = _generate_agent_bio(agent_id, bio_text, now)
     metadata = _generate_user_agent_profile_metadata(agent_id, now)
 
-    with transaction_provider.run_transaction() as conn:
-        agent_repo.create_or_update_agent(agent, conn=conn)
-        bio_repo.create_agent_bio(agent_bio, conn=conn)
-        metadata_repo.create_or_update_metadata(metadata, conn=conn)
+    try:
+        with transaction_provider.run_transaction() as conn:
+            agent_repo.create_or_update_agent(agent, conn=conn)
+            bio_repo.create_agent_bio(agent_bio, conn=conn)
+            metadata_repo.create_or_update_metadata(metadata, conn=conn)
+    except HandleAlreadyExistsError as e:
+        # `agent.handle` is unique in the DB; translate the stable domain error
+        # to the API-level error expected by the route layer.
+        raise ApiHandleAlreadyExistsError(e.handle) from e
 
     return _build_agent_schema(agent.handle, agent.display_name, bio_text)
 
