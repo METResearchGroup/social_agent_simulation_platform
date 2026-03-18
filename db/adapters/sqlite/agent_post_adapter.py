@@ -85,22 +85,11 @@ class SQLiteAgentPostAdapter(AgentPostDatabaseAdapter):
         *,
         conn: sqlite3.Connection,
     ) -> None:
+        """Upserts imported agent posts."""
+        # defensive coercion; if posts is an iterator and we consume it
+        # during validation, the iterator will be exhausted.
         post_list = list(posts)
-        if not post_list:
-            return
-
-        for post in post_list:
-            validate_agent_id(post.agent_id)
-            if post.source_post_id is None:
-                raise ValueError(
-                    "Imported agent posts must provide source_post_id for idempotent upsert"
-                )
-            if post.source is None:
-                raise ValueError(
-                    "Imported agent posts must provide source for idempotent upsert"
-                )
-            validate_non_empty_string(post.source_post_id)
-            validate_non_empty_string(post.source)
+        self._validate_imported_agent_posts(post_list)
 
         conn.executemany(
             _UPSERT_IMPORTED_AGENT_POST_SQL,
@@ -158,3 +147,20 @@ class SQLiteAgentPostAdapter(AgentPostDatabaseAdapter):
     def count_all_posts(self, *, conn: sqlite3.Connection) -> int:
         row = conn.execute("SELECT COUNT(*) FROM agent_posts").fetchone()
         return int(row[0]) if row is not None else 0
+
+    def _validate_imported_agent_posts(self, post_list: list[AgentPost]) -> None:
+        if not post_list:
+            return
+
+        for post in post_list:
+            validate_agent_id(post.agent_id)
+            if post.source_post_id is None:
+                raise ValueError(
+                    "Imported agent posts must provide source_post_id for idempotent upsert"
+                )
+            if post.source is None:
+                raise ValueError(
+                    "Imported agent posts must provide source for idempotent upsert"
+                )
+            validate_non_empty_string(post.source_post_id)
+            validate_non_empty_string(post.source)
