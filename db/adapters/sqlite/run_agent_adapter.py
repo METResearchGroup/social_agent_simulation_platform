@@ -9,7 +9,10 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import run_agents as run_agents_table
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.run_agents import RunAgentSnapshot
-from simulation.core.utils.validators import validate_run_id
+from simulation.core.utils.validators import (
+    validate_all_rows_match_run_id,
+    validate_run_id,
+)
 
 RUN_AGENT_COLUMNS = ordered_column_names(run_agents_table)
 RUN_AGENT_REQUIRED_FIELDS = required_column_names(run_agents_table)
@@ -50,14 +53,7 @@ class SQLiteRunAgentAdapter(RunAgentDatabaseAdapter):
         conn: sqlite3.Connection,
     ) -> None:
         row_list = list(rows)
-        if not row_list:
-            return
-
-        for row in row_list:
-            if row.run_id != run_id:
-                raise ValueError(
-                    "All run agent snapshot rows must match the provided run_id"
-                )
+        self._validate_run_agents(row_list, run_id)
 
         conn.executemany(
             _INSERT_RUN_AGENT_SQL,
@@ -77,3 +73,16 @@ class SQLiteRunAgentAdapter(RunAgentDatabaseAdapter):
             self._validate_run_agent_row(row)
             result.append(self._row_to_run_agent_snapshot(row))
         return result
+
+    def _validate_run_agents(
+        self, row_list: list[RunAgentSnapshot], run_id: str
+    ) -> None:
+        """Validate run agent snapshot rows."""
+        if not row_list:
+            return
+
+        validate_all_rows_match_run_id(
+            row_list,
+            run_id,
+            message="All run agent snapshot rows must match the provided run_id",
+        )

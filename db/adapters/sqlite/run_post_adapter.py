@@ -9,7 +9,10 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import run_posts as run_posts_table
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.run_posts import RunPostSnapshot
-from simulation.core.utils.validators import validate_run_id
+from simulation.core.utils.validators import (
+    validate_all_rows_match_run_id,
+    validate_run_id,
+)
 
 RUN_POST_COLUMNS = ordered_column_names(run_posts_table)
 RUN_POST_REQUIRED_FIELDS = required_column_names(run_posts_table)
@@ -60,14 +63,7 @@ class SQLiteRunPostAdapter(RunPostDatabaseAdapter):
         conn: sqlite3.Connection,
     ) -> None:
         row_list = list(rows)
-        if not row_list:
-            return
-
-        for row in row_list:
-            if row.run_id != run_id:
-                raise ValueError(
-                    "All run post snapshot rows must match the provided run_id"
-                )
+        self._validate_run_posts(row_list, run_id)
 
         conn.executemany(
             _INSERT_RUN_POST_SQL,
@@ -110,3 +106,14 @@ class SQLiteRunPostAdapter(RunPostDatabaseAdapter):
                 self._validate_run_post_row(row)
                 result.append(self._row_to_run_post_snapshot(row))
         return result
+
+    def _validate_run_posts(self, row_list: list[RunPostSnapshot], run_id: str) -> None:
+        """Validate run post snapshot rows."""
+        if not row_list:
+            return
+
+        validate_all_rows_match_run_id(
+            row_list,
+            run_id,
+            message="All run post snapshot rows must match the provided run_id",
+        )
