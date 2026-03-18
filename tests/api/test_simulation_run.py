@@ -26,7 +26,7 @@ class TestSimulationRun:
             total_turns=1,
             total_agents=1,
         )
-        fastapi_app.state.engine = mock_engine
+        fastapi_app.state.context.engine = mock_engine
         run = mock_engine.execute_run.return_value
         response = client.post(
             "/v1/simulations/run",
@@ -69,7 +69,7 @@ class TestSimulationRun:
             total_turns=10,
             total_agents=1,
         )
-        fastapi_app.state.engine = mock_engine
+        fastapi_app.state.context.engine = mock_engine
         run = mock_engine.execute_run.return_value
         response = client.post(
             "/v1/simulations/run",
@@ -102,7 +102,7 @@ class TestSimulationRun:
             total_turns=10,
             total_agents=1,
         )
-        fastapi_app.state.engine = mock_engine
+        fastapi_app.state.context.engine = mock_engine
 
         feed_algorithm_config = {"order": "oldest_first"}
         response = client.post(
@@ -168,7 +168,7 @@ class TestSimulationRun:
             run_id=None,
             cause=RuntimeError("db error"),
         )
-        fastapi_app.state.engine = mock_engine
+        fastapi_app.state.context.engine = mock_engine
         response = client.post(
             "/v1/simulations/run",
             json={"num_agents": 2, "num_turns": 2},
@@ -238,7 +238,7 @@ class TestSimulationRun:
         mock_engine.list_turn_metrics.return_value = partial_turn_metrics
         mock_engine.get_run_metrics.return_value = None
         mock_engine.get_run.return_value = failed_run
-        fastapi_app.state.engine = mock_engine
+        fastapi_app.state.context.engine = mock_engine
         response = client.post(
             "/v1/simulations/run",
             json={"num_agents": 2, "num_turns": 2},

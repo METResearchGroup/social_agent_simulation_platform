@@ -45,7 +45,7 @@ async def _execute_get_simulation_posts(
 ) -> list[PostSchema] | Response:
     """Fetch posts and convert unexpected failures to HTTP responses."""
     try:
-        engine = request.app.state.engine
+        engine = request.app.state.context.engine
         return await asyncio.to_thread(
             get_posts_by_ids, post_ids=post_ids, engine=engine
         )

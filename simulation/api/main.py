@@ -19,34 +19,17 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
-from db.adapters.sqlite.sqlite import (
-    SqliteTransactionProvider,
-    get_db_path,
-    initialize_database,
-)
-from db.repositories.agent_bio_repository import create_sqlite_agent_bio_repository
-from db.repositories.agent_follow_edge_repository import (
-    create_sqlite_agent_follow_edge_repository,
-)
-from db.repositories.agent_repository import create_sqlite_agent_repository
-from db.repositories.app_user_repository import create_sqlite_app_user_repository
-from db.repositories.run_agent_repository import create_sqlite_run_agent_repository
-from db.repositories.run_follow_edge_repository import (
-    create_sqlite_run_follow_edge_repository,
-)
-from db.repositories.user_agent_profile_metadata_repository import (
-    create_sqlite_user_agent_profile_metadata_repository,
-)
+from db.adapters.sqlite.sqlite import get_db_path, initialize_database
 from lib.env_utils import is_local_mode, parse_bool_env
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
 from lib.security_headers import SecurityHeadersMiddleware
+from simulation.api.context import create_app_context
 from simulation.api.dependencies.auth import (
     UnauthorizedError,
     disallow_auth_bypass_in_production,
 )
 from simulation.api.routes.simulation import router as simulation_router
-from simulation.core.factories import create_engine
 from simulation.local_dev.local_mode import disallow_local_mode_in_production
 from simulation.local_dev.seed_loader import seed_local_db_if_needed
 
@@ -89,41 +72,8 @@ async def lifespan(app: FastAPI):
     if is_local_mode():
         await asyncio.to_thread(_ensure_local_seed_data)
 
-    transaction_provider = SqliteTransactionProvider()
-    app.state.transaction_provider = transaction_provider
-    app.state.agent_repo = create_sqlite_agent_repository(
-        transaction_provider=transaction_provider
-    )
-    app.state.agent_bio_repo = create_sqlite_agent_bio_repository(
-        transaction_provider=transaction_provider
-    )
-    app.state.agent_metadata_repo = (
-        create_sqlite_user_agent_profile_metadata_repository(
-            transaction_provider=transaction_provider
-        )
-    )
-    app.state.agent_follow_edge_repo = create_sqlite_agent_follow_edge_repository(
-        transaction_provider=transaction_provider
-    )
-    app.state.run_agent_repo = create_sqlite_run_agent_repository(
-        transaction_provider=transaction_provider
-    )
-    app.state.run_follow_edge_repo = create_sqlite_run_follow_edge_repository(
-        transaction_provider=transaction_provider
-    )
-    app.state.app_user_repository = create_sqlite_app_user_repository()
-
-    app.state.engine = await asyncio.to_thread(
-        lambda: create_engine(
-            transaction_provider=transaction_provider,
-            agent_repo=app.state.agent_repo,
-            agent_bio_repo=app.state.agent_bio_repo,
-            agent_follow_edge_repo=app.state.agent_follow_edge_repo,
-            user_agent_profile_metadata_repo=app.state.agent_metadata_repo,
-            run_agent_repo=app.state.run_agent_repo,
-            run_follow_edge_repo=app.state.run_follow_edge_repo,
-        )
-    )
+    ctx = await asyncio.to_thread(create_app_context)
+    app.state.context = ctx
     yield
 
 

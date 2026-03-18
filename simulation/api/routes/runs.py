@@ -110,7 +110,7 @@ async def _execute_get_simulation_runs(
 ) -> list[RunListItem] | Response:
     """Fetch run summaries from the database and convert failures to HTTP responses."""
     try:
-        engine = request.app.state.engine
+        engine = request.app.state.context.engine
         return await asyncio.to_thread(list_runs, engine=engine)
     except Exception:
         logger.exception("Unexpected error while listing simulation runs")
@@ -127,7 +127,7 @@ async def _execute_simulation_run(
     request: Request, body: RunRequest
 ) -> RunResponse | Response:
     """Run the simulation and return response; used for timing and logging."""
-    engine = request.app.state.engine
+    engine = request.app.state.context.engine
     current_app_user = getattr(request.state, "current_app_user")
     if current_app_user is None:
         raise RuntimeError(
@@ -164,7 +164,7 @@ async def _execute_get_simulation_run(
     request: Request, run_id: str
 ) -> RunDetailsResponse | Response:
     """Fetch persisted run details and convert known failures to HTTP responses."""
-    engine = request.app.state.engine
+    engine = request.app.state.context.engine
     try:
         return await asyncio.to_thread(
             get_run_details,
@@ -202,7 +202,7 @@ async def _execute_get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
     try:
-        engine = request.app.state.engine
+        engine = request.app.state.context.engine
         return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
     except ApiRunNotFoundError as e:
         return error_response(

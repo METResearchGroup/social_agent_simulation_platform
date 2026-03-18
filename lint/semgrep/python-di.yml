@@ -4,8 +4,9 @@ rules:
     languages: [python]
     message: >
       PY-2: Do not construct SQLite infrastructure here. Wire concrete infra only
-      in composition roots (simulation/core/factories/**, simulation/api/main.py,
-      db/**, jobs/**, simulation/local_dev/**, tests/**) and inject ports into
+      in composition roots       (simulation/core/factories/**, simulation/api/main.py,
+      simulation/api/context.py, db/**, jobs/**, simulation/local_dev/**, tests/**)
+      and inject ports into
       business logic.
     severity: ERROR
     patterns:
@@ -25,6 +26,7 @@ rules:
       exclude:
         - /simulation/core/factories/
         - /simulation/api/main.py
+        - /simulation/api/context.py
         - /db/
         - /jobs/
         - /simulation/local_dev/
@@ -46,6 +48,7 @@ rules:
       exclude:
         - /simulation/core/factories/
         - /simulation/api/main.py
+        - /simulation/api/context.py
         - /db/
         - /jobs/
         - /simulation/local_dev/
@@ -65,6 +68,7 @@ rules:
       exclude:
         - /simulation/core/factories/
         - /simulation/api/main.py
+        - /simulation/api/context.py
         - /db/
         - /jobs/
         - /simulation/local_dev/
