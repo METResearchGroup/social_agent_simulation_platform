@@ -12,24 +12,33 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _schema_docs_cli_timeout_seconds() -> float:
+    """Timeout for long-running schema-docs subprocesses (Alembic, Mermaid CLI).
+
+    Reads ``SCHEMA_DOCS_ALEMBIC_TIMEOUT_SECONDS`` or defaults to 120s.
+    """
+    raw_timeout = os.environ.get(_ALEMBIC_TIMEOUT_ENV)
+    if raw_timeout is None or raw_timeout.strip() == "":
+        return _DEFAULT_ALEMBIC_TIMEOUT_SECONDS
+    try:
+        return float(raw_timeout)
+    except ValueError as e:
+        raise RuntimeError(
+            f"Invalid {_ALEMBIC_TIMEOUT_ENV}={raw_timeout!r}; must be a number."
+        ) from e
+
+
 def _alembic_upgrade_head(
     *, repo_root: Path, sqlite_path: Path, timeout_seconds: float | None = None
 ) -> None:
     env = os.environ.copy()
     env["SIM_DB_PATH"] = str(sqlite_path)
 
-    timeout = timeout_seconds
-    if timeout is None:
-        raw_timeout = os.environ.get(_ALEMBIC_TIMEOUT_ENV)
-        if raw_timeout is None or raw_timeout.strip() == "":
-            timeout = _DEFAULT_ALEMBIC_TIMEOUT_SECONDS
-        else:
-            try:
-                timeout = float(raw_timeout)
-            except ValueError as e:
-                raise RuntimeError(
-                    f"Invalid {_ALEMBIC_TIMEOUT_ENV}={raw_timeout!r}; must be a number."
-                ) from e
+    timeout = (
+        timeout_seconds
+        if timeout_seconds is not None
+        else _schema_docs_cli_timeout_seconds()
+    )
 
     argv = [
         "uv",

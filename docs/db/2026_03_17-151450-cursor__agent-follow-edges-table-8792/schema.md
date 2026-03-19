@@ -89,7 +89,7 @@ erDiagram
   }
   generated_feeds {
     TEXT feed_id
-    TEXT run_id PK FK
+    TEXT run_id PK, FK
     INTEGER turn_number PK
     TEXT agent_handle PK
     TEXT post_ids
@@ -108,8 +108,8 @@ erDiagram
     TEXT generation_created_at
   }
   run_agents {
-    TEXT run_id PK FK
-    TEXT agent_id PK FK
+    TEXT run_id PK, FK
+    TEXT agent_id PK, FK
     INTEGER selection_order
     TEXT handle_at_start
     TEXT display_name_at_start
@@ -120,7 +120,7 @@ erDiagram
     TEXT created_at
   }
   run_metrics {
-    TEXT run_id PK FK
+    TEXT run_id PK, FK
     TEXT metrics
     TEXT created_at
   }
@@ -137,13 +137,13 @@ erDiagram
     TEXT app_user_id
   }
   turn_metadata {
-    TEXT run_id PK FK
+    TEXT run_id PK, FK
     INTEGER turn_number PK
     TEXT total_actions
     TEXT created_at
   }
   turn_metrics {
-    TEXT run_id PK FK
+    TEXT run_id PK, FK
     INTEGER turn_number PK
     TEXT metrics
     TEXT created_at
