@@ -483,7 +483,7 @@ export interface components {
          * @description Source platform/type for a post.
          * @enum {string}
          */
-        PostSource: "bluesky" | "ai_generated";
+        PostSource: "bluesky" | "ai_generated" | "seed_state";
         /**
          * RunConfigDetail
          * @description Configuration for a persisted run.

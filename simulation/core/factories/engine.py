@@ -8,6 +8,9 @@ from db.repositories.agent_bio_repository import create_sqlite_agent_bio_reposit
 from db.repositories.agent_follow_edge_repository import (
     create_sqlite_agent_follow_edge_repository,
 )
+from db.repositories.agent_post_repository import (
+    create_sqlite_agent_post_repository,
+)
 from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.comment_repository import create_sqlite_comment_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
@@ -28,6 +31,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -38,6 +42,7 @@ from db.repositories.run_agent_repository import create_sqlite_run_agent_reposit
 from db.repositories.run_follow_edge_repository import (
     create_sqlite_run_follow_edge_repository,
 )
+from db.repositories.run_post_repository import create_sqlite_run_post_repository
 from db.repositories.run_repository import create_sqlite_repository
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
@@ -62,6 +67,7 @@ def create_engine(
     metrics_repo: MetricsRepository | None = None,
     profile_repo: ProfileRepository | None = None,
     feed_post_repo: FeedPostRepository | None = None,
+    run_post_repo: RunPostRepository | None = None,
     generated_feed_repo: GeneratedFeedRepository | None = None,
     agent_repo: AgentRepository | None = None,
     agent_bio_repo: AgentBioRepository | None = None,
@@ -126,6 +132,10 @@ def create_engine(
         feed_post_repo = create_sqlite_feed_post_repository(
             transaction_provider=transaction_provider
         )
+    if run_post_repo is None:
+        run_post_repo = create_sqlite_run_post_repository(
+            transaction_provider=transaction_provider
+        )
     if generated_feed_repo is None:
         generated_feed_repo = create_sqlite_generated_feed_repository(
             transaction_provider=transaction_provider
@@ -156,6 +166,9 @@ def create_engine(
         run_follow_edge_repo = create_sqlite_run_follow_edge_repository(
             transaction_provider=transaction_provider
         )
+    agent_post_repo = create_sqlite_agent_post_repository(
+        transaction_provider=transaction_provider
+    )
 
     # Create default agent factory if not provided
     if agent_factory is None:
@@ -183,7 +196,7 @@ def create_engine(
     query_service = create_query_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
-        feed_post_repo=feed_post_repo,
+        run_post_repo=run_post_repo,
         generated_feed_repo=generated_feed_repo,
         like_repo=like_repo,
         comment_repo=comment_repo,
@@ -211,6 +224,8 @@ def create_engine(
         user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
         run_agent_repo=run_agent_repo,
         run_follow_edge_repo=run_follow_edge_repo,
+        run_post_repo=run_post_repo,
+        agent_post_repo=agent_post_repo,
         transaction_provider=transaction_provider,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
@@ -227,6 +242,7 @@ def create_engine(
         user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
         run_agent_repo=run_agent_repo,
         run_follow_edge_repo=run_follow_edge_repo,
+        run_post_repo=run_post_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         query_service=query_service,

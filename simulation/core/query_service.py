@@ -4,12 +4,12 @@ from collections import defaultdict
 
 from db.repositories.interfaces import (
     CommentRepository,
-    FeedPostRepository,
     FollowRepository,
     GeneratedFeedRepository,
     LikeRepository,
     MetricsRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     RunRepository,
 )
 from lib.validation_decorators import validate_inputs
@@ -17,7 +17,7 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post
+from simulation.core.models.posts import Post, run_post_snapshot_to_post
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
@@ -37,7 +37,7 @@ class SimulationQueryService:
         self,
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
-        feed_post_repo: FeedPostRepository,
+        run_post_repo: RunPostRepository,
         generated_feed_repo: GeneratedFeedRepository,
         like_repo: LikeRepository,
         comment_repo: CommentRepository,
@@ -46,7 +46,7 @@ class SimulationQueryService:
     ):
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
-        self.feed_post_repo = feed_post_repo
+        self.run_post_repo = run_post_repo
         self.generated_feed_repo = generated_feed_repo
         self.like_repo = like_repo
         self.comment_repo = comment_repo
@@ -111,9 +111,13 @@ class SimulationQueryService:
             post_ids_set.update(feed.post_ids)
 
         post_ids_list = list(post_ids_set)
-        posts = self.feed_post_repo.read_feed_posts_by_ids(post_ids_list)
-
-        post_id_to_post = {post.post_id: post for post in posts}
+        run_post_snapshots = self.run_post_repo.read_run_posts_by_ids(
+            run_id, post_ids_list
+        )
+        post_id_to_post = {
+            snap.run_post_id: run_post_snapshot_to_post(snap)
+            for snap in run_post_snapshots
+        }
 
         feeds_dict: dict[str, list[Post]] = {}
         for feed in feeds:

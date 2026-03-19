@@ -1,15 +1,18 @@
 """Generate candidate posts for the feeds."""
 
-from db.repositories.interfaces import FeedPostRepository, GeneratedFeedRepository
+from db.repositories.interfaces import GeneratedFeedRepository, RunPostRepository
 from simulation.core.models.agents import SimulationAgent
-from simulation.core.models.posts import Post
+from simulation.core.models.posts import Post, run_post_snapshot_to_post
 
 
-# TODO: we can get arbitrarily complex with how we do this later
-# on, but as a first pass it's easy enough to just load all the posts.
-def load_posts(*, feed_post_repo: FeedPostRepository) -> list[Post]:
-    """Load the posts for the feeds."""
-    return feed_post_repo.list_all_feed_posts()
+def load_posts(
+    *,
+    run_id: str,
+    run_post_repo: RunPostRepository,
+) -> list[Post]:
+    """Load the posts for the feeds from run_posts (frozen run-start state)."""
+    snapshots = run_post_repo.list_run_posts(run_id)
+    return [run_post_snapshot_to_post(s) for s in snapshots]
 
 
 def load_seen_post_ids(
@@ -57,16 +60,19 @@ def load_candidate_posts(
     *,
     agent: SimulationAgent,
     run_id: str,
-    feed_post_repo: FeedPostRepository,
     generated_feed_repo: GeneratedFeedRepository,
+    run_post_repo: RunPostRepository,
 ) -> list[Post]:
-    """Load the candidate posts for the feeds.
+    """Load the candidate posts for the feeds from run_posts.
 
     Remove posts that:
     - The agent has already seen.
     - The agent themselves posted (or their original Bluesky profile posted)
     """
-    candidate_posts: list[Post] = load_posts(feed_post_repo=feed_post_repo)
+    candidate_posts: list[Post] = load_posts(
+        run_id=run_id,
+        run_post_repo=run_post_repo,
+    )
     candidate_posts = filter_candidate_posts(
         candidate_posts=candidate_posts,
         agent=agent,

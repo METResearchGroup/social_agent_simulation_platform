@@ -52,6 +52,7 @@ def engine(
         user_agent_profile_metadata_repo=deps["user_agent_profile_metadata_repo"],
         run_agent_repo=deps["run_agent_repo"],
         run_follow_edge_repo=deps["run_follow_edge_repo"],
+        run_post_repo=deps["run_post_repo"],
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         query_service=query_service,
@@ -80,6 +81,7 @@ class TestSimulationEngineCompatibility:
         )
         assert engine.run_agent_repo is deps["run_agent_repo"]
         assert engine.run_follow_edge_repo is deps["run_follow_edge_repo"]
+        assert engine.run_post_repo is deps["run_post_repo"]
         assert engine.agent_factory is agent_factory
         assert engine.action_history_store_factory is action_history_store_factory
 

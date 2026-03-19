@@ -29,6 +29,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -290,6 +291,38 @@ class RunFollowEdgeDatabaseAdapter(ABC):
         self, run_id: str, *, conn: object
     ) -> list[RunFollowEdgeSnapshot]:
         """Read run-follow-edge snapshots ordered by follower and target ascending."""
+        raise NotImplementedError
+
+
+class RunPostDatabaseAdapter(ABC):
+    """Abstract interface for immutable run-post snapshot persistence."""
+
+    @abstractmethod
+    def write_run_posts(
+        self,
+        run_id: str,
+        rows: Iterable[RunPostSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert run-post snapshots for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_posts_for_run(
+        self, run_id: str, *, conn: object
+    ) -> list[RunPostSnapshot]:
+        """Read run-post snapshots ordered by author_agent_id, published_at_start, run_post_id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_run_posts_by_ids(
+        self, run_id: str, post_ids: Iterable[str], *, conn: object
+    ) -> list[RunPostSnapshot]:
+        """Read run-post snapshots by run_post_ids for a run.
+
+        Returns list preserving order of post_ids, skipping missing.
+        """
         raise NotImplementedError
 
 

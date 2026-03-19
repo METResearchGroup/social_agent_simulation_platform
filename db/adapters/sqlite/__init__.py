@@ -16,6 +16,7 @@ from db.adapters.sqlite.profile_adapter import SQLiteProfileAdapter
 from db.adapters.sqlite.run_adapter import SQLiteRunAdapter
 from db.adapters.sqlite.run_agent_adapter import SQLiteRunAgentAdapter
 from db.adapters.sqlite.run_follow_edge_adapter import SQLiteRunFollowEdgeAdapter
+from db.adapters.sqlite.run_post_adapter import SQLiteRunPostAdapter
 from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
     SQLiteUserAgentProfileMetadataAdapter,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "SQLiteProfileAdapter",
     "SQLiteRunAgentAdapter",
     "SQLiteRunFollowEdgeAdapter",
+    "SQLiteRunPostAdapter",
     "SQLiteRunAdapter",
     "SQLiteUserAgentProfileMetadataAdapter",
 ]

@@ -446,7 +446,8 @@
         "description": "Source platform/type for a post.",
         "enum": [
           "bluesky",
-          "ai_generated"
+          "ai_generated",
+          "seed_state"
         ],
         "title": "PostSource",
         "type": "string"

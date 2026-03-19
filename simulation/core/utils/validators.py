@@ -15,6 +15,7 @@ from simulation.core.utils.exceptions import (
     InvalidTransitionError,
     RunNotFoundError,
 )
+from simulation.core.utils.interfaces import RunIdRow
 
 MAX_RATIO_OF_EMPTY_FEEDS = 0.25
 
@@ -33,6 +34,17 @@ def _validate_non_empty_string_labeled(value: object, *, label: str) -> str:
 def validate_run_id(run_id: str) -> str:
     """Validate that run_id is a non-empty string. Returns stripped value."""
     return _validate_non_empty_string_labeled(run_id, label="run_id")
+
+
+def validate_all_rows_match_run_id(
+    rows: Iterable[RunIdRow],
+    run_id: str,
+    *,
+    message: str,
+) -> None:
+    """Validate that all provided rows belong to the same run_id."""
+    if any(row.run_id != run_id for row in rows):
+        raise ValueError(message)
 
 
 def validate_agent_id(agent_id: str) -> str:

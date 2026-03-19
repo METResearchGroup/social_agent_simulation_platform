@@ -8,11 +8,11 @@ from unittest.mock import Mock
 import pytest
 
 from db.adapters.base import TransactionProvider
-from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostRepository,
     AgentRepository,
     CommentRepository,
     FollowRepository,
@@ -20,6 +20,7 @@ from db.repositories.interfaces import (
     MetricsRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
@@ -40,11 +41,24 @@ def mock_repos():
     run_follow_edge_repo = Mock(spec=RunFollowEdgeRepository)
     run_follow_edge_repo.list_run_follow_edges.return_value = []
 
+    run_post_repo = Mock(spec=RunPostRepository)
+    run_post_repo.read_run_posts_by_ids.return_value = []
+    run_post_repo.list_run_posts.return_value = []
+    run_post_repo.write_run_posts.return_value = None
+
+    agent_post_repo = Mock(spec=AgentPostRepository)
+    agent_post_repo.list_posts_for_agent_ids.return_value = []
+
+    feed_post_repo = Mock()
+    feed_post_repo.list_all_feed_posts.return_value = []
+    feed_post_repo.read_feed_posts_by_ids.return_value = []
+
     return {
         "run_repo": Mock(spec=RunRepository),
         "metrics_repo": Mock(spec=MetricsRepository),
         "profile_repo": Mock(spec=ProfileRepository),
-        "feed_post_repo": Mock(spec=FeedPostRepository),
+        "feed_post_repo": feed_post_repo,
+        "run_post_repo": run_post_repo,
         "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
         "agent_repo": Mock(spec=AgentRepository),
         "agent_bio_repo": Mock(spec=AgentBioRepository),
@@ -54,6 +68,7 @@ def mock_repos():
         ),
         "run_agent_repo": Mock(spec=RunAgentRepository),
         "run_follow_edge_repo": run_follow_edge_repo,
+        "agent_post_repo": agent_post_repo,
         "like_repo": like_repo,
         "comment_repo": comment_repo,
         "follow_repo": follow_repo,

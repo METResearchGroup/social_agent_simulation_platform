@@ -39,15 +39,23 @@ class SQLiteAgentPostRepository(AgentPostRepository):
         with self._transaction_provider.run_transaction() as c:
             self._db_adapter.upsert_imported_agent_posts(posts, conn=c)
 
-    def list_posts_for_agent_ids(self, agent_ids: list[str]) -> list[AgentPost]:
+    def list_posts_for_agent_ids(
+        self, agent_ids: list[str], conn: object | None = None
+    ) -> list[AgentPost]:
         if not agent_ids:
             return []
+        if conn is not None:
+            return self._db_adapter.read_posts_for_agent_ids(agent_ids, conn=conn)
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_posts_for_agent_ids(agent_ids, conn=c)
 
-    def count_posts_by_agent_ids(self, agent_ids: list[str]) -> dict[str, int]:
+    def count_posts_by_agent_ids(
+        self, agent_ids: list[str], conn: object | None = None
+    ) -> dict[str, int]:
         if not agent_ids:
             return {}
+        if conn is not None:
+            return self._db_adapter.count_posts_by_agent_ids(agent_ids, conn=conn)
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.count_posts_by_agent_ids(agent_ids, conn=c)
 

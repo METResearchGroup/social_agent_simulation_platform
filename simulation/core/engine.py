@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -23,7 +24,7 @@ from simulation.core.metrics.defaults import (
 from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post
+from simulation.core.models.posts import Post, run_post_snapshot_to_post
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
@@ -57,6 +58,7 @@ class SimulationEngine:
         user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
         run_agent_repo: RunAgentRepository,
         run_follow_edge_repo: RunFollowEdgeRepository,
+        run_post_repo: RunPostRepository,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         query_service: SimulationQueryService,
@@ -66,6 +68,7 @@ class SimulationEngine:
         self.metrics_repo = metrics_repo
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
+        self.run_post_repo = run_post_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_repo = agent_repo
         self.agent_bio_repo = agent_bio_repo
@@ -119,6 +122,11 @@ class SimulationEngine:
 
     def read_feed_posts_by_ids(self, post_ids: Iterable[str]) -> list[Post]:
         return self.feed_post_repo.read_feed_posts_by_ids(post_ids)
+
+    def read_posts_for_run(self, run_id: str, post_ids: Iterable[str]) -> list[Post]:
+        """Resolve run_post_ids to Post objects from run_posts."""
+        snapshots = self.run_post_repo.read_run_posts_by_ids(run_id, post_ids)
+        return [run_post_snapshot_to_post(s) for s in snapshots]
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         self.command_service.update_run_status(run, status)
