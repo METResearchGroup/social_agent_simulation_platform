@@ -17,9 +17,8 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post, PostSource
+from simulation.core.models.posts import Post, run_post_snapshot_to_post
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
-from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.utils.exceptions import RunNotFoundError
@@ -29,24 +28,6 @@ from simulation.core.utils.turn_data_hydration import (
     persisted_like_to_generated,
 )
 from simulation.core.utils.validators import validate_run_id, validate_turn_number
-
-
-def _run_post_snapshot_to_post(snap: RunPostSnapshot) -> Post:
-    """Map RunPostSnapshot to Post using P2 rule for run-scoped history reads."""
-    return Post(
-        post_id=snap.run_post_id,
-        source=PostSource.SEED_STATE,
-        uri=f"seed_state:{snap.run_post_id}",
-        author_handle=snap.author_handle_at_start,
-        author_display_name=snap.author_display_name_at_start,
-        text=snap.body_text_at_start,
-        created_at=snap.published_at_start,
-        bookmark_count=0,
-        like_count=0,
-        quote_count=0,
-        reply_count=0,
-        repost_count=0,
-    )
 
 
 class SimulationQueryService:
@@ -134,7 +115,7 @@ class SimulationQueryService:
             run_id, post_ids_list
         )
         post_id_to_post = {
-            snap.run_post_id: _run_post_snapshot_to_post(snap)
+            snap.run_post_id: run_post_snapshot_to_post(snap)
             for snap in run_post_snapshots
         }
 

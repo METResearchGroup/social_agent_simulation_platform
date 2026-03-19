@@ -138,10 +138,12 @@ class Post(BaseModel):
 
 
 def run_post_snapshot_to_post(snapshot: RunPostSnapshot) -> Post:
-    """Map RunPostSnapshot to runtime Post for run-scoped feed generation.
+    """Map RunPostSnapshot to Post using run-scoped identity semantics.
 
-    Uses post_id=run_post_id, source=SEED_STATE, uri=f"seed_state:{run_post_id}"
-    so generated_feeds.post_ids store run_post_id for query/history hydration.
+    Uses post_id=run_post_id and uri=f"seed_state:{run_post_id}" so
+    generated_feeds.post_ids can be hydrated from run_posts deterministically.
+    Copies author/content/published fields from *_at_start and initializes
+    engagement counters to zero for baseline run-start state.
     """
     return Post(
         post_id=snapshot.run_post_id,
