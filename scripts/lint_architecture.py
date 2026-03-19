@@ -804,7 +804,7 @@ def _find_py13_repo_conn_contract(
             return False
         return _is_none_literal(test.comparators[0])
 
-    def is_transaction_with_as_c(node: ast.With) -> bool:
+    def is_transaction_with_as_c(node: ast.With | ast.AsyncWith) -> bool:
         # Pattern: with self._transaction_provider.run_transaction() as c:
         for item in node.items:
             ctx = item.context_expr
@@ -955,7 +955,8 @@ def _find_py13_repo_conn_contract(
             tx_with_nodes = [
                 n
                 for n in ast.walk(fn)
-                if isinstance(n, ast.With) and is_transaction_with_as_c(n)
+                if isinstance(n, (ast.With, ast.AsyncWith))
+                and is_transaction_with_as_c(n)
             ]
             with_node = tx_with_nodes[0] if tx_with_nodes else None
             if with_node is None:
@@ -994,6 +995,136 @@ def _find_py13_repo_conn_contract(
     return violations
 
 
+def _find_py14_adapter_conn_signature(path: str, tree: ast.AST) -> list[Violation]:
+    """Enforce `conn` parameter presence on adapter implementations.
+
+    For every concrete adapter class that subclasses an ABC in
+    `db/adapters/base.py`, check all methods implemented in the concrete class
+    whose names exist on the ABC *and* whose ABC signature includes a `conn`
+    parameter. Those concrete methods must also include `conn` in their own
+    signature.
+
+    This lint is intentionally name-based and does not validate `conn` types.
+    """
+
+    p = _posix(path)
+    if not p.startswith("db/adapters/"):
+        return []
+    if p.endswith("db/adapters/base.py") or p.endswith("/base.py"):
+        return []
+
+    imports = _build_import_table(tree)
+
+    # Base ABC class name -> set(method names) where base method signature has `conn`.
+    if not hasattr(_find_py14_adapter_conn_signature, "_cache"):
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        base_path = os.path.join(repo_root, "db", "adapters", "base.py")
+        try:
+            with open(base_path, "r", encoding="utf-8") as f:
+                base_source = f.read()
+            base_tree = ast.parse(base_source, filename=base_path)
+        except OSError:
+            base_tree = ast.Module(body=[], type_ignores=[])
+
+        abc_methods_with_conn: dict[str, set[str]] = {}
+
+        for class_node in ast.walk(base_tree):
+            if not isinstance(class_node, ast.ClassDef):
+                continue
+            method_names: set[str] = set()
+            for stmt in class_node.body:
+                if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if not stmt.decorator_list:
+                    continue
+
+                # Detect `@abstractmethod` via simple decorator-name matching.
+                has_abstractmethod = any(
+                    isinstance(d, ast.Name) and d.id == "abstractmethod"
+                    for d in stmt.decorator_list
+                ) or any(
+                    isinstance(d, ast.Attribute) and d.attr == "abstractmethod"
+                    for d in stmt.decorator_list
+                )
+                if not has_abstractmethod:
+                    continue
+
+                arg_names: set[str] = {a.arg for a in stmt.args.args}
+                arg_names |= {a.arg for a in stmt.args.posonlyargs}
+                arg_names |= {a.arg for a in stmt.args.kwonlyargs}
+                if "conn" in arg_names:
+                    method_names.add(stmt.name)
+
+            if method_names:
+                abc_methods_with_conn[class_node.name] = method_names
+
+        setattr(
+            _find_py14_adapter_conn_signature,
+            "_cache",
+            abc_methods_with_conn,
+        )
+
+    abc_methods_with_conn = getattr(
+        _find_py14_adapter_conn_signature,
+        "_cache",
+        {},
+    )
+
+    def _base_class_names(class_def: ast.ClassDef) -> set[str]:
+        names: set[str] = set()
+        for base in class_def.bases:
+            if isinstance(base, ast.Name):
+                # Best effort: resolve local import alias -> fully-qualified symbol.
+                local = base.id
+                resolved = imports.symbols.get(local, local)
+                names.add(resolved.split(".")[-1])
+            elif isinstance(base, ast.Attribute):
+                names.add(base.attr)
+        return names
+
+    def _method_includes_conn(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        arg_names: set[str] = {a.arg for a in fn.args.args}
+        arg_names |= {a.arg for a in fn.args.posonlyargs}
+        arg_names |= {a.arg for a in fn.args.kwonlyargs}
+        return "conn" in arg_names
+
+    violations: list[Violation] = []
+
+    for class_node in ast.walk(tree):
+        if not isinstance(class_node, ast.ClassDef):
+            continue
+        base_names = _base_class_names(class_node)
+        matching_abc_names = [n for n in base_names if n in abc_methods_with_conn]
+        if not matching_abc_names:
+            continue
+
+        required_methods: set[str] = set()
+        for abc_name in matching_abc_names:
+            required_methods |= abc_methods_with_conn.get(abc_name, set())
+
+        for stmt in class_node.body:
+            if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if stmt.name not in required_methods:
+                continue
+            if not _method_includes_conn(stmt):
+                violations.append(
+                    Violation(
+                        path=path,
+                        line=stmt.lineno,
+                        col=stmt.col_offset + 1,
+                        rule="PY-14",
+                        message=(
+                            f"Adapter method '{class_node.name}.{stmt.name}' must "
+                            "include a `conn` parameter in its signature (type is "
+                            "database-specific)."
+                        ),
+                    )
+                )
+
+    return violations
+
+
 def lint_file(path: str, source: str) -> tuple[int, list[Violation]]:
     try:
         tree = ast.parse(source, filename=path)
@@ -1019,6 +1150,7 @@ def lint_file(path: str, source: str) -> tuple[int, list[Violation]]:
     violations.extend(_find_py8_service_to_service_in_core(path, tree, imports))
     violations.extend(_find_py9_concrete_infra_type_hints(path, tree, imports))
     violations.extend(_find_py13_repo_conn_contract(path, tree))
+    violations.extend(_find_py14_adapter_conn_signature(path, tree))
 
     return (0, violations)
 
