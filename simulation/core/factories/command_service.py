@@ -6,6 +6,7 @@ from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostCommentRepository,
     AgentPostLikeRepository,
     AgentPostRepository,
     AgentRepository,
@@ -15,6 +16,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
@@ -60,8 +62,10 @@ def create_command_service(
     run_follow_edge_repo: RunFollowEdgeRepository,
     run_post_repo: RunPostRepository,
     run_post_like_repo: RunPostLikeRepository,
+    run_post_comment_repo: RunPostCommentRepository,
     agent_post_repo: AgentPostRepository,
     agent_post_like_repo: AgentPostLikeRepository,
+    agent_post_comment_repo: AgentPostCommentRepository,
     transaction_provider: TransactionProvider,
     agent_factory: Callable[[int], list[SimulationAgent]],
     action_history_store_factory: Callable[[], ActionHistoryStore] | None = None,
@@ -78,6 +82,7 @@ def create_command_service(
             generated_feed_repo=generated_feed_repo,
             run_post_repo=run_post_repo,
             run_post_like_repo=run_post_like_repo,
+            run_post_comment_repo=run_post_comment_repo,
         )
 
     if metrics_collector is None:
@@ -108,8 +113,10 @@ def create_command_service(
         run_follow_edge_repo=run_follow_edge_repo,
         run_post_repo=run_post_repo,
         run_post_like_repo=run_post_like_repo,
+        run_post_comment_repo=run_post_comment_repo,
         agent_post_repo=agent_post_repo,
         agent_post_like_repo=agent_post_like_repo,
+        agent_post_comment_repo=agent_post_comment_repo,
         transaction_provider=transaction_provider,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,

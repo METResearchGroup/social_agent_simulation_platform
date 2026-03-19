@@ -197,6 +197,36 @@ run_post_likes = sa.Table(
     ),
 )
 
+run_post_comments = sa.Table(
+    "run_post_comments",
+    metadata,
+    sa.Column("run_post_comment_id", sa.Text(), nullable=False),
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("run_post_id", sa.Text(), nullable=False),
+    sa.Column("author_agent_id", sa.Text(), nullable=False),
+    sa.Column("author_handle_at_start", sa.Text(), nullable=False),
+    sa.Column("author_display_name_at_start", sa.Text(), nullable=False),
+    sa.Column("body_text_at_start", sa.Text(), nullable=False),
+    sa.Column("published_at_start", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["run_id"],
+        ["runs.run_id"],
+        name="fk_run_post_comments_run_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_post_id"],
+        ["run_posts.run_post_id"],
+        name="fk_run_post_comments_run_post_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "author_agent_id"],
+        ["run_agents.run_id", "run_agents.agent_id"],
+        name="fk_run_post_comments_run_author",
+    ),
+    sa.PrimaryKeyConstraint("run_post_comment_id", name="pk_run_post_comments"),
+)
+
 run_follow_edges = sa.Table(
     "run_follow_edges",
     metadata,
@@ -424,6 +454,29 @@ agent_post_likes = sa.Table(
     ),
 )
 
+agent_post_comments = sa.Table(
+    "agent_post_comments",
+    metadata,
+    sa.Column("agent_post_comment_id", sa.Text(), nullable=False),
+    sa.Column("agent_post_id", sa.Text(), nullable=False),
+    sa.Column("author_agent_id", sa.Text(), nullable=False),
+    sa.Column("body_text", sa.Text(), nullable=False),
+    sa.Column("published_at", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("updated_at", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["agent_post_id"],
+        ["agent_posts.agent_post_id"],
+        name="fk_agent_post_comments_agent_post_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["author_agent_id"],
+        ["agent.agent_id"],
+        name="fk_agent_post_comments_author_agent_id",
+    ),
+    sa.PrimaryKeyConstraint("agent_post_comment_id", name="pk_agent_post_comments"),
+)
+
 
 # --- Run-scoped action tables (likes, comments, follows) ---
 
@@ -536,6 +589,18 @@ sa.Index(
     run_post_likes.c.run_id,
     run_post_likes.c.liker_agent_id,
 )
+sa.Index(
+    "idx_run_post_comments_run_post_published",
+    run_post_comments.c.run_id,
+    run_post_comments.c.run_post_id,
+    run_post_comments.c.published_at_start,
+)
+sa.Index(
+    "idx_run_post_comments_run_author_published",
+    run_post_comments.c.run_id,
+    run_post_comments.c.author_agent_id,
+    run_post_comments.c.published_at_start,
+)
 sa.Index("idx_run_follow_edges_run_id", run_follow_edges.c.run_id)
 sa.Index(
     "idx_run_follow_edges_run_follower",
@@ -566,6 +631,16 @@ sa.Index(
     agent_posts.c.published_at,
 )
 sa.Index("idx_agent_post_likes_post_id", agent_post_likes.c.agent_post_id)
+sa.Index(
+    "idx_agent_post_comments_post_published",
+    agent_post_comments.c.agent_post_id,
+    agent_post_comments.c.published_at,
+)
+sa.Index(
+    "idx_agent_post_comments_author_published",
+    agent_post_comments.c.author_agent_id,
+    agent_post_comments.c.published_at,
+)
 sa.Index(
     "idx_likes_run_turn_agent",
     likes.c.run_id,

@@ -21,6 +21,7 @@ from pathlib import Path
 from db.adapters.sqlite.agent_adapter import SQLiteAgentAdapter
 from db.adapters.sqlite.agent_bio_adapter import SQLiteAgentBioAdapter
 from db.adapters.sqlite.agent_follow_edge_adapter import SQLiteAgentFollowEdgeAdapter
+from db.adapters.sqlite.agent_post_comment_adapter import SQLiteAgentPostCommentAdapter
 from db.adapters.sqlite.agent_post_like_adapter import SQLiteAgentPostLikeAdapter
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
 from db.adapters.sqlite.generated_feed_adapter import SQLiteGeneratedFeedAdapter
@@ -35,6 +36,7 @@ from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.models.agent_post_comments import AgentPostComment
 from simulation.core.models.agent_post_likes import AgentPostLike
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
@@ -62,6 +64,7 @@ class SeedFixtures:
     generated_feeds: list[GeneratedFeed]
     feed_posts: list[Post]
     agent_post_likes: list[dict]
+    agent_post_comments: list[dict]
     turn_metrics: list[TurnMetrics]
     run_metrics: list[RunMetrics]
     agents: list[Agent]
@@ -123,6 +126,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     follow_edges_raw = _read_json_list(fixtures_dir / "agent_follow_edges.json")
     posts_raw = _read_json_list(fixtures_dir / "bluesky_feed_posts.json")
     agent_post_likes_raw = _read_json_list(fixtures_dir / "agent_post_likes.json")
+    agent_post_comments_raw = _read_json_list(fixtures_dir / "agent_post_comments.json")
     feeds_raw = _read_json_list(fixtures_dir / "generated_feeds.json")
     turn_md_raw = _read_json_list(fixtures_dir / "turn_metadata.json")
     turn_metrics_raw = _read_json_list(fixtures_dir / "turn_metrics.json")
@@ -185,6 +189,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         generated_feeds=feeds,
         feed_posts=posts,
         agent_post_likes=agent_post_likes_raw,
+        agent_post_comments=agent_post_comments_raw,
         turn_metrics=turn_metrics,
         run_metrics=run_metrics,
         agents=agents,
@@ -232,6 +237,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
         bio_adapter = SQLiteAgentBioAdapter()
         agent_follow_edge_adapter = SQLiteAgentFollowEdgeAdapter()
         agent_post_like_adapter = SQLiteAgentPostLikeAdapter()
+        agent_post_comment_adapter = SQLiteAgentPostCommentAdapter()
         user_md_adapter = SQLiteUserAgentProfileMetadataAdapter()
 
         now = get_current_timestamp()
@@ -355,6 +361,111 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
 
                 agent_post_like_adapter.write_agent_post_likes(
                     resolved_likes,
+                    conn=conn,
+                )
+
+            if fixtures.agent_post_comments:
+                author_handles = [
+                    str(row["author_handle"]) for row in fixtures.agent_post_comments
+                ]
+                author_handles = list(dict.fromkeys(author_handles))
+                handle_to_agent = agent_adapter.read_agents_by_handles(
+                    author_handles,
+                    conn=conn,
+                )
+
+                unique_source_pairs_comments: set[tuple[str, str]] = set()
+                for row in fixtures.agent_post_comments:
+                    source = str(row["post_source"])
+                    source_post_id = str(row["post_source_post_id"])
+                    unique_source_pairs_comments.add((source, source_post_id))
+
+                if unique_source_pairs_comments:
+                    placeholders = ", ".join(
+                        "(?, ?)" for _ in unique_source_pairs_comments
+                    )
+                    pair_params: list[str] = []
+                    for source, source_post_id in sorted(unique_source_pairs_comments):
+                        pair_params.extend([source, source_post_id])
+                    sql = (
+                        "SELECT source, source_post_id, agent_post_id "
+                        f"FROM agent_posts WHERE (source, source_post_id) IN ({placeholders})"
+                    )
+                    rows = conn.execute(sql, tuple(pair_params)).fetchall()
+                    pair_to_agent_post_id_c = {
+                        (str(r["source"]), str(r["source_post_id"])): str(
+                            r["agent_post_id"]
+                        )
+                        for r in rows
+                    }
+                    missing_c = unique_source_pairs_comments - set(
+                        pair_to_agent_post_id_c.keys()
+                    )
+                    if missing_c:
+                        raise ValueError(
+                            "agent_post_comments fixtures reference missing agent_posts: "
+                            + ", ".join(
+                                f"(source={s}, source_post_id={sp})"
+                                for s, sp in missing_c
+                            )
+                        )
+                else:
+                    pair_to_agent_post_id_c = {}
+
+                def _deterministic_agent_post_comment_id(
+                    *,
+                    author_agent_id: str,
+                    agent_post_id: str,
+                    body_text: str,
+                    published_at: str,
+                ) -> str:
+                    digest = hashlib.sha256(
+                        f"{author_agent_id}:{agent_post_id}:{body_text}:{published_at}".encode(
+                            "utf-8"
+                        )
+                    ).hexdigest()
+                    return f"agent_post_comment_import_{digest}"
+
+                resolved_comments: list[AgentPostComment] = []
+                for row in fixtures.agent_post_comments:
+                    author_handle = str(row["author_handle"])
+                    if author_handle not in handle_to_agent:
+                        raise ValueError(
+                            "agent_post_comments fixture references unknown author_handle="
+                            f"{author_handle}"
+                        )
+                    author_agent_id = handle_to_agent[author_handle].agent_id
+                    post_source = str(row["post_source"])
+                    post_source_post_id = str(row["post_source_post_id"])
+                    agent_post_id = pair_to_agent_post_id_c[
+                        (post_source, post_source_post_id)
+                    ]
+                    body_text = str(row["body_text"])
+                    published_at = str(row.get("published_at") or now)
+                    created_at = str(row.get("created_at") or now)
+                    updated_at = str(row.get("updated_at") or now)
+                    resolved_comments.append(
+                        AgentPostComment(
+                            agent_post_comment_id=str(
+                                row.get("agent_post_comment_id")
+                                or _deterministic_agent_post_comment_id(
+                                    author_agent_id=author_agent_id,
+                                    agent_post_id=agent_post_id,
+                                    body_text=body_text,
+                                    published_at=published_at,
+                                )
+                            ),
+                            agent_post_id=agent_post_id,
+                            author_agent_id=author_agent_id,
+                            body_text=body_text,
+                            published_at=published_at,
+                            created_at=created_at,
+                            updated_at=updated_at,
+                        )
+                    )
+
+                agent_post_comment_adapter.write_agent_post_comments(
+                    resolved_comments,
                     conn=conn,
                 )
 
