@@ -64,7 +64,10 @@ from simulation.core.action_history import (
 )
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories.agent import create_default_agent_factory
-from simulation.core.factories.command_service import create_command_service
+from simulation.core.factories.command_service import (
+    CommandServiceRepos,
+    create_command_service,
+)
 from simulation.core.factories.query_service import create_query_service
 from simulation.core.models.agents import SimulationAgent
 
@@ -231,10 +234,9 @@ def create_engine(
         comment_repo=comment_repo,
         follow_repo=follow_repo,
     )
-    command_service = create_command_service(
+    command_repos = CommandServiceRepos(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
-        simulation_persistence=simulation_persistence,
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         generated_feed_repo=generated_feed_repo,
@@ -245,10 +247,14 @@ def create_engine(
         run_agent_repo=run_agent_repo,
         run_follow_edge_repo=run_follow_edge_repo,
         run_post_repo=run_post_repo,
-        agent_post_repo=agent_post_repo,
         run_post_like_repo=run_post_like_repo,
+        agent_post_repo=agent_post_repo,
         agent_post_like_repo=agent_post_like_repo,
         transaction_provider=transaction_provider,
+    )
+    command_service = create_command_service(
+        repos=command_repos,
+        simulation_persistence=simulation_persistence,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
     )

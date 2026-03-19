@@ -29,6 +29,7 @@ from db.services.simulation_persistence_service import SimulationPersistenceServ
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories import (
+    CommandServiceRepos,
     create_command_service,
     create_default_agent_factory,
     create_engine,
@@ -233,10 +234,9 @@ class TestServiceBuilders:
 
     def test_create_command_service(self):
         mock_simulation_persistence = Mock(spec=SimulationPersistenceService)
-        service = create_command_service(
+        repos = CommandServiceRepos(
             run_repo=Mock(spec=RunRepository),
             metrics_repo=Mock(spec=MetricsRepository),
-            simulation_persistence=mock_simulation_persistence,
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
@@ -253,6 +253,10 @@ class TestServiceBuilders:
             agent_post_repo=Mock(spec=AgentPostRepository),
             agent_post_like_repo=Mock(spec=AgentPostLikeRepository),
             transaction_provider=Mock(),
+        )
+        service = create_command_service(
+            repos=repos,
+            simulation_persistence=mock_simulation_persistence,
             agent_factory=Mock(return_value=[]),
         )
         assert isinstance(service, SimulationCommandService)
