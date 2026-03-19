@@ -1,5 +1,6 @@
 """One-off job to migrate data from bluesky_profiles and agent_bios to agent, agent_persona_bios, and user_agent_profile_metadata."""
 
+import sys
 import uuid
 
 from db.adapters.sqlite.sqlite import (
@@ -47,6 +48,7 @@ def main() -> None:
 
     now = get_current_timestamp()
 
+    migrated_agents = len(profiles)
     for profile in profiles:
         agent = Agent(
             agent_id=profile.did,
@@ -91,6 +93,7 @@ def main() -> None:
             updated_at=now,
         )
         metadata_repo.create_or_update_metadata(metadata)
+    sys.stdout.write(f"Migrated {migrated_agents} agents.\n")
 
 
 if __name__ == "__main__":

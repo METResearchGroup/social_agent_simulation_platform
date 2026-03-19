@@ -25,8 +25,9 @@ TURN_METADATA_REQUIRED_COLS = ["run_id", "turn_number", "total_actions", "create
 
 def _validate_turn_metadata_row(row: sqlite3.Row) -> None:
     """Validate that row has required columns and no NULLs. Raises KeyError or ValueError."""
+    available_columns = set(row.keys())
     for col in TURN_METADATA_REQUIRED_COLS:
-        if col not in row:
+        if col not in available_columns:
             raise KeyError(f"Missing required column '{col}' in turn_metadata row")
     for col in TURN_METADATA_REQUIRED_COLS:
         if row[col] is None:

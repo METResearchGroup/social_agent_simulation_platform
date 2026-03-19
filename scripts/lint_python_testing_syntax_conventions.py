@@ -111,11 +111,17 @@ def main(argv: list[str]) -> int:
         all_violations.extend(_find_module_level_test_functions(f))
 
     if not all_violations:
+        sys.stdout.write("OK: no module-level test_* functions found\n")
         return 0
 
     for v in all_violations:
+        rel_path = v.path
         with contextlib.suppress(ValueError):
-            v.path.relative_to(Path.cwd())
+            rel_path = v.path.relative_to(Path.cwd())
+        sys.stdout.write(
+            f"{rel_path}:{v.lineno}: test function '{v.name}' is not allowed "
+            "(tests must be inside class Test...)\n"
+        )
     return 1
 
 
