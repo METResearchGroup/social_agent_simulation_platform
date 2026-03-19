@@ -178,6 +178,14 @@ jobs:
         with:
           version: "latest"
 
+      - name: Set up Node.js (Mermaid CLI for schema ER diagrams)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+
       - name: Install backend dependencies
         run: uv sync
 

@@ -16,13 +16,20 @@ Where:
 Usage (from repo root):
   uv run python scripts/generate_db_schema_docs.py --update
   uv run python scripts/generate_db_schema_docs.py --check
+
+`--check` and `--update` also require the Mermaid CLI (`mmdc`, from
+`@mermaid-js/mermaid-cli`) to compile ```mermaid``` ER diagrams; if `mmdc` is
+not on PATH, `npx` is used as a fallback.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,6 +40,123 @@ from typing import Any
 import sqlalchemy as sa
 
 from scripts._schema_utils import _alembic_upgrade_head, _repo_root
+
+_MERMAID_FENCE_RE = re.compile(r"```mermaid\s*\n(.*?)```", re.DOTALL)
+
+
+def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
+    """Build argv to invoke Mermaid CLI (`mmdc`).
+
+    Prefer a global/local `mmdc` on PATH; otherwise fall back to `npx` so
+    developers can run checks without a global npm install.
+    """
+    override = os.environ.get("MMDC") or os.environ.get("MERMAID_CLI")
+    if override:
+        parts = shlex.split(override)
+        return parts + ["-i", str(in_path), "-o", str(out_path)]
+
+    mmdc = shutil.which("mmdc")
+    if mmdc:
+        return [mmdc, "-i", str(in_path), "-o", str(out_path)]
+    npx = shutil.which("npx")
+    if npx:
+        return [
+            npx,
+            "--yes",
+            "@mermaid-js/mermaid-cli",
+            "-i",
+            str(in_path),
+            "-o",
+            str(out_path),
+        ]
+    raise RuntimeError(
+        "Mermaid CLI not found. Install `@mermaid-js/mermaid-cli` (provides `mmdc`), "
+        "or ensure `npx` is on PATH. See docs/runbooks/DB_SCHEMA_DOCS.md."
+    )
+
+
+def _iter_mermaid_blocks(schema_md_text: str) -> list[str]:
+    blocks = [m.group(1).strip() for m in _MERMAID_FENCE_RE.finditer(schema_md_text)]
+    return [b for b in blocks if b]
+
+
+def _compile_mermaid_blocks_with_mmdc(
+    *,
+    blocks: list[str],
+    label: str,
+    tmpdir: Path,
+) -> str | None:
+    """Compile each Mermaid block with `mmdc`. Returns an error string or None."""
+    for i, block in enumerate(blocks):
+        in_path = tmpdir / f"block-{i}.mmd"
+        out_path = tmpdir / f"block-{i}.svg"
+        in_path.write_text(
+            block + ("\n" if not block.endswith("\n") else ""), encoding="utf-8"
+        )
+        try:
+            argv = _mmdc_argv(in_path, out_path)
+        except RuntimeError as e:
+            return str(e)
+        completed = subprocess.run(
+            argv,
+            cwd=str(tmpdir),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if completed.returncode != 0:
+            detail = (completed.stderr or "").strip() or (
+                completed.stdout or ""
+            ).strip()
+            return (
+                f"Mermaid CLI failed for {label} (diagram block {i + 1}/{len(blocks)}).\n"
+                f"Command: {' '.join(argv)}\n"
+                f"{detail}"
+            )
+    return None
+
+
+def _check_mermaid_in_schema_md(repo_root: Path, schema_path: Path) -> str | None:
+    """Return an error string if the Mermaid block(s) in `schema.md` fail `mmdc`."""
+    text = schema_path.read_text(encoding="utf-8")
+    blocks = _iter_mermaid_blocks(text)
+    if not blocks:
+        return None
+    rel = schema_path.relative_to(repo_root)
+    with tempfile.TemporaryDirectory(prefix="sim-schema-mermaid-") as tmp:
+        return _compile_mermaid_blocks_with_mmdc(
+            blocks=blocks,
+            label=str(rel),
+            tmpdir=Path(tmp),
+        )
+
+
+def _check_mermaid_in_all_schema_docs(repo_root: Path) -> int:
+    """Validate every ```mermaid``` block under docs/db/**/schema.md via Mermaid CLI."""
+    db_root = repo_root / "docs" / "db"
+    if not db_root.is_dir():
+        return 0
+
+    schema_files = sorted(db_root.glob("**/schema.md"))
+    if not schema_files:
+        return 0
+
+    failures: list[str] = []
+    for schema_path in schema_files:
+        err = _check_mermaid_in_schema_md(repo_root, schema_path)
+        if err:
+            rel = schema_path.relative_to(repo_root)
+            failures.append(f"{rel}:\n{err}")
+
+    if not failures:
+        return 0
+
+    print(
+        "ERROR: One or more Mermaid ER diagrams failed to compile.\n\n"
+        + "\n\n".join(failures),
+        file=sys.stderr,
+    )
+    return 1
 
 
 def _run(
@@ -540,9 +664,21 @@ def main() -> int:
 
         (out_root / "LATEST.txt").write_text(version_dir_name + "\n", encoding="utf-8")
         print(f"Wrote schema docs to: {out_dir}")
+        mermaid_err = _check_mermaid_in_schema_md(repo_root, out_dir / "schema.md")
+        if mermaid_err:
+            print(
+                "ERROR: Generated Mermaid diagram failed Mermaid CLI compilation.\n\n"
+                f"{mermaid_err}\n",
+                file=sys.stderr,
+            )
+            return 1
         return 0
 
     assert args.check
+    mermaid_rc = _check_mermaid_in_all_schema_docs(repo_root)
+    if mermaid_rc != 0:
+        return mermaid_rc
+
     latest_dir = _latest_version_dir(out_root)
     if latest_dir is None:
         print(
