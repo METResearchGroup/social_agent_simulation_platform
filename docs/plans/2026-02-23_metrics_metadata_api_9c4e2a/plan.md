@@ -26,17 +26,17 @@ flowchart LR
     subgraph client [Client]
         UI[Config Form]
     end
-    
+
     subgraph api [API Layer]
         Route[GET /v1/simulations/metrics]
         Schema[MetricSchema]
     end
-    
+
     subgraph core [Core]
         Defaults[metrics/defaults.py]
         Builtins[BUILTIN_METRICS]
     end
-    
+
     UI -->|fetch| Route
     Route -->|returns list| Schema
     Route -->|calls| get_registered_metrics_metadata
@@ -126,24 +126,24 @@ Use `simulation_client` fixture (same as [tests/api/test_feed_algorithms.py](tes
 
 ## Manual Verification
 
-1. **Run API tests:**  
-   `uv run pytest tests/api/test_metrics.py -v`  
+1. **Run API tests:**
+   `uv run pytest tests/api/test_metrics.py -v`
    Expected: All 4 tests pass.
 
-2. **Run full test suite:**  
-   `uv run pytest`  
+2. **Run full test suite:**
+   `uv run pytest`
    Expected: No regressions.
 
-3. **Pre-commit:**  
-   `uv run pre-commit run --all-files`  
+3. **Pre-commit:**
+   `uv run pre-commit run --all-files`
    Expected: All hooks pass.
 
-4. **Manual API check (optional):**  
-   Start API: `PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload`  
-   Then: `curl -H "Authorization: Bearer <token>" http://localhost:8000/v1/simulations/metrics`  
+4. **Manual API check (optional):**
+   Start API: `PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload`
+   Then: `curl -H "Authorization: Bearer <token>" http://localhost:8000/v1/simulations/metrics`
    Expected: JSON array of metric objects with `key`, `description`, `scope`, `author`.
 
-5. **Smoke test (if applicable):**  
+5. **Smoke test (if applicable):**
    `SIMULATION_API_URL=http://localhost:8000 uv run pytest -m smoke tests/api/test_simulation_smoke.py`
 
 ---

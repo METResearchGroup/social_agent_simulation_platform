@@ -101,7 +101,7 @@ Goal: ensure that immediately after `POST /v1/simulations/agents`, the subsequen
 
 ```bash
     uv sync --extra test
-    
+
 
 ```
 
@@ -113,7 +113,7 @@ Expected: completes successfully.
 
 ```bash
     LOCAL=true PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload
-    
+
 
 ```
 
@@ -125,7 +125,7 @@ Expected: server starts; `GET http://localhost:8000/health` returns `{"status":"
 
 ```bash
     uv run pytest -q tests/api/test_simulation_agents.py
-    
+
 
 ```
 
@@ -138,7 +138,7 @@ Expected: all pass.
 
 ```bash
     cd ui && npm install
-    
+
 
 ```
 
@@ -146,7 +146,7 @@ Expected: all pass.
 
 ```bash
     cd ui && LOCAL=true NEXT_PUBLIC_SIMULATION_API_URL=http://localhost:8000/v1 npm run dev
-    
+
 
 ```
 
@@ -169,7 +169,7 @@ Expected: Next dev server on `http://localhost:3000`.
 
 ```bash
     cd ui && npm run lint:all
-    
+
 
 ```
 
@@ -189,4 +189,3 @@ Expected: all hooks pass.
 
 - **Frontend pin/merge only (not chosen)**: keep backend ordering by handle and add client-side logic to “pin” the created agent into the current list. This avoids API changes, but adds state complexity and can regress when agent lists refetch.
 - **Backend newest-first (chosen)**: change the canonical ordering for `GET /v1/simulations/agents` to newest-first. This keeps UI simple and ensures the post-create refresh returns the created agent on the first page, at the cost of updating API tests and any consumers relying on handle ordering.
-

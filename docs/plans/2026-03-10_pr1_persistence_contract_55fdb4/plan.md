@@ -158,4 +158,3 @@ The only code changes in PR 1 should be guardrail code and its tests. Everything
 - Extend `[scripts/lint_architecture.py](scripts/lint_architecture.py)` instead of creating a schema-specific linter: possible, but less clear because the contract here is about persisted table shape rather than DI or Python service wiring. A dedicated schema linter fits the concern better.
 - Defer all enforcement to later migration PRs: rejected because that leaves PR 2 and PR 3 without a hard guardrail during the highest-risk modeling phase.
 - Add broader Python-layer service-boundary rules now: deferred because the future `agent_*` and `run_*` repositories/services do not exist yet, so the rule surface would mostly be speculative in PR 1.
-

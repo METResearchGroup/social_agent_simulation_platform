@@ -9,9 +9,6 @@ from db.repositories.generated_feed_repository import (
 
 
 def main():
-    print("=" * 80)
-    print("GENERATED FEEDS VIEWER")
-    print("=" * 80)
 
     # Read all generated feeds
     tx = SqliteTransactionProvider()
@@ -21,38 +18,22 @@ def main():
     feeds = generated_feed_repo.list_all_generated_feeds()
 
     # 1. Total number of generated feeds
-    total_feeds = len(feeds)
-    print("\n📊 TOTAL GENERATED FEEDS")
-    print("=" * 80)
-    print(f"Total number of generated feeds: {total_feeds}")
+    len(feeds)
 
     if not feeds:
-        print("\nNo generated feeds found in database.")
         return
 
     # 2. Total number of generated feeds per run_id
     run_id_counts = Counter(feed.run_id for feed in feeds)
 
-    print("\n\n📝 GENERATED FEEDS PER RUN_ID")
-    print("=" * 80)
-    print(f"{'Run ID':<50} {'Count':<10}")
-    print("-" * 80)
-
-    for run_id, count in sorted(run_id_counts.items()):
-        print(f"{run_id:<50} {count:<10}")
+    for _run_id, _count in sorted(run_id_counts.items()):
+        pass
 
     # 3. Total number of generated feeds per handle
     handle_counts = Counter(feed.agent_handle for feed in feeds)
 
-    print("\n\n📝 GENERATED FEEDS PER HANDLE")
-    print("=" * 80)
-    print(f"{'Handle':<50} {'Count':<10}")
-    print("-" * 80)
-
-    for handle, count in sorted(handle_counts.items()):
-        print(f"{handle:<50} {count:<10}")
-
-    print("=" * 80)
+    for _handle, _count in sorted(handle_counts.items()):
+        pass
 
 
 if __name__ == "__main__":

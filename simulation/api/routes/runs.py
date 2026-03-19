@@ -128,7 +128,7 @@ async def _execute_simulation_run(
 ) -> RunResponse | Response:
     """Run the simulation and return response; used for timing and logging."""
     engine = request.app.state.deps.engine
-    current_app_user = getattr(request.state, "current_app_user")
+    current_app_user = request.state.current_app_user
     if current_app_user is None:
         raise RuntimeError(
             "current_app_user was not set on request.state, but is required for simulation run creation."

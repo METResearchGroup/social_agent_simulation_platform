@@ -124,7 +124,7 @@ def _recency_score(*, created_at: str) -> float:
 
 def _should_follow() -> bool:
     """Return whether to follow using random probability in [0, 1)."""
-    return random.random() < FOLLOW_PROBABILITY
+    return random.random() < FOLLOW_PROBABILITY  # nosec B311
 
 
 def _build_generated_follow(

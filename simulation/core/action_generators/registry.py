@@ -73,19 +73,19 @@ _LIKE_ALGORITHM_FACTORIES: dict[str, Callable[[], LikeGenerator]] = {
     "random_simple": _create_random_simple_like,
     "naive_llm": _create_naive_llm_like,
 }
-assert set(_LIKE_ALGORITHM_FACTORIES.keys()) == set(LIKE_ALGORITHMS)
+assert set(_LIKE_ALGORITHM_FACTORIES.keys()) == set(LIKE_ALGORITHMS)  # nosec B101
 
 _FOLLOW_ALGORITHM_FACTORIES: dict[str, Callable[[], FollowGenerator]] = {
     "random_simple": _create_random_simple_follow,
     "naive_llm": _create_naive_llm_follow,
 }
-assert set(_FOLLOW_ALGORITHM_FACTORIES.keys()) == set(FOLLOW_ALGORITHMS)
+assert set(_FOLLOW_ALGORITHM_FACTORIES.keys()) == set(FOLLOW_ALGORITHMS)  # nosec B101
 
 _COMMENT_ALGORITHM_FACTORIES: dict[str, Callable[[], CommentGenerator]] = {
     "random_simple": _create_random_simple_comment,
     "naive_llm": _create_naive_llm_comment,
 }
-assert set(_COMMENT_ALGORITHM_FACTORIES.keys()) == set(COMMENT_ALGORITHMS)
+assert set(_COMMENT_ALGORITHM_FACTORIES.keys()) == set(COMMENT_ALGORITHMS)  # nosec B101
 
 _like_generator_cache: dict[str, LikeGenerator] = {}
 _follow_generator_cache: dict[str, FollowGenerator] = {}

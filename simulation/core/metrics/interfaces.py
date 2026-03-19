@@ -54,9 +54,9 @@ class MetricDeps:
     Keep this narrow; add fields only when a metric needs them.
     """
 
-    run_repo: "RunRepository"
-    metrics_repo: "MetricsRepository"
-    sql_executor: "MetricsSqlExecutor | None" = None
+    run_repo: RunRepository
+    metrics_repo: MetricsRepository
+    sql_executor: MetricsSqlExecutor | None = None
 
 
 class MetricsSqlExecutor(ABC):

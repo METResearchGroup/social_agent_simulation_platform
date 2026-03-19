@@ -84,7 +84,7 @@ def _recency_score(created_at: str) -> float:
 
 def _should_like() -> bool:
     """Return whether to like using random probability in [0, 1)."""
-    return random.random() < LIKE_PROBABILITY
+    return random.random() < LIKE_PROBABILITY  # nosec B311
 
 
 def _build_generated_like(

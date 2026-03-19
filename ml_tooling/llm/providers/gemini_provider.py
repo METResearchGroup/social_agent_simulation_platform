@@ -101,10 +101,8 @@ class GeminiProvider(LLMProviderProtocol):
         if "safety_settings" not in merged_kwargs:
             merged_kwargs["safety_settings"] = DEFAULT_GEMINI_SAFETY_SETTINGS
 
-        completion_kwargs = {
+        return {
             "model": model,
             "messages": messages,
             **merged_kwargs,
         }
-
-        return completion_kwargs

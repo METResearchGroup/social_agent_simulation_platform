@@ -21,5 +21,5 @@ class AgentActionFeedFilter(ABC):
         agent_handle: str,
         feed: list[Post],
         action_history_store: ActionHistoryStore,
-    ) -> "ActionCandidateFeeds":
+    ) -> ActionCandidateFeeds:
         raise NotImplementedError

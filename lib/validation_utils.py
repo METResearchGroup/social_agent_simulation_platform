@@ -1,6 +1,7 @@
 """Shared validation helpers."""
 
-from typing import Any, Iterable, TypeVar, overload
+from collections.abc import Iterable
+from typing import Any, TypeVar, overload
 
 T = TypeVar("T")
 

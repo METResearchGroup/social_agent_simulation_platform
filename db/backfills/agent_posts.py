@@ -29,7 +29,7 @@ class BackfillAgentPostsResult:
 
 
 def _deterministic_agent_post_id(*, source: str, source_post_id: str) -> str:
-    digest = hashlib.sha256(f"{source}:{source_post_id}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(f"{source}:{source_post_id}".encode()).hexdigest()
     return f"agent_post_import_{digest}"
 
 

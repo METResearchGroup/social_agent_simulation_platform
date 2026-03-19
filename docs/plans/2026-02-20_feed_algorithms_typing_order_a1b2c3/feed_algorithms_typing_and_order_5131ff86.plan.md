@@ -42,15 +42,15 @@ flowchart TB
         ChronologicalAlgo[ChronologicalFeedAlgorithm]
         Registry[registry.py]
     end
-    
+
     subgraph Orchestration [feeds/feed_generator]
         GenerateFeed[_generate_feed]
     end
-    
+
     subgraph Domain [simulation/core/models]
         GeneratedFeed[GeneratedFeed]
     end
-    
+
     FeedAlgorithm --> ChronologicalAlgo
     ChronologicalAlgo -->|"generate()"| FeedAlgorithmResult
     Registry -->|get_feed_generator| FeedAlgorithm

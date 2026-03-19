@@ -94,7 +94,7 @@ class RunResponse(BaseModel):
     error: ErrorDetail | None = None
 
     @model_validator(mode="after")
-    def _validate_status_error_consistency(self) -> "RunResponse":
+    def _validate_status_error_consistency(self) -> RunResponse:
         if self.status == RunResponseStatus.FAILED and self.error is None:
             raise ValueError("error must be set when status is 'failed'")
         if self.status == RunResponseStatus.COMPLETED and self.error is not None:
@@ -115,7 +115,7 @@ class DefaultConfigSchema(BaseModel):
         validated = validate_metric_keys(v)
         assert (
             validated is not None
-        )  # v is required list[str], so result will be the list
+        )  # v is required list[str], so result will be the list  # nosec B101
         return validated
 
 

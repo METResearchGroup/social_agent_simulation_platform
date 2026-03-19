@@ -17,7 +17,7 @@ from simulation.core.utils.validators import (
 RUN_POST_COLUMNS = ordered_column_names(run_posts_table)
 RUN_POST_REQUIRED_FIELDS = required_column_names(run_posts_table)
 _INSERT_RUN_POST_SQL = (
-    f"INSERT INTO run_posts ({', '.join(RUN_POST_COLUMNS)}) "
+    f"INSERT INTO run_posts ({', '.join(RUN_POST_COLUMNS)}) "  # nosec B608
     f"VALUES ({', '.join('?' for _ in RUN_POST_COLUMNS)})"
 )
 _SELECT_RUN_POSTS_FOR_RUN_SQL = (
@@ -29,7 +29,7 @@ _SELECT_RUN_POSTS_FOR_RUN_SQL = (
 def _build_read_run_posts_by_ids_sql(num_ids: int) -> str:
     placeholders = ", ".join("?" for _ in range(num_ids))
     return (
-        f"SELECT * FROM run_posts WHERE run_id = ? AND run_post_id IN ({placeholders})"
+        f"SELECT * FROM run_posts WHERE run_id = ? AND run_post_id IN ({placeholders})"  # nosec B608
     )
 
 
