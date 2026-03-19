@@ -19,6 +19,7 @@ class RunConfig(BaseModel):
     feed_algorithm: str
     feed_algorithm_config: dict[str, JsonValue] | None = None
     metric_keys: list[str] | None = None
+    run_seed: int | None = None
 
     @field_validator("metric_keys")
     @classmethod
@@ -77,6 +78,7 @@ class Run(BaseModel):
     total_agents: int
     feed_algorithm: str = DEFAULT_FEED_ALGORITHM
     metric_keys: list[str]
+    run_seed: int
     started_at: str
     status: RunStatus
     completed_at: str | None = None

@@ -18,6 +18,7 @@ class RunConfigFactory(BaseFactory[RunConfig]):
         feed_algorithm: str = "chronological",
         feed_algorithm_config: dict[str, JsonValue] | None = None,
         metric_keys: list[str] | None = None,
+        run_seed: int | None = None,
     ) -> RunConfig:
         return RunConfig(
             num_agents=num_agents,
@@ -25,6 +26,7 @@ class RunConfigFactory(BaseFactory[RunConfig]):
             feed_algorithm=feed_algorithm,
             feed_algorithm_config=feed_algorithm_config,
             metric_keys=metric_keys,
+            run_seed=run_seed,
         )
 
 
@@ -39,6 +41,7 @@ class RunFactory(BaseFactory[Run]):
         total_agents: int = 1,
         feed_algorithm: str = "chronological",
         metric_keys: list[str] | None = None,
+        run_seed: int = 42,
         started_at: str | None = None,
         status: RunStatus = RunStatus.COMPLETED,
         completed_at: str | None = None,
@@ -58,6 +61,7 @@ class RunFactory(BaseFactory[Run]):
             metric_keys=metric_keys
             if metric_keys is not None
             else get_default_metric_keys(),
+            run_seed=run_seed,
             started_at=started,
             status=status,
             completed_at=completed_at,

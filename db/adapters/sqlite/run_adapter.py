@@ -104,6 +104,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                     )
             metric_keys = sorted(parsed)
 
+        run_seed: int = row["run_seed"] if "run_seed" in row.keys() else 0
+
         return Run(
             run_id=row["run_id"],
             app_user_id=app_user_id,
@@ -112,6 +114,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             total_agents=row["total_agents"],
             feed_algorithm=row["feed_algorithm"],
             metric_keys=metric_keys,
+            run_seed=run_seed,
             started_at=row["started_at"],
             status=status,
             completed_at=row["completed_at"],
@@ -129,8 +132,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         conn.execute(
             """
             INSERT OR REPLACE INTO runs 
-            (run_id, app_user_id, created_at, total_turns, total_agents, feed_algorithm, metric_keys, started_at, status, completed_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (run_id, app_user_id, created_at, total_turns, total_agents, feed_algorithm, metric_keys, run_seed, started_at, status, completed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 run.run_id,
@@ -140,6 +143,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 run.total_agents,
                 run.feed_algorithm,
                 metric_keys_json,
+                run.run_seed,
                 run.started_at,
                 run.status.value,  # Convert enum to string explicitly
                 run.completed_at,

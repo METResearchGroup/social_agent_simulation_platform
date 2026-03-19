@@ -1,5 +1,8 @@
 """Abstract interfaces for action generators."""
 
+from __future__ import annotations
+
+import random
 from abc import ABC, abstractmethod
 
 from simulation.core.models.generated.comment import GeneratedComment
@@ -19,6 +22,7 @@ class LikeGenerator(ABC):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedLike]:
         """Generate likes from candidates."""
         ...
@@ -35,6 +39,7 @@ class FollowGenerator(ABC):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates."""
         ...
@@ -51,6 +56,7 @@ class CommentGenerator(ABC):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedComment]:
         """Generate comments from candidates."""
         ...

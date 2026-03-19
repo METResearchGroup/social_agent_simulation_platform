@@ -1,6 +1,6 @@
 """Tests for simulation.core.agent_actions."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from simulation.core.agent_actions import generate_follows
 from tests.factories import (
@@ -20,6 +20,7 @@ class TestAgentActions:
             result = generate_follows(
                 [],
                 run_id="run_1",
+                run_seed=12345,
                 turn_number=0,
                 agent_handle=agent.handle,
             )
@@ -65,6 +66,7 @@ class TestAgentActions:
             result = generate_follows(
                 feed,
                 run_id="run_1",
+                run_seed=12345,
                 turn_number=3,
                 agent_handle=agent.handle,
             )
@@ -77,4 +79,5 @@ class TestAgentActions:
             run_id="run_1",
             turn_number=3,
             agent_handle=agent.handle,
+            rng=ANY,
         )

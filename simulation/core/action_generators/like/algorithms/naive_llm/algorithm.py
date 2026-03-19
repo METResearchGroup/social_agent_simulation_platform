@@ -6,6 +6,7 @@ Uses a single LLM call to predict which posts the user would like.
 from __future__ import annotations
 
 import logging
+import random
 
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService
@@ -81,6 +82,7 @@ class NaiveLLMLikeGenerator(LLMActionGeneratorMixin, LikeGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedLike]:
         """Generate likes from candidates using LLM prediction."""
         if not candidates:

@@ -37,6 +37,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedLike]:
         """Generate likes from candidates using scoring and random probability."""
         if not candidates:
@@ -48,7 +49,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
 
         generated: list[GeneratedLike] = []
         for post in selected:
-            if not _should_like():
+            if not _should_like(rng=rng):
                 continue
             generated.append(
                 _build_generated_like(
@@ -83,9 +84,9 @@ def _recency_score(created_at: str) -> float:
         return 0.0
 
 
-def _should_like() -> bool:
+def _should_like(*, rng: random.Random) -> bool:
     """Return whether to like using random probability in [0, 1)."""
-    return random.random() < LIKE_PROBABILITY
+    return rng.random() < LIKE_PROBABILITY
 
 
 def _build_generated_like(

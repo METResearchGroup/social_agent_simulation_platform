@@ -3,6 +3,8 @@
 Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
+import random
+
 from lib.load_env_vars import EnvVarsContainer
 from simulation.core.factories.action_generators.comment.naive_llm import (
     create_naive_llm_comment_generator,
@@ -65,6 +67,7 @@ def main() -> None:
             run_id=run_id,
             turn_number=i,
             agent_handle="test_agent.bsky.social",
+            rng=random.Random(0),
         )
         print(f"Comments generated: {len(result)}")
         for g in result:

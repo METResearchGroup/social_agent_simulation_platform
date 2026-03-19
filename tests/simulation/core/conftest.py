@@ -109,6 +109,7 @@ def sample_run(request):
             "turn.actions.counts_by_type",
             "turn.actions.total",
         ],
+        run_seed=42,
         started_at="2024_01_01-12:00:00",
         status=RunStatus.RUNNING,
         completed_at=None,

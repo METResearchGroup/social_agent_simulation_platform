@@ -1,5 +1,7 @@
 """Tests for simulation.core.action_generators.like.algorithms.random_simple module."""
 
+import random
+
 from simulation.core.action_generators.like.algorithms import random_simple as mod
 from simulation.core.action_generators.like.algorithms.random_simple import (
     TOP_K_POSTS_TO_LIKE,
@@ -7,6 +9,9 @@ from simulation.core.action_generators.like.algorithms.random_simple import (
 )
 from simulation.core.models.posts import Post
 from tests.factories import PostFactory
+
+# Fixed seed for deterministic test behavior.
+TEST_RNG: random.Random = random.Random(42)
 
 
 def _post(
@@ -43,6 +48,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         assert result == []
 
@@ -56,6 +62,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_prob0",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         assert result == []
 
@@ -69,6 +76,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_prob100",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         expected_count = min(TOP_K_POSTS_TO_LIKE, len(candidates))
         assert len(result) == expected_count
@@ -86,6 +94,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         assert len(result) <= TOP_K_POSTS_TO_LIKE
 
@@ -101,6 +110,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         post_ids = [like.like.post_id for like in result]
         assert post_ids[0] == "bluesky:post_high"
@@ -118,32 +128,37 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         post_ids = [like.like.post_id for like in result]
         assert post_ids[0] == "bluesky:post_new"
         assert "bluesky:post_new" in post_ids
 
-    def test_reproducible_when_random_mocked(self, monkeypatch):
-        """With random mocked to fixed values, repeated runs produce same likes."""
-        monkeypatch.setattr(mod, "LIKE_PROBABILITY", 1.0)
-        fake_random = type("FakeRandom", (), {"random": lambda self: 0.0})()
-        monkeypatch.setattr(mod, "random", fake_random)
+    def test_reproducible_with_same_seed(self):
+        """Same run_seed yields identical likes across repeated runs."""
+        from lib.run_rng import get_turn_rng
+
         generator = RandomSimpleLikeGenerator()
         candidates = [_post("post_a", like_count=3), _post("post_b", like_count=7)]
         run_id = "run_det"
+        run_seed = 12345
         turn_number = 1
         agent_handle = "agent2.bsky.social"
+        rng1 = get_turn_rng(run_seed=run_seed, turn_number=turn_number)
+        rng2 = get_turn_rng(run_seed=run_seed, turn_number=turn_number)
         result1 = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            rng=rng1,
         )
         result2 = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            rng=rng2,
         )
         expected_post_ids = [like.like.post_id for like in result1]
         assert [like.like.post_id for like in result2] == expected_post_ids
@@ -159,6 +174,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=2,
             agent_handle="agent.bsky.social",
+            rng=TEST_RNG,
         )
         assert len(result) == 1
         like = result[0]

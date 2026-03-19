@@ -368,18 +368,21 @@ class SimulationCommandService:
             likes = generate_likes(
                 action_candidates.like_candidates,
                 run_id=run_id,
+                run_seed=run.run_seed,
                 turn_number=turn_number,
                 agent_handle=agent.handle,
             )
             comments = generate_comments(
                 action_candidates.comment_candidates,
                 run_id=run_id,
+                run_seed=run.run_seed,
                 turn_number=turn_number,
                 agent_handle=agent.handle,
             )
             follows = generate_follows(
                 action_candidates.follow_candidates,
                 run_id=run_id,
+                run_seed=run.run_seed,
                 turn_number=turn_number,
                 agent_handle=agent.handle,
             )

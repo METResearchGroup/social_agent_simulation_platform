@@ -43,6 +43,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedComment]:
         """Generate comments from candidates using scoring and random probability."""
         if not candidates:
@@ -54,12 +55,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
 
         generated: list[GeneratedComment] = []
         for post in selected:
-            if not _should_comment(
-                run_id=run_id,
-                turn_number=turn_number,
-                agent_handle=agent_handle,
-                post_id=post.post_id,
-            ):
+            if not _should_comment(rng=rng):
                 continue
             generated.append(
                 _build_generated_comment(
@@ -67,6 +63,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
                     agent_handle=agent_handle,
                     run_id=run_id,
                     turn_number=turn_number,
+                    rng=rng,
                 )
             )
 
@@ -96,26 +93,14 @@ def _recency_score(created_at: str) -> float:
         return 0.0
 
 
-def _should_comment(
-    *,
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-    post_id: str,
-) -> bool:
+def _should_comment(*, rng: random.Random) -> bool:
     """Return whether to comment on a post using random probability in [0, 1)."""
-    return random.random() < COMMENT_PROBABILITY
+    return rng.random() < COMMENT_PROBABILITY
 
 
-def _pick_comment_text(
-    *,
-    run_id: str,
-    turn_number: int,
-    agent_handle: str,
-    post_id: str,
-) -> str:
+def _pick_comment_text(*, rng: random.Random) -> str:
     """Pick a comment text from the hardcoded pool using random index."""
-    roll = random.random()  # [0.0, 1.0)
+    roll = rng.random()  # [0.0, 1.0)
     idx = int(roll * len(HARDCODED_COMMENT_TEXTS))
     return HARDCODED_COMMENT_TEXTS[idx]
 
@@ -126,17 +111,13 @@ def _build_generated_comment(
     agent_handle: str,
     run_id: str,
     turn_number: int,
+    rng: random.Random,
 ) -> GeneratedComment:
     """Build a GeneratedComment with IDs and metadata."""
     post_id = post.post_id
     comment_id = f"comment_{run_id}_{turn_number}_{agent_handle}_{post_id}"
     created_at = get_current_timestamp()
-    text = _pick_comment_text(
-        run_id=run_id,
-        turn_number=turn_number,
-        agent_handle=agent_handle,
-        post_id=post_id,
-    )
+    text = _pick_comment_text(rng=rng)
     return GeneratedComment(
         comment=Comment(
             comment_id=comment_id,

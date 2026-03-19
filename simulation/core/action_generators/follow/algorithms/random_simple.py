@@ -37,6 +37,7 @@ class RandomSimpleFollowGenerator(FollowGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates using scoring and random probability."""
         if not candidates:
@@ -51,7 +52,7 @@ class RandomSimpleFollowGenerator(FollowGenerator):
 
         generated_follows: list[GeneratedFollow] = []
         for _, post in scored_candidates:
-            if not _should_follow():
+            if not _should_follow(rng=rng):
                 continue
 
             generated_follow: GeneratedFollow = _build_generated_follow(
@@ -123,9 +124,9 @@ def _recency_score(*, created_at: str) -> float:
         return 0.0
 
 
-def _should_follow() -> bool:
+def _should_follow(*, rng: random.Random) -> bool:
     """Return whether to follow using random probability in [0, 1)."""
-    return random.random() < FOLLOW_PROBABILITY
+    return rng.random() < FOLLOW_PROBABILITY
 
 
 def _build_generated_follow(

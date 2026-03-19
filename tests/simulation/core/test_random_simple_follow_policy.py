@@ -1,5 +1,6 @@
 """Tests for simulation.core.action_generators.follow.algorithms.random_simple module."""
 
+import random
 import re
 
 import simulation.core.action_generators.follow.algorithms.random_simple as random_simple_follow
@@ -13,6 +14,26 @@ from tests.factories import PostFactory
 
 # Timestamp format used by get_current_timestamp(): YYYY_MM_DD-HH:MM:SS
 CREATED_AT_PATTERN = re.compile(r"^\d{4}_\d{2}_\d{2}-\d{2}:\d{2}:\d{2}$")
+
+# Fixed seed for deterministic test behavior.
+TEST_RNG: random.Random = random.Random(42)
+
+
+def _fake_rng(values: list[float]) -> random.Random:
+    """Create a deterministic RNG that yields the given values in order."""
+    rng = random.Random(0)
+    # Replace random() with our sequence
+    original_random = rng.random
+    it = iter(values)
+
+    def _next() -> float:
+        try:
+            return next(it)
+        except StopIteration:
+            return original_random()
+
+    rng.random = _next  # type: ignore[method-assign]
+    return rng
 
 
 def _post(
@@ -49,6 +70,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         expected_result: list = []
         assert result == expected_result
@@ -66,6 +88,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         expected_count = min(TOP_K_USERS_TO_FOLLOW, len(candidates))
         assert len(result) == expected_count
@@ -84,6 +107,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_42",
             turn_number=3,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
         followed_user_ids = [follow.follow.user_id for follow in result]
         expected_unique_count = len(set(followed_user_ids))
@@ -103,6 +127,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_self",
             turn_number=0,
             agent_handle=agent_handle,
+            rng=TEST_RNG,
         )
         followed_user_ids = [follow.follow.user_id for follow in result]
         assert agent_handle not in followed_user_ids
@@ -112,12 +137,7 @@ class TestRandomSimpleFollowPolicy:
     def test_threshold_boundary_includes_below_and_excludes_equal(self, monkeypatch):
         """Random below threshold yields follow; at-or-above threshold does not."""
         monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 0.30)
-        roll_values = iter([0.29, 0.30])
-
-        def _fake_random() -> float:
-            return next(roll_values)
-
-        monkeypatch.setattr(random_simple_follow.random, "random", _fake_random)
+        rng = _fake_rng([0.29, 0.30])
         generator = RandomSimpleFollowGenerator()
         candidates = [
             _post("post_a", author_handle="author-a.bsky.social"),
@@ -128,6 +148,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_threshold",
             turn_number=5,
             agent_handle="agent1.bsky.social",
+            rng=rng,
         )
         followed_user_ids = [follow.follow.user_id for follow in result]
         expected_result = ["author-a.bsky.social"]
@@ -136,7 +157,7 @@ class TestRandomSimpleFollowPolicy:
     def test_generated_follow_has_required_fields_and_metadata(self, monkeypatch):
         """GeneratedFollow contains IDs, real created_at, and metadata (policy simple, no roll)."""
         monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 0.5)
-        monkeypatch.setattr(random_simple_follow.random, "random", lambda: 0.1)
+        rng = _fake_rng([0.1])
         generator = RandomSimpleFollowGenerator()
         candidates = [
             _post("post_1", author_handle="target-user.bsky.social", like_count=1)
@@ -146,6 +167,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_1",
             turn_number=2,
             agent_handle="agent.bsky.social",
+            rng=rng,
         )
         assert len(result) == 1
         follow = result[0]

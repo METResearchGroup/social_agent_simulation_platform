@@ -28,6 +28,7 @@ class RunRequest(BaseModel):
     feed_algorithm: str | None = None
     feed_algorithm_config: dict[str, JsonValue] | None = None
     metric_keys: list[str] | None = None
+    run_seed: int | None = None
 
     @field_validator("metric_keys")
     @classmethod

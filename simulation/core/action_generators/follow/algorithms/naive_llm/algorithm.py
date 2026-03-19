@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService
@@ -115,6 +116,7 @@ class NaiveLLMFollowGenerator(LLMActionGeneratorMixin, FollowGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates using LLM prediction."""
         if not candidates:

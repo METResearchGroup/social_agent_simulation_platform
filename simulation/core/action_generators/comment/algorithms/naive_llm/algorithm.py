@@ -6,6 +6,7 @@ Uses a single LLM call to predict what comments the user would make.
 from __future__ import annotations
 
 import logging
+import random
 
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService
@@ -83,6 +84,7 @@ class NaiveLLMCommentGenerator(LLMActionGeneratorMixin, CommentGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        rng: random.Random,
     ) -> list[GeneratedComment]:
         """Generate comments from candidates using LLM prediction."""
         if not candidates:

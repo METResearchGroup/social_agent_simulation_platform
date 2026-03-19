@@ -1,5 +1,6 @@
 """SQLite implementation of run repositories."""
 
+import secrets
 import uuid
 
 from db.adapters.base import RunDatabaseAdapter, TransactionProvider
@@ -78,6 +79,16 @@ class SQLiteRunRepository(RunRepository):
             else:
                 metric_keys = config.metric_keys
 
+            run_seed: int
+            if config.run_seed is not None:
+                run_seed = config.run_seed
+            else:
+                # Cap to 63 bits so it fits SQLite INTEGER (signed 64-bit).
+                run_seed = (
+                    int.from_bytes(secrets.token_bytes(8), byteorder="big")
+                    & 0x7FFFFFFFFFFFFFFF
+                )
+
             run = Run(
                 run_id=run_id,
                 app_user_id=created_by_app_user_id,
@@ -86,6 +97,7 @@ class SQLiteRunRepository(RunRepository):
                 total_agents=config.num_agents,
                 feed_algorithm=config.feed_algorithm,
                 metric_keys=metric_keys,
+                run_seed=run_seed,
                 started_at=ts,
                 status=RunStatus.RUNNING,
             )

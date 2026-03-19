@@ -540,6 +540,7 @@ class TestSimulationCommandServiceExecuteRun:
             assert call.args == ([],)
             assert call.kwargs == {
                 "run_id": sample_run.run_id,
+                "run_seed": sample_run.run_seed,
                 "turn_number": turn_number,
                 "agent_handle": "agent1.bsky.social",
             }
@@ -813,18 +814,21 @@ class TestSimulationCommandServiceExecuteRun:
         mock_generate_likes.assert_called_once_with(
             [like_only_post],
             run_id=sample_run.run_id,
+            run_seed=sample_run.run_seed,
             turn_number=0,
             agent_handle=agent.handle,
         )
         mock_generate_comments.assert_called_once_with(
             [comment_only_post],
             run_id=sample_run.run_id,
+            run_seed=sample_run.run_seed,
             turn_number=0,
             agent_handle=agent.handle,
         )
         mock_generate_follows.assert_called_once_with(
             [follow_only_post],
             run_id=sample_run.run_id,
+            run_seed=sample_run.run_seed,
             turn_number=0,
             agent_handle=agent.handle,
         )

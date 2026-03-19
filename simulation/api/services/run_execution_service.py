@@ -116,6 +116,7 @@ def _build_run_config(request: RunRequest) -> RunConfig:
         feed_algorithm=request.feed_algorithm or DEFAULT_FEED_ALGORITHM,
         feed_algorithm_config=request.feed_algorithm_config,
         metric_keys=metric_keys,
+        run_seed=request.run_seed,
     )
 
 

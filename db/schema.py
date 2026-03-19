@@ -46,6 +46,12 @@ runs = sa.Table(
         server_default=sa.text("'chronological'"),
     ),
     sa.Column("metric_keys", sa.Text(), nullable=True),
+    sa.Column(
+        "run_seed",
+        sa.Integer(),
+        nullable=False,
+        server_default=sa.text("0"),
+    ),
     sa.Column("started_at", sa.Text(), nullable=False),
     sa.Column("status", sa.Text(), nullable=False),
     sa.Column("completed_at", sa.Text(), nullable=True),

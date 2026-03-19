@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from unittest.mock import MagicMock
 
 import pytest
@@ -80,6 +81,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=random.Random(0),
         )
 
         assert result == expected_result
@@ -101,6 +103,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=1,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = [
@@ -128,6 +131,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         post_ids = [g.like.post_id for g in result]
@@ -152,6 +156,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = ["bluesky:post_1", "bluesky:post_3"]
@@ -174,6 +179,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=random.Random(0),
         )
 
         assert result == expected_result
@@ -198,6 +204,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=1,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = [
@@ -228,6 +235,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = 1
@@ -256,6 +264,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = ["bluesky:post_1", "bluesky:post_3"]
@@ -278,6 +287,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=random.Random(0),
         )
 
         assert result == expected_result
@@ -294,6 +304,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result: list = []
@@ -316,6 +327,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=1,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = ["alice.bsky.social", "carol.bsky.social"]
@@ -340,6 +352,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = 1
@@ -363,6 +376,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            rng=random.Random(0),
         )
 
         expected_result = ["alice.bsky.social", "carol.bsky.social"]

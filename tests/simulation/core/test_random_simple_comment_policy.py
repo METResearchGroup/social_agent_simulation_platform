@@ -1,5 +1,8 @@
 """Tests for simulation.core.action_generators.comment.algorithms.random_simple module."""
 
+import random
+
+from lib.run_rng import get_turn_rng
 from simulation.core.action_generators.comment.algorithms import random_simple as mod
 from simulation.core.action_generators.comment.algorithms.random_simple import (
     TOP_K_POSTS_TO_COMMENT,
@@ -7,6 +10,9 @@ from simulation.core.action_generators.comment.algorithms.random_simple import (
 )
 from simulation.core.models.posts import Post
 from tests.factories import PostFactory
+
+# Fixed seed for deterministic test behavior.
+TEST_RNG: random.Random = random.Random(42)
 
 
 def _post(
@@ -47,6 +53,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
 
         # Assert
@@ -66,6 +73,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_prob0",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
 
         # Assert
@@ -85,6 +93,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_prob100",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
 
         # Assert
@@ -115,23 +124,24 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_social",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
 
         # Assert
         selected_post_ids = {c.comment.post_id for c in result}
         assert selected_post_ids == expected_selected
 
-    def test_reproducible_when_random_mocked(self, monkeypatch):
-        """With random mocked to fixed values, repeated runs produce same comments."""
-        # Arrange: probability 1.0 and fixed random so behavior is reproducible
+    def test_reproducible_with_same_seed(self, monkeypatch):
+        """Same run_seed yields identical comments across repeated runs."""
         monkeypatch.setattr(mod, "COMMENT_PROBABILITY", 1.0)
-        fake_random = type("FakeRandom", (), {"random": lambda self: 0.0})()
-        monkeypatch.setattr(mod, "random", fake_random)
         generator = RandomSimpleCommentGenerator()
         candidates = [_post("post_a", like_count=3), _post("post_b", like_count=7)]
         run_id = "run_det"
+        run_seed = 12345
         turn_number = 1
         agent_handle = "agent2.bsky.social"
+        rng1 = get_turn_rng(run_seed=run_seed, turn_number=turn_number)
+        rng2 = get_turn_rng(run_seed=run_seed, turn_number=turn_number)
 
         # Act
         result1 = generator.generate(
@@ -139,12 +149,14 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            rng=rng1,
         )
         result2 = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            rng=rng2,
         )
 
         # Assert
@@ -167,6 +179,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_order",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            rng=TEST_RNG,
         )
 
         # Assert
@@ -190,6 +203,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id=expected_run_id,
             turn_number=expected_turn,
             agent_handle=expected_handle,
+            rng=TEST_RNG,
         )
 
         # Assert

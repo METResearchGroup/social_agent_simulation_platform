@@ -9,7 +9,9 @@
       "turn.actions.counts_by_type",
       "turn.actions.total"
     ],
+    "run_seed": 42,
     "run_id": "run_2025-01-15T10:30:00",
+    "run_seed": 42,
     "started_at": "2025-01-15T10:30:00",
     "status": "completed",
     "total_agents": 3,
@@ -25,7 +27,9 @@
       "turn.actions.counts_by_type",
       "turn.actions.total"
     ],
+    "run_seed": 42,
     "run_id": "run_2025-01-15T14:45:00",
+    "run_seed": 42,
     "started_at": "2025-01-15T14:45:00",
     "status": "running",
     "total_agents": 4,
@@ -41,7 +45,9 @@
       "turn.actions.counts_by_type",
       "turn.actions.total"
     ],
+    "run_seed": 42,
     "run_id": "run_2025-01-16T09:15:00",
+    "run_seed": 42,
     "started_at": "2025-01-16T09:15:00",
     "status": "running",
     "total_agents": 3,
@@ -57,7 +63,9 @@
       "turn.actions.counts_by_type",
       "turn.actions.total"
     ],
+    "run_seed": 42,
     "run_id": "run_2025-01-17T08:20:00",
+    "run_seed": 42,
     "started_at": "2025-01-17T08:20:00",
     "status": "running",
     "total_agents": 4,
@@ -73,7 +81,9 @@
       "turn.actions.counts_by_type",
       "turn.actions.total"
     ],
+    "run_seed": 42,
     "run_id": "run_2025-01-18T11:00:00",
+    "run_seed": 42,
     "started_at": "2025-01-18T11:00:00",
     "status": "running",
     "total_agents": 4,
