@@ -34,5 +34,5 @@ def retry_with_exponential_backoff(
             time.sleep(delay_s)
 
     # Defensive: the loop always returns or raises.
-    assert last_exc is not None
+    assert last_exc is not None  # nosec B101
     raise last_exc

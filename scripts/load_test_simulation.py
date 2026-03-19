@@ -48,10 +48,6 @@ def _post_run(base_url: str) -> tuple[bool, float, str | None]:
 
 def main() -> int:
     base_url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BASE_URL
-    print(
-        f"Load test: {CONCURRENCY} concurrent requests, {NUM_AGENTS} agents, {NUM_TURNS} turns"
-    )
-    print(f"Base URL: {base_url}\n")
     start = time.perf_counter()
     successes = 0
     failures = 0
@@ -65,17 +61,18 @@ def main() -> int:
                 successes += 1
             else:
                 failures += 1
-    total_s = time.perf_counter() - start
+    total_elapsed = time.perf_counter() - start
     latencies.sort()
-    p50 = latencies[len(latencies) // 2] * 1000 if latencies else 0
-    p95 = (
+    p50_ms = latencies[len(latencies) // 2] * 1000 if latencies else 0
+    p95_ms = (
         latencies[int(len(latencies) * 0.95)] * 1000
         if len(latencies) > 1
         else (latencies[0] * 1000 if latencies else 0)
     )
-    print(f"Total time: {total_s:.2f}s")
-    print(f"Successes: {successes}, Failures: {failures}")
-    print(f"Latency p50: {p50:.0f}ms, p95: {p95:.0f}ms")
+    sys.stderr.write(
+        f"done: successes={successes}, failures={failures}, "
+        f"total_s={total_elapsed:.3f}, p50_ms={p50_ms:.2f}, p95_ms={p95_ms:.2f}\n"
+    )
     return 0 if failures == 0 else 1
 
 

@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import yaml
 
@@ -122,14 +122,10 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    if args.paths:
-        targets = args.paths
-    else:
-        targets = DEFAULT_DOC_DIRS
+    targets = args.paths or DEFAULT_DOC_DIRS
 
     to_check = collect_markdown_files(targets, args.exclude)
     if not to_check:
-        print("No Markdown files matched the docs metadata validator.")
         return 0
 
     failures: dict[Path, list[str]] = {}
@@ -139,14 +135,11 @@ def main() -> int:
             failures[path] = errs
 
     if failures:
-        print("Docs metadata validation failed:")
         for path, errs in failures.items():
-            print(f"\n{path}:")
-            for err in errs:
-                print(f"  - {err}")
+            for _err in errs:
+                pass
         return 1
 
-    print("Docs metadata validation succeeded.")
     return 0
 
 

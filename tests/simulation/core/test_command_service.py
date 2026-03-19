@@ -192,7 +192,7 @@ class TestSimulationCommandServiceUpdateRunStatus:
                 attempts += 1
                 raise RunStatusUpdateError(run_id, "transient")
             if status == RunStatus.FAILED:
-                return None
+                return
             raise AssertionError(f"Unexpected status: {status}")
 
         mock_repos["run_repo"].update_run_status.side_effect = _update_run_status
@@ -585,12 +585,14 @@ class TestSimulationCommandServiceExecuteRun:
             AgentFactory.create(handle="agent1.bsky.social")
         ]
 
-        with patch(
-            "simulation.core.command_service.SimulationCommandService._simulate_turn",
-            side_effect=ValueError("invariant violation"),
+        with (
+            patch(
+                "simulation.core.command_service.SimulationCommandService._simulate_turn",
+                side_effect=ValueError("invariant violation"),
+            ),
+            pytest.raises(SimulationRunFailure) as exc_info,
         ):
-            with pytest.raises(SimulationRunFailure) as exc_info:
-                command_service.execute_run(self._make_config(turns=1))
+            command_service.execute_run(self._make_config(turns=1))
 
         assert exc_info.value.run_id == sample_run.run_id
         calls = mock_repos["run_repo"].update_run_status.call_args_list

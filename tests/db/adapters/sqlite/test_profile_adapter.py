@@ -103,7 +103,7 @@ class TestSQLiteProfileAdapterReadProfile:
             assert result is None
 
     @pytest.mark.parametrize(
-        "null_field,expected_message",
+        ("null_field", "expected_message"),
         [("handle", "handle cannot be NULL"), ("did", "did cannot be NULL")],
     )
     def test_raises_value_error_on_null_required_field(

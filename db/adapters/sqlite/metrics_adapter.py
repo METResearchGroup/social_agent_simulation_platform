@@ -22,7 +22,7 @@ RUN_METRICS_REQUIRED_COLS: list[str] = ["run_id", "metrics", "created_at"]
 
 def _validate_required_cols(*, row: sqlite3.Row, required_cols: list[str]) -> None:
     for col in required_cols:
-        if col not in row.keys():
+        if col not in row:
             raise KeyError(f"Missing required column '{col}'")
         if row[col] is None:
             raise ValueError(f"Unexpected NULL for required column '{col}'")

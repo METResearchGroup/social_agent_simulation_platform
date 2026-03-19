@@ -36,6 +36,7 @@ test = [
     "complexipy>=5.0.0",
     "pre-commit>=4.0.0",
     "import-linter>=2.0.0",
+    "bandit>=1.9.4",
 ]
 ner = [
     "torch>=2.10.0",
@@ -89,11 +90,56 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = [
+    "E",  # Pycodestyle errors
+    "F",  # Pyflakes
+    "I",  # isort
+    "B",  # bugbear
+    "UP", # pyupgrade
+    "SIM",# flake8-simplify
+    "S",  # flake8-bandit: security checks (AST-based)
+    "N",  # pep8-naming
+    "T10",# debugger
+    "T20",# print
+    "RET",# flake8-return
+    "ERA",# eradicate commented-out code
+    "PT", # flake8-pytest-style: pytest style correctness
+    "FAST",# FastAPI specific best practices
+    "ARG",# flake8-unused-arguments: unused function/method arguments
+]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Migrations are often generated/edited by tooling; keep Ruff UP strict for
+# app code, but ignore pyupgrade modernization suggestions inside migrations.
+"db/migrations/**" = ["UP", "ERA", "S101", "S608"]
+# sqlite adapters build SQL from static schema-derived column lists.
+"db/adapters/sqlite/**" = ["S608"]
+# Tests intentionally use `assert` for invariants and expected failures.
+"**/tests/**" = ["S101", "S105", "S108", "S310", "S608", "ARG001", "ARG002", "ARG003", "ARG005", "B008", "PT011", "PT012", "SIM117"]
+"**/test*.py" = ["S101", "S105", "S108", "S310", "S608", "ARG001", "ARG002", "ARG003", "ARG005", "B008", "PT011", "PT012", "SIM117"]
+"**/*_test.py" = ["S101", "S105", "S108", "S310", "S608", "ARG001", "ARG002", "ARG003", "ARG005", "B008", "PT011", "PT012", "SIM117"]
+# Tooling scripts prioritize operational reliability over strict lint purity.
+"scripts/**" = ["S101", "S105", "ARG001", "ARG002", "ARG003", "ARG005", "B007", "ERA001", "S603", "S607", "S608", "S108", "S110", "S310", "SIM102"]
+# Framework/runtime intentional patterns and simulation-specific behavior.
+"simulation/api/dependencies/*.py" = ["B008", "S105"]
+"simulation/api/main.py" = ["ARG001"]
+"simulation/api/routes/metadata.py" = ["ARG001"]
+"simulation/api/schemas/simulation.py" = ["S101"]
+"simulation/core/action_generators/*/algorithms/random_simple.py" = ["ARG001", "S311"]
+"simulation/core/action_generators/registry.py" = ["S101"]
+"simulation/core/metrics/builtins/actions.py" = ["ARG002"]
+"simulation/core/models/actions.py" = ["ARG003"]
+"simulation/core/models/metrics.py" = ["ARG003"]
+"simulation/core/models/posts.py" = ["ERA001"]
+"simulation/core/utils/exceptions.py" = ["N818"]
+"simulation/core/utils/retry.py" = ["S101"]
+"lib/rate_limiting.py" = ["ARG001"]
+"ml_tooling/llm/exceptions.py" = ["N818"]
+"ml_tooling/llm/providers/*.py" = ["ARG002"]
 
 [tool.ruff.format]
 quote-style = "double"

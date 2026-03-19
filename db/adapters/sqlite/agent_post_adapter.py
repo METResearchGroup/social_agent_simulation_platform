@@ -18,7 +18,7 @@ _INSERT_AGENT_POST_SQL = (
     f"VALUES ({', '.join('?' for _ in AGENT_POST_COLUMNS)})"
 )
 _UPSERT_IMPORTED_AGENT_POST_SQL = (
-    f"INSERT INTO agent_posts ({', '.join(AGENT_POST_COLUMNS)}) "
+    f"INSERT INTO agent_posts ({', '.join(AGENT_POST_COLUMNS)}) "  # nosec B608
     f"VALUES ({', '.join('?' for _ in AGENT_POST_COLUMNS)}) "
     "ON CONFLICT(source, source_post_id) DO UPDATE SET "
     "agent_id = excluded.agent_id, "
@@ -111,7 +111,7 @@ class SQLiteAgentPostAdapter(AgentPostDatabaseAdapter):
 
         placeholders = ", ".join("?" for _ in agent_id_list)
         sql = (
-            f"SELECT * FROM agent_posts WHERE agent_id IN ({placeholders}) "
+            f"SELECT * FROM agent_posts WHERE agent_id IN ({placeholders}) "  # nosec B608
             "ORDER BY agent_id ASC, published_at ASC, agent_post_id ASC"
         )
         rows = conn.execute(sql, tuple(agent_id_list)).fetchall()
@@ -133,7 +133,7 @@ class SQLiteAgentPostAdapter(AgentPostDatabaseAdapter):
 
         placeholders = ", ".join("?" for _ in agent_id_list)
         sql = (
-            f"SELECT agent_id, COUNT(*) AS c FROM agent_posts "
+            f"SELECT agent_id, COUNT(*) AS c FROM agent_posts "  # nosec B608
             f"WHERE agent_id IN ({placeholders}) "
             "GROUP BY agent_id "
             "ORDER BY agent_id ASC"

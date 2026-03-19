@@ -62,6 +62,9 @@ class TestSimulationSmoke:
         }
         assert data["status"] == expected_result["status"]
         assert data["error"] is expected_result["error"]
-        assert "run_id" in data and isinstance(data["run_id"], str)
-        assert "likes_per_turn" in data and isinstance(data["likes_per_turn"], list)
-        assert "total_likes" in data and isinstance(data["total_likes"], int)
+        assert "run_id" in data
+        assert isinstance(data["run_id"], str)
+        assert "likes_per_turn" in data
+        assert isinstance(data["likes_per_turn"], list)
+        assert "total_likes" in data
+        assert isinstance(data["total_likes"], int)

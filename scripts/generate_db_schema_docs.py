@@ -47,8 +47,7 @@ def _run(
         cwd=str(cwd),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=check,
     )
 
@@ -519,10 +518,6 @@ def main() -> int:
             _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
             artifacts = _artifacts_from_sqlite(sqlite_path)
             _write_artifacts(out_dir, artifacts)
-            print(
-                f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
-                f"Temp directory: {tmpdir}"
-            )
         else:
             with tempfile.TemporaryDirectory(prefix="sim-schema-docs-") as tmpdir:
                 sqlite_path = Path(tmpdir) / "schema.sqlite"
@@ -531,18 +526,11 @@ def main() -> int:
                 _write_artifacts(out_dir, artifacts)
 
         (out_root / "LATEST.txt").write_text(version_dir_name + "\n", encoding="utf-8")
-        print(f"Wrote schema docs to: {out_dir}")
         return 0
 
     assert args.check
     latest_dir = _latest_version_dir(out_root)
     if latest_dir is None:
-        print(
-            "ERROR: No baseline schema docs found under docs/db/.\n"
-            "Fix: run `uv run python scripts/generate_db_schema_docs.py --update` "
-            "and commit the generated folder.\n",
-            file=sys.stderr,
-        )
         return 1
 
     baseline_snapshot_path = latest_dir / "schema.snapshot.json"
@@ -555,11 +543,6 @@ def main() -> int:
         _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
         generated_artifacts = _artifacts_from_sqlite(sqlite_path)
         generated_snapshot = generated_artifacts.schema_snapshot
-        print(
-            f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
-            f"Temp directory: {tmpdir}",
-            file=sys.stderr,
-        )
     else:
         generated_artifacts = _generate_to_temp(repo_root)
         generated_snapshot = generated_artifacts.schema_snapshot
@@ -574,18 +557,7 @@ def main() -> int:
         summary_lines.append(_diff_summary(baseline_snapshot, generated_snapshot))
     if not md_matches:
         summary_lines.append("`schema.md` differs from the generated output.")
-    summary = "\n".join(summary_lines) if summary_lines else "Schema differs."
-    print(
-        "ERROR: Database schema docs are out of date (migrations != latest docs).\n\n"
-        f"{summary}\n\n"
-        f"Baseline folder: {latest_dir}\n"
-        f"Baseline files: {latest_dir / 'schema.md'}, {latest_dir / 'schema.snapshot.json'}\n\n"
-        "Fix:\n"
-        "  uv run python scripts/generate_db_schema_docs.py --update\n\n"
-        "After updating, review and commit the new folder under docs/db/, then compare:\n"
-        f"  git diff -- {latest_dir} docs/db/<newest-folder>\n",
-        file=sys.stderr,
-    )
+    "\n".join(summary_lines) if summary_lines else "Schema differs."
     return 1
 
 

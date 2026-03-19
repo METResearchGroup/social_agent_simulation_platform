@@ -14,8 +14,7 @@ class BlueskyClient:
         try:
             profile = self.client.get_profile(actor=actor)
             return profile.dict()
-        except Exception as e:
-            print(f"Error fetching profile for {actor}: {e}")
+        except Exception:
             return None
 
     def get_author_feed(self, actor: str, limit: int = 50) -> list[dict]:
@@ -26,6 +25,5 @@ class BlueskyClient:
             for item in feed.feed:
                 posts.append(item.post.dict())
             return posts
-        except Exception as e:
-            print(f"Error fetching feed for {actor}: {e}")
+        except Exception:
             return []

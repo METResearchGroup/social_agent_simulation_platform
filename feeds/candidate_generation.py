@@ -47,13 +47,11 @@ def filter_candidate_posts(
     seen_post_ids: set[str] = load_seen_post_ids(
         agent=agent, run_id=run_id, generated_feed_repo=generated_feed_repo
     )
-    candidate_posts = [
+    return [
         p
         for p in candidate_posts
         if p.post_id not in seen_post_ids and p.author_handle != agent.handle
     ]
-
-    return candidate_posts
 
 
 def load_candidate_posts(
@@ -73,10 +71,9 @@ def load_candidate_posts(
         run_id=run_id,
         run_post_repo=run_post_repo,
     )
-    candidate_posts = filter_candidate_posts(
+    return filter_candidate_posts(
         candidate_posts=candidate_posts,
         agent=agent,
         run_id=run_id,
         generated_feed_repo=generated_feed_repo,
     )
-    return candidate_posts

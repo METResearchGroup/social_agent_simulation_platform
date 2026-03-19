@@ -36,7 +36,7 @@ def _ensure_no_missing_identity(conn: sa.Connection) -> None:
 def upgrade() -> None:
     """Upgrade schema to require email/display_name."""
     conn = op.get_bind()
-    assert isinstance(conn, sa.Connection)
+    assert isinstance(conn, sa.Connection)  # nosec B101
     _ensure_no_missing_identity(conn)
 
     with op.batch_alter_table("app_users", schema=None) as batch_op:

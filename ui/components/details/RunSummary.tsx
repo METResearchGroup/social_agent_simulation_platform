@@ -39,8 +39,8 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
 
   const handleExportRun = async (): Promise<void> => {
     setExportRunId(run.runId)
-    console.log(`run: ${JSON.stringify(run)}\n\n` + 
-                `agents: ${JSON.stringify(agents)}\n\n` + 
+    console.log(`run: ${JSON.stringify(run)}\n\n` +
+                `agents: ${JSON.stringify(agents)}\n\n` +
                 `completedTurns: ${JSON.stringify(completedTurns)}`)
   }
 
@@ -75,9 +75,9 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
               <td className="px-4 py-3 text-sm text-beige-900 font-mono">
                 <div className="flex items-center gap-2">
                   {run.runId}
-                  <button 
+                  <button
                     type="button"
-                    className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left" 
+                    className="text-accent hover:text-accent-hover cursor-pointer w-12 text-left"
                     onClick={handleCopyRunId}
                   >
                     {copied ? 'Copied!' : 'Copy'}
@@ -129,4 +129,3 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
     </div>
   );
 }
-

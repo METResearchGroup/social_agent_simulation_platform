@@ -114,19 +114,19 @@ def standardize_litellm_exception(exception: Exception) -> LLMException:
     # Non-retryable exceptions (auth/validation errors)
     if isinstance(exception, litellm_exceptions.AuthenticationError):  # type: ignore[attr-defined]
         return LLMAuthError(message, original_exception=exception)
-    elif isinstance(exception, litellm_exceptions.PermissionDeniedError):  # type: ignore[attr-defined]
+    if isinstance(exception, litellm_exceptions.PermissionDeniedError):  # type: ignore[attr-defined]
         return LLMPermissionDeniedError(message, original_exception=exception)
-    elif isinstance(exception, litellm_exceptions.InvalidRequestError):  # type: ignore[attr-defined]
+    if isinstance(exception, litellm_exceptions.InvalidRequestError):  # type: ignore[attr-defined]
         # InvalidRequestError is deprecated in favor of BadRequestError, but we handle both
         return LLMInvalidRequestError(message, original_exception=exception)
-    elif hasattr(litellm_exceptions, "BadRequestError") and isinstance(
+    if hasattr(litellm_exceptions, "BadRequestError") and isinstance(
         exception,
         litellm_exceptions.BadRequestError,  # type: ignore[attr-defined]
     ):
         # Handle BadRequestError (replacement for InvalidRequestError in newer LiteLLM versions)
         return LLMInvalidRequestError(message, original_exception=exception)
     # Retryable exceptions (transient errors)
-    elif isinstance(
+    if isinstance(
         exception,
         (
             litellm_exceptions.RateLimitError,  # type: ignore[attr-defined]
@@ -136,18 +136,16 @@ def standardize_litellm_exception(exception: Exception) -> LLMException:
     ):
         return LLMTransientError(message, original_exception=exception)
     # APIError - check status code to determine if transient
-    elif isinstance(exception, litellm_exceptions.APIError):  # type: ignore[attr-defined]
+    if isinstance(exception, litellm_exceptions.APIError):  # type: ignore[attr-defined]
         status_code = getattr(exception, "status_code", None)
         # 4xx errors (except auth which is handled above) are usually not retryable
         # 5xx errors are transient
         if status_code and 500 <= status_code < 600:
             return LLMTransientError(message, original_exception=exception)
-        else:
-            # Treat unknown API errors as invalid requests (non-retryable)
-            return LLMInvalidRequestError(message, original_exception=exception)
-    else:
-        # Unknown LiteLLM exception - treat as transient to allow retry
-        # This is safer than failing hard on unknown errors
-        return LLMTransientError(
-            f"Unknown LiteLLM error: {message}", original_exception=exception
-        )
+        # Treat unknown API errors as invalid requests (non-retryable)
+        return LLMInvalidRequestError(message, original_exception=exception)
+    # Unknown LiteLLM exception - treat as transient to allow retry
+    # This is safer than failing hard on unknown errors
+    return LLMTransientError(
+        f"Unknown LiteLLM error: {message}", original_exception=exception
+    )
