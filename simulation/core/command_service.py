@@ -547,7 +547,14 @@ class SimulationCommandService:
             author_handle = handle_by_agent_id.get(agent_post.agent_id)
             author_display_name = display_name_by_agent_id.get(agent_post.agent_id)
             if author_handle is None or author_display_name is None:
-                continue
+                # NOTE: Currently, we constrain this so that only posts by agents in the
+                # network can be used; we don't have exogenous posts right now. But this is
+                # something that we'll obviously want to revisit in the future, as it is
+                # likely the case that we'll want agents to see posts by agents
+                # not in their social network.
+                raise ValueError(
+                    "Post is written by an agent that is not in the run. This is unexpected behavior."
+                )
             snapshots.append(
                 RunPostSnapshot(
                     run_post_id=str(uuid4()),
