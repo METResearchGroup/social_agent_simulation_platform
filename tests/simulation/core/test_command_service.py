@@ -17,6 +17,13 @@ from simulation.core.command_service import (
     STATUS_UPDATE_MAX_ATTEMPTS,
     SimulationCommandService,
 )
+from simulation.core.command_service_bundles import (
+    AgentRepos,
+    CommandServiceRepos,
+    CommandServiceRuntime,
+    RunRepos,
+    TurnRepos,
+)
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
 from simulation.core.models.actions import TurnAction
@@ -135,30 +142,42 @@ def command_service(
     metrics_collector.collect_turn_metrics.return_value = {}
     metrics_collector.collect_run_metrics.return_value = {}
     simulation_persistence = Mock(spec=SimulationPersistenceService)
-    return SimulationCommandService(
-        run_repo=mock_repos["run_repo"],
-        metrics_repo=mock_repos["metrics_repo"],
-        metrics_collector=metrics_collector,
-        simulation_persistence=simulation_persistence,
+    repos = CommandServiceRepos(
+        agent=AgentRepos(
+            agent_repo=mock_repos["agent_repo"],
+            agent_bio_repo=mock_repos["agent_bio_repo"],
+            agent_follow_edge_repo=mock_repos["agent_follow_edge_repo"],
+            user_agent_profile_metadata_repo=mock_repos[
+                "user_agent_profile_metadata_repo"
+            ],
+            agent_post_repo=mock_repos["agent_post_repo"],
+            agent_post_like_repo=mock_repos["agent_post_like_repo"],
+        ),
+        run=RunRepos(
+            run_repo=mock_repos["run_repo"],
+            metrics_repo=mock_repos["metrics_repo"],
+            run_agent_repo=mock_repos["run_agent_repo"],
+            run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
+            run_post_repo=mock_repos["run_post_repo"],
+            run_post_like_repo=mock_repos["run_post_like_repo"],
+        ),
+        turn=TurnRepos(generated_feed_repo=mock_repos["generated_feed_repo"]),
         profile_repo=mock_repos["profile_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
-        generated_feed_repo=mock_repos["generated_feed_repo"],
-        agent_repo=mock_repos["agent_repo"],
-        agent_bio_repo=mock_repos["agent_bio_repo"],
-        agent_follow_edge_repo=mock_repos["agent_follow_edge_repo"],
-        user_agent_profile_metadata_repo=mock_repos["user_agent_profile_metadata_repo"],
-        run_agent_repo=mock_repos["run_agent_repo"],
-        run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
-        run_post_repo=mock_repos["run_post_repo"],
-        run_post_like_repo=mock_repos["run_post_like_repo"],
-        agent_post_repo=mock_repos["agent_post_repo"],
-        agent_post_like_repo=mock_repos["agent_post_like_repo"],
         transaction_provider=mock_transaction_provider,
+    )
+    runtime = CommandServiceRuntime(
         agent_factory=mock_agent_factory,
         action_history_store_factory=action_history_store_factory,
         feed_generator=mock_feed_generator,
         agent_action_rules_validator=agent_action_rules_validator,
         agent_action_feed_filter=agent_action_feed_filter,
+    )
+    return SimulationCommandService(
+        repos=repos,
+        metrics_collector=metrics_collector,
+        simulation_persistence=simulation_persistence,
+        runtime=runtime,
     )
 
 
@@ -997,30 +1016,40 @@ class TestSimulationCommandServiceActionPersistence:
         metrics_collector = Mock(spec=MetricsCollector)
         metrics_collector.collect_turn_metrics.return_value = {}
 
-        command_service = SimulationCommandService(
-            run_repo=run_repo,
-            metrics_repo=metrics_repo,
-            metrics_collector=metrics_collector,
-            simulation_persistence=simulation_persistence,
+        repos = CommandServiceRepos(
+            agent=AgentRepos(
+                agent_repo=Mock(),
+                agent_bio_repo=Mock(),
+                agent_follow_edge_repo=Mock(),
+                user_agent_profile_metadata_repo=Mock(),
+                agent_post_repo=Mock(),
+                agent_post_like_repo=Mock(),
+            ),
+            run=RunRepos(
+                run_repo=run_repo,
+                metrics_repo=metrics_repo,
+                run_agent_repo=Mock(),
+                run_follow_edge_repo=Mock(),
+                run_post_repo=Mock(),
+                run_post_like_repo=Mock(),
+            ),
+            turn=TurnRepos(generated_feed_repo=Mock()),
             profile_repo=Mock(),
             feed_post_repo=Mock(),
-            generated_feed_repo=Mock(),
-            agent_repo=Mock(),
-            agent_bio_repo=Mock(),
-            agent_follow_edge_repo=Mock(),
-            user_agent_profile_metadata_repo=Mock(),
-            run_agent_repo=Mock(),
-            run_follow_edge_repo=Mock(),
-            run_post_repo=Mock(),
-            run_post_like_repo=Mock(),
-            agent_post_repo=Mock(),
-            agent_post_like_repo=Mock(),
             transaction_provider=transaction_provider,
+        )
+        runtime = CommandServiceRuntime(
             agent_factory=lambda n: [agent],
             action_history_store_factory=lambda: action_history_store,
             feed_generator=feed_generator,
             agent_action_rules_validator=agent_action_rules_validator,
             agent_action_feed_filter=agent_action_feed_filter,
+        )
+        command_service = SimulationCommandService(
+            repos=repos,
+            metrics_collector=metrics_collector,
+            simulation_persistence=simulation_persistence,
+            runtime=runtime,
         )
 
         with (
