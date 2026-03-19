@@ -65,10 +65,12 @@ def main() -> None:
             turn_number=i,
             agent_handle="test_agent.bsky.social",
         )
-        for _g in result:
-            pass
-        if result:
-            pass
+        assert hasattr(result, "__iter__"), (  # noqa: S101  # nosec B101
+            "Expected generator.generate() to be iterable"
+        )
+        generated_items = list(result)
+        assert generated_items, "Expected at least one generated comment action"  # noqa: S101  # nosec B101
+        assert all(item is not None for item in generated_items)  # noqa: S101  # nosec B101
 
 
 if __name__ == "__main__":

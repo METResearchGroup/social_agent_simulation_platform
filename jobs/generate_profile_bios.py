@@ -157,8 +157,6 @@ def main():
         )
         generated_bio_repo.create_or_update_generated_bio(generated_bio)
 
-    generated_bio_repo.list_all_generated_bios()
-
 
 if __name__ == "__main__":
     main()

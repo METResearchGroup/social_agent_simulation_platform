@@ -82,11 +82,12 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 f"Invalid status value: {row['status']}. Must be one of: {[s.value for s in RunStatus]}"
             ) from err
 
-        app_user_id = row["app_user_id"] if "app_user_id" in row else None  # noqa: SIM401
+        row_keys = row.keys()
+        app_user_id = row["app_user_id"] if "app_user_id" in row_keys else None  # noqa: SIM401
 
         metric_keys: list[str]
         raw_metric_keys: str | None = (
-            row["metric_keys"] if "metric_keys" in row else None  # noqa: SIM401
+            row["metric_keys"] if "metric_keys" in row_keys else None  # noqa: SIM401
         )
         if raw_metric_keys is None or (
             isinstance(raw_metric_keys, str) and not raw_metric_keys.strip()
@@ -341,6 +342,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 ),
             )
         except sqlite3.IntegrityError as exc:
-            raise DuplicateTurnMetadataError(
-                turn_metadata.run_id, turn_metadata.turn_number
-            ) from exc
+            if "unique constraint failed" in str(exc).lower():
+                raise DuplicateTurnMetadataError(
+                    turn_metadata.run_id, turn_metadata.turn_number
+                ) from exc
+            raise
