@@ -53,7 +53,7 @@ repos:
         pass_filenames: false
       - id: pyright
         name: pyright
-        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test pyright ."
+        entry: bash -lc "root=$(git rev-parse --show-toplevel) && cd \"$root\" && PYTHONPATH=\"$root\" uv run --extra test --extra ner pyright ."
         language: system
         pass_filenames: false
       - id: python_lint_import_dependency_boundaries

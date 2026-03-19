@@ -40,6 +40,12 @@ Use `docs/runbooks/LOCAL_DEV_AUTH.md` for the authoritative steps.
   - Frontend: set `NEXT_PUBLIC_DISABLE_AUTH=true` in `ui/.env.local`.
 - Do **not** enable these flags in production or commit them to the repo.
 
+## Cursor Cloud specific instructions
+
+- For Cursor Cloud or other ephemeral agent environments that need repo-wide linting/type-checking, run `bash scripts/setup_cursor_cloud_env.sh`.
+- That script installs `uv sync --frozen --extra test --extra ner`, which is the expected dependency set for `uv run pre-commit run --all-files` and `uv run pyright .`.
+- Keep the default local-dev setup lightweight (`uv sync --extra test`) unless you need whole-repo checks that touch `ml_tooling/ner/`.
+
 ## Database + migrations (SQLite + Alembic)
 
 Canonical reference: `db/migrations/README`
