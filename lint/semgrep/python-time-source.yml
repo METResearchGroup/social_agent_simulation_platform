@@ -71,12 +71,7 @@ rules:
       - pattern: "\"%Y_%m_%d-%H:%M:%S\""
     paths:
       include:
-        - /simulation/**
-        - /db/**
-        - /feeds/**
-        - /jobs/**
-        - /ml_tooling/**
-        - /lib/**
+        - "**/*.py"
       exclude:
         - /lib/timestamp_utils.py
 
