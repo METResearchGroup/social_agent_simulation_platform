@@ -27,7 +27,6 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -101,7 +100,17 @@ def _latest_version_dir(out_root: Path) -> Path | None:
 
 
 def _now_version_prefix() -> str:
-    return datetime.now().strftime("%Y_%m_%d-%H%M%S")
+    # Use the repo-wide UTC clock contract, then normalize to the
+    # script's existing folder-prefix format (YYYY_MM_DD-HHMMSS).
+    # Note: `db-schema-docs-check` may run from a different CWD, so ensure the
+    # repo root is on `sys.path` before importing from `lib/`.
+    repo_root = Path(__file__).resolve().parents[1]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+
+    from lib.timestamp_utils import get_current_timestamp
+
+    return get_current_timestamp().replace(":", "")
 
 
 @dataclass(frozen=True)
