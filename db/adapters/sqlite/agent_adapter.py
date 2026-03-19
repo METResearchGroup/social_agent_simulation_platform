@@ -90,7 +90,8 @@ class SQLiteAgentAdapter(AgentDatabaseAdapter):
             return {}
         placeholders = ", ".join("?" for _ in handle_list)
         rows = conn.execute(
-            f"SELECT * FROM agent WHERE handle IN ({placeholders})", tuple(handle_list)
+            f"SELECT * FROM agent WHERE handle IN ({placeholders})",  # nosec B608
+            tuple(handle_list),
         ).fetchall()
         agents = self._map_rows_to_agents(rows)
         return {agent.handle: agent for agent in agents}

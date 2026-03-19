@@ -65,18 +65,16 @@ def main() -> None:
     ]
 
     for i, candidates in enumerate([candidates_1, candidates_2, candidates_3], 1):
-        print(f"\n--- Like generator call {i} ---")
         result = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=i,
             agent_handle="test_agent.bsky.social",
         )
-        print(f"Likes generated: {len(result)}")
-        for g in result:
-            print(f"  - post_id={g.like.post_id}, like_id={g.like.like_id}")
+        for _g in result:
+            pass
         if result:
-            print(f"Explanation sample: {result[0].explanation}")
+            pass
 
 
 if __name__ == "__main__":

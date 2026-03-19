@@ -89,8 +89,10 @@ class TestAuth:
 
         from simulation.api.main import app
 
-        with pytest.raises(
-            RuntimeError, match="DISABLE_AUTH must not be set in production"
+        with (
+            pytest.raises(
+                RuntimeError, match="DISABLE_AUTH must not be set in production"
+            ),
+            TestClient(app=app),
         ):
-            with TestClient(app=app):
-                pass
+            pass

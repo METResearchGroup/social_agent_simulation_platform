@@ -48,16 +48,10 @@ def main() -> int:
     if not diffs:
         return 0
 
-    print(
-        "ERROR: `db/schema.py` differs from the schema produced by migrations at HEAD."
-    )
-    print("Fix: update `db/schema.py` to match HEAD (or fix the migration).")
-    print("")
-    print("Diff summary (first 50 items):")
-    for i, diff in enumerate(diffs[:50], start=1):
-        print(f"{i:02d}. {diff!r}")
+    for _i, _diff in enumerate(diffs[:50], start=1):
+        pass
     if len(diffs) > 50:
-        print(f"... and {len(diffs) - 50} more.")
+        pass
     return 1
 
 

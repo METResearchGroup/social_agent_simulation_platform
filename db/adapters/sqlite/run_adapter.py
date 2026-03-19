@@ -26,7 +26,7 @@ TURN_METADATA_REQUIRED_COLS = ["run_id", "turn_number", "total_actions", "create
 def _validate_turn_metadata_row(row: sqlite3.Row) -> None:
     """Validate that row has required columns and no NULLs. Raises KeyError or ValueError."""
     for col in TURN_METADATA_REQUIRED_COLS:
-        if col not in row.keys():
+        if col not in row:
             raise KeyError(f"Missing required column '{col}' in turn_metadata row")
     for col in TURN_METADATA_REQUIRED_COLS:
         if row[col] is None:
@@ -81,11 +81,11 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                 f"Invalid status value: {row['status']}. Must be one of: {[s.value for s in RunStatus]}"
             ) from err
 
-        app_user_id = row["app_user_id"] if "app_user_id" in row.keys() else None
+        app_user_id = row["app_user_id"] if "app_user_id" in row else None  # noqa: SIM401
 
         metric_keys: list[str]
         raw_metric_keys: str | None = (
-            row["metric_keys"] if "metric_keys" in row.keys() else None
+            row["metric_keys"] if "metric_keys" in row else None  # noqa: SIM401
         )
         if raw_metric_keys is None or (
             isinstance(raw_metric_keys, str) and not raw_metric_keys.strip()
@@ -128,7 +128,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
 
         conn.execute(
             """
-            INSERT OR REPLACE INTO runs 
+            INSERT OR REPLACE INTO runs
             (run_id, app_user_id, created_at, total_turns, total_agents, feed_algorithm, metric_keys, started_at, status, completed_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -339,7 +339,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
                     turn_metadata.created_at,
                 ),
             )
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as exc:
             raise DuplicateTurnMetadataError(
                 turn_metadata.run_id, turn_metadata.turn_number
-            )
+            ) from exc

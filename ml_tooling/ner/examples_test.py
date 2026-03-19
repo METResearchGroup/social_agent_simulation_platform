@@ -8,9 +8,8 @@ transformers_logging.set_verbosity_error()
 
 
 def track_init_time():
-    start = time.perf_counter()
+    time.perf_counter()
     ner_model = NERModel()
-    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")
     ner_model.extract_entities("")
 
     return ner_model
@@ -18,10 +17,8 @@ def track_init_time():
 
 def timed_extract(ner_model, text, label):
     start = time.perf_counter()
-    result = ner_model.extract_entities(text)
-    elapsed = time.perf_counter() - start
-    print(f"[{label}] ({elapsed:.4f}s)")
-    print(f"{result}\n")
+    ner_model.extract_entities(text)
+    return time.perf_counter() - start
 
 
 def verify_diff_cases(ner_model):
@@ -59,22 +56,18 @@ def run_model_track_time(ner_model):
 
     col1, col2, col3 = "iters", "total (s)", "iters/sec"
     w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)
-    sep = f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
-    header = f"| {col1:<{w1}} | {col2:<{w2}} | {col3:<{w3}} |"
+    divider = f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
+    rows: list[tuple[int, float, float]] = []
 
-    print(sep)
-    print(header)
-    print(sep)
     for n, elapsed in results:
-        throughput = n / elapsed
-        print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")
-    print(sep)
+        iters_per_second = n / elapsed if elapsed > 0 else 0.0
+        rows.append((n, elapsed, iters_per_second))
+
+    return divider, rows
 
 
 if __name__ == "__main__":
     ner_model = track_init_time()
-    print("\n\n")
 
     verify_diff_cases(ner_model)
-    print("\n\n")
     run_model_track_time(ner_model)

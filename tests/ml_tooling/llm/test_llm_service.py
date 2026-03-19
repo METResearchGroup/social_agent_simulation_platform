@@ -64,13 +64,15 @@ class TestLLMService:
         mock_litellm_completion.side_effect = Exception("API error")
 
         # Avoid depending on provider/model registry logic here.
-        with patch.object(
-            service, "_prepare_completion_kwargs", return_value=({}, None)
+        with (
+            patch.object(
+                service, "_prepare_completion_kwargs", return_value=({}, None)
+            ),
+            pytest.raises(Exception, match="API error"),
         ):
-            with pytest.raises(Exception, match="API error"):
-                service._chat_completion(
-                    messages=messages, model="gpt-4o-mini", provider=provider
-                )
+            service._chat_completion(
+                messages=messages, model="gpt-4o-mini", provider=provider
+            )
 
     @patch("ml_tooling.llm.llm_service.litellm.completion")
     def test__chat_completion_returns_model_response(self, mock_litellm_completion):
@@ -108,19 +110,21 @@ class TestLLMService:
 
         parsed_model = SamplePydanticModel(value="test", number=42)
 
-        with patch.object(
-            service, "_get_provider_for_model", return_value=dummy_provider
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                service, "_get_provider_for_model", return_value=dummy_provider
+            ),
+            patch.object(
                 service, "_complete_and_validate_structured", return_value=parsed_model
-            ) as mock_complete:
-                result = service.structured_completion(
-                    messages=messages,
-                    response_model=SamplePydanticModel,
-                    model="gpt-4o-mini",
-                    max_tokens=100,
-                    temperature=0.7,
-                )
+            ) as mock_complete,
+        ):
+            result = service.structured_completion(
+                messages=messages,
+                response_model=SamplePydanticModel,
+                model="gpt-4o-mini",
+                max_tokens=100,
+                temperature=0.7,
+            )
 
         assert isinstance(result, SamplePydanticModel)
         assert result.value == "test"
@@ -193,20 +197,22 @@ class TestLLMService:
 
         parsed_model = SamplePydanticModel(value="test", number=42)
 
-        with patch.object(
-            service, "_get_provider_for_model", return_value=dummy_provider
-        ):
-            with patch.object(
+        with (
+            patch.object(
+                service, "_get_provider_for_model", return_value=dummy_provider
+            ),
+            patch.object(
                 service, "_complete_and_validate_structured", return_value=parsed_model
-            ) as mock_complete:
-                service.structured_completion(
-                    messages=messages,
-                    response_model=SamplePydanticModel,
-                    model="gpt-4o-mini",
-                    max_tokens=200,
-                    temperature=0.5,
-                    top_p=0.9,
-                )
+            ) as mock_complete,
+        ):
+            service.structured_completion(
+                messages=messages,
+                response_model=SamplePydanticModel,
+                model="gpt-4o-mini",
+                max_tokens=200,
+                temperature=0.5,
+                top_p=0.9,
+            )
 
         call_kwargs = mock_complete.call_args.kwargs
         assert call_kwargs["model"] == "gpt-4o-mini"

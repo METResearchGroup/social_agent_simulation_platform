@@ -3,9 +3,9 @@
 import asyncio
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, Awaitable, ParamSpec, TypeVar, overload
+from typing import Any, ParamSpec, TypeVar, overload
 
 logger = logging.getLogger(__name__)
 

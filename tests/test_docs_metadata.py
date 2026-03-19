@@ -104,4 +104,5 @@ class TestDocsMetadata2:
         excluded = paths[1]
 
         files = collect_markdown_files([tmp_path / "docs"], [excluded])
-        assert paths[0] in files and excluded not in files
+        assert paths[0] in files
+        assert excluded not in files

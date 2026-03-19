@@ -36,10 +36,7 @@ def _error_code_from_json_response(response: Response) -> str | None:
     if hasattr(response, "body") and response.body:
         try:
             raw = response.body
-            if isinstance(raw, bytes):
-                raw = raw.decode()
-            else:
-                raw = bytes(raw).decode()
+            raw = raw.decode() if isinstance(raw, bytes) else bytes(raw).decode()
             data = json.loads(raw)
             return data.get("error", {}).get("code")
         except (TypeError, ValueError):

@@ -66,7 +66,7 @@ def upgrade() -> None:
     # Defensive: ensure the covering indexes still exist after batch rebuild.
     # (Batch operations should preserve indexes, but this catches unexpected drift.)
     conn = op.get_bind()
-    assert isinstance(conn, sa.Connection)
+    assert isinstance(conn, sa.Connection)  # nosec B101
     _ensure_index(
         conn=conn,
         name="idx_likes_run_turn_agent",

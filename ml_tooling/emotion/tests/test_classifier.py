@@ -119,22 +119,22 @@ class TestToEmotionLabel:
             result.surprise_score,
         )
 
-        assert actual == expected
+        assert actual == expected  # nosec B101
 
     def test_normal_case_valid_timestamp(self, normal_case):
         result = self._run_normal_case(normal_case)
-        assert datetime.strptime(result.label_timestamp, CREATED_AT_FORMAT)
+        assert datetime.strptime(result.label_timestamp, CREATED_AT_FORMAT)  # nosec B101
 
     def test_normal_case_valid_uuid(self, normal_case):
         result = self._run_normal_case(normal_case)
-        assert uuid.UUID(result.text_id)
+        assert uuid.UUID(result.text_id)  # nosec B101
 
     def test_normal_case_text_kept(self, normal_case):
         result = self._run_normal_case(normal_case)
         expected = "some text"
         actual = result.text
 
-        assert actual == expected
+        assert actual == expected  # nosec B101
 
 
 class TestExtractEmotions:
@@ -142,7 +142,7 @@ class TestExtractEmotions:
         res = normal_case.extract_emotions("random text")
         actual = res.text
 
-        assert actual == "random text"
+        assert actual == "random text"  # nosec B101
 
 
 class TestExtractEmotionsBatch:
@@ -162,8 +162,8 @@ class TestExtractEmotionsBatch:
 
     def test_normal_case_all_texts_kept(self, normal_case):
         actual = normal_case.extract_emotions_batch(["hey"])
-        assert actual[0].text == "hey"
+        assert actual[0].text == "hey"  # nosec B101
 
     def empty_list(self, normal_case):
-        assert normal_case.extract_emotions_batch(None) == []
-        assert normal_case.extract_emotions_batch([]) == []
+        assert normal_case.extract_emotions_batch(None) == []  # nosec B101
+        assert normal_case.extract_emotions_batch([]) == []  # nosec B101

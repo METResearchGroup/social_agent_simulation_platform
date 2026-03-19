@@ -92,8 +92,6 @@ def main() -> None:
         )
         metadata_repo.create_or_update_metadata(metadata)
 
-    print(f"Migrated {len(profiles)} agents.")
-
 
 if __name__ == "__main__":
     main()

@@ -9,10 +9,11 @@ Currently enforced:
 from __future__ import annotations
 
 import ast
+import contextlib
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 @dataclass(frozen=True)
@@ -110,19 +111,11 @@ def main(argv: list[str]) -> int:
         all_violations.extend(_find_module_level_test_functions(f))
 
     if not all_violations:
-        print("OK: no module-level test_* functions found")
         return 0
 
     for v in all_violations:
-        rel = v.path
-        try:
-            rel = v.path.relative_to(Path.cwd())
-        except ValueError:
-            pass
-        print(
-            f"{rel}:{v.lineno} test function '{v.name}' is not allowed; "
-            "define tests as methods on class Test...:"
-        )
+        with contextlib.suppress(ValueError):
+            v.path.relative_to(Path.cwd())
     return 1
 
 

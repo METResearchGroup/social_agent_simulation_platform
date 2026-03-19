@@ -1,7 +1,8 @@
 """Retry logic for LLM completions with validation."""
 
 import logging
-from typing import Callable, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import ParamSpec, TypeVar
 
 from tenacity import (
     before_sleep_log,

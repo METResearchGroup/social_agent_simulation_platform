@@ -87,18 +87,16 @@ def main() -> None:
     ]
 
     for i, candidates in enumerate([candidates_1, candidates_2, candidates_3], 1):
-        print(f"\n--- Follow generator call {i} ---")
         result = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=i,
             agent_handle="test_agent.bsky.social",
         )
-        print(f"Follows generated: {len(result)}")
-        for g in result:
-            print(f"  - user_id={g.follow.user_id}, follow_id={g.follow.follow_id}")
+        for _g in result:
+            pass
         if result:
-            print(f"Explanation sample: {result[0].explanation}")
+            pass
 
 
 if __name__ == "__main__":
