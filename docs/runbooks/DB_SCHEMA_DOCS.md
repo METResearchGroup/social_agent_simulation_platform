@@ -17,8 +17,8 @@ Where:
 
 Each version folder contains:
 
-- `schema.md` — human-readable table/field/relationship reference (includes a Mermaid diagram at the top)
-- `schema.snapshot.json` — machine-readable, stable snapshot used for drift checks
+- **Latest folder only:** `schema.md` and `schema.snapshot.json`
+- **Older folders:** `schema.md` only (snapshot removed to save space)
 
 ## Source of truth
 
@@ -39,6 +39,19 @@ uv run python scripts/generate_db_schema_docs.py --update
 ```
 
 This creates a new version folder and updates `docs/db/LATEST.txt` for convenience.
+It automatically prunes `schema.snapshot.json` from older folders so only the latest
+retains it.
+
+## Prune orphan snapshots
+
+If non-latest folders contain `schema.snapshot.json`, `--check` fails. Fix with:
+
+```bash
+uv run python scripts/generate_db_schema_docs.py --prune-snapshots
+```
+
+This removes `schema.snapshot.json` from all version folders except the latest. Run
+`--update` after migrations; it automatically prunes.
 
 ## Verify docs are up to date (pre-commit/CI)
 
@@ -49,7 +62,9 @@ uv run python scripts/generate_db_schema_docs.py --check
 ```
 
 This compares the schema produced by migrations at `head` to the latest committed
-`docs/db/*/schema.snapshot.json`. If it fails, it prints the exact baseline files
+`docs/db/*/schema.snapshot.json`. It also enforces that `schema.snapshot.json`
+exists only in the latest folder; orphan snapshots in older folders cause failure
+with the fix command above. If it fails, it prints the exact baseline files
 and a single command to regenerate.
 
 The check also **compiles every Mermaid ER diagram** in `docs/db/**/schema.md` using

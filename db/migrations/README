@@ -18,6 +18,8 @@ This repo keeps versioned, human-readable database schema docs under:
 
 - `docs/db/YYYY_MM_DD-HHMMSS-{branch_token}/`
 
+Only the latest folder contains `schema.snapshot.json`; older folders keep `schema.md`.
+
 Regenerate after any migration changes:
 
 ```bash
