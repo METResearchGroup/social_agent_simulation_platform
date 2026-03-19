@@ -53,6 +53,14 @@ def upgrade() -> None:
             unique=False,
         )
 
+    # Composite unique on run_posts required for composite FK: comments must reference
+    # a post that belongs to the same run.
+    with op.batch_alter_table("run_posts", schema=None) as batch_op:
+        batch_op.create_unique_constraint(
+            "uq_run_posts_run_post",
+            ["run_id", "run_post_id"],
+        )
+
     op.create_table(
         "run_post_comments",
         sa.Column("run_post_comment_id", sa.Text(), nullable=False),
@@ -73,6 +81,11 @@ def upgrade() -> None:
             ["run_post_id"],
             ["run_posts.run_post_id"],
             name="fk_run_post_comments_run_post_id",
+        ),
+        sa.ForeignKeyConstraint(
+            ["run_id", "run_post_id"],
+            ["run_posts.run_id", "run_posts.run_post_id"],
+            name="fk_run_post_comments_run_post",
         ),
         sa.ForeignKeyConstraint(
             ["run_id", "author_agent_id"],
@@ -100,6 +113,9 @@ def downgrade() -> None:
         batch_op.drop_index("idx_run_post_comments_run_author_published")
         batch_op.drop_index("idx_run_post_comments_run_post_published")
     op.drop_table("run_post_comments")
+
+    with op.batch_alter_table("run_posts", schema=None) as batch_op:
+        batch_op.drop_constraint("uq_run_posts_run_post", type_="unique")
 
     with op.batch_alter_table("agent_post_comments") as batch_op:
         batch_op.drop_index("idx_agent_post_comments_author_published")

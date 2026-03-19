@@ -153,6 +153,11 @@ run_posts = sa.Table(
     sa.PrimaryKeyConstraint("run_post_id", name="pk_run_posts"),
     sa.UniqueConstraint(
         "run_id",
+        "run_post_id",
+        name="uq_run_posts_run_post",
+    ),
+    sa.UniqueConstraint(
+        "run_id",
         "agent_post_id",
         name="uq_run_posts_run_agent_post",
     ),
@@ -218,6 +223,11 @@ run_post_comments = sa.Table(
         ["run_post_id"],
         ["run_posts.run_post_id"],
         name="fk_run_post_comments_run_post_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "run_post_id"],
+        ["run_posts.run_id", "run_posts.run_post_id"],
+        name="fk_run_post_comments_run_post",
     ),
     sa.ForeignKeyConstraint(
         ["run_id", "author_agent_id"],
