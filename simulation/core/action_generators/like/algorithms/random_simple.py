@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timezone
 
-from lib.timestamp_utils import get_current_timestamp
+from lib.timestamp_utils import CREATED_AT_FORMAT, get_current_timestamp
 from simulation.core.action_generators.interfaces import LikeGenerator
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
@@ -23,7 +23,6 @@ LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
 EXPLANATION: str = "Simple: recency/social proof with random probability"
-CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 LIKE_POLICY: str = "simple"
 
 
