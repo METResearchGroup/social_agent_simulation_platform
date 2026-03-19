@@ -65,7 +65,10 @@ from simulation.core.action_history import (
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories.agent import create_default_agent_factory
 from simulation.core.factories.command_service import (
+    AgentRepos,
     CommandServiceRepos,
+    RunRepos,
+    TurnRepos,
     create_command_service,
 )
 from simulation.core.factories.query_service import create_query_service
@@ -235,21 +238,25 @@ def create_engine(
         follow_repo=follow_repo,
     )
     command_repos = CommandServiceRepos(
-        run_repo=run_repo,
-        metrics_repo=metrics_repo,
+        agent=AgentRepos(
+            agent_repo=agent_repo,
+            agent_bio_repo=agent_bio_repo,
+            agent_follow_edge_repo=agent_follow_edge_repo,
+            user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
+            agent_post_repo=agent_post_repo,
+            agent_post_like_repo=agent_post_like_repo,
+        ),
+        run=RunRepos(
+            run_repo=run_repo,
+            metrics_repo=metrics_repo,
+            run_agent_repo=run_agent_repo,
+            run_follow_edge_repo=run_follow_edge_repo,
+            run_post_repo=run_post_repo,
+            run_post_like_repo=run_post_like_repo,
+        ),
+        turn=TurnRepos(generated_feed_repo=generated_feed_repo),
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
-        generated_feed_repo=generated_feed_repo,
-        agent_repo=agent_repo,
-        agent_bio_repo=agent_bio_repo,
-        agent_follow_edge_repo=agent_follow_edge_repo,
-        user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
-        run_agent_repo=run_agent_repo,
-        run_follow_edge_repo=run_follow_edge_repo,
-        run_post_repo=run_post_repo,
-        run_post_like_repo=run_post_like_repo,
-        agent_post_repo=agent_post_repo,
-        agent_post_like_repo=agent_post_like_repo,
         transaction_provider=transaction_provider,
     )
     command_service = create_command_service(

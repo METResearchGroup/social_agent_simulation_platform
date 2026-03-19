@@ -29,7 +29,10 @@ from db.services.simulation_persistence_service import SimulationPersistenceServ
 from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories import (
+    AgentRepos,
     CommandServiceRepos,
+    RunRepos,
+    TurnRepos,
     create_command_service,
     create_default_agent_factory,
     create_engine,
@@ -235,23 +238,27 @@ class TestServiceBuilders:
     def test_create_command_service(self):
         mock_simulation_persistence = Mock(spec=SimulationPersistenceService)
         repos = CommandServiceRepos(
-            run_repo=Mock(spec=RunRepository),
-            metrics_repo=Mock(spec=MetricsRepository),
+            agent=AgentRepos(
+                agent_repo=Mock(spec=AgentRepository),
+                agent_bio_repo=Mock(spec=AgentBioRepository),
+                agent_follow_edge_repo=Mock(spec=AgentFollowEdgeRepository),
+                user_agent_profile_metadata_repo=Mock(
+                    spec=UserAgentProfileMetadataRepository
+                ),
+                agent_post_repo=Mock(spec=AgentPostRepository),
+                agent_post_like_repo=Mock(spec=AgentPostLikeRepository),
+            ),
+            run=RunRepos(
+                run_repo=Mock(spec=RunRepository),
+                metrics_repo=Mock(spec=MetricsRepository),
+                run_agent_repo=Mock(spec=RunAgentRepository),
+                run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
+                run_post_repo=Mock(spec=RunPostRepository),
+                run_post_like_repo=Mock(spec=RunPostLikeRepository),
+            ),
+            turn=TurnRepos(generated_feed_repo=Mock(spec=GeneratedFeedRepository)),
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
-            generated_feed_repo=Mock(spec=GeneratedFeedRepository),
-            agent_repo=Mock(spec=AgentRepository),
-            agent_bio_repo=Mock(spec=AgentBioRepository),
-            agent_follow_edge_repo=Mock(spec=AgentFollowEdgeRepository),
-            user_agent_profile_metadata_repo=Mock(
-                spec=UserAgentProfileMetadataRepository
-            ),
-            run_agent_repo=Mock(spec=RunAgentRepository),
-            run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
-            run_post_repo=Mock(spec=RunPostRepository),
-            run_post_like_repo=Mock(spec=RunPostLikeRepository),
-            agent_post_repo=Mock(spec=AgentPostRepository),
-            agent_post_like_repo=Mock(spec=AgentPostLikeRepository),
             transaction_provider=Mock(),
         )
         service = create_command_service(

@@ -46,44 +46,80 @@ from simulation.core.models.agents import SimulationAgent
 
 
 @dataclass(frozen=True, slots=True)
-class CommandServiceRepos:
-    """Repositories and transaction wiring for command-side simulation execution.
+class AgentRepos:
+    """Seed-state (`Agent*`) repositories: editable catalog before any run.
 
-    Groups persistence collaborators so callers do not pass a long flat list of
-    repository parameters. Seed-state (`Agent*`) and run snapshot (`Run*`) repos
-    match the scopes described in ``docs/architecture/agents-turns-runs-data-model.md``.
+    See ``docs/architecture/agents-turns-runs-data-model.md`` and
+    ``docs/architecture/seed-state-run-snapshot-turn-events.md``.
     """
 
-    run_repo: RunRepository
-    metrics_repo: MetricsRepository
-    profile_repo: ProfileRepository
-    feed_post_repo: FeedPostRepository
-    generated_feed_repo: GeneratedFeedRepository
     agent_repo: AgentRepository
     agent_bio_repo: AgentBioRepository
     agent_follow_edge_repo: AgentFollowEdgeRepository
     user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository
+    agent_post_repo: AgentPostRepository
+    agent_post_like_repo: AgentPostLikeRepository
+
+
+@dataclass(frozen=True, slots=True)
+class RunRepos:
+    """Run identity, run-start snapshot tables, and run-level derived summaries.
+
+    Covers ``runs``, ``run_*`` snapshot stores, and run-scope metrics (e.g.
+    ``run_metrics``). See ``docs/architecture/run-snapshots.md``.
+    """
+
+    run_repo: RunRepository
+    metrics_repo: MetricsRepository
     run_agent_repo: RunAgentRepository
     run_follow_edge_repo: RunFollowEdgeRepository
     run_post_repo: RunPostRepository
     run_post_like_repo: RunPostLikeRepository
-    agent_post_repo: AgentPostRepository
-    agent_post_like_repo: AgentPostLikeRepository
+
+
+@dataclass(frozen=True, slots=True)
+class TurnRepos:
+    """Per-turn outputs (append-only history during a run).
+
+    Today this is mainly generated feeds; other turn-event stores (e.g. metrics
+    wired elsewhere) may be grouped here as the command surface grows. See
+    ``docs/architecture/seed-state-run-snapshot-turn-events.md``.
+    """
+
+    generated_feed_repo: GeneratedFeedRepository
+
+
+@dataclass(frozen=True, slots=True)
+class CommandServiceRepos:
+    """Wiring for command-side simulation execution.
+
+    Composes scope-specific repository bundles plus supporting repositories that
+    are not Agent*/Run*/Turn* lifecycle tables (e.g. ingest/legacy substrate) and
+    transaction scope.
+    """
+
+    agent: AgentRepos
+    run: RunRepos
+    turn: TurnRepos
+    profile_repo: ProfileRepository
+    feed_post_repo: FeedPostRepository
     transaction_provider: TransactionProvider
 
 
 def _default_feed_generator(repos: CommandServiceRepos) -> FeedGenerator:
     return FeedGeneratorAdapter(
-        generated_feed_repo=repos.generated_feed_repo,
-        run_post_repo=repos.run_post_repo,
-        run_post_like_repo=repos.run_post_like_repo,
+        generated_feed_repo=repos.turn.generated_feed_repo,
+        run_post_repo=repos.run.run_post_repo,
+        run_post_like_repo=repos.run.run_post_like_repo,
     )
 
 
 def _default_metrics_collector(repos: CommandServiceRepos) -> MetricsCollector:
     registry: MetricsRegistry = create_default_metrics_registry()
     deps = MetricDeps(
-        run_repo=repos.run_repo, metrics_repo=repos.metrics_repo, sql_executor=None
+        run_repo=repos.run.run_repo,
+        metrics_repo=repos.run.metrics_repo,
+        sql_executor=None,
     )
     return MetricsCollector(
         registry=registry,
@@ -114,23 +150,23 @@ def create_command_service(
         metrics_collector = _default_metrics_collector(repos)
 
     return SimulationCommandService(
-        run_repo=repos.run_repo,
-        metrics_repo=repos.metrics_repo,
+        run_repo=repos.run.run_repo,
+        metrics_repo=repos.run.metrics_repo,
         metrics_collector=metrics_collector,
         simulation_persistence=simulation_persistence,
         profile_repo=repos.profile_repo,
         feed_post_repo=repos.feed_post_repo,
-        generated_feed_repo=repos.generated_feed_repo,
-        agent_repo=repos.agent_repo,
-        agent_bio_repo=repos.agent_bio_repo,
-        agent_follow_edge_repo=repos.agent_follow_edge_repo,
-        user_agent_profile_metadata_repo=repos.user_agent_profile_metadata_repo,
-        run_agent_repo=repos.run_agent_repo,
-        run_follow_edge_repo=repos.run_follow_edge_repo,
-        run_post_repo=repos.run_post_repo,
-        run_post_like_repo=repos.run_post_like_repo,
-        agent_post_repo=repos.agent_post_repo,
-        agent_post_like_repo=repos.agent_post_like_repo,
+        generated_feed_repo=repos.turn.generated_feed_repo,
+        agent_repo=repos.agent.agent_repo,
+        agent_bio_repo=repos.agent.agent_bio_repo,
+        agent_follow_edge_repo=repos.agent.agent_follow_edge_repo,
+        user_agent_profile_metadata_repo=repos.agent.user_agent_profile_metadata_repo,
+        run_agent_repo=repos.run.run_agent_repo,
+        run_follow_edge_repo=repos.run.run_follow_edge_repo,
+        run_post_repo=repos.run.run_post_repo,
+        run_post_like_repo=repos.run.run_post_like_repo,
+        agent_post_repo=repos.agent.agent_post_repo,
+        agent_post_like_repo=repos.agent.agent_post_like_repo,
         transaction_provider=repos.transaction_provider,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
