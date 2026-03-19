@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 
+from lib.timestamp_utils import CREATED_AT_FORMAT
 from ml_tooling.emotion.classifier import EmotionModel
 from ml_tooling.emotion.models import EmotionLabel
 
@@ -122,7 +123,7 @@ class TestToEmotionLabel:
 
     def test_normal_case_valid_timestamp(self, normal_case):
         result = self._run_normal_case(normal_case)
-        assert datetime.strptime(result.label_timestamp, "%Y_%m_%d-%H:%M:%S")
+        assert datetime.strptime(result.label_timestamp, CREATED_AT_FORMAT)
 
     def test_normal_case_valid_uuid(self, normal_case):
         result = self._run_normal_case(normal_case)

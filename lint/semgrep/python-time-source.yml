@@ -1,0 +1,77 @@
+rules:
+  # Disallow wall-clock calls in domain/business code.
+  - id: python.time.no-datetime-now-in-sim-and-db
+    languages: [python]
+    message: >
+      Outside lib/timestamp_utils.py, current timestamps must come from
+      lib.timestamp_utils.get_current_timestamp(). Do not call datetime.now()
+      directly in simulation/, db/, feeds/, jobs/, ml_tooling/, or lib/.
+    severity: ERROR
+    patterns:
+      - pattern: datetime.now(...)
+    paths:
+      include:
+        - /simulation/**
+        - /db/**
+        - /feeds/**
+        - /jobs/**
+        - /ml_tooling/**
+        - /lib/**
+      exclude:
+        - /lib/timestamp_utils.py
+
+  - id: python.time.no-datetime-utcnow-in-sim-and-db
+    languages: [python]
+    message: >
+      Outside lib/timestamp_utils.py, current timestamps must come from
+      lib.timestamp_utils.get_current_timestamp(). Do not call datetime.utcnow()
+      directly in simulation/, db/, feeds/, jobs/, ml_tooling/, or lib/.
+    severity: ERROR
+    patterns:
+      - pattern: datetime.utcnow(...)
+    paths:
+      include:
+        - /simulation/**
+        - /db/**
+        - /feeds/**
+        - /jobs/**
+        - /ml_tooling/**
+        - /lib/**
+      exclude:
+        - /lib/timestamp_utils.py
+
+  - id: python.time.no-time-time-in-sim-and-db
+    languages: [python]
+    message: >
+      Outside lib/timestamp_utils.py, current timestamps must come from
+      lib.timestamp_utils.get_current_timestamp(). Do not call time.time()
+      directly in simulation/, db/, feeds/, jobs/, ml_tooling/, or lib/.
+    severity: ERROR
+    patterns:
+      - pattern: time.time(...)
+    paths:
+      include:
+        - /simulation/**
+        - /db/**
+        - /feeds/**
+        - /jobs/**
+        - /ml_tooling/**
+        - /lib/**
+      exclude:
+        - /lib/timestamp_utils.py
+
+  # Ensure the created-at format literal is centralized and mechanically enforceable.
+  - id: python.time.no-inline-created-at-format-literal
+    languages: [python]
+    message: >
+      Use lib.timestamp_utils.CREATED_AT_FORMAT instead of the raw
+      "%Y_%m_%d-%H:%M:%S" literal (allowed only in lib/timestamp_utils.py).
+    severity: ERROR
+    patterns:
+      - pattern: "\"%Y_%m_%d-%H:%M:%S\""
+    paths:
+      include:
+        - "**/*.py"
+      exclude:
+        - /lib/timestamp_utils.py
+

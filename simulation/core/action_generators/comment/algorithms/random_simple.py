@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timezone
 
-from lib.timestamp_utils import get_current_timestamp
+from lib.timestamp_utils import CREATED_AT_FORMAT, get_current_timestamp
 from simulation.core.action_generators.interfaces import CommentGenerator
 from simulation.core.models.actions import Comment
 from simulation.core.models.generated.base import GenerationMetadata
@@ -30,7 +30,6 @@ LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
 EXPLANATION: str = "Simple: random probability and hardcoded text"
-CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 
 
 class RandomSimpleCommentGenerator(CommentGenerator):
