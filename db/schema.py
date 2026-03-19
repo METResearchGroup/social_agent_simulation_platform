@@ -156,6 +156,11 @@ run_posts = sa.Table(
         "agent_post_id",
         name="uq_run_posts_run_agent_post",
     ),
+    sa.CheckConstraint(
+        "(source_at_start IS NULL AND source_post_id_at_start IS NULL) OR "
+        "(source_at_start IS NOT NULL AND source_post_id_at_start IS NOT NULL)",
+        name="chk_run_posts_provenance_pair",
+    ),
 )
 
 run_follow_edges = sa.Table(
