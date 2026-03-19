@@ -48,10 +48,16 @@ def main() -> int:
     if not diffs:
         return 0
 
-    for _i, _diff in enumerate(diffs[:50], start=1):
-        pass
+    print(  # noqa: T201
+        "ERROR: `db/schema.py` differs from the schema produced by migrations at HEAD."
+    )
+    print("Fix: update `db/schema.py` to match HEAD (or fix the migration).")  # noqa: T201
+    print("")  # noqa: T201
+    print("Diff summary (first 50 items):")  # noqa: T201
+    for i, diff in enumerate(diffs[:50], start=1):
+        print(f"{i:02d}. {diff!r}")  # noqa: T201
     if len(diffs) > 50:
-        pass
+        print(f"... and {len(diffs) - 50} more.")  # noqa: T201
     return 1
 
 

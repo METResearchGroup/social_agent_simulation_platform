@@ -8,8 +8,9 @@ transformers_logging.set_verbosity_error()
 
 
 def track_init_time():
-    time.perf_counter()
+    start = time.perf_counter()
     ner_model = NERModel()
+    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")  # noqa: T201
     ner_model.extract_entities("")
 
     return ner_model
@@ -17,8 +18,10 @@ def track_init_time():
 
 def timed_extract(ner_model, text, label):
     start = time.perf_counter()
-    ner_model.extract_entities(text)
-    return time.perf_counter() - start
+    result = ner_model.extract_entities(text)
+    elapsed = time.perf_counter() - start
+    print(f"[{label}] ({elapsed:.4f}s)")  # noqa: T201
+    print(f"{result}\n")  # noqa: T201
 
 
 def verify_diff_cases(ner_model):
@@ -56,18 +59,22 @@ def run_model_track_time(ner_model):
 
     col1, col2, col3 = "iters", "total (s)", "iters/sec"
     w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)
-    divider = f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
-    rows: list[tuple[int, float, float]] = []
+    sep = f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
+    header = f"| {col1:<{w1}} | {col2:<{w2}} | {col3:<{w3}} |"
 
+    print(sep)  # noqa: T201
+    print(header)  # noqa: T201
+    print(sep)  # noqa: T201
     for n, elapsed in results:
-        iters_per_second = n / elapsed if elapsed > 0 else 0.0
-        rows.append((n, elapsed, iters_per_second))
-
-    return divider, rows
+        throughput = n / elapsed
+        print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")  # noqa: T201
+    print(sep)  # noqa: T201
 
 
 if __name__ == "__main__":
     ner_model = track_init_time()
+    print("\n\n")  # noqa: T201
 
     verify_diff_cases(ner_model)
+    print("\n\n")  # noqa: T201
     run_model_track_time(ner_model)

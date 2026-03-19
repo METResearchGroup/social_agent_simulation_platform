@@ -164,6 +164,6 @@ class TestExtractEmotionsBatch:
         actual = normal_case.extract_emotions_batch(["hey"])
         assert actual[0].text == "hey"  # nosec B101
 
-    def empty_list(self, normal_case):
+    def test_empty_list(self, normal_case):
         assert normal_case.extract_emotions_batch(None) == []  # nosec B101
         assert normal_case.extract_emotions_batch([]) == []  # nosec B101

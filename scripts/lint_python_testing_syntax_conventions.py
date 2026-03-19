@@ -9,11 +9,10 @@ Currently enforced:
 from __future__ import annotations
 
 import ast
-import contextlib
 import sys
-from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterable  # noqa: UP035
 
 
 @dataclass(frozen=True)
@@ -111,16 +110,18 @@ def main(argv: list[str]) -> int:
         all_violations.extend(_find_module_level_test_functions(f))
 
     if not all_violations:
-        sys.stdout.write("OK: no module-level test_* functions found\n")
+        print("OK: no module-level test_* functions found")  # noqa: T201
         return 0
 
     for v in all_violations:
-        rel_path = v.path
-        with contextlib.suppress(ValueError):
-            rel_path = v.path.relative_to(Path.cwd())
-        sys.stdout.write(
-            f"{rel_path}:{v.lineno}: test function '{v.name}' is not allowed "
-            "(tests must be inside class Test...)\n"
+        rel = v.path
+        try:  # noqa: SIM105
+            rel = v.path.relative_to(Path.cwd())
+        except ValueError:
+            pass
+        print(  # noqa: T201
+            f"{rel}:{v.lineno} test function '{v.name}' is not allowed; "
+            "define tests as methods on class Test...:"
         )
     return 1
 

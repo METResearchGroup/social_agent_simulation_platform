@@ -14,9 +14,9 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import PurePosixPath
+from typing import Iterable  # noqa: UP035
 
 COMPOSITION_ROOT_PREFIXES: tuple[str, ...] = (
     "simulation/core/factories/",
@@ -153,7 +153,8 @@ def _iter_function_params(
     fn: ast.FunctionDef | ast.AsyncFunctionDef,
 ) -> Iterable[ast.arg]:
     args = fn.args
-    yield from list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)
+    for a in list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs):  # noqa: UP028
+        yield a
 
 
 def _arg_default_map(
@@ -221,11 +222,17 @@ def _is_optional_annotation(
                 or name == "Optional"
             ):
                 inner = annotation.slice
-                types = list(inner.elts) if isinstance(inner, ast.Tuple) else [inner]
+                if isinstance(inner, ast.Tuple):  # noqa: SIM108
+                    types = list(inner.elts)
+                else:
+                    types = [inner]
                 return (True, types)
         if isinstance(value, ast.Attribute) and value.attr == "Optional":
             inner = annotation.slice
-            types = list(inner.elts) if isinstance(inner, ast.Tuple) else [inner]
+            if isinstance(inner, ast.Tuple):  # noqa: SIM108
+                types = list(inner.elts)
+            else:
+                types = [inner]
             return (True, types)
 
         # Union[T, None]
@@ -235,7 +242,10 @@ def _is_optional_annotation(
             if resolved.endswith(".Union") or resolved == "Union" or name == "Union":
                 inner = annotation.slice
                 elts: list[ast.expr]
-                elts = list(inner.elts) if isinstance(inner, ast.Tuple) else [inner]
+                if isinstance(inner, ast.Tuple):  # noqa: SIM108
+                    elts = list(inner.elts)
+                else:
+                    elts = [inner]
                 non_none = [e for e in elts if not _is_none_literal(e)]
                 is_opt = len(non_none) != len(elts)
                 return (is_opt, non_none)
@@ -706,7 +716,9 @@ def _find_py9_concrete_infra_type_hints(
     def is_concrete_infra_type_name(type_name: str) -> bool:
         if type_name.startswith(("Sqlite", "SQLite")):
             return True
-        return bool(type_name.endswith("Adapter") and "SQLite" in type_name)
+        if type_name.endswith("Adapter") and "SQLite" in type_name:  # noqa: SIM103
+            return True
+        return False
 
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -822,7 +834,7 @@ def _find_py13_repo_conn_contract(
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         interfaces_path = os.path.join(repo_root, "db", "repositories", "interfaces.py")
         try:
-            with open(interfaces_path, encoding="utf-8") as f:
+            with open(interfaces_path, "r", encoding="utf-8") as f:  # noqa: UP015
                 interfaces_source = f.read()
             interfaces_tree = ast.parse(interfaces_source, filename=interfaces_path)
         except OSError:
@@ -845,9 +857,9 @@ def _find_py13_repo_conn_contract(
                 method_names.add(stmt.name)
             interface_conn_methods[class_name] = method_names
 
-        _find_py13_repo_conn_contract._cache = interface_conn_methods
+        setattr(_find_py13_repo_conn_contract, "_cache", interface_conn_methods)  # noqa: B010
     else:
-        interface_conn_methods = _find_py13_repo_conn_contract._cache
+        interface_conn_methods = getattr(_find_py13_repo_conn_contract, "_cache")  # noqa: B009
 
     violations: list[Violation] = []
 
@@ -1008,7 +1020,7 @@ def _find_py14_adapter_conn_signature(path: str, tree: ast.AST) -> list[Violatio
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         base_path = os.path.join(repo_root, "db", "adapters", "base.py")
         try:
-            with open(base_path, encoding="utf-8") as f:
+            with open(base_path, "r", encoding="utf-8") as f:  # noqa: UP015
                 base_source = f.read()
             base_tree = ast.parse(base_source, filename=base_path)
         except OSError:
@@ -1046,7 +1058,11 @@ def _find_py14_adapter_conn_signature(path: str, tree: ast.AST) -> list[Violatio
             if method_names:
                 abc_methods_with_conn[class_node.name] = method_names
 
-        _find_py14_adapter_conn_signature._cache = abc_methods_with_conn
+        setattr(  # noqa: B010
+            _find_py14_adapter_conn_signature,
+            "_cache",
+            abc_methods_with_conn,
+        )
 
     abc_methods_with_conn = getattr(
         _find_py14_adapter_conn_signature,
@@ -1145,7 +1161,7 @@ def main(argv: list[str]) -> int:
     all_violations: list[Violation] = []
     for path in files:
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:  # noqa: UP015
                 source = f.read()
         except OSError as e:
             all_violations.append(
@@ -1162,13 +1178,14 @@ def main(argv: list[str]) -> int:
         all_violations.extend(violations)
 
     if all_violations:
-        for _v in sorted(
+        for v in sorted(
             all_violations,
             key=lambda x: (PurePosixPath(_posix(x.path)), x.line, x.col, x.rule),
         ):
-            pass
+            print(v.format())  # noqa: T201
         return 1
 
+    print(f"OK ({len(files)} files checked)")  # noqa: T201
     return 0
 
 
