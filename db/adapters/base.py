@@ -12,6 +12,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_post_likes import AgentPostLike
 from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
@@ -29,6 +30,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
@@ -322,6 +324,57 @@ class RunPostDatabaseAdapter(ABC):
         """Read run-post snapshots by run_post_ids for a run.
 
         Returns list preserving order of post_ids, skipping missing.
+        """
+        raise NotImplementedError
+
+
+class AgentPostLikeDatabaseAdapter(ABC):
+    """Abstract interface for editable seed-state like facts."""
+
+    @abstractmethod
+    def write_agent_post_likes(
+        self, rows: Iterable[AgentPostLike], *, conn: object
+    ) -> None:
+        """Insert or ignore agent_post_likes rows.
+
+        This write should be idempotent under the unique constraint on
+        (liker_agent_id, agent_post_id).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_likes_for_agent_post_ids(
+        self, agent_post_ids: Iterable[str], *, conn: object
+    ) -> list[AgentPostLike]:
+        """List likes for the provided agent_post_ids in deterministic order."""
+        raise NotImplementedError
+
+
+class RunPostLikeDatabaseAdapter(ABC):
+    """Abstract interface for immutable run-start like snapshot persistence."""
+
+    @abstractmethod
+    def write_run_post_likes(
+        self,
+        run_id: str,
+        rows: Iterable[RunPostLikeSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert run_post_likes rows for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_likes_by_run_post_ids(
+        self,
+        run_id: str,
+        run_post_ids: Iterable[str],
+        *,
+        conn: object,
+    ) -> dict[str, int]:
+        """Return baseline like_count per run_post_id at run start.
+
+        Returned mapping should include 0 counts for run_post_ids with no likes.
         """
         raise NotImplementedError
 

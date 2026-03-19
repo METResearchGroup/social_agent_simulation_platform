@@ -8,6 +8,7 @@ from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostLikeRepository,
     AgentPostRepository,
     AgentRepository,
     FeedPostRepository,
@@ -16,6 +17,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
@@ -47,6 +49,7 @@ from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetr
 from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
@@ -85,7 +88,9 @@ class SimulationCommandService:
         run_agent_repo: RunAgentRepository,
         run_follow_edge_repo: RunFollowEdgeRepository,
         run_post_repo: RunPostRepository,
+        run_post_like_repo: RunPostLikeRepository,
         agent_post_repo: AgentPostRepository,
+        agent_post_like_repo: AgentPostLikeRepository,
         transaction_provider: TransactionProvider,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
@@ -107,7 +112,9 @@ class SimulationCommandService:
         self.run_agent_repo = run_agent_repo
         self.run_follow_edge_repo = run_follow_edge_repo
         self.run_post_repo = run_post_repo
+        self.run_post_like_repo = run_post_like_repo
         self.agent_post_repo = agent_post_repo
+        self.agent_post_like_repo = agent_post_like_repo
         self.transaction_provider = transaction_provider
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
@@ -133,14 +140,22 @@ class SimulationCommandService:
 
         try:
             agents = self.create_agents_for_run(run=run, run_config=run_config)
-            run_agent_snapshots, run_follow_edge_snapshots = (
-                self.snapshot_run_initial_state(run=run, agents=agents)
-            )
+            (
+                run_agent_snapshots,
+                run_follow_edge_snapshots,
+                run_post_like_snapshots,
+            ) = self.snapshot_run_initial_state(run=run, agents=agents)
             action_history_store = self.action_history_store_factory()
             self.preload_follow_history_from_snapshots(
                 run_id=run.run_id,
                 run_agent_snapshots=run_agent_snapshots,
                 run_follow_edge_snapshots=run_follow_edge_snapshots,
+                action_history_store=action_history_store,
+            )
+            self.preload_like_history_from_snapshots(
+                run_id=run.run_id,
+                run_agent_snapshots=run_agent_snapshots,
+                run_post_like_snapshots=run_post_like_snapshots,
                 action_history_store=action_history_store,
             )
 
@@ -179,7 +194,11 @@ class SimulationCommandService:
         *,
         run: Run,
         agents: list[SimulationAgent],
-    ) -> tuple[list[RunAgentSnapshot], list[RunFollowEdgeSnapshot]]:
+    ) -> tuple[
+        list[RunAgentSnapshot],
+        list[RunFollowEdgeSnapshot],
+        list[RunPostLikeSnapshot],
+    ]:
         """Persist run-start agent/follow-edge/post snapshots in one transaction."""
         with self.transaction_provider.run_transaction() as conn:
             run_agent_snapshots = self.snapshot_run_agents(
@@ -192,12 +211,22 @@ class SimulationCommandService:
                 agent_snapshots=run_agent_snapshots,
                 conn=conn,
             )
-            self.snapshot_run_posts(
+            run_post_snapshots = self.snapshot_run_posts(
                 run=run,
                 run_agent_snapshots=run_agent_snapshots,
                 conn=conn,
             )
-        return run_agent_snapshots, run_follow_edge_snapshots
+            run_post_like_snapshots = self.snapshot_run_post_likes(
+                run=run,
+                run_agent_snapshots=run_agent_snapshots,
+                run_post_snapshots=run_post_snapshots,
+                conn=conn,
+            )
+        return (
+            run_agent_snapshots,
+            run_follow_edge_snapshots,
+            run_post_like_snapshots,
+        )
 
     def update_run_status(
         self,
@@ -586,6 +615,77 @@ class SimulationCommandService:
         self.run_post_repo.write_run_posts(run.run_id, snapshots, conn=conn)
         return snapshots
 
+    def snapshot_run_post_likes(
+        self,
+        *,
+        run: Run,
+        run_agent_snapshots: list[RunAgentSnapshot],
+        run_post_snapshots: list[RunPostSnapshot],
+        conn: object | None = None,
+    ) -> list[RunPostLikeSnapshot]:
+        """Snapshot seed-state likes into `run_post_likes` at run creation time.
+
+        Selection rule:
+        - liked post exists in this run's `run_posts`
+        - liker is a member of this run's `run_agents`
+        """
+        if not run_agent_snapshots or not run_post_snapshots:
+            return []
+
+        selected_agent_ids: set[str] = {s.agent_id for s in run_agent_snapshots}
+        handle_by_agent_id: dict[str, str] = {
+            s.agent_id: s.handle_at_start for s in run_agent_snapshots
+        }
+        display_name_by_agent_id: dict[str, str] = {
+            s.agent_id: s.display_name_at_start for s in run_agent_snapshots
+        }
+
+        agent_post_id_to_run_post_id: dict[str, str] = {
+            s.agent_post_id: s.run_post_id for s in run_post_snapshots
+        }
+        agent_post_ids = list(agent_post_id_to_run_post_id.keys())
+
+        seed_likes = self.agent_post_like_repo.list_likes_for_agent_post_ids(
+            agent_post_ids,
+            conn=conn,
+        )
+
+        rows: list[RunPostLikeSnapshot] = []
+        for like in seed_likes:
+            if like.liker_agent_id not in selected_agent_ids:
+                continue
+            run_post_id = agent_post_id_to_run_post_id.get(like.agent_post_id)
+            if run_post_id is None:
+                continue
+
+            liker_handle_at_start = handle_by_agent_id.get(like.liker_agent_id)
+            liker_display_name_at_start = display_name_by_agent_id.get(
+                like.liker_agent_id
+            )
+            if liker_handle_at_start is None or liker_display_name_at_start is None:
+                raise ValueError(
+                    "Run post like snapshot like references an agent missing from run_agents"
+                )
+
+            rows.append(
+                RunPostLikeSnapshot(
+                    run_post_like_id=str(uuid4()),
+                    run_id=run.run_id,
+                    run_post_id=run_post_id,
+                    liker_agent_id=like.liker_agent_id,
+                    liker_handle_at_start=liker_handle_at_start,
+                    liker_display_name_at_start=liker_display_name_at_start,
+                    created_at=run.created_at,
+                )
+            )
+
+        self.run_post_like_repo.write_run_post_likes(
+            run.run_id,
+            rows,
+            conn=conn,
+        )
+        return rows
+
     def preload_follow_history_from_snapshots(
         self,
         *,
@@ -607,6 +707,32 @@ class SimulationCommandService:
                     "Run follow edge snapshot references an agent missing from run_agents"
                 )
             action_history_store.record_follow(run_id, follower_handle, target_handle)
+
+    def preload_like_history_from_snapshots(
+        self,
+        *,
+        run_id: str,
+        run_agent_snapshots: list[RunAgentSnapshot],
+        run_post_like_snapshots: list[RunPostLikeSnapshot],
+        action_history_store: ActionHistoryStore,
+    ) -> None:
+        """Seed like history so duplicate-like suppression treats seeded likes as done."""
+        handle_by_agent_id: dict[str, str] = {
+            snapshot.agent_id: snapshot.handle_at_start
+            for snapshot in run_agent_snapshots
+        }
+
+        for snapshot in run_post_like_snapshots:
+            liker_handle = handle_by_agent_id.get(snapshot.liker_agent_id)
+            if liker_handle is None:
+                raise ValueError(
+                    "Run post like snapshot references an agent missing from run_agents"
+                )
+            action_history_store.record_like(
+                run_id,
+                liker_handle,
+                snapshot.run_post_id,
+            )
 
     def _try_build_run_agent_snapshots_from_agents(
         self, *, run: Run, agents: list[SimulationAgent]

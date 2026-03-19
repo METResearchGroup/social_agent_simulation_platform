@@ -14,6 +14,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_post_likes import AgentPostLike
 from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
 from simulation.core.models.feeds import GeneratedFeed
@@ -31,6 +32,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
@@ -344,6 +346,52 @@ class RunPostRepository(ABC):
         Returns:
             List of RunPostSnapshot in the same order as post_ids, skipping missing.
         """
+        raise NotImplementedError
+
+
+class AgentPostLikeRepository(ABC):
+    """Abstract repository for editable seed-state like facts."""
+
+    @abstractmethod
+    def write_agent_post_likes(
+        self,
+        rows: list[AgentPostLike],
+        conn: object | None = None,
+    ) -> None:
+        """Persist agent_post_likes rows (seed-state)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_likes_for_agent_post_ids(
+        self,
+        agent_post_ids: Iterable[str],
+        conn: object | None = None,
+    ) -> list[AgentPostLike]:
+        """List seed-state likes for the provided agent_post_ids."""
+        raise NotImplementedError
+
+
+class RunPostLikeRepository(ABC):
+    """Abstract repository for immutable run-start like snapshots."""
+
+    @abstractmethod
+    def write_run_post_likes(
+        self,
+        run_id: str,
+        rows: list[RunPostLikeSnapshot],
+        conn: object | None = None,
+    ) -> None:
+        """Persist run_post_likes rows for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_likes_by_run_post_ids(
+        self,
+        run_id: str,
+        run_post_ids: Iterable[str],
+        conn: object | None = None,
+    ) -> dict[str, int]:
+        """Count seeded run_post_likes grouped by run_post_id."""
         raise NotImplementedError
 
 

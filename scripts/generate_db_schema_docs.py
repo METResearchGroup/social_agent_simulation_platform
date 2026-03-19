@@ -364,7 +364,9 @@ def _render_mermaid(snapshot: dict[str, Any]) -> str:
                 col_flags.append("PK")
             if col["name"] in fk_columns_by_table[table_name]:
                 col_flags.append("FK")
-            flags_str = "" if not col_flags else " " + " ".join(col_flags)
+            # Mermaid ER key constraints require comma-separated keys when multiple are present.
+            # e.g. `id int PK, FK` (not `id int PK FK`).
+            flags_str = "" if not col_flags else " " + ", ".join(col_flags)
             lines.append(f"    {col['type']} {col['name']}{flags_str}")
         lines.append("  }")
 
@@ -383,7 +385,13 @@ def _render_mermaid(snapshot: dict[str, Any]) -> str:
     for parent, child, label in sorted(rels):
         lines.append(f'  {parent} ||--o{{ {child} : "{label}"')
 
-    return "\n".join(lines).rstrip() + "\n"
+    mermaid = "\n".join(lines).rstrip() + "\n"
+    # Guardrail against emitting unparseable Mermaid ER syntax.
+    if re.search(r"\bPK\s+FK\b|\bFK\s+PK\b", mermaid):
+        raise RuntimeError(
+            "Invalid Mermaid ER diagram: multiple key constraints must be comma-separated (e.g. `PK, FK`)."
+        )
+    return mermaid
 
 
 def _artifacts_from_sqlite(sqlite_path: Path) -> _SchemaArtifacts:

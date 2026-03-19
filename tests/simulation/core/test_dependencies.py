@@ -10,6 +10,7 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostLikeRepository,
     AgentPostRepository,
     AgentRepository,
     CommentRepository,
@@ -18,6 +19,7 @@ from db.repositories.interfaces import (
     MetricsRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostLikeRepository,
     RunPostRepository,
     UserAgentProfileMetadataRepository,
 )
@@ -219,6 +221,7 @@ class TestServiceBuilders:
             run_repo=Mock(spec=RunRepository),
             metrics_repo=Mock(spec=MetricsRepository),
             run_post_repo=Mock(spec=RunPostRepository),
+            run_post_like_repo=Mock(spec=RunPostLikeRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
             like_repo=Mock(spec=LikeRepository),
             comment_repo=Mock(spec=CommentRepository),
@@ -246,7 +249,9 @@ class TestServiceBuilders:
             run_agent_repo=Mock(spec=RunAgentRepository),
             run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
             run_post_repo=Mock(spec=RunPostRepository),
+            run_post_like_repo=Mock(spec=RunPostLikeRepository),
             agent_post_repo=Mock(spec=AgentPostRepository),
+            agent_post_like_repo=Mock(spec=AgentPostLikeRepository),
             transaction_provider=Mock(),
             agent_factory=Mock(return_value=[]),
         )

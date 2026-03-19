@@ -21,6 +21,7 @@ from pathlib import Path
 from db.adapters.sqlite.agent_adapter import SQLiteAgentAdapter
 from db.adapters.sqlite.agent_bio_adapter import SQLiteAgentBioAdapter
 from db.adapters.sqlite.agent_follow_edge_adapter import SQLiteAgentFollowEdgeAdapter
+from db.adapters.sqlite.agent_post_like_adapter import SQLiteAgentPostLikeAdapter
 from db.adapters.sqlite.feed_post_adapter import SQLiteFeedPostAdapter
 from db.adapters.sqlite.generated_feed_adapter import SQLiteGeneratedFeedAdapter
 from db.adapters.sqlite.metrics_adapter import SQLiteMetricsAdapter
@@ -34,6 +35,7 @@ from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.models.agent_post_likes import AgentPostLike
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post, PostSource
@@ -59,6 +61,7 @@ class SeedFixtures:
     turn_metadata: list[TurnMetadata]
     generated_feeds: list[GeneratedFeed]
     feed_posts: list[Post]
+    agent_post_likes: list[dict]
     turn_metrics: list[TurnMetrics]
     run_metrics: list[RunMetrics]
     agents: list[Agent]
@@ -119,6 +122,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     metadata_raw = _read_json_list(fixtures_dir / "user_agent_profile_metadata.json")
     follow_edges_raw = _read_json_list(fixtures_dir / "agent_follow_edges.json")
     posts_raw = _read_json_list(fixtures_dir / "bluesky_feed_posts.json")
+    agent_post_likes_raw = _read_json_list(fixtures_dir / "agent_post_likes.json")
     feeds_raw = _read_json_list(fixtures_dir / "generated_feeds.json")
     turn_md_raw = _read_json_list(fixtures_dir / "turn_metadata.json")
     turn_metrics_raw = _read_json_list(fixtures_dir / "turn_metrics.json")
@@ -180,6 +184,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         turn_metadata=turn_metadata,
         generated_feeds=feeds,
         feed_posts=posts,
+        agent_post_likes=agent_post_likes_raw,
         turn_metrics=turn_metrics,
         run_metrics=run_metrics,
         agents=agents,
@@ -226,6 +231,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
         agent_adapter = SQLiteAgentAdapter()
         bio_adapter = SQLiteAgentBioAdapter()
         agent_follow_edge_adapter = SQLiteAgentFollowEdgeAdapter()
+        agent_post_like_adapter = SQLiteAgentPostLikeAdapter()
         user_md_adapter = SQLiteUserAgentProfileMetadataAdapter()
 
         now = get_current_timestamp()
@@ -260,6 +266,98 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
 
             post_adapter.write_feed_posts(fixtures.feed_posts, conn=conn)
             backfill_agent_posts_from_feed_posts(conn=conn, now_timestamp=now)
+
+            if fixtures.agent_post_likes:
+                # Resolve liker_agent_id (by agent handle) and agent_post_id (by
+                # the (source, source_post_id) pair) after agent_posts backfill.
+                liker_handles = [
+                    row["liker_handle"] for row in fixtures.agent_post_likes
+                ]
+                liker_handles = list(dict.fromkeys(liker_handles))
+                handle_to_agent = agent_adapter.read_agents_by_handles(
+                    liker_handles,
+                    conn=conn,
+                )
+
+                unique_source_pairs: set[tuple[str, str]] = set()
+                for row in fixtures.agent_post_likes:
+                    source = str(row["post_source"])
+                    source_post_id = str(row["post_source_post_id"])
+                    unique_source_pairs.add((source, source_post_id))
+
+                if unique_source_pairs:
+                    placeholders = ", ".join("(?, ?)" for _ in unique_source_pairs)
+                    params: list[str] = []
+                    for source, source_post_id in sorted(unique_source_pairs):
+                        params.extend([source, source_post_id])
+                    sql = (
+                        "SELECT source, source_post_id, agent_post_id "
+                        f"FROM agent_posts WHERE (source, source_post_id) IN ({placeholders})"
+                    )
+                    rows = conn.execute(sql, tuple(params)).fetchall()
+
+                    pair_to_agent_post_id = {
+                        (str(r["source"]), str(r["source_post_id"])): str(
+                            r["agent_post_id"]
+                        )
+                        for r in rows
+                    }
+
+                    missing = unique_source_pairs - set(pair_to_agent_post_id.keys())
+                    if missing:
+                        raise ValueError(
+                            "agent_post_likes fixtures reference missing agent_posts: "
+                            + ", ".join(
+                                f"(source={s}, source_post_id={sp})"
+                                for s, sp in missing
+                            )
+                        )
+                else:
+                    pair_to_agent_post_id = {}
+
+                def _deterministic_agent_post_like_id(
+                    *, liker_agent_id: str, agent_post_id: str
+                ) -> str:
+                    digest = hashlib.sha256(
+                        f"{liker_agent_id}:{agent_post_id}".encode("utf-8")
+                    ).hexdigest()
+                    return f"agent_post_like_import_{digest}"
+
+                resolved_likes: list[AgentPostLike] = []
+                for row in fixtures.agent_post_likes:
+                    liker_handle = str(row["liker_handle"])
+                    if liker_handle not in handle_to_agent:
+                        raise ValueError(
+                            f"agent_post_likes fixture references unknown liker_handle={liker_handle}"
+                        )
+                    liker_agent_id = handle_to_agent[liker_handle].agent_id
+
+                    post_source = str(row["post_source"])
+                    post_source_post_id = str(row["post_source_post_id"])
+                    agent_post_id = pair_to_agent_post_id[
+                        (post_source, post_source_post_id)
+                    ]
+
+                    resolved_likes.append(
+                        AgentPostLike(
+                            agent_post_like_id=str(
+                                row.get("agent_post_like_id")
+                                or _deterministic_agent_post_like_id(
+                                    liker_agent_id=liker_agent_id,
+                                    agent_post_id=agent_post_id,
+                                )
+                            ),
+                            agent_post_id=agent_post_id,
+                            liker_agent_id=liker_agent_id,
+                            created_at=str(row.get("created_at") or now),
+                        )
+                    )
+
+                agent_post_like_adapter.write_agent_post_likes(
+                    resolved_likes,
+                    conn=conn,
+                )
+
             for feed in fixtures.generated_feeds:
                 feed_adapter.write_generated_feed(feed, conn=conn)
             for tm in fixtures.turn_metadata:

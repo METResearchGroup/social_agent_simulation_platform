@@ -27,6 +27,7 @@ def query_service(mock_repos):
         run_repo=mock_repos["run_repo"],
         metrics_repo=mock_repos["metrics_repo"],
         run_post_repo=mock_repos["run_post_repo"],
+        run_post_like_repo=mock_repos["run_post_like_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
         like_repo=mock_repos["like_repo"],
         comment_repo=mock_repos["comment_repo"],
@@ -247,6 +248,7 @@ class TestSimulationQueryServiceGetTurnData:
             run_repo=mock_repos["run_repo"],
             metrics_repo=mock_repos["metrics_repo"],
             run_post_repo=mock_repos["run_post_repo"],
+            run_post_like_repo=mock_repos["run_post_like_repo"],
             generated_feed_repo=mock_repos["generated_feed_repo"],
             like_repo=like_repo,
             comment_repo=comment_repo,
@@ -300,6 +302,7 @@ class TestSimulationQueryServiceRunPostIsolation:
         follow_repo,
         run_follow_edge_repo,
         metrics_repo,
+        mock_repos,
     ):
         from simulation.core.models.feeds import GeneratedFeed
 
@@ -396,6 +399,7 @@ class TestSimulationQueryServiceRunPostIsolation:
             run_repo=run_repo,
             metrics_repo=metrics_repo,
             run_post_repo=run_post_repo,
+            run_post_like_repo=mock_repos["run_post_like_repo"],
             generated_feed_repo=generated_feed_repo,
             like_repo=like_repo,
             comment_repo=comment_repo,

@@ -60,9 +60,13 @@ class TestLocalModeSeed:
                 """,
                 ("agent_0240dc0d4a4c7e73",),
             ).fetchone()
+            agent_post_likes_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_post_likes"
+            ).fetchone()[0]
             assert runs_count > 0
             assert follow_edges_count > 0
             assert agent_posts_count > 0
+            assert agent_post_likes_count > 0
             assert alice_counts == (4, 2, alice_posts_count)
         finally:
             conn.close()
@@ -80,6 +84,9 @@ class TestLocalModeSeed:
             alice_posts_count_before = conn.execute(
                 "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
                 ("agent_0240dc0d4a4c7e73",),
+            ).fetchone()[0]
+            agent_post_likes_count_before = conn.execute(
+                "SELECT COUNT(*) FROM agent_post_likes"
             ).fetchone()[0]
         finally:
             conn.close()
@@ -99,6 +106,9 @@ class TestLocalModeSeed:
                 "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
                 ("agent_0240dc0d4a4c7e73",),
             ).fetchone()[0]
+            agent_post_likes_count_after = conn.execute(
+                "SELECT COUNT(*) FROM agent_post_likes"
+            ).fetchone()[0]
         finally:
             conn.close()
 
@@ -109,6 +119,7 @@ class TestLocalModeSeed:
         assert runs_count_after == runs_count_before
         assert agent_posts_count_after == agent_posts_count_before
         assert alice_posts_count_after == alice_posts_count_before
+        assert agent_post_likes_count_after == agent_post_likes_count_before
 
         assert any("Local seed already applied" in r.message for r in caplog.records)
 
