@@ -754,6 +754,377 @@ def _find_py9_concrete_infra_type_hints(
     return violations
 
 
+def _find_py13_repo_conn_contract(
+    path: str,
+    tree: ast.AST,
+) -> list[Violation]:
+    """Enforce repository transaction contract for optional `conn` reuse.
+
+    Scope:
+      - concrete repository modules under `db/repositories/`
+      - excludes `interfaces.py`
+      - applies to public instance methods that call `self._db_adapter.*`
+
+    Contract:
+      - method signature includes `conn` optional param with default `None`
+      - method body contains `if conn is not None:` branch that calls the adapter
+      - method body contains `with self._transaction_provider.run_transaction() as c:`
+        that calls the adapter
+    """
+
+    p = _posix(path)
+    if not p.startswith("db/repositories/"):
+        return []
+    if not p.endswith("_repository.py"):
+        return []
+    if p.endswith("interfaces.py"):
+        return []
+
+    def is_db_adapter_call(call: ast.Call) -> bool:
+        # Pattern: self._db_adapter.<something>(...)
+        if not isinstance(call.func, ast.Attribute):
+            return False
+        if not isinstance(call.func.value, ast.Attribute):
+            return False
+        value = call.func.value
+        if value.attr != "_db_adapter":
+            return False
+        return isinstance(value.value, ast.Name) and value.value.id == "self"
+
+    def is_conn_if(node: ast.If) -> bool:
+        # Pattern: if conn is not None:
+        if not isinstance(node.test, ast.Compare):
+            return False
+        test = node.test
+        if len(test.ops) != 1 or len(test.comparators) != 1:
+            return False
+        if not isinstance(test.ops[0], ast.IsNot):
+            return False
+        if not isinstance(test.left, ast.Name) or test.left.id != "conn":
+            return False
+        return _is_none_literal(test.comparators[0])
+
+    def is_transaction_with_as_c(node: ast.With | ast.AsyncWith) -> bool:
+        # Pattern: with self._transaction_provider.run_transaction() as c:
+        for item in node.items:
+            ctx = item.context_expr
+            if not isinstance(ctx, ast.Call):
+                continue
+            if not isinstance(ctx.func, ast.Attribute):
+                continue
+            if ctx.func.attr != "run_transaction":
+                continue
+            if not isinstance(ctx.func.value, ast.Attribute):
+                continue
+            prov = ctx.func.value
+            if prov.attr != "_transaction_provider":
+                continue
+            if not isinstance(prov.value, ast.Name) or prov.value.id != "self":
+                continue
+            if not isinstance(item.optional_vars, ast.Name):
+                continue
+            if item.optional_vars.id != "c":
+                continue
+            return True
+        return False
+
+    interface_conn_methods: dict[str, set[str]]
+    # Lazy init cache: interface class name -> method names with `conn=...|None=None`.
+    if not hasattr(_find_py13_repo_conn_contract, "_cache"):
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        interfaces_path = os.path.join(repo_root, "db", "repositories", "interfaces.py")
+        try:
+            with open(interfaces_path, "r", encoding="utf-8") as f:
+                interfaces_source = f.read()
+            interfaces_tree = ast.parse(interfaces_source, filename=interfaces_path)
+        except OSError:
+            interfaces_tree = ast.Module(body=[], type_ignores=[])
+
+        interface_conn_methods = {}
+        for node in ast.walk(interfaces_tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            class_name = node.name
+            method_names: set[str] = set()
+            for stmt in node.body:
+                if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                default_map = _arg_default_map(stmt)
+                if "conn" not in default_map:
+                    continue
+                if not _is_none_literal(default_map.get("conn")):
+                    continue
+                method_names.add(stmt.name)
+            interface_conn_methods[class_name] = method_names
+
+        setattr(_find_py13_repo_conn_contract, "_cache", interface_conn_methods)
+    else:
+        interface_conn_methods = getattr(_find_py13_repo_conn_contract, "_cache")
+
+    violations: list[Violation] = []
+
+    for class_node in ast.walk(tree):
+        if not isinstance(class_node, ast.ClassDef):
+            continue
+
+        base_names: set[str] = set()
+        for base in class_node.bases:
+            if isinstance(base, ast.Name):
+                base_names.add(base.id)
+            elif isinstance(base, ast.Attribute):
+                base_names.add(base.attr)
+
+        for fn in class_node.body:
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if not fn.name or fn.name.startswith("_"):
+                continue
+
+            # Require instance method (first param `self`).
+            if not fn.args.args or fn.args.args[0].arg != "self":
+                continue
+
+            # Enforce only when the corresponding interface method advertises `conn`.
+            requires_conn = any(
+                fn.name in interface_conn_methods.get(base, set())
+                for base in base_names
+            )
+            if not requires_conn:
+                continue
+
+            has_adapter_call = any(
+                isinstance(n, ast.Call) and is_db_adapter_call(n) for n in ast.walk(fn)
+            )
+            if not has_adapter_call:
+                continue
+
+            default_map = _arg_default_map(fn)
+            conn_default = default_map.get("conn")
+            has_conn_param = "conn" in default_map
+            if not has_conn_param or not _is_none_literal(conn_default):
+                violations.append(
+                    Violation(
+                        path=path,
+                        line=fn.lineno,
+                        col=fn.col_offset + 1,
+                        rule="PY-13",
+                        message=(
+                            f"Repository method '{fn.name}' must accept "
+                            "`conn: ... | None = None` (optional connection) "
+                            "so callers can reuse an existing transaction."
+                        ),
+                    )
+                )
+
+            conn_if_nodes = [
+                n for n in ast.walk(fn) if isinstance(n, ast.If) and is_conn_if(n)
+            ]
+            if_node = conn_if_nodes[0] if conn_if_nodes else None
+            if if_node is None:
+                violations.append(
+                    Violation(
+                        path=path,
+                        line=fn.lineno,
+                        col=fn.col_offset + 1,
+                        rule="PY-13",
+                        message=(
+                            f"Repository method '{fn.name}' must branch on "
+                            "`if conn is not None:` when calling `_db_adapter.*`."
+                        ),
+                    )
+                )
+            else:
+                adapter_in_if = any(
+                    isinstance(n, ast.Call) and is_db_adapter_call(n)
+                    for n in ast.walk(if_node)
+                )
+                if not adapter_in_if:
+                    violations.append(
+                        Violation(
+                            path=path,
+                            line=if_node.lineno,
+                            col=if_node.col_offset + 1,
+                            rule="PY-13",
+                            message=(
+                                f"In '{fn.name}', the `if conn is not None:` branch "
+                                "must directly call `_db_adapter.*` with the provided connection."
+                            ),
+                        )
+                    )
+
+            tx_with_nodes = [
+                n
+                for n in ast.walk(fn)
+                if isinstance(n, (ast.With, ast.AsyncWith))
+                and is_transaction_with_as_c(n)
+            ]
+            with_node = tx_with_nodes[0] if tx_with_nodes else None
+            if with_node is None:
+                violations.append(
+                    Violation(
+                        path=path,
+                        line=fn.lineno,
+                        col=fn.col_offset + 1,
+                        rule="PY-13",
+                        message=(
+                            f"Repository method '{fn.name}' must fall back to "
+                            "`with self._transaction_provider.run_transaction() as c:` "
+                            "when `conn` is not provided."
+                        ),
+                    )
+                )
+            else:
+                adapter_in_with = any(
+                    isinstance(n, ast.Call) and is_db_adapter_call(n)
+                    for n in ast.walk(with_node)
+                )
+                if not adapter_in_with:
+                    violations.append(
+                        Violation(
+                            path=path,
+                            line=with_node.lineno,
+                            col=with_node.col_offset + 1,
+                            rule="PY-13",
+                            message=(
+                                f"In '{fn.name}', the transaction fallback must call "
+                                "`_db_adapter.*` inside the `with ... as c:` block."
+                            ),
+                        )
+                    )
+
+    return violations
+
+
+def _find_py14_adapter_conn_signature(path: str, tree: ast.AST) -> list[Violation]:
+    """Enforce `conn` parameter presence on adapter implementations.
+
+    For every concrete adapter class that subclasses an ABC in
+    `db/adapters/base.py`, check all methods implemented in the concrete class
+    whose names exist on the ABC *and* whose ABC signature includes a `conn`
+    parameter. Those concrete methods must also include `conn` in their own
+    signature.
+
+    This lint is intentionally name-based and does not validate `conn` types.
+    """
+
+    p = _posix(path)
+    if not p.startswith("db/adapters/"):
+        return []
+    if p.endswith("db/adapters/base.py") or p.endswith("/base.py"):
+        return []
+
+    imports = _build_import_table(tree)
+
+    # Base ABC class name -> set(method names) where base method signature has `conn`.
+    if not hasattr(_find_py14_adapter_conn_signature, "_cache"):
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        base_path = os.path.join(repo_root, "db", "adapters", "base.py")
+        try:
+            with open(base_path, "r", encoding="utf-8") as f:
+                base_source = f.read()
+            base_tree = ast.parse(base_source, filename=base_path)
+        except OSError:
+            base_tree = ast.Module(body=[], type_ignores=[])
+
+        abc_methods_with_conn: dict[str, set[str]] = {}
+
+        for class_node in ast.walk(base_tree):
+            if not isinstance(class_node, ast.ClassDef):
+                continue
+            method_names: set[str] = set()
+            for stmt in class_node.body:
+                if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if not stmt.decorator_list:
+                    continue
+
+                # Detect `@abstractmethod` via simple decorator-name matching.
+                has_abstractmethod = any(
+                    isinstance(d, ast.Name) and d.id == "abstractmethod"
+                    for d in stmt.decorator_list
+                ) or any(
+                    isinstance(d, ast.Attribute) and d.attr == "abstractmethod"
+                    for d in stmt.decorator_list
+                )
+                if not has_abstractmethod:
+                    continue
+
+                arg_names: set[str] = {a.arg for a in stmt.args.args}
+                arg_names |= {a.arg for a in stmt.args.posonlyargs}
+                arg_names |= {a.arg for a in stmt.args.kwonlyargs}
+                if "conn" in arg_names:
+                    method_names.add(stmt.name)
+
+            if method_names:
+                abc_methods_with_conn[class_node.name] = method_names
+
+        setattr(
+            _find_py14_adapter_conn_signature,
+            "_cache",
+            abc_methods_with_conn,
+        )
+
+    abc_methods_with_conn = getattr(
+        _find_py14_adapter_conn_signature,
+        "_cache",
+        {},
+    )
+
+    def _base_class_names(class_def: ast.ClassDef) -> set[str]:
+        names: set[str] = set()
+        for base in class_def.bases:
+            if isinstance(base, ast.Name):
+                # Best effort: resolve local import alias -> fully-qualified symbol.
+                local = base.id
+                resolved = imports.symbols.get(local, local)
+                names.add(resolved.split(".")[-1])
+            elif isinstance(base, ast.Attribute):
+                names.add(base.attr)
+        return names
+
+    def _method_includes_conn(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        arg_names: set[str] = {a.arg for a in fn.args.args}
+        arg_names |= {a.arg for a in fn.args.posonlyargs}
+        arg_names |= {a.arg for a in fn.args.kwonlyargs}
+        return "conn" in arg_names
+
+    violations: list[Violation] = []
+
+    for class_node in ast.walk(tree):
+        if not isinstance(class_node, ast.ClassDef):
+            continue
+        base_names = _base_class_names(class_node)
+        matching_abc_names = [n for n in base_names if n in abc_methods_with_conn]
+        if not matching_abc_names:
+            continue
+
+        required_methods: set[str] = set()
+        for abc_name in matching_abc_names:
+            required_methods |= abc_methods_with_conn.get(abc_name, set())
+
+        for stmt in class_node.body:
+            if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if stmt.name not in required_methods:
+                continue
+            if not _method_includes_conn(stmt):
+                violations.append(
+                    Violation(
+                        path=path,
+                        line=stmt.lineno,
+                        col=stmt.col_offset + 1,
+                        rule="PY-14",
+                        message=(
+                            f"Adapter method '{class_node.name}.{stmt.name}' must "
+                            "include a `conn` parameter in its signature (type is "
+                            "database-specific)."
+                        ),
+                    )
+                )
+
+    return violations
+
+
 def lint_file(path: str, source: str) -> tuple[int, list[Violation]]:
     try:
         tree = ast.parse(source, filename=path)
@@ -778,6 +1149,8 @@ def lint_file(path: str, source: str) -> tuple[int, list[Violation]]:
     violations.extend(_find_py6_optional_infra_deps(path, tree, imports))
     violations.extend(_find_py8_service_to_service_in_core(path, tree, imports))
     violations.extend(_find_py9_concrete_infra_type_hints(path, tree, imports))
+    violations.extend(_find_py13_repo_conn_contract(path, tree))
+    violations.extend(_find_py14_adapter_conn_signature(path, tree))
 
     return (0, violations)
 
