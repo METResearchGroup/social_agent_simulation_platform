@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
@@ -61,6 +62,7 @@ class SimulationEngine:
         run_follow_edge_repo: RunFollowEdgeRepository,
         run_post_repo: RunPostRepository,
         run_post_like_repo: RunPostLikeRepository,
+        run_post_comment_repo: RunPostCommentRepository,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         query_service: SimulationQueryService,
@@ -80,6 +82,7 @@ class SimulationEngine:
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
         self.run_post_like_repo = run_post_like_repo
+        self.run_post_comment_repo = run_post_comment_repo
         self.query_service = query_service
         self.command_service = command_service
 
@@ -133,8 +136,15 @@ class SimulationEngine:
         like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
             run_id, post_ids_list
         )
+        reply_counts = self.run_post_comment_repo.count_comments_by_run_post_ids(
+            run_id, post_ids_list
+        )
         return [
-            run_post_snapshot_to_post(s, like_count=like_counts.get(s.run_post_id, 0))
+            run_post_snapshot_to_post(
+                s,
+                like_count=like_counts.get(s.run_post_id, 0),
+                reply_count=reply_counts.get(s.run_post_id, 0),
+            )
             for s in snapshots
         ]
 

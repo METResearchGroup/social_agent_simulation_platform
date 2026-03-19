@@ -12,6 +12,7 @@ from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostCommentRepository,
     AgentPostLikeRepository,
     AgentPostRepository,
     AgentRepository,
@@ -21,6 +22,7 @@ from db.repositories.interfaces import (
     MetricsRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
     UserAgentProfileMetadataRepository,
@@ -54,9 +56,16 @@ def mock_repos():
     agent_post_like_repo = Mock(spec=AgentPostLikeRepository)
     agent_post_like_repo.list_likes_for_agent_post_ids.return_value = []
 
+    agent_post_comment_repo = Mock(spec=AgentPostCommentRepository)
+    agent_post_comment_repo.list_comments_for_agent_post_ids.return_value = []
+
     run_post_like_repo = Mock(spec=RunPostLikeRepository)
     run_post_like_repo.write_run_post_likes.return_value = None
     run_post_like_repo.count_likes_by_run_post_ids.return_value = {}
+
+    run_post_comment_repo = Mock(spec=RunPostCommentRepository)
+    run_post_comment_repo.write_run_post_comments.return_value = None
+    run_post_comment_repo.count_comments_by_run_post_ids.return_value = {}
 
     feed_post_repo = Mock()
     feed_post_repo.list_all_feed_posts.return_value = []
@@ -79,7 +88,9 @@ def mock_repos():
         "run_follow_edge_repo": run_follow_edge_repo,
         "agent_post_repo": agent_post_repo,
         "agent_post_like_repo": agent_post_like_repo,
+        "agent_post_comment_repo": agent_post_comment_repo,
         "run_post_like_repo": run_post_like_repo,
+        "run_post_comment_repo": run_post_comment_repo,
         "like_repo": like_repo,
         "comment_repo": comment_repo,
         "follow_repo": follow_repo,
