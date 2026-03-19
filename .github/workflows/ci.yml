@@ -362,6 +362,9 @@ jobs:
       - name: Check code formatting
         run: uv run ruff format --check .
 
+      - name: Run Bandit (security)
+        run: uv run bandit -r simulation db ai lib feeds jobs ml_tooling -x tests -x ui
+
       - name: Run type checking
         run: uv run pyright .
 

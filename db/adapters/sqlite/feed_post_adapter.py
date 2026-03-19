@@ -1,7 +1,7 @@
 """SQLite implementation of feed post database adapter."""
 
 import sqlite3
-from typing import Iterable
+from collections.abc import Iterable
 
 from db.adapters.base import FeedPostDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
@@ -242,7 +242,7 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
         if not post_ids_list:
             return []
         q_marks = ",".join("?" for _ in post_ids_list)
-        sql = f"SELECT * FROM feed_posts WHERE post_id IN ({q_marks})"
+        sql = f"SELECT * FROM feed_posts WHERE post_id IN ({q_marks})"  # nosec B608
         result_rows = conn.execute(sql, tuple(post_ids_list)).fetchall()
         for row in result_rows:
             post_id_value = row["post_id"] if row["post_id"] is not None else "unknown"

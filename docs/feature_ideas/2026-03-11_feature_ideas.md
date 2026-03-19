@@ -1,6 +1,6 @@
 # Feature Ideas and Technical Debt Scan
 
-**Scan date:** 2026-03-11  
+**Scan date:** 2026-03-11
 **Scope:** Active source + canonical docs (`ui/`, `simulation/core/`, `ml_tooling/`, `simulation/api/`, `feeds/`, `db/`, `docs/runbooks/`, `docs/RULES.md`), excluding generated/vendor artifacts and existing `docs/feature_ideas/` reports
 
 ## Summary
@@ -75,7 +75,7 @@
 
 ### File: `feeds/feed_generator.py` (line 73)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Feed generation loop
 
 **Original text:**
@@ -88,7 +88,7 @@
 
 ### File: `feeds/feed_generator.py` (line 74)
 
-**Type:** Future improvement phrase (`optimize`, `later`)  
+**Type:** Future improvement phrase (`optimize`, `later`)
 **Context:** Follow-up line for feed-generation TODO
 
 **Original text:**
@@ -101,7 +101,7 @@
 
 ### File: `feeds/candidate_generation.py` (line 8)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Candidate post loading strategy
 
 **Original text:**
@@ -114,7 +114,7 @@
 
 ### File: `ml_tooling/llm/llm_service.py` (line 199)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Batch completion error-handling docs
 
 **Original text:**
@@ -127,7 +127,7 @@ TODO: Consider supporting partial results for batch completions instead of
 
 ### File: `simulation/api/services/agent_command_service.py` (line 33)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Handle uniqueness check before transaction
 
 **Original text:**
@@ -140,7 +140,7 @@ TODO: Consider supporting partial results for batch completions instead of
 
 ### File: `simulation/core/command_service.py` (line 398)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Agent creation logging location
 
 **Original text:**
@@ -153,7 +153,7 @@ TODO: Consider supporting partial results for batch completions instead of
 
 ### File: `ui/components/form/ConfigForm.tsx` (line 191)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Feed algorithm selector options render
 
 **Original text:**
@@ -166,7 +166,7 @@ TODO: Consider supporting partial results for batch completions instead of
 
 ### File: `db/adapters/sqlite/agent_bio_adapter.py` (line 3)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Module docstring for adapter extension points
 
 **Original text:**
@@ -179,7 +179,7 @@ TODO: For caching or async, consider a caching layer around
 
 ### File: `simulation/api/services/run_query_service.py` (line 47)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:** Turn payload assembly docs
 
 **Original text:**
@@ -192,7 +192,7 @@ Note: agent_actions are currently not persisted in SQLite. This endpoint returns
 
 ### File: `simulation/core/metrics/builtins/actions.py` (line 85)
 
-**Type:** Future improvement phrase (`revisit later`)  
+**Type:** Future improvement phrase (`revisit later`)
 **Context:** Metric implementation docstring
 
 **Original text:**
@@ -205,7 +205,7 @@ Limitation (revisit later): compute() uses deps.run_repo.list_turn_metadata,
 
 ### File: `simulation/core/metrics/builtins/actions.py` (line 86)
 
-**Type:** Future improvement phrase (`consider`)  
+**Type:** Future improvement phrase (`consider`)
 **Context:** Metric implementation docstring
 
 **Original text:**
@@ -218,7 +218,7 @@ which loads all turn rows into memory. For large runs, consider replacing
 
 ### File: `simulation/api/routes/simulation.py` (line 356)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Runs list route implementation
 
 **Original text:**
@@ -231,7 +231,7 @@ which loads all turn rows into memory. For large runs, consider replacing
 
 ### File: `ml_tooling/llm/providers/gemini_provider.py` (line 82)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Structured output support
 
 **Original text:**
@@ -244,7 +244,7 @@ which loads all turn rows into memory. For large runs, consider replacing
 
 ### File: `ml_tooling/llm/providers/groq_provider.py` (line 61)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Structured output support
 
 **Original text:**
@@ -257,7 +257,7 @@ which loads all turn rows into memory. For large runs, consider replacing
 
 ### File: `simulation/api/schemas/simulation.py` (line 144)
 
-**Type:** Feature idea phrase (`not yet supported`)  
+**Type:** Feature idea phrase (`not yet supported`)
 **Context:** Create-agent request docs
 
 **Original text:**
@@ -270,7 +270,7 @@ Fast-follows (not yet supported):
 
 ### File: `ui/lib/api/simulation.ts` (line 302)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:** Run-details API mapping
 
 **Original text:**

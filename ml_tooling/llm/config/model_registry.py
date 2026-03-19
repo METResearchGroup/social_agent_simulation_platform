@@ -176,7 +176,7 @@ class ModelConfigRegistry:
                 raise FileNotFoundError(
                     f"Model configuration file not found: {config_path}"
                 )
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 cls._config = yaml.safe_load(f)
             cls._config_path = config_path  # Save resolved path
             return cls._config or {}

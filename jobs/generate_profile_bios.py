@@ -126,12 +126,11 @@ def generate_bio_for_profile(profile: BlueskyProfile, posts: list[Post]) -> str:
 
         return generated_bio
     except Exception as e:
-        raise ValueError(f"Error generating bio for {profile.handle}: {e}")
+        raise ValueError(f"Error generating bio for {profile.handle}: {e}") from e
 
 
 def main():
     initialize_database()
-    print("Reading profiles and feed posts from database...")
     tx = SqliteTransactionProvider()
     profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
     feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
@@ -142,9 +141,7 @@ def main():
     for post in feed_posts:
         posts_by_author.setdefault(post.author_handle, []).append(post)
 
-    print("Generating bios for profiles...")
-    for i, profile in enumerate(profiles, 1):
-        print(f"Generating bio for profile {i} of {len(profiles)}...")
+    for _i, profile in enumerate(profiles, 1):
         posts = posts_by_author[profile.handle]
         generated_bio_text: str = generate_bio_for_profile(profile, posts)
         from simulation.core.models.generated.base import GenerationMetadata
@@ -159,12 +156,6 @@ def main():
             ),
         )
         generated_bio_repo.create_or_update_generated_bio(generated_bio)
-        print(f"Generated bio for {profile.handle}: {generated_bio_text}")
-
-    print("All bios generated and written to database.")
-    print("Reading all generated bios from database...")
-    generated_bios: list[GeneratedBio] = generated_bio_repo.list_all_generated_bios()
-    print(f"Found {len(generated_bios)} generated bios.")
 
 
 if __name__ == "__main__":

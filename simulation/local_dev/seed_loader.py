@@ -290,10 +290,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                     params: list[str] = []
                     for source, source_post_id in sorted(unique_source_pairs):
                         params.extend([source, source_post_id])
-                    sql = (
-                        "SELECT source, source_post_id, agent_post_id "
-                        f"FROM agent_posts WHERE (source, source_post_id) IN ({placeholders})"
-                    )
+                    sql = f"SELECT source, source_post_id, agent_post_id FROM agent_posts WHERE (source, source_post_id) IN ({placeholders})"  # noqa: S608  # nosec B608
                     rows = conn.execute(sql, tuple(params)).fetchall()
 
                     pair_to_agent_post_id = {
@@ -319,7 +316,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                     *, liker_agent_id: str, agent_post_id: str
                 ) -> str:
                     digest = hashlib.sha256(
-                        f"{liker_agent_id}:{agent_post_id}".encode("utf-8")
+                        f"{liker_agent_id}:{agent_post_id}".encode()
                     ).hexdigest()
                     return f"agent_post_like_import_{digest}"
 

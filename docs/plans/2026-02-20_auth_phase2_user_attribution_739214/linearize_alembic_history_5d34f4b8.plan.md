@@ -44,4 +44,3 @@ isProject: false
 
 - Re-run `uv run alembic heads` to confirm only a single head exists and double-check `scripts/check_db_schema_drift.py` exits cleanly.
 - Optionally run the project’s test suite or smoke tests mentioned in `docs/runbooks/SMOKE_TEST.md` if the schema changes touch runtime behavior.
-

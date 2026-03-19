@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import Response
@@ -78,29 +79,35 @@ async def post_simulation_agents(
 @log_route_completion_decorator(route=AGENTS_ROUTE, success_type=list)
 async def get_simulation_agents(
     request: Request,
-    q: str | None = Query(
-        default=None,
-        max_length=200,
-        description=(
-            "Optional handle search query (case-insensitive substring). "
-            "Supports '*' (any-length) and '?' (single-character) wildcards."
+    q: Annotated[
+        str | None,
+        Query(
+            max_length=200,
+            description=(
+                "Optional handle search query (case-insensitive substring). "
+                "Supports '*' (any-length) and '?' (single-character) wildcards."
+            ),
         ),
-    ),
-    limit: int = Query(
-        default=DEFAULT_AGENT_LIST_LIMIT,
-        ge=1,
-        le=MAX_AGENT_LIST_LIMIT,
-        description=(
-            "Maximum number of agents to return (ordered by updated_at DESC, handle ASC)."
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=MAX_AGENT_LIST_LIMIT,
+            description=(
+                "Maximum number of agents to return (ordered by updated_at DESC, handle ASC)."
+            ),
         ),
-    ),
-    offset: int = Query(
-        default=DEFAULT_AGENT_LIST_OFFSET,
-        ge=0,
-        description=(
-            "Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC)."
+    ] = DEFAULT_AGENT_LIST_LIMIT,
+    offset: Annotated[
+        int,
+        Query(
+            ge=0,
+            description=(
+                "Number of agents to skip before returning results (ordered by updated_at DESC, handle ASC)."
+            ),
         ),
-    ),
+    ] = DEFAULT_AGENT_LIST_OFFSET,
 ) -> list[AgentSchema] | Response:
     """Return all simulation agents from the database."""
     return await _execute_get_simulation_agents(
@@ -122,17 +129,20 @@ async def get_simulation_agents(
 async def get_simulation_agent_follows(
     request: Request,
     handle: str,
-    limit: int = Query(
-        default=DEFAULT_AGENT_LIST_LIMIT,
-        ge=1,
-        le=MAX_AGENT_LIST_LIMIT,
-        description="Maximum number of follow edges to return.",
-    ),
-    offset: int = Query(
-        default=DEFAULT_AGENT_LIST_OFFSET,
-        ge=0,
-        description="Number of follow edges to skip before returning results.",
-    ),
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=MAX_AGENT_LIST_LIMIT,
+            description="Maximum number of follow edges to return.",
+        ),
+    ] = DEFAULT_AGENT_LIST_LIMIT,
+    offset: Annotated[
+        int,
+        Query(
+            ge=0, description="Number of follow edges to skip before returning results."
+        ),
+    ] = DEFAULT_AGENT_LIST_OFFSET,
 ) -> ListAgentFollowsResponse | Response:
     """Return paginated editable follow edges for the given agent handle."""
     return await _execute_get_simulation_agent_follows(

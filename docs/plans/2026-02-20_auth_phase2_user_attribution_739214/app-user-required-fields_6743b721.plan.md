@@ -42,4 +42,3 @@ Tighten the app_user identity contract so `email` and `display_name` are treated
 ## Alternative approaches
 
 - Keeping `email`/`display_name` nullable at the persistence layer and forcing non-null defaults everywhere else would preserve backward compatibility but would violate the rule that downstream services should not add fallbacks; requiring the fields directly is clearer, forces migration verification, and keeps the schema aligned with the contract.
-

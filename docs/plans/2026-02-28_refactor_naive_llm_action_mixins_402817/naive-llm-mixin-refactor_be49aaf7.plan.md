@@ -43,7 +43,7 @@ The three naive-LLM generators duplicate the same core steps: call `LLMService.s
 1. Caller requests a generator from the registry, e.g. `get_like_generator(algorithm="naive_llm")`.
   - Registry: `[simulation/core/action_generators/registry.py](simulation/core/action_generators/registry.py)` uses `_create_naive_llm_like()` to call the factory.
 2. Factory returns a concrete generator wired with an `LLMService`.
-  - Factories: 
+  - Factories:
     - `[simulation/core/factories/action_generators/like/naive_llm.py](simulation/core/factories/action_generators/like/naive_llm.py)`
     - `[simulation/core/factories/action_generators/comment/naive_llm.py](simulation/core/factories/action_generators/comment/naive_llm.py)`
     - `[simulation/core/factories/action_generators/follow/naive_llm.py](simulation/core/factories/action_generators/follow/naive_llm.py)`
@@ -124,4 +124,3 @@ The three naive-LLM generators duplicate the same core steps: call `LLMService.s
 - **Template-method mixin (mixin owns `generate()`)**: More DRY, but higher coupling and more behavioral risk; you explicitly chose the lighter helpers-only approach.
 - **Shared module-level helper functions**: Even simpler, but doesn’t exercise/teach the mixin pattern you’re trying to learn.
 - **Abstract base class**: Similar to template-method but usually heavier; tends to force a single flow even when small differences (like follow’s unique-author preprocessing) exist.
-

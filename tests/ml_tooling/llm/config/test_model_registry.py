@@ -60,7 +60,7 @@ def mock_provider_registry():
     """Fixture that mocks LLMProviderRegistry to avoid actual provider initialization."""
     # The registry is already mocked at module level, so this fixture just provides access
     # Return the mock registry module that was set up at module import time
-    yield sys.modules["ml_tooling.llm.providers.registry"].LLMProviderRegistry
+    return sys.modules["ml_tooling.llm.providers.registry"].LLMProviderRegistry
 
 
 @pytest.fixture

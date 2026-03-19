@@ -87,18 +87,18 @@ def main() -> None:
     ]
 
     for i, candidates in enumerate([candidates_1, candidates_2, candidates_3], 1):
-        print(f"\n--- Follow generator call {i} ---")
         result = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=i,
             agent_handle="test_agent.bsky.social",
         )
-        print(f"Follows generated: {len(result)}")
-        for g in result:
-            print(f"  - user_id={g.follow.user_id}, follow_id={g.follow.follow_id}")
-        if result:
-            print(f"Explanation sample: {result[0].explanation}")
+        assert hasattr(result, "__iter__"), (  # noqa: S101  # nosec B101
+            "Expected generator.generate() to be iterable"
+        )
+        generated_items = list(result)
+        assert generated_items, "Expected at least one generated follow action"  # noqa: S101  # nosec B101
+        assert all(item is not None for item in generated_items)  # noqa: S101  # nosec B101
 
 
 if __name__ == "__main__":

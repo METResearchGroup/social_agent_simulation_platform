@@ -1,6 +1,6 @@
 # Feature Ideas and Technical Debt Scan
 
-**Scan date:** 2026-02-25  
+**Scan date:** 2026-02-25
 **Scope:** Full repo
 
 ## Summary
@@ -75,7 +75,7 @@
 
 ### File: `db/adapters/sqlite/agent_bio_adapter.py` (line 3)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -96,7 +96,7 @@ TODO: For caching or async, consider a caching layer around
 
 ### File: `db/schema.py` (line 10)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -116,7 +116,7 @@ TODO: For caching or async, consider a caching layer around
 
 ### File: `db/schema.py` (line 94)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:**
 
 ```text
@@ -137,7 +137,7 @@ TODO: For caching or async, consider a caching layer around
 
 ### File: `docs/RULES.md` (line 62)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -157,7 +157,7 @@ API design and rollout
 
 ### File: `docs/RULES.md` (line 69)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -178,7 +178,7 @@ Testing:
 
 ### File: `docs/RULES.md` (line 165)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -199,7 +199,7 @@ Persistence and model boundaries
 
 ### File: `docs/plans/2026-02-18_naive_llm_action_generators_887eadcb/plan.md` (line 181)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -220,7 +220,7 @@ Persistence and model boundaries
 
 ### File: `docs/plans/2026-02-19_rate_limiting_post_paths_847291/plan.md` (line 143)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -241,7 +241,7 @@ Persistence and model boundaries
 
 ### File: `docs/plans/2026-02-19_security_headers_482917/plan.md` (line 124)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -261,7 +261,7 @@ Persistence and model boundaries
 
 ### File: `docs/plans/2026-02-23_create_agent_tab_741a962a/create_agent_tab_741a962a.plan.md` (line 178)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -282,7 +282,7 @@ Persistence and model boundaries
 
 ### File: `docs/plans/2026-02-23_metrics_metadata_api_9c4e2a/plan.md` (line 148)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -302,7 +302,7 @@ Persistence and model boundaries
 
 ### File: `docs/plans/2026-02-24_metrics_selector_ui_9f3a2b/metrics_selector_ui_34c8ca07.plan.md` (line 131)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -323,7 +323,7 @@ Persistence and model boundaries
 
 ### File: `docs/runbooks/PRODUCTION_DEPLOYMENT.md` (line 20)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -344,7 +344,7 @@ With SQLite, use 1–2 workers to avoid write contention. For higher concurrency
 
 ### File: `docs/runbooks/RAILWAY_DEPLOYMENT.md` (line 103)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -363,7 +363,7 @@ With SQLite, use 1–2 workers to avoid write contention. For higher concurrency
 
 ### File: `docs/weekly_updates/2026-02-16_2026-02-21.md` (line 8)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -384,7 +384,7 @@ With SQLite, use 1–2 workers to avoid write contention. For higher concurrency
 
 ### File: `feeds/algorithms/interfaces.py` (line 51)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -405,7 +405,7 @@ With SQLite, use 1–2 workers to avoid write contention. For higher concurrency
 
 ### File: `feeds/candidate_generation.py` (line 12)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -426,7 +426,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `feeds/feed_generator.py` (line 70)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -447,7 +447,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `feeds/feed_generator.py` (line 71)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -468,7 +468,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `ml_tooling/llm/llm_service.py` (line 199)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -489,7 +489,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `ml_tooling/llm/providers/gemini_provider.py` (line 82)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -509,7 +509,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `ml_tooling/llm/providers/groq_provider.py` (line 61)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -529,7 +529,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `ml_tooling/llm/providers/groq_provider.py` (line 74)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -549,7 +549,7 @@ def load_posts() -> list[BlueskyFeedPost]:
 
 ### File: `ml_tooling/llm/providers/registry.py` (line 58)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:**
 
 ```text
@@ -570,7 +570,7 @@ LLMProviderRegistry.register(OpenAIProvider)
 
 ### File: `simulation/api/routes/simulation.py` (line 345)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -591,7 +591,7 @@ LLMProviderRegistry.register(OpenAIProvider)
 
 ### File: `simulation/api/services/agent_command_service.py` (line 58)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -612,7 +612,7 @@ LLMProviderRegistry.register(OpenAIProvider)
 
 ### File: `simulation/core/command_service.py` (line 377)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -633,7 +633,7 @@ LLMProviderRegistry.register(OpenAIProvider)
 
 ### File: `simulation/core/metrics/builtins/actions.py` (line 85)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -654,7 +654,7 @@ LLMProviderRegistry.register(OpenAIProvider)
 
 ### File: `simulation/core/models/feeds.py` (line 1)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text
@@ -673,7 +673,7 @@ import uuid
 
 ### File: `simulation/core/models/feeds.py` (line 2)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -692,7 +692,7 @@ import uuid
 
 ### File: `tests/ml_tooling/llm/config/test_model_registry.py` (line 158)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -712,7 +712,7 @@ import uuid
 
 ### File: `tests/ml_tooling/llm/test_retry.py` (line 148)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:**
 
 ```text
@@ -733,7 +733,7 @@ import uuid
 
 ### File: `ui/components/form/ConfigForm.tsx` (line 191)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:**
 
 ```text

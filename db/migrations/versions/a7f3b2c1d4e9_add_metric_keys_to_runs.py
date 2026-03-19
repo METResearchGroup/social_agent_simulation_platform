@@ -35,7 +35,7 @@ def upgrade() -> None:
 
     # Backfill existing rows where metric_keys IS NULL.
     op.execute(
-        f"UPDATE runs SET metric_keys = '{DEFAULT_METRIC_KEYS_JSON}' "
+        f"UPDATE runs SET metric_keys = '{DEFAULT_METRIC_KEYS_JSON}' "  # nosec B608
         "WHERE metric_keys IS NULL"
     )
 

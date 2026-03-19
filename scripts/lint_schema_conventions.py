@@ -12,7 +12,7 @@ absence of `run_id`/`turn_number` columns for new tables.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable  # noqa: UP035
 
 import sqlalchemy as sa
 
@@ -137,11 +137,11 @@ def main() -> int:
     violations = lint_metadata(repo_schema.metadata)
     if violations:
         for v in violations:
-            print(v.format())
+            print(v.format())  # noqa: T201
         return 1
 
     table_count = len(repo_schema.metadata.tables)
-    print(f"OK ({table_count} tables checked)")
+    print(f"OK ({table_count} tables checked)")  # noqa: T201
     return 0
 
 
