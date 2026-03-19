@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from db.repositories.feed_post_repository import FeedPostRepository
 from db.repositories.generated_feed_repository import GeneratedFeedRepository
 from db.repositories.interfaces import RunPostRepository
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
@@ -19,12 +18,6 @@ from tests.factories import AgentFactory, PostFactory, RunPostSnapshotFactory
 def mock_generated_feed_repo():
     """Fixture providing a mock GeneratedFeedRepository."""
     return Mock(spec=GeneratedFeedRepository)
-
-
-@pytest.fixture
-def mock_feed_post_repo():
-    """Fixture providing a mock FeedPostRepository."""
-    return Mock(spec=FeedPostRepository)
 
 
 @pytest.fixture
@@ -254,7 +247,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -277,7 +269,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -302,7 +293,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -322,7 +312,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -331,7 +320,6 @@ class TestGenerateFeeds:
         mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
         call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
         assert call_args.args[0] == run_id
-        mock_feed_post_repo.read_feed_posts_by_ids.assert_not_called()
 
     @patch("feeds.feed_generator.load_candidate_posts")
     @patch("feeds.feed_generator.logger")
@@ -340,7 +328,6 @@ class TestGenerateFeeds:
         mock_logger,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -373,7 +360,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -392,7 +378,6 @@ class TestGenerateFeeds:
         mock_logger,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -413,7 +398,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -431,7 +415,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -451,7 +434,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -471,7 +453,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -491,7 +472,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -509,7 +489,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
     ):
         """Test that generate_feeds handles empty agent list."""
@@ -526,7 +505,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -541,7 +519,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
     ):
@@ -561,7 +538,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -578,7 +554,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         mock_run_post_repo,
         sample_agent,
         sample_posts,
@@ -598,7 +573,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -615,7 +589,6 @@ class TestGenerateFeeds:
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
-        mock_feed_post_repo,
         sample_agent,
     ):
         """When run_post_repo is provided, hydration uses run_posts not feed_posts."""
@@ -646,7 +619,6 @@ class TestGenerateFeeds:
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=mock_generated_feed_repo,
-            feed_post_repo=mock_feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=mock_run_post_repo,
         )
@@ -654,7 +626,6 @@ class TestGenerateFeeds:
         mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
         call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
         assert call_args.args[0] == run_id
-        mock_feed_post_repo.read_feed_posts_by_ids.assert_not_called()
         assert len(result[sample_agent.handle]) == 1
         hydrated = result[sample_agent.handle][0]
         assert hydrated.source == PostSource.SEED_STATE

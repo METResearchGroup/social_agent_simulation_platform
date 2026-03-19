@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from pydantic import JsonValue
 
 from db.repositories.interfaces import (
-    FeedPostRepository,
     GeneratedFeedRepository,
     RunPostRepository,
 )
@@ -22,11 +21,9 @@ class FeedGeneratorAdapter(FeedGenerator):
         self,
         *,
         generated_feed_repo: GeneratedFeedRepository,
-        feed_post_repo: FeedPostRepository,
         run_post_repo: RunPostRepository,
     ) -> None:
         self._generated_feed_repo = generated_feed_repo
-        self._feed_post_repo = feed_post_repo
         self._run_post_repo = run_post_repo
 
     def generate_feeds(
@@ -42,7 +39,6 @@ class FeedGeneratorAdapter(FeedGenerator):
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=self._generated_feed_repo,
-            feed_post_repo=self._feed_post_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=self._run_post_repo,
             feed_algorithm_config=feed_algorithm_config,

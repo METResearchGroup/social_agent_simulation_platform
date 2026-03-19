@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from pydantic import JsonValue
 
 from db.repositories.interfaces import (
-    FeedPostRepository,
     GeneratedFeedRepository,
     RunPostRepository,
 )
@@ -24,7 +23,6 @@ def generate_feeds(
     run_id: str,
     turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,
-    feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     run_post_repo: RunPostRepository,
     feed_algorithm_config: Mapping[str, JsonValue] | None = None,
@@ -36,7 +34,6 @@ def generate_feeds(
         run_id: The run ID for this simulation.
         turn_number: The turn number for this simulation.
         generated_feed_repo: Repository for writing generated feeds.
-        feed_post_repo: Repository (unused; kept for signature compatibility).
         feed_algorithm: Algorithm name to use (must be registered in feeds.algorithms).
         run_post_repo: Load candidates and hydrate from run_posts.
 
@@ -51,7 +48,6 @@ def generate_feeds(
         run_id=run_id,
         turn_number=turn_number,
         generated_feed_repo=generated_feed_repo,
-        feed_post_repo=feed_post_repo,
         feed_algorithm=feed_algorithm,
         feed_algorithm_config=feed_algorithm_config,
         run_post_repo=run_post_repo,
@@ -70,7 +66,6 @@ def _generate_feeds(
     run_id: str,
     turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,
-    feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
     run_post_repo: RunPostRepository,
@@ -83,7 +78,6 @@ def _generate_feeds(
             run_id=run_id,
             turn_number=turn_number,
             generated_feed_repo=generated_feed_repo,
-            feed_post_repo=feed_post_repo,
             feed_algorithm=feed_algorithm,
             feed_algorithm_config=feed_algorithm_config,
             run_post_repo=run_post_repo,
@@ -211,7 +205,6 @@ def _generate_single_agent_feed(
     run_id: str,
     turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,
-    feed_post_repo: FeedPostRepository,
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
     run_post_repo: RunPostRepository,

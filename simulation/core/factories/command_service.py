@@ -72,7 +72,6 @@ def create_command_service(
     if feed_generator is None:
         feed_generator = FeedGeneratorAdapter(
             generated_feed_repo=generated_feed_repo,
-            feed_post_repo=feed_post_repo,
             run_post_repo=run_post_repo,
         )
 
