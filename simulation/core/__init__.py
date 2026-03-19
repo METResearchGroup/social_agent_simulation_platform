@@ -13,11 +13,11 @@ def __getattr__(name: str):
 
         return create_engine
     if name == "SimulationQueryService":
-        from simulation.core.query_service import SimulationQueryService
+        from simulation.core.services.query_service import SimulationQueryService
 
         return SimulationQueryService
     if name == "SimulationCommandService":
-        from simulation.core.command_service import SimulationCommandService
+        from simulation.core.services.command_service import SimulationCommandService
 
         return SimulationCommandService
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

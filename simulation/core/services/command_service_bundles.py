@@ -1,4 +1,4 @@
-"""Dependency bundles for :class:`simulation.core.command_service.SimulationCommandService`.
+"""Dependency bundles for :class:`simulation.core.services.command_service.SimulationCommandService`.
 
 Repository groupings follow ``docs/architecture/agents-turns-runs-data-model.md`` and related
 architecture docs. Keeping them in one module avoids import cycles between the service and

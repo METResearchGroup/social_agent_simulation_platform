@@ -1,4 +1,4 @@
-"""Tests for simulation.core.command_service module."""
+"""Tests for simulation.core.services.command_service module."""
 
 from unittest.mock import ANY, Mock, patch
 
@@ -12,23 +12,23 @@ from simulation.core.action_policy import (
     AgentActionRulesValidator,
     HistoryAwareActionFeedFilter,
 )
-from simulation.core.command_service import (
+from simulation.core.metrics.collector import MetricsCollector
+from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
+from simulation.core.models.actions import TurnAction
+from simulation.core.models.agent_follow_edge import AgentFollowEdge
+from simulation.core.models.runs import RunStatus
+from simulation.core.services.command_service import (
     STATUS_UPDATE_BACKOFF_BASE,
     STATUS_UPDATE_MAX_ATTEMPTS,
     SimulationCommandService,
 )
-from simulation.core.command_service_bundles import (
+from simulation.core.services.command_service_bundles import (
     AgentRepos,
     CommandServiceRepos,
     CommandServiceRuntime,
     RunRepos,
     TurnRepos,
 )
-from simulation.core.metrics.collector import MetricsCollector
-from simulation.core.metrics.defaults import DEFAULT_TURN_METRIC_KEYS
-from simulation.core.models.actions import TurnAction
-from simulation.core.models.agent_follow_edge import AgentFollowEdge
-from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from tests.factories import (
     AgentBioFactory,
@@ -268,7 +268,7 @@ class TestSimulationCommandServiceExecuteRun:
         ]
 
         with patch(
-            "simulation.core.command_service.SimulationCommandService._simulate_turn"
+            "simulation.core.services.command_service.SimulationCommandService._simulate_turn"
         ) as mock_sim_turn:
             mock_sim_turn.side_effect = [
                 TurnResultFactory.create(
@@ -324,7 +324,7 @@ class TestSimulationCommandServiceExecuteRun:
         ]
 
         with patch(
-            "simulation.core.command_service.SimulationCommandService._simulate_turn"
+            "simulation.core.services.command_service.SimulationCommandService._simulate_turn"
         ) as mock_sim_turn:
             mock_sim_turn.return_value = TurnResultFactory.create(
                 turn_number=0, total_actions={}, execution_time_ms=10
@@ -440,7 +440,7 @@ class TestSimulationCommandServiceExecuteRun:
         }
 
         with patch(
-            "simulation.core.command_service.SimulationCommandService._simulate_turn"
+            "simulation.core.services.command_service.SimulationCommandService._simulate_turn"
         ) as mock_sim_turn:
             mock_sim_turn.return_value = TurnResultFactory.create(
                 turn_number=0, total_actions={}, execution_time_ms=10
@@ -525,15 +525,15 @@ class TestSimulationCommandServiceExecuteRun:
 
         with (
             patch(
-                "simulation.core.command_service.generate_likes",
+                "simulation.core.services.command_service.generate_likes",
                 return_value=[],
             ),
             patch(
-                "simulation.core.command_service.generate_comments",
+                "simulation.core.services.command_service.generate_comments",
                 return_value=[],
             ),
             patch(
-                "simulation.core.command_service.generate_follows",
+                "simulation.core.services.command_service.generate_follows",
                 side_effect=lambda candidates, **kwargs: (
                     [
                         GeneratedFollowFactory.create(
@@ -607,7 +607,7 @@ class TestSimulationCommandServiceExecuteRun:
         ]
 
         with patch(
-            "simulation.core.command_service.SimulationCommandService._simulate_turn",
+            "simulation.core.services.command_service.SimulationCommandService._simulate_turn",
             side_effect=ValueError("invariant violation"),
         ):
             with pytest.raises(SimulationRunFailure) as exc_info:
@@ -695,14 +695,15 @@ class TestSimulationCommandServiceExecuteRun:
 
         with (
             patch(
-                "simulation.core.command_service.generate_likes", mock_generate_likes
+                "simulation.core.services.command_service.generate_likes",
+                mock_generate_likes,
             ),
             patch(
-                "simulation.core.command_service.generate_comments",
+                "simulation.core.services.command_service.generate_comments",
                 mock_generate_comments,
             ),
             patch(
-                "simulation.core.command_service.generate_follows",
+                "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
             ),
         ):
@@ -804,14 +805,15 @@ class TestSimulationCommandServiceExecuteRun:
 
         with (
             patch(
-                "simulation.core.command_service.generate_likes", mock_generate_likes
+                "simulation.core.services.command_service.generate_likes",
+                mock_generate_likes,
             ),
             patch(
-                "simulation.core.command_service.generate_comments",
+                "simulation.core.services.command_service.generate_comments",
                 mock_generate_comments,
             ),
             patch(
-                "simulation.core.command_service.generate_follows",
+                "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
             ),
         ):
@@ -1054,14 +1056,15 @@ class TestSimulationCommandServiceActionPersistence:
 
         with (
             patch(
-                "simulation.core.command_service.generate_likes", mock_generate_likes
+                "simulation.core.services.command_service.generate_likes",
+                mock_generate_likes,
             ),
             patch(
-                "simulation.core.command_service.generate_comments",
+                "simulation.core.services.command_service.generate_comments",
                 mock_generate_comments,
             ),
             patch(
-                "simulation.core.command_service.generate_follows",
+                "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
             ),
         ):

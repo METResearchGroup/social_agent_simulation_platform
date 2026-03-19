@@ -26,7 +26,6 @@ from db.repositories.interfaces import (
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
-from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories import (
     AgentRepos,
@@ -39,7 +38,8 @@ from simulation.core.factories import (
     create_query_service,
 )
 from simulation.core.models.agents import SimulationAgent
-from simulation.core.query_service import SimulationQueryService
+from simulation.core.services.command_service import SimulationCommandService
+from simulation.core.services.query_service import SimulationQueryService
 from simulation.core.utils.exceptions import InsufficientAgentsError
 from tests.factories import AgentFactory
 

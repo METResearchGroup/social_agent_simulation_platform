@@ -14,11 +14,6 @@ from simulation.core.action_policy import (
     AgentActionRulesValidator,
     HistoryAwareActionFeedFilter,
 )
-from simulation.core.command_service import SimulationCommandService
-from simulation.core.command_service_bundles import (
-    CommandServiceRepos,
-    CommandServiceRuntime,
-)
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
     DEFAULT_RUN_METRIC_KEYS,
@@ -28,6 +23,11 @@ from simulation.core.metrics.defaults import (
 from simulation.core.metrics.interfaces import MetricDeps
 from simulation.core.metrics.registry import MetricsRegistry
 from simulation.core.models.agents import SimulationAgent
+from simulation.core.services.command_service import SimulationCommandService
+from simulation.core.services.command_service_bundles import (
+    CommandServiceRepos,
+    CommandServiceRuntime,
+)
 
 
 def _default_feed_generator(repos: CommandServiceRepos) -> FeedGenerator:

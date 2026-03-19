@@ -13,10 +13,6 @@ from simulation.core.agent_actions import (
     generate_follows,
     generate_likes,
 )
-from simulation.core.command_service_bundles import (
-    CommandServiceRepos,
-    CommandServiceRuntime,
-)
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
     resolve_metric_keys_by_scope,
@@ -35,6 +31,10 @@ from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
+from simulation.core.services.command_service_bundles import (
+    CommandServiceRepos,
+    CommandServiceRuntime,
+)
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.utils.retry import retry_with_exponential_backoff
 from simulation.core.utils.validators import (
