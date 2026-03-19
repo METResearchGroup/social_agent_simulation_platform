@@ -7,9 +7,8 @@ to decide whether to like each.
 from __future__ import annotations
 
 import random
-from datetime import datetime, timezone
 
-from lib.timestamp_utils import get_current_timestamp
+from lib.timestamp_utils import get_current_timestamp, recency_score_from_timestamp
 from simulation.core.action_generators.interfaces import LikeGenerator
 from simulation.core.models.actions import Like
 from simulation.core.models.generated.base import GenerationMetadata
@@ -23,7 +22,6 @@ LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
 EXPLANATION: str = "Simple: recency/social proof with random probability"
-CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 LIKE_POLICY: str = "simple"
 
 
@@ -64,23 +62,13 @@ class RandomSimpleLikeGenerator(LikeGenerator):
 
 def _score_post(post: Post) -> float:
     """Compute score for a post (recency + social proof)."""
-    recency = _recency_score(post.created_at)
+    recency = recency_score_from_timestamp(post.created_at)
     social = (
         post.like_count * LIKE_COUNT_WEIGHT
         + post.repost_count * REPOST_WEIGHT
         + post.reply_count * REPLY_WEIGHT
     )
     return recency * RECENCY_WEIGHT + social
-
-
-def _recency_score(created_at: str) -> float:
-    """Convert created_at to a numeric recency score (higher = newer)."""
-    try:
-        dt = datetime.strptime(created_at, CREATED_AT_FORMAT)
-        dt = dt.replace(tzinfo=timezone.utc)
-        return float(dt.timestamp())
-    except (ValueError, TypeError):
-        return 0.0
 
 
 def _should_like() -> bool:

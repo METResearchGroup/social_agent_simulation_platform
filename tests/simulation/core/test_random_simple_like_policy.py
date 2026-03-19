@@ -107,11 +107,28 @@ class TestRandomSimpleLikeGeneratorGenerate:
         assert "bluesky:post_high" in post_ids
 
     def test_recency_affects_ordering(self, monkeypatch):
-        """Newer posts score higher when social proof is equal."""
+        """Newer posts score higher when social proof is equal (legacy format)."""
         monkeypatch.setattr(mod, "LIKE_PROBABILITY", 1.0)
         generator = RandomSimpleLikeGenerator()
         old_post = _post("post_old", created_at="2024_01_01-00:00:00")
         new_post = _post("post_new", created_at="2024_12_31-23:59:59")
+        candidates = [old_post, new_post]
+        result = generator.generate(
+            candidates=candidates,
+            run_id="run_1",
+            turn_number=0,
+            agent_handle="agent1.bsky.social",
+        )
+        post_ids = [like.like.post_id for like in result]
+        assert post_ids[0] == "bluesky:post_new"
+        assert "bluesky:post_new" in post_ids
+
+    def test_recency_affects_ordering_with_iso8601_timestamps(self, monkeypatch):
+        """Newer posts score higher when using ISO-8601 timestamps (same behavior)."""
+        monkeypatch.setattr(mod, "LIKE_PROBABILITY", 1.0)
+        generator = RandomSimpleLikeGenerator()
+        old_post = _post("post_old", created_at="2024-01-01T00:00:00Z")
+        new_post = _post("post_new", created_at="2024-12-31T23:59:59Z")
         candidates = [old_post, new_post]
         result = generator.generate(
             candidates=candidates,

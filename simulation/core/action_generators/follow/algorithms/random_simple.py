@@ -7,9 +7,8 @@ to decide whether to follow each.
 from __future__ import annotations
 
 import random
-from datetime import datetime, timezone
 
-from lib.timestamp_utils import get_current_timestamp
+from lib.timestamp_utils import get_current_timestamp, recency_score_from_timestamp
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
@@ -23,7 +22,6 @@ LIKE_COUNT_WEIGHT: float = 1.0
 REPOST_WEIGHT: float = 0.5
 REPLY_WEIGHT: float = 0.5
 EXPLANATION: str = "Simple: recency/social proof with random probability"
-CREATED_AT_FORMAT: str = "%Y_%m_%d-%H:%M:%S"
 FOLLOW_POLICY: str = "simple"
 
 
@@ -104,23 +102,13 @@ def _collect_scored_unique_authors(
 
 def _score_post(post: Post) -> float:
     """Compute score for selecting follow candidates (recency + social proof)."""
-    recency_score: float = _recency_score(created_at=post.created_at)
+    recency_score: float = recency_score_from_timestamp(post.created_at)
     social_score: float = (
         post.like_count * LIKE_COUNT_WEIGHT
         + post.repost_count * REPOST_WEIGHT
         + post.reply_count * REPLY_WEIGHT
     )
     return recency_score * RECENCY_WEIGHT + social_score
-
-
-def _recency_score(*, created_at: str) -> float:
-    """Convert created_at to a numeric recency score (higher = newer)."""
-    try:
-        created_at_dt = datetime.strptime(created_at, CREATED_AT_FORMAT)
-        created_at_dt = created_at_dt.replace(tzinfo=timezone.utc)
-        return float(created_at_dt.timestamp())
-    except (TypeError, ValueError):
-        return 0.0
 
 
 def _should_follow() -> bool:
