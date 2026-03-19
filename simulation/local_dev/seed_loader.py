@@ -384,10 +384,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                     pair_params: list[str] = []
                     for source, source_post_id in sorted(unique_source_pairs_comments):
                         pair_params.extend([source, source_post_id])
-                    sql = (
-                        "SELECT source, source_post_id, agent_post_id "
-                        f"FROM agent_posts WHERE (source, source_post_id) IN ({placeholders})"
-                    )
+                    sql = f"SELECT source, source_post_id, agent_post_id FROM agent_posts WHERE (source, source_post_id) IN ({placeholders})"  # noqa: S608  # nosec B608
                     rows = conn.execute(sql, tuple(pair_params)).fetchall()
                     pair_to_agent_post_id_c = {
                         (str(r["source"]), str(r["source_post_id"])): str(
@@ -417,9 +414,7 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                     published_at: str,
                 ) -> str:
                     digest = hashlib.sha256(
-                        f"{author_agent_id}:{agent_post_id}:{body_text}:{published_at}".encode(
-                            "utf-8"
-                        )
+                        f"{author_agent_id}:{agent_post_id}:{body_text}:{published_at}".encode()
                     ).hexdigest()
                     return f"agent_post_comment_import_{digest}"
 

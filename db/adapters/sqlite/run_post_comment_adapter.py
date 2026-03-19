@@ -13,7 +13,7 @@ from simulation.core.utils.validators import validate_run_id
 RUN_POST_COMMENT_COLUMNS = ordered_column_names(run_post_comments_table)
 
 _INSERT_RUN_POST_COMMENT_SQL = (
-    f"INSERT INTO run_post_comments ({', '.join(RUN_POST_COMMENT_COLUMNS)}) "
+    f"INSERT INTO run_post_comments ({', '.join(RUN_POST_COMMENT_COLUMNS)}) "  # nosec B608
     f"VALUES ({', '.join('?' for _ in RUN_POST_COMMENT_COLUMNS)})"
 )
 
@@ -23,10 +23,10 @@ def _build_count_comments_by_run_posts_sql(num_ids: int) -> str:
     return (
         "SELECT run_post_id, COUNT(*) AS c "
         "FROM run_post_comments "
-        "WHERE run_id = ? AND run_post_id IN ({placeholders}) "
+        f"WHERE run_id = ? AND run_post_id IN ({placeholders}) "  # nosec B608
         "GROUP BY run_post_id "
         "ORDER BY run_post_id ASC"
-    ).format(placeholders=placeholders)
+    )
 
 
 class SQLiteRunPostCommentAdapter(RunPostCommentDatabaseAdapter):
