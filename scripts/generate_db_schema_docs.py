@@ -58,6 +58,23 @@ def _mmdc_puppeteer_config_flag() -> list[str]:
     return ["-p", str(cfg)]
 
 
+def _resolve_mmdc_override_executable(parts: list[str]) -> list[str]:
+    """Make the override argv's first token absolute when it is a filesystem path."""
+    if not parts:
+        return parts
+    first = parts[0]
+    if not first or first.startswith("-"):
+        return parts
+    looks_like_path = first.startswith("~") or first.startswith((".", "/", "\\"))
+    looks_like_path = looks_like_path or ("/" in first or "\\" in first)
+    if not looks_like_path:
+        # Single token such as `mmdc` or `npx`: resolved by PATH at exec time.
+        return parts
+    path = Path(first).expanduser()
+    path = (Path.cwd() / path).resolve() if not path.is_absolute() else path.resolve()
+    return [str(path)] + parts[1:]
+
+
 def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
     """Build argv to invoke Mermaid CLI (`mmdc`).
 
@@ -69,10 +86,12 @@ def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
     Linux CI images). Set ``MERMAID_CLI_NO_PUPPETEER_CONFIG=1`` to disable.
     """
     pup = _mmdc_puppeteer_config_flag()
-    override = os.environ.get("MMDC") or os.environ.get("MERMAID_CLI")
-    if override:
-        parts = shlex.split(override)
-        return parts + ["-i", str(in_path), "-o", str(out_path)] + pup
+    override_raw = os.environ.get("MMDC") or os.environ.get("MERMAID_CLI")
+    if override_raw is not None:
+        stripped = override_raw.strip()
+        if stripped:
+            parts = _resolve_mmdc_override_executable(shlex.split(stripped))
+            return parts + ["-i", str(in_path), "-o", str(out_path)] + pup
 
     mmdc = shutil.which("mmdc")
     if mmdc:
@@ -82,7 +101,7 @@ def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
         return [
             npx,
             "--yes",
-            "@mermaid-js/mermaid-cli",
+            "@mermaid-js/mermaid-cli@11.12.0",
             "-i",
             str(in_path),
             "-o",
@@ -120,8 +139,7 @@ def _compile_mermaid_blocks_with_mmdc(
             argv,
             cwd=str(tmpdir),
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
         )
         if completed.returncode != 0:
             detail = (completed.stderr or "").strip() or (
@@ -135,13 +153,20 @@ def _compile_mermaid_blocks_with_mmdc(
     return None
 
 
-def _check_mermaid_in_schema_md(repo_root: Path, schema_path: Path) -> str | None:
+def _schema_rel_label(label_root: Path, schema_path: Path) -> str:
+    try:
+        return str(schema_path.relative_to(label_root))
+    except ValueError:
+        return str(schema_path)
+
+
+def _check_mermaid_in_schema_md(label_root: Path, schema_path: Path) -> str | None:
     """Return an error string if the Mermaid block(s) in `schema.md` fail `mmdc`."""
     text = schema_path.read_text(encoding="utf-8")
     blocks = _iter_mermaid_blocks(text)
     if not blocks:
         return None
-    rel = schema_path.relative_to(repo_root)
+    rel = _schema_rel_label(label_root, schema_path)
     with tempfile.TemporaryDirectory(prefix="sim-schema-mermaid-") as tmp:
         return _compile_mermaid_blocks_with_mmdc(
             blocks=blocks,
@@ -150,9 +175,8 @@ def _check_mermaid_in_schema_md(repo_root: Path, schema_path: Path) -> str | Non
         )
 
 
-def _check_mermaid_in_all_schema_docs(repo_root: Path) -> int:
-    """Validate every ```mermaid``` block under docs/db/**/schema.md via Mermaid CLI."""
-    db_root = repo_root / "docs" / "db"
+def _check_mermaid_in_all_schema_docs(db_root: Path, *, label_root: Path) -> int:
+    """Validate every ```mermaid``` block under db_root/**/schema.md via Mermaid CLI."""
     if not db_root.is_dir():
         return 0
 
@@ -162,9 +186,9 @@ def _check_mermaid_in_all_schema_docs(repo_root: Path) -> int:
 
     failures: list[str] = []
     for schema_path in schema_files:
-        err = _check_mermaid_in_schema_md(repo_root, schema_path)
+        err = _check_mermaid_in_schema_md(label_root, schema_path)
         if err:
-            rel = schema_path.relative_to(repo_root)
+            rel = _schema_rel_label(label_root, schema_path)
             failures.append(f"{rel}:\n{err}")
 
     if not failures:
@@ -190,8 +214,7 @@ def _run(
         cwd=str(cwd),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=check,
     )
 
@@ -681,20 +704,21 @@ def main() -> int:
                 artifacts = _artifacts_from_sqlite(sqlite_path)
                 _write_artifacts(out_dir, artifacts)
 
-        (out_root / "LATEST.txt").write_text(version_dir_name + "\n", encoding="utf-8")
-        print(f"Wrote schema docs to: {out_dir}")
-        mermaid_err = _check_mermaid_in_schema_md(repo_root, out_dir / "schema.md")
+        mermaid_err = _check_mermaid_in_schema_md(out_root, out_dir / "schema.md")
         if mermaid_err:
+            shutil.rmtree(out_dir, ignore_errors=True)
             print(
                 "ERROR: Generated Mermaid diagram failed Mermaid CLI compilation.\n\n"
                 f"{mermaid_err}\n",
                 file=sys.stderr,
             )
             return 1
+        (out_root / "LATEST.txt").write_text(version_dir_name + "\n", encoding="utf-8")
+        print(f"Wrote schema docs to: {out_dir}")
         return 0
 
     assert args.check
-    mermaid_rc = _check_mermaid_in_all_schema_docs(repo_root)
+    mermaid_rc = _check_mermaid_in_all_schema_docs(out_root, label_root=out_root)
     if mermaid_rc != 0:
         return mermaid_rc
 

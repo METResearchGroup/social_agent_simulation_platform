@@ -33,19 +33,21 @@ def log_llm_request(
         return
 
     try:
-        with client.start_as_current_observation(
-            as_type="span",
-            name="generate_bio",
-            metadata=metadata or {},
-        ) as trace:
-            with trace.start_as_current_observation(
+        with (
+            client.start_as_current_observation(
+                as_type="span",
+                name="generate_bio",
+                metadata=metadata or {},
+            ) as trace,
+            trace.start_as_current_observation(
                 as_type="generation",
                 name="bio_generation",
                 model=model,
                 input=input_data,
-            ) as generation:
-                generation.update(
-                    output={"bio": output, "output_length": len(output)},
-                )
+            ) as generation,
+        ):
+            generation.update(
+                output={"bio": output, "output_length": len(output)},
+            )
     except Exception as e:
-        raise Exception(f"Failed to log LLM request to Langfuse: {e}")
+        raise RuntimeError(f"Failed to log LLM request to Langfuse: {e}") from e

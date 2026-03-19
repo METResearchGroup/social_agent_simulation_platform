@@ -7,9 +7,9 @@ repositories, adapters).
 
 import asyncio
 import inspect
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, Awaitable, ParamSpec, TypeAlias, TypeVar, overload
+from typing import Any, ParamSpec, TypeAlias, TypeVar, overload
 
 P = ParamSpec("P")
 R = TypeVar("R")

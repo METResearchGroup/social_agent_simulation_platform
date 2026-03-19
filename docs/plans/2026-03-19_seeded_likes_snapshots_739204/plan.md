@@ -487,4 +487,3 @@ Freeze these decisions before parallel work begins:
 
 - Store assets at `docs/plans/2026-03-19_seeded_likes_snapshots_739204/`.
 - No UI screenshots required because this plan does not change `ui/`.
-

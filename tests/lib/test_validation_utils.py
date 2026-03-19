@@ -32,7 +32,7 @@ class TestValidateNonEmptyIterable:
 
 class TestValidateNonEmptyString:
     @pytest.mark.parametrize(
-        "string, expected_error",
+        ("string", "expected_error"),
         [
             (None, "value cannot be None"),
             (5, "value must be a string"),
@@ -45,7 +45,7 @@ class TestValidateNonEmptyString:
             validate_non_empty_string(string)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(
-        "string, expected",
+        ("string", "expected"),
         [
             ("string", "string"),
             ("  string with spaces  ", "string with spaces"),

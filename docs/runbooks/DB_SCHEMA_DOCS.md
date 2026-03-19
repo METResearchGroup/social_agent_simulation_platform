@@ -56,10 +56,11 @@ The check also **compiles every Mermaid ER diagram** in `docs/db/**/schema.md` u
 the Mermaid CLI (`mmdc` from `@mermaid-js/mermaid-cli`). A parse or render failure
 fails the check and prints the CLI output.
 
-- **CI** installs the CLI globally in the `schema` workflow job.
-- **Locally**, install `mmdc` on your PATH (for example `npm install -g @mermaid-js/mermaid-cli`),
+- **CI** installs a pinned release (`@mermaid-js/mermaid-cli@11.12.0`) in the `schema` workflow job.
+- **Locally**, install `mmdc` on your PATH (for example
+  `npm install -g @mermaid-js/mermaid-cli@11.12.0`),
   or rely on the script’s fallback: if `mmdc` is missing but `npx` is available, it runs
-  `npx --yes @mermaid-js/mermaid-cli ...`.
+  `npx --yes @mermaid-js/mermaid-cli@11.12.0 ...` (same major line as CI).
 - Override the command with `MMDC` (or `MERMAID_CLI`) if you need a custom wrapper
   (space-separated argv prefix, e.g. `MMDC=/path/to/mmdc`).
 - On **Linux CI** (including GitHub Actions), Chromium often requires disabling the

@@ -6,10 +6,21 @@ repos:
     hooks:
       # Same as CI: uv run ruff check .
       - id: ruff-check
-        args: [--fix]
       # Same as CI: uv run ruff format --check .
       - id: ruff-format
         args: [--check]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix, lf]
   - repo: local
     hooks:
       - id: python_testing_syntax_conventions
@@ -72,3 +83,8 @@ repos:
         language: system
         pass_filenames: false
         files: ^ui/
+      - id: bandit
+        name: bandit (security)
+        entry: bash -lc "uv run --extra test bandit -r simulation db ai lib feeds jobs ml_tooling -x tests -x ui"
+        language: system
+        pass_filenames: false

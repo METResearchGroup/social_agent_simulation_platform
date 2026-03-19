@@ -139,7 +139,7 @@ class SQLiteUserAgentProfileMetadataAdapter(UserAgentProfileMetadataDatabaseAdap
         if not agent_ids_list:
             return {}
         q_marks = ",".join("?" for _ in agent_ids_list)
-        sql = f"SELECT * FROM user_agent_profile_metadata WHERE agent_id IN ({q_marks})"
+        sql = f"SELECT * FROM user_agent_profile_metadata WHERE agent_id IN ({q_marks})"  # nosec B608
         rows = conn.execute(sql, tuple(agent_ids_list)).fetchall()
         result: dict[str, UserAgentProfileMetadata | None] = {
             aid: None for aid in agent_ids_list

@@ -56,5 +56,4 @@ class NERModel:
     def extract_entities_batch(self, texts: list[str]) -> list[list[EntitySpan]]:
         response = cast(NerBatchResponse, self._ner_pipeline(texts))
 
-        batch_entity_spans = [self._to_entity_span(entity) for entity in response]
-        return batch_entity_spans
+        return [self._to_entity_span(entity) for entity in response]

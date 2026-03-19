@@ -17,7 +17,7 @@ from simulation.core.utils.validators import (
 RUN_AGENT_COLUMNS = ordered_column_names(run_agents_table)
 RUN_AGENT_REQUIRED_FIELDS = required_column_names(run_agents_table)
 _INSERT_RUN_AGENT_SQL = (
-    f"INSERT INTO run_agents ({', '.join(RUN_AGENT_COLUMNS)}) "
+    f"INSERT INTO run_agents ({', '.join(RUN_AGENT_COLUMNS)}) "  # nosec B608
     f"VALUES ({', '.join('?' for _ in RUN_AGENT_COLUMNS)})"
 )
 _SELECT_RUN_AGENTS_FOR_RUN_SQL = (

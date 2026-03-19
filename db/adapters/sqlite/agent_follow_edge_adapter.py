@@ -187,7 +187,7 @@ class SQLiteAgentFollowEdgeAdapter(AgentFollowEdgeDatabaseAdapter):
         sql = (
             "SELECT agent_follow_edge_id, follower_agent_id, target_agent_id, created_at "
             "FROM agent_follow_edges "
-            f"WHERE follower_agent_id IN ({placeholders}) "
+            f"WHERE follower_agent_id IN ({placeholders}) "  # nosec B608
             f"{_LIST_EDGES_FOR_FOLLOWER_AGENT_IDS_ORDER_BY}"
         )
         rows = conn.execute(sql, tuple(follower_agent_id_list)).fetchall()

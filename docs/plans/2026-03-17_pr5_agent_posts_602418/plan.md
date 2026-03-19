@@ -205,4 +205,3 @@ flowchart TD
 
 - Store planning artifacts at `docs/plans/2026-03-17_pr5_agent_posts_602418/`.
 - No UI screenshots are required for this PR because no `ui/` change is planned.
-

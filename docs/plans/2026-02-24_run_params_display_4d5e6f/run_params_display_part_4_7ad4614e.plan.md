@@ -108,7 +108,7 @@ flowchart LR
 - Add a mapper `mapRunDetailsConfig(apiConfig)` from API `RunConfigDetail` to UI `RunConfig`: `num_agents` → `numAgents`, `num_turns` → `numTurns`, `feed_algorithm` → `feedAlgorithm`, `metric_keys` → `metricKeys`. API run details may not expose `feed_algorithm_config`; use `null` for `feedAlgorithmConfig` if absent.
 - Export `getRunDetails` returning the full response; callers use `response.config` and map with `mapRunDetailsConfig` (or have `getRunDetails` return an object that includes `config: RunConfig` so the hook only does `setRunConfigs(prev => ({ ...prev, [runId]: details.config }))`).
 
-**File: [ui/types/index.ts](ui/types/index.ts)**  
+**File: [ui/types/index.ts](ui/types/index.ts)**
 
 - No change: `RunConfig` already has `metricKeys?: string[]` from Part 3.
 
@@ -135,7 +135,7 @@ flowchart LR
 
 ### 6. getDefaultConfig
 
-**File: [ui/lib/api/simulation.ts](ui/lib/api/simulation.ts)**  
+**File: [ui/lib/api/simulation.ts](ui/lib/api/simulation.ts)**
 
 - Extend `getDefaultConfig()` so the returned `RunConfig` includes `metricKeys` when the backend default-config response includes `metric_keys`; map `metric_keys` → `metricKeys`. If the default-config API does not yet return `metric_keys`, add the mapping so it is applied when the backend adds the field (no change to backend in Part 4).
 

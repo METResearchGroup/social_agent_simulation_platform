@@ -17,7 +17,7 @@ from simulation.core.utils.validators import (
 RUN_FOLLOW_EDGE_COLUMNS = ordered_column_names(run_follow_edges_table)
 RUN_FOLLOW_EDGE_REQUIRED_FIELDS = required_column_names(run_follow_edges_table)
 _INSERT_RUN_FOLLOW_EDGE_SQL = (
-    f"INSERT INTO run_follow_edges ({', '.join(RUN_FOLLOW_EDGE_COLUMNS)}) "
+    f"INSERT INTO run_follow_edges ({', '.join(RUN_FOLLOW_EDGE_COLUMNS)}) "  # nosec B608
     f"VALUES ({', '.join('?' for _ in RUN_FOLLOW_EDGE_COLUMNS)})"
 )
 _SELECT_RUN_FOLLOW_EDGES_FOR_RUN_SQL = (

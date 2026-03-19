@@ -49,8 +49,7 @@ def _alembic_upgrade_head(
             cwd=str(repo_root),
             env=env,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=False,
             timeout=timeout,
         )

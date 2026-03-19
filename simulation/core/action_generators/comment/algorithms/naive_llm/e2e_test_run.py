@@ -59,18 +59,18 @@ def main() -> None:
     ]
 
     for i, candidates in enumerate([candidates_1, candidates_2, candidates_3], 1):
-        print(f"\n--- Comment generator call {i} ---")
         result = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=i,
             agent_handle="test_agent.bsky.social",
         )
-        print(f"Comments generated: {len(result)}")
-        for g in result:
-            print(f"  - post_id={g.comment.post_id}, text={g.comment.text!r}")
-        if result:
-            print(f"Explanation sample: {result[0].explanation}")
+        assert hasattr(result, "__iter__"), (  # noqa: S101  # nosec B101
+            "Expected generator.generate() to be iterable"
+        )
+        generated_items = list(result)
+        assert generated_items, "Expected at least one generated comment action"  # noqa: S101  # nosec B101
+        assert all(item is not None for item in generated_items)  # noqa: S101  # nosec B101
 
 
 if __name__ == "__main__":
