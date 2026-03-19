@@ -31,6 +31,35 @@ erDiagram
     TEXT created_at
     TEXT updated_at
   }
+  agent_post_comments {
+    TEXT agent_post_comment_id PK
+    TEXT agent_post_id FK
+    TEXT author_agent_id FK
+    TEXT body_text
+    TEXT published_at
+    TEXT created_at
+    TEXT updated_at
+  }
+  agent_post_likes {
+    TEXT agent_post_like_id PK
+    TEXT agent_post_id FK
+    TEXT liker_agent_id FK
+    TEXT created_at
+  }
+  agent_posts {
+    TEXT agent_post_id PK
+    TEXT agent_id FK
+    TEXT body_text
+    TEXT published_at
+    TEXT created_at
+    TEXT updated_at
+    TEXT source_post_id
+    TEXT source
+    TEXT source_uri
+    TEXT imported_author_handle
+    TEXT imported_author_display_name
+    TEXT import_metadata_json
+  }
   app_users {
     TEXT id PK
     TEXT auth_provider_id
@@ -119,9 +148,49 @@ erDiagram
     INTEGER posts_count_at_start
     TEXT created_at
   }
+  run_follow_edges {
+    TEXT run_id PK, FK
+    TEXT follower_agent_id PK, FK
+    TEXT target_agent_id PK, FK
+    TEXT created_at
+  }
   run_metrics {
     TEXT run_id PK, FK
     TEXT metrics
+    TEXT created_at
+  }
+  run_post_comments {
+    TEXT run_post_comment_id PK
+    TEXT run_id FK
+    TEXT run_post_id FK
+    TEXT author_agent_id FK
+    TEXT author_handle_at_start
+    TEXT author_display_name_at_start
+    TEXT body_text_at_start
+    TEXT published_at_start
+    TEXT created_at
+  }
+  run_post_likes {
+    TEXT run_post_like_id PK
+    TEXT run_id FK
+    TEXT run_post_id FK
+    TEXT liker_agent_id FK
+    TEXT liker_handle_at_start
+    TEXT liker_display_name_at_start
+    TEXT created_at
+  }
+  run_posts {
+    TEXT run_post_id PK
+    TEXT run_id FK
+    TEXT agent_post_id
+    TEXT author_agent_id FK
+    TEXT author_handle_at_start
+    TEXT author_display_name_at_start
+    TEXT body_text_at_start
+    TEXT published_at_start
+    TEXT source_post_id_at_start
+    TEXT source_at_start
+    TEXT source_uri_at_start
     TEXT created_at
   }
   runs {
@@ -160,14 +229,31 @@ erDiagram
   agent ||--o{ agent_follow_edges : "fk_agent_follow_edges_follower_agent_id (follower_agent_id)"
   agent ||--o{ agent_follow_edges : "fk_agent_follow_edges_target_agent_id (target_agent_id)"
   agent ||--o{ agent_persona_bios : "fk_agent_persona_bios_agent_id (agent_id)"
+  agent ||--o{ agent_post_comments : "fk_agent_post_comments_author_agent_id (author_agent_id)"
+  agent ||--o{ agent_post_likes : "fk_agent_post_likes_liker_agent_id (liker_agent_id)"
+  agent ||--o{ agent_posts : "fk_agent_posts_agent_id (agent_id)"
   agent ||--o{ run_agents : "fk_run_agents_agent_id (agent_id)"
   agent ||--o{ user_agent_profile_metadata : "fk_user_agent_profile_metadata_agent_id (agent_id)"
+  agent_posts ||--o{ agent_post_comments : "fk_agent_post_comments_agent_post_id (agent_post_id)"
+  agent_posts ||--o{ agent_post_likes : "fk_agent_post_likes_agent_post_id (agent_post_id)"
+  run_agents ||--o{ run_follow_edges : "fk_run_follow_edges_follower_run_agent (run_id, follower_agent_id)"
+  run_agents ||--o{ run_follow_edges : "fk_run_follow_edges_target_run_agent (run_id, target_agent_id)"
+  run_agents ||--o{ run_post_comments : "fk_run_post_comments_run_author (run_id, author_agent_id)"
+  run_agents ||--o{ run_post_likes : "fk_run_post_likes_run_liker (run_id, liker_agent_id)"
+  run_agents ||--o{ run_posts : "fk_run_posts_run_author (run_id, author_agent_id)"
+  run_posts ||--o{ run_post_comments : "fk_run_post_comments_run_post (run_id, run_post_id)"
+  run_posts ||--o{ run_post_comments : "fk_run_post_comments_run_post_id (run_post_id)"
+  run_posts ||--o{ run_post_likes : "fk_run_post_likes_run_post_id (run_post_id)"
   runs ||--o{ comments : "fk_comments_run_id (run_id)"
   runs ||--o{ follows : "fk_follows_run_id (run_id)"
   runs ||--o{ generated_feeds : "fk_generated_feeds_run_id (run_id)"
   runs ||--o{ likes : "fk_likes_run_id (run_id)"
   runs ||--o{ run_agents : "fk_run_agents_run_id (run_id)"
+  runs ||--o{ run_follow_edges : "fk_run_follow_edges_run_id (run_id)"
   runs ||--o{ run_metrics : "fk_run_metrics_run_id (run_id)"
+  runs ||--o{ run_post_comments : "fk_run_post_comments_run_id (run_id)"
+  runs ||--o{ run_post_likes : "fk_run_post_likes_run_id (run_id)"
+  runs ||--o{ run_posts : "fk_run_posts_run_id (run_id)"
   runs ||--o{ turn_metadata : "fk_turn_metadata_run_id (run_id)"
   runs ||--o{ turn_metrics : "fk_turn_metrics_run_id (run_id)"
 ```
@@ -201,6 +287,9 @@ This documentation is generated from a fresh SQLite database after applying Alem
 - `agent_follow_edges` `fk_agent_follow_edges_follower_agent_id`: `follower_agent_id` → `agent_id`
 - `agent_follow_edges` `fk_agent_follow_edges_target_agent_id`: `target_agent_id` → `agent_id`
 - `agent_persona_bios` `fk_agent_persona_bios_agent_id`: `agent_id` → `agent_id`
+- `agent_post_comments` `fk_agent_post_comments_author_agent_id`: `author_agent_id` → `agent_id`
+- `agent_post_likes` `fk_agent_post_likes_liker_agent_id`: `liker_agent_id` → `agent_id`
+- `agent_posts` `fk_agent_posts_agent_id`: `agent_id` → `agent_id`
 - `run_agents` `fk_run_agents_agent_id`: `agent_id` → `agent_id`
 - `user_agent_profile_metadata` `fk_user_agent_profile_metadata_agent_id`: `agent_id` → `agent_id`
 
@@ -278,6 +367,109 @@ This documentation is generated from a fresh SQLite database after applying Alem
 ### Indexes (`agent_persona_bios`)
 
 - `idx_agent_persona_bios_agent_id_created_at`: `agent_id`, `created_at`
+
+## `agent_post_comments`
+
+### Columns (`agent_post_comments`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `agent_post_comment_id` | `TEXT` | no | `` | `1` |
+| `agent_post_id` | `TEXT` | no | `` | `` |
+| `author_agent_id` | `TEXT` | no | `` | `` |
+| `body_text` | `TEXT` | no | `` | `` |
+| `published_at` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+| `updated_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`agent_post_comments`)
+
+- Name: `pk_agent_post_comments`
+- Columns: `agent_post_comment_id`
+
+### Foreign keys (`agent_post_comments`)
+
+- `fk_agent_post_comments_author_agent_id`: `author_agent_id` → `agent(agent_id)`
+- `fk_agent_post_comments_agent_post_id`: `agent_post_id` → `agent_posts(agent_post_id)`
+
+### Indexes (`agent_post_comments`)
+
+- `idx_agent_post_comments_author_published`: `author_agent_id`, `published_at`
+- `idx_agent_post_comments_post_published`: `agent_post_id`, `published_at`
+
+## `agent_post_likes`
+
+### Columns (`agent_post_likes`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `agent_post_like_id` | `TEXT` | no | `` | `1` |
+| `agent_post_id` | `TEXT` | no | `` | `` |
+| `liker_agent_id` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`agent_post_likes`)
+
+- Name: `pk_agent_post_likes`
+- Columns: `agent_post_like_id`
+
+### Foreign keys (`agent_post_likes`)
+
+- `fk_agent_post_likes_liker_agent_id`: `liker_agent_id` → `agent(agent_id)`
+- `fk_agent_post_likes_agent_post_id`: `agent_post_id` → `agent_posts(agent_post_id)`
+
+### Unique constraints (`agent_post_likes`)
+
+- `uq_agent_post_likes_liker_agent_post`: `liker_agent_id`, `agent_post_id`
+
+### Indexes (`agent_post_likes`)
+
+- `idx_agent_post_likes_post_id`: `agent_post_id`
+
+## `agent_posts`
+
+### Columns (`agent_posts`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `agent_post_id` | `TEXT` | no | `` | `1` |
+| `agent_id` | `TEXT` | no | `` | `` |
+| `body_text` | `TEXT` | no | `` | `` |
+| `published_at` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+| `updated_at` | `TEXT` | no | `` | `` |
+| `source_post_id` | `TEXT` | yes | `` | `` |
+| `source` | `TEXT` | yes | `` | `` |
+| `source_uri` | `TEXT` | yes | `` | `` |
+| `imported_author_handle` | `TEXT` | yes | `` | `` |
+| `imported_author_display_name` | `TEXT` | yes | `` | `` |
+| `import_metadata_json` | `TEXT` | yes | `` | `` |
+
+### Primary key (`agent_posts`)
+
+- Name: `pk_agent_posts`
+- Columns: `agent_post_id`
+
+### Foreign keys (`agent_posts`)
+
+- `fk_agent_posts_agent_id`: `agent_id` → `agent(agent_id)`
+
+### Unique constraints (`agent_posts`)
+
+- `uq_agent_posts_source_source_post_id`: `source`, `source_post_id`
+
+### Indexes (`agent_posts`)
+
+- `idx_agent_posts_agent_id_published_at`: `agent_id`, `published_at`
+
+### Check constraints (`agent_posts`)
+
+- `ck_agent_posts_source_pair`: `(source IS NULL AND source_post_id IS NULL) OR (source IS NOT NULL AND source_post_id IS NOT NULL)`
+
+### Referenced by (`agent_posts`)
+
+- `agent_post_comments` `fk_agent_post_comments_agent_post_id`: `agent_post_id` → `agent_post_id`
+- `agent_post_likes` `fk_agent_post_likes_agent_post_id`: `agent_post_id` → `agent_post_id`
 
 ## `app_users`
 
@@ -520,6 +712,46 @@ This documentation is generated from a fresh SQLite database after applying Alem
 
 - `idx_run_agents_run_id`: `run_id`
 
+### Referenced by (`run_agents`)
+
+- `run_follow_edges` `fk_run_follow_edges_follower_run_agent`: `run_id`, `follower_agent_id` → `run_id`, `agent_id`
+- `run_follow_edges` `fk_run_follow_edges_target_run_agent`: `run_id`, `target_agent_id` → `run_id`, `agent_id`
+- `run_post_comments` `fk_run_post_comments_run_author`: `run_id`, `author_agent_id` → `run_id`, `agent_id`
+- `run_post_likes` `fk_run_post_likes_run_liker`: `run_id`, `liker_agent_id` → `run_id`, `agent_id`
+- `run_posts` `fk_run_posts_run_author`: `run_id`, `author_agent_id` → `run_id`, `agent_id`
+
+## `run_follow_edges`
+
+### Columns (`run_follow_edges`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `run_id` | `TEXT` | no | `` | `1` |
+| `follower_agent_id` | `TEXT` | no | `` | `2` |
+| `target_agent_id` | `TEXT` | no | `` | `3` |
+| `created_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`run_follow_edges`)
+
+- Name: `pk_run_follow_edges`
+- Columns: `run_id`, `follower_agent_id`, `target_agent_id`
+
+### Foreign keys (`run_follow_edges`)
+
+- `fk_run_follow_edges_follower_run_agent`: `run_id`, `follower_agent_id` → `run_agents(run_id, agent_id)`
+- `fk_run_follow_edges_target_run_agent`: `run_id`, `target_agent_id` → `run_agents(run_id, agent_id)`
+- `fk_run_follow_edges_run_id`: `run_id` → `runs(run_id)`
+
+### Indexes (`run_follow_edges`)
+
+- `idx_run_follow_edges_run_follower`: `run_id`, `follower_agent_id`
+- `idx_run_follow_edges_run_id`: `run_id`
+- `idx_run_follow_edges_run_target`: `run_id`, `target_agent_id`
+
+### Check constraints (`run_follow_edges`)
+
+- `ck_run_follow_edges_no_self_follow`: `follower_agent_id != target_agent_id`
+
 ## `run_metrics`
 
 ### Columns (`run_metrics`)
@@ -538,6 +770,118 @@ This documentation is generated from a fresh SQLite database after applying Alem
 ### Foreign keys (`run_metrics`)
 
 - `fk_run_metrics_run_id`: `run_id` → `runs(run_id)`
+
+## `run_post_comments`
+
+### Columns (`run_post_comments`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `run_post_comment_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `run_post_id` | `TEXT` | no | `` | `` |
+| `author_agent_id` | `TEXT` | no | `` | `` |
+| `author_handle_at_start` | `TEXT` | no | `` | `` |
+| `author_display_name_at_start` | `TEXT` | no | `` | `` |
+| `body_text_at_start` | `TEXT` | no | `` | `` |
+| `published_at_start` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`run_post_comments`)
+
+- Name: `pk_run_post_comments`
+- Columns: `run_post_comment_id`
+
+### Foreign keys (`run_post_comments`)
+
+- `fk_run_post_comments_run_author`: `run_id`, `author_agent_id` → `run_agents(run_id, agent_id)`
+- `fk_run_post_comments_run_post`: `run_id`, `run_post_id` → `run_posts(run_id, run_post_id)`
+- `fk_run_post_comments_run_post_id`: `run_post_id` → `run_posts(run_post_id)`
+- `fk_run_post_comments_run_id`: `run_id` → `runs(run_id)`
+
+### Indexes (`run_post_comments`)
+
+- `idx_run_post_comments_run_author_published`: `run_id`, `author_agent_id`, `published_at_start`
+- `idx_run_post_comments_run_post_published`: `run_id`, `run_post_id`, `published_at_start`
+
+## `run_post_likes`
+
+### Columns (`run_post_likes`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `run_post_like_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `run_post_id` | `TEXT` | no | `` | `` |
+| `liker_agent_id` | `TEXT` | no | `` | `` |
+| `liker_handle_at_start` | `TEXT` | no | `` | `` |
+| `liker_display_name_at_start` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`run_post_likes`)
+
+- Name: `pk_run_post_likes`
+- Columns: `run_post_like_id`
+
+### Foreign keys (`run_post_likes`)
+
+- `fk_run_post_likes_run_liker`: `run_id`, `liker_agent_id` → `run_agents(run_id, agent_id)`
+- `fk_run_post_likes_run_post_id`: `run_post_id` → `run_posts(run_post_id)`
+- `fk_run_post_likes_run_id`: `run_id` → `runs(run_id)`
+
+### Unique constraints (`run_post_likes`)
+
+- `uq_run_post_likes_run_liker_post`: `run_id`, `liker_agent_id`, `run_post_id`
+
+### Indexes (`run_post_likes`)
+
+- `idx_run_post_likes_run_liker`: `run_id`, `liker_agent_id`
+- `idx_run_post_likes_run_post`: `run_id`, `run_post_id`
+
+## `run_posts`
+
+### Columns (`run_posts`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `run_post_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `agent_post_id` | `TEXT` | no | `` | `` |
+| `author_agent_id` | `TEXT` | no | `` | `` |
+| `author_handle_at_start` | `TEXT` | no | `` | `` |
+| `author_display_name_at_start` | `TEXT` | no | `` | `` |
+| `body_text_at_start` | `TEXT` | no | `` | `` |
+| `published_at_start` | `TEXT` | no | `` | `` |
+| `source_post_id_at_start` | `TEXT` | yes | `` | `` |
+| `source_at_start` | `TEXT` | yes | `` | `` |
+| `source_uri_at_start` | `TEXT` | yes | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`run_posts`)
+
+- Name: `pk_run_posts`
+- Columns: `run_post_id`
+
+### Foreign keys (`run_posts`)
+
+- `fk_run_posts_run_author`: `run_id`, `author_agent_id` → `run_agents(run_id, agent_id)`
+- `fk_run_posts_run_id`: `run_id` → `runs(run_id)`
+
+### Unique constraints (`run_posts`)
+
+- `uq_run_posts_run_agent_post`: `run_id`, `agent_post_id`
+- `uq_run_posts_run_post`: `run_id`, `run_post_id`
+
+### Indexes (`run_posts`)
+
+- `idx_run_posts_run_author_published`: `run_id`, `author_agent_id`, `published_at_start`
+- `idx_run_posts_run_id`: `run_id`
+
+### Referenced by (`run_posts`)
+
+- `run_post_comments` `fk_run_post_comments_run_post`: `run_id`, `run_post_id` → `run_id`, `run_post_id`
+- `run_post_comments` `fk_run_post_comments_run_post_id`: `run_post_id` → `run_post_id`
+- `run_post_likes` `fk_run_post_likes_run_post_id`: `run_post_id` → `run_post_id`
 
 ## `runs`
 
@@ -581,7 +925,11 @@ This documentation is generated from a fresh SQLite database after applying Alem
 - `generated_feeds` `fk_generated_feeds_run_id`: `run_id` → `run_id`
 - `likes` `fk_likes_run_id`: `run_id` → `run_id`
 - `run_agents` `fk_run_agents_run_id`: `run_id` → `run_id`
+- `run_follow_edges` `fk_run_follow_edges_run_id`: `run_id` → `run_id`
 - `run_metrics` `fk_run_metrics_run_id`: `run_id` → `run_id`
+- `run_post_comments` `fk_run_post_comments_run_id`: `run_id` → `run_id`
+- `run_post_likes` `fk_run_post_likes_run_id`: `run_id` → `run_id`
+- `run_posts` `fk_run_posts_run_id`: `run_id` → `run_id`
 - `turn_metadata` `fk_turn_metadata_run_id`: `run_id` → `run_id`
 - `turn_metrics` `fk_turn_metrics_run_id`: `run_id` → `run_id`
 

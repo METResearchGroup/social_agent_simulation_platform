@@ -1,0 +1,9 @@
+[
+  {
+    "author_handle": "@bob.tech",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example1/post1",
+    "body_text": "Interesting take — thanks for sharing.",
+    "published_at": "2025-02-01T12:00:00Z"
+  }
+]

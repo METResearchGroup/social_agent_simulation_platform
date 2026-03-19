@@ -8,6 +8,9 @@ from db.repositories.agent_bio_repository import create_sqlite_agent_bio_reposit
 from db.repositories.agent_follow_edge_repository import (
     create_sqlite_agent_follow_edge_repository,
 )
+from db.repositories.agent_post_comment_repository import (
+    create_sqlite_agent_post_comment_repository,
+)
 from db.repositories.agent_post_like_repository import (
     create_sqlite_agent_post_like_repository,
 )
@@ -24,6 +27,7 @@ from db.repositories.generated_feed_repository import (
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostCommentRepository,
     AgentPostLikeRepository,
     AgentRepository,
     CommentRepository,
@@ -35,6 +39,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
@@ -46,6 +51,9 @@ from db.repositories.profile_repository import create_sqlite_profile_repository
 from db.repositories.run_agent_repository import create_sqlite_run_agent_repository
 from db.repositories.run_follow_edge_repository import (
     create_sqlite_run_follow_edge_repository,
+)
+from db.repositories.run_post_comment_repository import (
+    create_sqlite_run_post_comment_repository,
 )
 from db.repositories.run_post_like_repository import (
     create_sqlite_run_post_like_repository,
@@ -83,11 +91,13 @@ def create_engine(
     feed_post_repo: FeedPostRepository | None = None,
     run_post_repo: RunPostRepository | None = None,
     run_post_like_repo: RunPostLikeRepository | None = None,
+    run_post_comment_repo: RunPostCommentRepository | None = None,
     generated_feed_repo: GeneratedFeedRepository | None = None,
     agent_repo: AgentRepository | None = None,
     agent_bio_repo: AgentBioRepository | None = None,
     agent_follow_edge_repo: AgentFollowEdgeRepository | None = None,
     agent_post_like_repo: AgentPostLikeRepository | None = None,
+    agent_post_comment_repo: AgentPostCommentRepository | None = None,
     user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository | None = None,
     run_agent_repo: RunAgentRepository | None = None,
     run_follow_edge_repo: RunFollowEdgeRepository | None = None,
@@ -190,8 +200,16 @@ def create_engine(
         agent_post_like_repo = create_sqlite_agent_post_like_repository(
             transaction_provider=transaction_provider
         )
+    if agent_post_comment_repo is None:
+        agent_post_comment_repo = create_sqlite_agent_post_comment_repository(
+            transaction_provider=transaction_provider
+        )
     if run_post_like_repo is None:
         run_post_like_repo = create_sqlite_run_post_like_repository(
+            transaction_provider=transaction_provider
+        )
+    if run_post_comment_repo is None:
+        run_post_comment_repo = create_sqlite_run_post_comment_repository(
             transaction_provider=transaction_provider
         )
 
@@ -223,6 +241,7 @@ def create_engine(
         metrics_repo=metrics_repo,
         run_post_repo=run_post_repo,
         run_post_like_repo=run_post_like_repo,
+        run_post_comment_repo=run_post_comment_repo,
         generated_feed_repo=generated_feed_repo,
         like_repo=like_repo,
         comment_repo=comment_repo,
@@ -245,6 +264,7 @@ def create_engine(
             user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
             agent_post_repo=agent_post_repo,
             agent_post_like_repo=agent_post_like_repo,
+            agent_post_comment_repo=agent_post_comment_repo,
         ),
         run=RunRepos(
             run_repo=run_repo,
@@ -253,6 +273,7 @@ def create_engine(
             run_follow_edge_repo=run_follow_edge_repo,
             run_post_repo=run_post_repo,
             run_post_like_repo=run_post_like_repo,
+            run_post_comment_repo=run_post_comment_repo,
         ),
         turn=TurnRepos(generated_feed_repo=generated_feed_repo),
         profile_repo=profile_repo,
@@ -279,6 +300,7 @@ def create_engine(
         run_follow_edge_repo=run_follow_edge_repo,
         run_post_repo=run_post_repo,
         run_post_like_repo=run_post_like_repo,
+        run_post_comment_repo=run_post_comment_repo,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
         query_service=query_service,

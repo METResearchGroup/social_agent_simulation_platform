@@ -26,6 +26,7 @@ from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetr
 from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -78,8 +79,10 @@ class SimulationCommandService:
         self.run_follow_edge_repo = repos.run.run_follow_edge_repo
         self.run_post_repo = repos.run.run_post_repo
         self.run_post_like_repo = repos.run.run_post_like_repo
+        self.run_post_comment_repo = repos.run.run_post_comment_repo
         self.agent_post_repo = repos.agent.agent_post_repo
         self.agent_post_like_repo = repos.agent.agent_post_like_repo
+        self.agent_post_comment_repo = repos.agent.agent_post_comment_repo
         self.transaction_provider = repos.transaction_provider
         self.agent_factory = runtime.agent_factory
         self.action_history_store_factory = runtime.action_history_store_factory
@@ -109,6 +112,7 @@ class SimulationCommandService:
                 run_agent_snapshots,
                 run_follow_edge_snapshots,
                 run_post_like_snapshots,
+                run_post_comment_snapshots,
             ) = self.snapshot_run_initial_state(run=run, agents=agents)
             action_history_store = self.action_history_store_factory()
             self.preload_follow_history_from_snapshots(
@@ -121,6 +125,12 @@ class SimulationCommandService:
                 run_id=run.run_id,
                 run_agent_snapshots=run_agent_snapshots,
                 run_post_like_snapshots=run_post_like_snapshots,
+                action_history_store=action_history_store,
+            )
+            self.preload_comment_history_from_snapshots(
+                run_id=run.run_id,
+                run_agent_snapshots=run_agent_snapshots,
+                run_post_comment_snapshots=run_post_comment_snapshots,
                 action_history_store=action_history_store,
             )
 
@@ -163,6 +173,7 @@ class SimulationCommandService:
         list[RunAgentSnapshot],
         list[RunFollowEdgeSnapshot],
         list[RunPostLikeSnapshot],
+        list[RunPostCommentSnapshot],
     ]:
         """Persist run-start agent/follow-edge/post snapshots in one transaction."""
         with self.transaction_provider.run_transaction() as conn:
@@ -187,10 +198,17 @@ class SimulationCommandService:
                 run_post_snapshots=run_post_snapshots,
                 conn=conn,
             )
+            run_post_comment_snapshots = self.snapshot_run_post_comments(
+                run=run,
+                run_agent_snapshots=run_agent_snapshots,
+                run_post_snapshots=run_post_snapshots,
+                conn=conn,
+            )
         return (
             run_agent_snapshots,
             run_follow_edge_snapshots,
             run_post_like_snapshots,
+            run_post_comment_snapshots,
         )
 
     def update_run_status(
@@ -651,6 +669,79 @@ class SimulationCommandService:
         )
         return rows
 
+    def snapshot_run_post_comments(
+        self,
+        *,
+        run: Run,
+        run_agent_snapshots: list[RunAgentSnapshot],
+        run_post_snapshots: list[RunPostSnapshot],
+        conn: object | None = None,
+    ) -> list[RunPostCommentSnapshot]:
+        """Snapshot seed-state comments into `run_post_comments` at run creation time.
+
+        Selection rule:
+        - commented post exists in this run's `run_posts`
+        - comment author is a member of this run's `run_agents`
+        """
+        if not run_agent_snapshots or not run_post_snapshots:
+            return []
+
+        selected_agent_ids: set[str] = {s.agent_id for s in run_agent_snapshots}
+        handle_by_agent_id: dict[str, str] = {
+            s.agent_id: s.handle_at_start for s in run_agent_snapshots
+        }
+        display_name_by_agent_id: dict[str, str] = {
+            s.agent_id: s.display_name_at_start for s in run_agent_snapshots
+        }
+
+        agent_post_id_to_run_post_id: dict[str, str] = {
+            s.agent_post_id: s.run_post_id for s in run_post_snapshots
+        }
+        agent_post_ids = list(agent_post_id_to_run_post_id.keys())
+
+        seed_comments = self.agent_post_comment_repo.list_comments_for_agent_post_ids(
+            agent_post_ids,
+            conn=conn,
+        )
+
+        rows: list[RunPostCommentSnapshot] = []
+        for comment in seed_comments:
+            if comment.author_agent_id not in selected_agent_ids:
+                continue
+            run_post_id = agent_post_id_to_run_post_id.get(comment.agent_post_id)
+            if run_post_id is None:
+                continue
+
+            author_handle_at_start = handle_by_agent_id.get(comment.author_agent_id)
+            author_display_name_at_start = display_name_by_agent_id.get(
+                comment.author_agent_id
+            )
+            if author_handle_at_start is None or author_display_name_at_start is None:
+                raise ValueError(
+                    "Run post comment snapshot references an agent missing from run_agents"
+                )
+
+            rows.append(
+                RunPostCommentSnapshot(
+                    run_post_comment_id=str(uuid4()),
+                    run_id=run.run_id,
+                    run_post_id=run_post_id,
+                    author_agent_id=comment.author_agent_id,
+                    author_handle_at_start=author_handle_at_start,
+                    author_display_name_at_start=author_display_name_at_start,
+                    body_text_at_start=comment.body_text,
+                    published_at_start=comment.published_at,
+                    created_at=run.created_at,
+                )
+            )
+
+        self.run_post_comment_repo.write_run_post_comments(
+            run.run_id,
+            rows,
+            conn=conn,
+        )
+        return rows
+
     def preload_follow_history_from_snapshots(
         self,
         *,
@@ -696,6 +787,32 @@ class SimulationCommandService:
             action_history_store.record_like(
                 run_id,
                 liker_handle,
+                snapshot.run_post_id,
+            )
+
+    def preload_comment_history_from_snapshots(
+        self,
+        *,
+        run_id: str,
+        run_agent_snapshots: list[RunAgentSnapshot],
+        run_post_comment_snapshots: list[RunPostCommentSnapshot],
+        action_history_store: ActionHistoryStore,
+    ) -> None:
+        """Seed comment history so duplicate-comment suppression treats seeded comments as done."""
+        handle_by_agent_id: dict[str, str] = {
+            snapshot.agent_id: snapshot.handle_at_start
+            for snapshot in run_agent_snapshots
+        }
+
+        for snapshot in run_post_comment_snapshots:
+            author_handle = handle_by_agent_id.get(snapshot.author_agent_id)
+            if author_handle is None:
+                raise ValueError(
+                    "Run post comment snapshot references an agent missing from run_agents"
+                )
+            action_history_store.record_comment(
+                run_id,
+                author_handle,
                 snapshot.run_post_id,
             )
 

@@ -123,7 +123,7 @@ ignore = ["E501"]
 "**/test*.py" = ["S101", "S105", "S108", "S310", "S608", "ARG001", "ARG002", "ARG003", "ARG005", "B008", "PT011", "PT012", "SIM117"]
 "**/*_test.py" = ["S101", "S105", "S108", "S310", "S608", "ARG001", "ARG002", "ARG003", "ARG005", "B008", "PT011", "PT012", "SIM117"]
 # Tooling scripts prioritize operational reliability over strict lint purity.
-"scripts/**" = ["S101", "S105", "ARG001", "ARG002", "ARG003", "ARG005", "B007", "ERA001", "S603", "S607", "S608", "S108", "S110", "S310", "SIM102"]
+"scripts/**" = ["S101", "S105", "ARG001", "ARG002", "ARG003", "ARG005", "B007", "ERA001", "S603", "S607", "S608", "S108", "S110", "S310", "SIM102", "T20"]
 # Framework/runtime intentional patterns and simulation-specific behavior.
 "simulation/api/dependencies/*.py" = ["B008", "S105"]
 "simulation/api/main.py" = ["ARG001"]

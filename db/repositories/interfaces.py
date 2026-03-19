@@ -14,6 +14,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_post_comments import AgentPostComment
 from simulation.core.models.agent_post_likes import AgentPostLike
 from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
@@ -32,6 +33,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
@@ -392,6 +394,52 @@ class RunPostLikeRepository(ABC):
         conn: object | None = None,
     ) -> dict[str, int]:
         """Count seeded run_post_likes grouped by run_post_id."""
+        raise NotImplementedError
+
+
+class AgentPostCommentRepository(ABC):
+    """Abstract repository for editable seed-state comment facts."""
+
+    @abstractmethod
+    def write_agent_post_comments(
+        self,
+        rows: list[AgentPostComment],
+        conn: object | None = None,
+    ) -> None:
+        """Persist agent_post_comments rows (seed-state)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_comments_for_agent_post_ids(
+        self,
+        agent_post_ids: Iterable[str],
+        conn: object | None = None,
+    ) -> list[AgentPostComment]:
+        """List seed-state comments for the provided agent_post_ids."""
+        raise NotImplementedError
+
+
+class RunPostCommentRepository(ABC):
+    """Abstract repository for immutable run-start comment snapshots."""
+
+    @abstractmethod
+    def write_run_post_comments(
+        self,
+        run_id: str,
+        rows: list[RunPostCommentSnapshot],
+        conn: object | None = None,
+    ) -> None:
+        """Persist run_post_comments rows for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_comments_by_run_post_ids(
+        self,
+        run_id: str,
+        run_post_ids: Iterable[str],
+        conn: object | None = None,
+    ) -> dict[str, int]:
+        """Count seeded run_post_comments grouped by run_post_id."""
         raise NotImplementedError
 
 

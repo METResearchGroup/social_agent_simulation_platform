@@ -138,14 +138,17 @@ class Post(BaseModel):
 
 
 def run_post_snapshot_to_post(
-    snapshot: RunPostSnapshot, *, like_count: int = 0
+    snapshot: RunPostSnapshot,
+    *,
+    like_count: int = 0,
+    reply_count: int = 0,
 ) -> Post:
     """Map RunPostSnapshot to Post using run-scoped identity semantics.
 
     Uses post_id=run_post_id and uri=f"seed_state:{run_post_id}" so
     generated_feeds.post_ids can be hydrated from run_posts deterministically.
-    Copies author/content/published fields from *_at_start and initializes
-    engagement counters to zero for baseline run-start state.
+    Copies author/content/published fields from *_at_start. Baseline engagement
+    counters use seeded snapshot counts for likes and comments at run start.
     """
     return Post(
         post_id=snapshot.run_post_id,
@@ -158,6 +161,6 @@ def run_post_snapshot_to_post(
         bookmark_count=0,
         like_count=like_count,
         quote_count=0,
-        reply_count=0,
+        reply_count=reply_count,
         repost_count=0,
     )

@@ -16,13 +16,20 @@ Where:
 Usage (from repo root):
   uv run python scripts/generate_db_schema_docs.py --update
   uv run python scripts/generate_db_schema_docs.py --check
+
+`--check` and `--update` also require the Mermaid CLI (`mmdc`, from
+`@mermaid-js/mermaid-cli`) to compile ```mermaid``` ER diagrams; if `mmdc` is
+not on PATH, `npx` is used as a fallback.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -32,7 +39,182 @@ from typing import Any
 
 import sqlalchemy as sa
 
-from scripts._schema_utils import _alembic_upgrade_head, _repo_root
+from scripts._schema_utils import (
+    _alembic_upgrade_head,
+    _repo_root,
+    _schema_docs_cli_timeout_seconds,
+)
+
+_MERMAID_FENCE_RE = re.compile(r"```mermaid\s*\n(.*?)```", re.DOTALL)
+
+
+def _mmdc_puppeteer_config_flag() -> list[str]:
+    """Pass Chromium flags suitable for headless CI (e.g. GitHub Actions: no usable sandbox)."""
+    if os.environ.get("MERMAID_CLI_NO_PUPPETEER_CONFIG", "").strip() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return []
+    cfg = Path(__file__).resolve().parent / "mermaid_cli_puppeteer.json"
+    if not cfg.is_file():
+        return []
+    return ["-p", str(cfg)]
+
+
+def _resolve_mmdc_override_executable(parts: list[str]) -> list[str]:
+    """Make the override argv's first token absolute when it is a filesystem path."""
+    if not parts:
+        return parts
+    first = parts[0]
+    if not first or first.startswith("-"):
+        return parts
+    looks_like_path = first.startswith("~") or first.startswith((".", "/", "\\"))
+    looks_like_path = looks_like_path or ("/" in first or "\\" in first)
+    if not looks_like_path:
+        # Single token such as `mmdc` or `npx`: resolved by PATH at exec time.
+        return parts
+    path = Path(first).expanduser()
+    path = (Path.cwd() / path).resolve() if not path.is_absolute() else path.resolve()
+    return [str(path)] + parts[1:]
+
+
+def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
+    """Build argv to invoke Mermaid CLI (`mmdc`).
+
+    Prefer a global/local `mmdc` on PATH; otherwise fall back to `npx` so
+    developers can run checks without a global npm install.
+
+    When `scripts/mermaid_cli_puppeteer.json` is present, it is passed as
+    `mmdc -p ...` so Puppeteer/Chromium uses ``--no-sandbox`` (required on many
+    Linux CI images). Set ``MERMAID_CLI_NO_PUPPETEER_CONFIG=1`` to disable.
+    """
+    pup = _mmdc_puppeteer_config_flag()
+    override_raw = os.environ.get("MMDC") or os.environ.get("MERMAID_CLI")
+    if override_raw is not None:
+        stripped = override_raw.strip()
+        if stripped:
+            parts = _resolve_mmdc_override_executable(shlex.split(stripped))
+            return parts + ["-i", str(in_path), "-o", str(out_path)] + pup
+
+    mmdc = shutil.which("mmdc")
+    if mmdc:
+        return [mmdc, "-i", str(in_path), "-o", str(out_path)] + pup
+    npx = shutil.which("npx")
+    if npx:
+        return [
+            npx,
+            "--yes",
+            "@mermaid-js/mermaid-cli@11.12.0",
+            "-i",
+            str(in_path),
+            "-o",
+            str(out_path),
+        ] + pup
+    raise RuntimeError(
+        "Mermaid CLI not found. Install `@mermaid-js/mermaid-cli` (provides `mmdc`), "
+        "or ensure `npx` is on PATH. See docs/runbooks/DB_SCHEMA_DOCS.md."
+    )
+
+
+def _iter_mermaid_blocks(schema_md_text: str) -> list[str]:
+    blocks = [m.group(1).strip() for m in _MERMAID_FENCE_RE.finditer(schema_md_text)]
+    return [b for b in blocks if b]
+
+
+def _compile_mermaid_blocks_with_mmdc(
+    *,
+    blocks: list[str],
+    label: str,
+    tmpdir: Path,
+) -> str | None:
+    """Compile each Mermaid block with `mmdc`. Returns an error string or None."""
+    timeout_sec = _schema_docs_cli_timeout_seconds()
+    for i, block in enumerate(blocks):
+        in_path = tmpdir / f"block-{i}.mmd"
+        out_path = tmpdir / f"block-{i}.svg"
+        in_path.write_text(
+            block + ("\n" if not block.endswith("\n") else ""), encoding="utf-8"
+        )
+        try:
+            argv = _mmdc_argv(in_path, out_path)
+        except RuntimeError as e:
+            return str(e)
+        try:
+            completed = subprocess.run(
+                argv,
+                cwd=str(tmpdir),
+                text=True,
+                capture_output=True,
+                timeout=timeout_sec,
+            )
+        except subprocess.TimeoutExpired:
+            return (
+                f"Mermaid CLI timed out for {label} (diagram block {i + 1}/{len(blocks)}).\n"
+                f"timeout_seconds={timeout_sec}\n"
+                f"Command: {' '.join(argv)}\n"
+                "Hint: increase SCHEMA_DOCS_ALEMBIC_TIMEOUT_SECONDS "
+                "(shared with Alembic upgrade for schema docs).\n"
+            )
+        if completed.returncode != 0:
+            detail = (completed.stderr or "").strip() or (
+                completed.stdout or ""
+            ).strip()
+            return (
+                f"Mermaid CLI failed for {label} (diagram block {i + 1}/{len(blocks)}).\n"
+                f"Command: {' '.join(argv)}\n"
+                f"{detail}"
+            )
+    return None
+
+
+def _schema_rel_label(label_root: Path, schema_path: Path) -> str:
+    try:
+        return str(schema_path.relative_to(label_root))
+    except ValueError:
+        return str(schema_path)
+
+
+def _check_mermaid_in_schema_md(label_root: Path, schema_path: Path) -> str | None:
+    """Return an error string if the Mermaid block(s) in `schema.md` fail `mmdc`."""
+    text = schema_path.read_text(encoding="utf-8")
+    blocks = _iter_mermaid_blocks(text)
+    if not blocks:
+        return None
+    rel = _schema_rel_label(label_root, schema_path)
+    with tempfile.TemporaryDirectory(prefix="sim-schema-mermaid-") as tmp:
+        return _compile_mermaid_blocks_with_mmdc(
+            blocks=blocks,
+            label=str(rel),
+            tmpdir=Path(tmp),
+        )
+
+
+def _check_mermaid_in_all_schema_docs(db_root: Path, *, label_root: Path) -> int:
+    """Validate every ```mermaid``` block under db_root/**/schema.md via Mermaid CLI."""
+    if not db_root.is_dir():
+        return 0
+
+    schema_files = sorted(db_root.glob("**/schema.md"))
+    if not schema_files:
+        return 0
+
+    failures: list[str] = []
+    for schema_path in schema_files:
+        err = _check_mermaid_in_schema_md(label_root, schema_path)
+        if err:
+            rel = _schema_rel_label(label_root, schema_path)
+            failures.append(f"{rel}:\n{err}")
+
+    if not failures:
+        return 0
+
+    print(
+        "ERROR: One or more Mermaid ER diagrams failed to compile.\n\n"
+        + "\n\n".join(failures),
+        file=sys.stderr,
+    )
+    return 1
 
 
 def _run(
@@ -526,6 +708,10 @@ def main() -> int:
             _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
             artifacts = _artifacts_from_sqlite(sqlite_path)
             _write_artifacts(out_dir, artifacts)
+            print(
+                f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
+                f"Temp directory: {tmpdir}"
+            )
         else:
             with tempfile.TemporaryDirectory(prefix="sim-schema-docs-") as tmpdir:
                 sqlite_path = Path(tmpdir) / "schema.sqlite"
@@ -533,12 +719,32 @@ def main() -> int:
                 artifacts = _artifacts_from_sqlite(sqlite_path)
                 _write_artifacts(out_dir, artifacts)
 
+        mermaid_err = _check_mermaid_in_schema_md(out_root, out_dir / "schema.md")
+        if mermaid_err:
+            shutil.rmtree(out_dir, ignore_errors=True)
+            print(
+                "ERROR: Generated Mermaid diagram failed Mermaid CLI compilation.\n\n"
+                f"{mermaid_err}\n",
+                file=sys.stderr,
+            )
+            return 1
         (out_root / "LATEST.txt").write_text(version_dir_name + "\n", encoding="utf-8")
+        print(f"Wrote schema docs to: {out_dir}")
         return 0
 
     assert args.check
+    mermaid_rc = _check_mermaid_in_all_schema_docs(out_root, label_root=out_root)
+    if mermaid_rc != 0:
+        return mermaid_rc
+
     latest_dir = _latest_version_dir(out_root)
     if latest_dir is None:
+        print(
+            "ERROR: No baseline schema docs found under docs/db/.\n"
+            "Fix: run `uv run python scripts/generate_db_schema_docs.py --update` "
+            "and commit the generated folder.\n",
+            file=sys.stderr,
+        )
         return 1
 
     baseline_snapshot_path = latest_dir / "schema.snapshot.json"
@@ -551,6 +757,11 @@ def main() -> int:
         _alembic_upgrade_head(repo_root=repo_root, sqlite_path=sqlite_path)
         generated_artifacts = _artifacts_from_sqlite(sqlite_path)
         generated_snapshot = generated_artifacts.schema_snapshot
+        print(
+            f"Preserved temp schema DB (because --keep-temp-db): {sqlite_path}\n"
+            f"Temp directory: {tmpdir}",
+            file=sys.stderr,
+        )
     else:
         generated_artifacts = _generate_to_temp(repo_root)
         generated_snapshot = generated_artifacts.schema_snapshot
@@ -565,7 +776,18 @@ def main() -> int:
         summary_lines.append(_diff_summary(baseline_snapshot, generated_snapshot))
     if not md_matches:
         summary_lines.append("`schema.md` differs from the generated output.")
-    "\n".join(summary_lines) if summary_lines else "Schema differs."
+    summary = "\n".join(summary_lines) if summary_lines else "Schema differs."
+    print(
+        "ERROR: Database schema docs are out of date (migrations != latest docs).\n\n"
+        f"{summary}\n\n"
+        f"Baseline folder: {latest_dir}\n"
+        f"Baseline files: {latest_dir / 'schema.md'}, {latest_dir / 'schema.snapshot.json'}\n\n"
+        "Fix:\n"
+        "  uv run python scripts/generate_db_schema_docs.py --update\n\n"
+        "After updating, review and commit the new folder under docs/db/, then compare:\n"
+        f"  git diff -- {latest_dir} docs/db/<newest-folder>\n",
+        file=sys.stderr,
+    )
     return 1
 
 

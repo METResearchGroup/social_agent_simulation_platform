@@ -152,6 +152,7 @@ def command_service(
             ],
             agent_post_repo=mock_repos["agent_post_repo"],
             agent_post_like_repo=mock_repos["agent_post_like_repo"],
+            agent_post_comment_repo=mock_repos["agent_post_comment_repo"],
         ),
         run=RunRepos(
             run_repo=mock_repos["run_repo"],
@@ -160,6 +161,7 @@ def command_service(
             run_follow_edge_repo=mock_repos["run_follow_edge_repo"],
             run_post_repo=mock_repos["run_post_repo"],
             run_post_like_repo=mock_repos["run_post_like_repo"],
+            run_post_comment_repo=mock_repos["run_post_comment_repo"],
         ),
         turn=TurnRepos(generated_feed_repo=mock_repos["generated_feed_repo"]),
         profile_repo=mock_repos["profile_repo"],
@@ -1028,6 +1030,7 @@ class TestSimulationCommandServiceActionPersistence:
                 user_agent_profile_metadata_repo=Mock(),
                 agent_post_repo=Mock(),
                 agent_post_like_repo=Mock(),
+                agent_post_comment_repo=Mock(),
             ),
             run=RunRepos(
                 run_repo=run_repo,
@@ -1036,6 +1039,7 @@ class TestSimulationCommandServiceActionPersistence:
                 run_follow_edge_repo=Mock(),
                 run_post_repo=Mock(),
                 run_post_like_repo=Mock(),
+                run_post_comment_repo=Mock(),
             ),
             turn=TurnRepos(generated_feed_repo=Mock()),
             profile_repo=Mock(),

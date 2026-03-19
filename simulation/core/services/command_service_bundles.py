@@ -12,6 +12,7 @@ from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     AgentBioRepository,
     AgentFollowEdgeRepository,
+    AgentPostCommentRepository,
     AgentPostLikeRepository,
     AgentPostRepository,
     AgentRepository,
@@ -21,6 +22,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
@@ -49,6 +51,7 @@ class AgentRepos:
     user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository
     agent_post_repo: AgentPostRepository
     agent_post_like_repo: AgentPostLikeRepository
+    agent_post_comment_repo: AgentPostCommentRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +68,7 @@ class RunRepos:
     run_follow_edge_repo: RunFollowEdgeRepository
     run_post_repo: RunPostRepository
     run_post_like_repo: RunPostLikeRepository
+    run_post_comment_repo: RunPostCommentRepository
 
 
 @dataclass(frozen=True, slots=True)

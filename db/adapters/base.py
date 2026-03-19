@@ -12,6 +12,7 @@ from simulation.core.models.agent_follow_edge import (
     AgentFollowEdge,
     AgentFollowEdgePage,
 )
+from simulation.core.models.agent_post_comments import AgentPostComment
 from simulation.core.models.agent_post_likes import AgentPostLike
 from simulation.core.models.agent_posts import AgentPost
 from simulation.core.models.app_user import AppUser
@@ -30,6 +31,7 @@ from simulation.core.models.posts import Post
 from simulation.core.models.profiles import BlueskyProfile
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
+from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run
@@ -375,6 +377,56 @@ class RunPostLikeDatabaseAdapter(ABC):
         """Return baseline like_count per run_post_id at run start.
 
         Returned mapping should include 0 counts for run_post_ids with no likes.
+        """
+        raise NotImplementedError
+
+
+class AgentPostCommentDatabaseAdapter(ABC):
+    """Abstract interface for editable seed-state comment facts."""
+
+    @abstractmethod
+    def write_agent_post_comments(
+        self, rows: Iterable[AgentPostComment], *, conn: object
+    ) -> None:
+        """Insert or ignore agent_post_comments rows.
+
+        This write should be idempotent when the same primary key is supplied.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_comments_for_agent_post_ids(
+        self, agent_post_ids: Iterable[str], *, conn: object
+    ) -> list[AgentPostComment]:
+        """List comments for the provided agent_post_ids in deterministic order."""
+        raise NotImplementedError
+
+
+class RunPostCommentDatabaseAdapter(ABC):
+    """Abstract interface for immutable run-start comment snapshot persistence."""
+
+    @abstractmethod
+    def write_run_post_comments(
+        self,
+        run_id: str,
+        rows: Iterable[RunPostCommentSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert run_post_comments rows for a run."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_comments_by_run_post_ids(
+        self,
+        run_id: str,
+        run_post_ids: Iterable[str],
+        *,
+        conn: object,
+    ) -> dict[str, int]:
+        """Return baseline reply_count per run_post_id at run start.
+
+        Returned mapping should include 0 counts for run_post_ids with no comments.
         """
         raise NotImplementedError
 

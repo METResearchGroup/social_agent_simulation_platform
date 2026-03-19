@@ -35,6 +35,7 @@ def _default_feed_generator(repos: CommandServiceRepos) -> FeedGenerator:
         generated_feed_repo=repos.turn.generated_feed_repo,
         run_post_repo=repos.run.run_post_repo,
         run_post_like_repo=repos.run.run_post_like_repo,
+        run_post_comment_repo=repos.run.run_post_comment_repo,
     )
 
 
