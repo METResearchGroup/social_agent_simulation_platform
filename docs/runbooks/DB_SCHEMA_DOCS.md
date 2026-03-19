@@ -62,6 +62,9 @@ fails the check and prints the CLI output.
   `npx --yes @mermaid-js/mermaid-cli ...`.
 - Override the command with `MMDC` (or `MERMAID_CLI`) if you need a custom wrapper
   (space-separated argv prefix, e.g. `MMDC=/path/to/mmdc`).
+- On **Linux CI** (including GitHub Actions), Chromium often requires disabling the
+  sandbox; the repo passes `scripts/mermaid_cli_puppeteer.json` to `mmdc -p` by default.
+  Set `MERMAID_CLI_NO_PUPPETEER_CONFIG=1` only if you must opt out.
 
 ## Verify Alembic metadata does not drift
 

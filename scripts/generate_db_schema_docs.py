@@ -44,20 +44,39 @@ from scripts._schema_utils import _alembic_upgrade_head, _repo_root
 _MERMAID_FENCE_RE = re.compile(r"```mermaid\s*\n(.*?)```", re.DOTALL)
 
 
+def _mmdc_puppeteer_config_flag() -> list[str]:
+    """Pass Chromium flags suitable for headless CI (e.g. GitHub Actions: no usable sandbox)."""
+    if os.environ.get("MERMAID_CLI_NO_PUPPETEER_CONFIG", "").strip() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return []
+    cfg = Path(__file__).resolve().parent / "mermaid_cli_puppeteer.json"
+    if not cfg.is_file():
+        return []
+    return ["-p", str(cfg)]
+
+
 def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
     """Build argv to invoke Mermaid CLI (`mmdc`).
 
     Prefer a global/local `mmdc` on PATH; otherwise fall back to `npx` so
     developers can run checks without a global npm install.
+
+    When `scripts/mermaid_cli_puppeteer.json` is present, it is passed as
+    `mmdc -p ...` so Puppeteer/Chromium uses ``--no-sandbox`` (required on many
+    Linux CI images). Set ``MERMAID_CLI_NO_PUPPETEER_CONFIG=1`` to disable.
     """
+    pup = _mmdc_puppeteer_config_flag()
     override = os.environ.get("MMDC") or os.environ.get("MERMAID_CLI")
     if override:
         parts = shlex.split(override)
-        return parts + ["-i", str(in_path), "-o", str(out_path)]
+        return parts + ["-i", str(in_path), "-o", str(out_path)] + pup
 
     mmdc = shutil.which("mmdc")
     if mmdc:
-        return [mmdc, "-i", str(in_path), "-o", str(out_path)]
+        return [mmdc, "-i", str(in_path), "-o", str(out_path)] + pup
     npx = shutil.which("npx")
     if npx:
         return [
@@ -68,7 +87,7 @@ def _mmdc_argv(in_path: Path, out_path: Path) -> list[str]:
             str(in_path),
             "-o",
             str(out_path),
-        ]
+        ] + pup
     raise RuntimeError(
         "Mermaid CLI not found. Install `@mermaid-js/mermaid-cli` (provides `mmdc`), "
         "or ensure `npx` is on PATH. See docs/runbooks/DB_SCHEMA_DOCS.md."
