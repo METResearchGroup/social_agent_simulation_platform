@@ -455,7 +455,9 @@ class AgentPostRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def count_posts_by_agent_ids(self, agent_ids: list[str]) -> dict[str, int]:
+    def count_posts_by_agent_ids(
+        self, agent_ids: list[str], conn: object | None = None
+    ) -> dict[str, int]:
         """Return counts keyed by agent_id for the provided agent IDs."""
         raise NotImplementedError
 

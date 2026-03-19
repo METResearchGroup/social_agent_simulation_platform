@@ -110,9 +110,8 @@ def _load_hydrated_posts(
     all_post_ids: set[str] = set()
     for feed in feeds.values():
         all_post_ids.update(feed.post_ids)
-    snapshots = run_post_repo.list_run_posts(run_id)
-    post_by_id = {s.run_post_id: run_post_snapshot_to_post(s) for s in snapshots}
-    return {pid: post_by_id[pid] for pid in all_post_ids if pid in post_by_id}
+    snapshots = run_post_repo.read_run_posts_by_ids(run_id, list(all_post_ids))
+    return {s.run_post_id: run_post_snapshot_to_post(s) for s in snapshots}
 
 
 def _hydrate_generated_feeds(

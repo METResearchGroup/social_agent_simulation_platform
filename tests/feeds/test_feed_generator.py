@@ -45,7 +45,7 @@ def mock_run_post_repo(sample_posts):
         )
         for p in sample_posts
     ]
-    mock.list_run_posts.return_value = snapshots
+    mock.read_run_posts_by_ids.return_value = snapshots
     return mock
 
 
@@ -291,7 +291,9 @@ class TestGenerateFeeds:
         # Verify repositories were called
         assert mock_generated_feed_repo.write_generated_feed.call_count == 2
         # Verify run_post_repo was used for hydration
-        mock_run_post_repo.list_run_posts.assert_called_once_with(run_id)
+        mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
+        call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
+        assert call_args.args[0] == run_id
         # Verify load_candidate_posts was called for each agent
         assert mock_load_candidate_posts.call_count == 2
 
@@ -326,7 +328,9 @@ class TestGenerateFeeds:
         )
 
         # Assert
-        mock_run_post_repo.list_run_posts.assert_called_once_with(run_id)
+        mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
+        call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
+        assert call_args.args[0] == run_id
         mock_feed_post_repo.read_feed_posts_by_ids.assert_not_called()
 
     @patch("feeds.feed_generator.load_candidate_posts")
@@ -361,7 +365,7 @@ class TestGenerateFeeds:
             )
             for p in sample_posts[:2]
         ]
-        mock_run_post_repo.list_run_posts.return_value = existing_snapshots
+        mock_run_post_repo.read_run_posts_by_ids.return_value = existing_snapshots
 
         # Act
         result = generate_feeds(
@@ -401,7 +405,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = sample_posts
-        mock_run_post_repo.list_run_posts.return_value = []
+        mock_run_post_repo.read_run_posts_by_ids.return_value = []
 
         # Act
         result = generate_feeds(
@@ -514,7 +518,7 @@ class TestGenerateFeeds:
         run_id = "run_123"
         turn_number = 0
         feed_algorithm = "chronological"
-        mock_run_post_repo.list_run_posts.return_value = []
+        mock_run_post_repo.read_run_posts_by_ids.return_value = []
 
         # Act
         result = generate_feeds(
@@ -549,7 +553,7 @@ class TestGenerateFeeds:
         feed_algorithm = "chronological"
 
         mock_load_candidate_posts.return_value = []
-        mock_run_post_repo.list_run_posts.return_value = []
+        mock_run_post_repo.read_run_posts_by_ids.return_value = []
 
         # Act
         result = generate_feeds(
@@ -635,7 +639,7 @@ class TestGenerateFeeds:
         mock_load_candidate_posts.return_value = run_posts
 
         mock_run_post_repo = Mock(spec=RunPostRepository)
-        mock_run_post_repo.list_run_posts.return_value = run_post_snapshots
+        mock_run_post_repo.read_run_posts_by_ids.return_value = run_post_snapshots
 
         result = generate_feeds(
             agents=[sample_agent],
@@ -647,7 +651,9 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
         )
 
-        mock_run_post_repo.list_run_posts.assert_called_once_with(run_id)
+        mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
+        call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
+        assert call_args.args[0] == run_id
         mock_feed_post_repo.read_feed_posts_by_ids.assert_not_called()
         assert len(result[sample_agent.handle]) == 1
         hydrated = result[sample_agent.handle][0]
