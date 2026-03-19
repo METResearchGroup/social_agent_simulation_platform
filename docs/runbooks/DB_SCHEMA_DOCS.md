@@ -66,6 +66,9 @@ fails the check and prints the CLI output.
 - On **Linux CI** (including GitHub Actions), Chromium often requires disabling the
   sandbox; the repo passes `scripts/mermaid_cli_puppeteer.json` to `mmdc -p` by default.
   Set `MERMAID_CLI_NO_PUPPETEER_CONFIG=1` only if you must opt out.
+- **Timeouts**: Alembic upgrade and Mermaid CLI compilation share
+  `SCHEMA_DOCS_ALEMBIC_TIMEOUT_SECONDS` (default `120` seconds). Raise it if either step
+  hits a timeout on slow machines.
 
 ## Verify Alembic metadata does not drift
 

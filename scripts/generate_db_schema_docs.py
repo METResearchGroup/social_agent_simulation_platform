@@ -39,7 +39,11 @@ from typing import Any
 
 import sqlalchemy as sa
 
-from scripts._schema_utils import _alembic_upgrade_head, _repo_root
+from scripts._schema_utils import (
+    _alembic_upgrade_head,
+    _repo_root,
+    _schema_docs_cli_timeout_seconds,
+)
 
 _MERMAID_FENCE_RE = re.compile(r"```mermaid\s*\n(.*?)```", re.DOTALL)
 
@@ -125,6 +129,7 @@ def _compile_mermaid_blocks_with_mmdc(
     tmpdir: Path,
 ) -> str | None:
     """Compile each Mermaid block with `mmdc`. Returns an error string or None."""
+    timeout_sec = _schema_docs_cli_timeout_seconds()
     for i, block in enumerate(blocks):
         in_path = tmpdir / f"block-{i}.mmd"
         out_path = tmpdir / f"block-{i}.svg"
@@ -135,12 +140,22 @@ def _compile_mermaid_blocks_with_mmdc(
             argv = _mmdc_argv(in_path, out_path)
         except RuntimeError as e:
             return str(e)
-        completed = subprocess.run(
-            argv,
-            cwd=str(tmpdir),
-            text=True,
-            capture_output=True,
-        )
+        try:
+            completed = subprocess.run(
+                argv,
+                cwd=str(tmpdir),
+                text=True,
+                capture_output=True,
+                timeout=timeout_sec,
+            )
+        except subprocess.TimeoutExpired:
+            return (
+                f"Mermaid CLI timed out for {label} (diagram block {i + 1}/{len(blocks)}).\n"
+                f"timeout_seconds={timeout_sec}\n"
+                f"Command: {' '.join(argv)}\n"
+                "Hint: increase SCHEMA_DOCS_ALEMBIC_TIMEOUT_SECONDS "
+                "(shared with Alembic upgrade for schema docs).\n"
+            )
         if completed.returncode != 0:
             detail = (completed.stderr or "").strip() or (
                 completed.stdout or ""
