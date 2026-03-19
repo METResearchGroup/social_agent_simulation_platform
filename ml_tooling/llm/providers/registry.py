@@ -1,7 +1,5 @@
 """Registry for LLM providers."""
 
-from typing import Type
-
 from ml_tooling.llm.providers.base import LLMProviderProtocol
 from ml_tooling.llm.providers.gemini_provider import GeminiProvider
 from ml_tooling.llm.providers.groq_provider import GroqProvider
@@ -11,11 +9,11 @@ from ml_tooling.llm.providers.openai_provider import OpenAIProvider
 class LLMProviderRegistry:
     """Registry for LLM providers."""
 
-    _providers: dict[str, Type[LLMProviderProtocol]] = {}
+    _providers: dict[str, type[LLMProviderProtocol]] = {}
     _instances: dict[str, LLMProviderProtocol] = {}
 
     @classmethod
-    def register(cls, provider_class: Type[LLMProviderProtocol]) -> None:
+    def register(cls, provider_class: type[LLMProviderProtocol]) -> None:
         """Register a provider class."""
         provider_instance = provider_class()
         provider_name = provider_instance.provider_name

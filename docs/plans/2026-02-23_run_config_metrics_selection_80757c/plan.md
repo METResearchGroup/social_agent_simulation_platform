@@ -167,15 +167,15 @@ flowchart TB
 ## Manual Verification
 
 1. **Migrations:**
-   `uv run python -m alembic -c pyproject.toml upgrade head`  
+   `uv run python -m alembic -c pyproject.toml upgrade head`
    Expected: migration applies; no errors.
 
 2. **Tests:**
-   `uv run pytest`  
+   `uv run pytest`
    Expected: all pass.
 
 3. **Pre-commit:**
-   `uv run pre-commit run --all-files`  
+   `uv run pre-commit run --all-files`
    Expected: all hooks pass.
 
 4. **Custom metrics:**

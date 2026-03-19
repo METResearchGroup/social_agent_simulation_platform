@@ -141,7 +141,7 @@ class TestSQLiteGeneratedBioRepositoryCreateOrUpdateGeneratedBio:
         mock_adapter.write_generated_bio.assert_not_called()
 
     @pytest.mark.parametrize(
-        "error_message,check_identity",
+        ("error_message", "check_identity"),
         [
             ("Database error", False),
             ("DB error", True),

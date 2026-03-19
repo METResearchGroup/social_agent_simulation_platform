@@ -18,7 +18,7 @@ from simulation.core.utils.validators import validate_agent_id
 AGENT_BIO_COLUMNS = ordered_column_names(agent_persona_bios)
 AGENT_BIO_REQUIRED_FIELDS = required_column_names(agent_persona_bios)
 _INSERT_AGENT_BIO_SQL = (
-    f"INSERT INTO agent_persona_bios ({', '.join(AGENT_BIO_COLUMNS)}) "
+    f"INSERT INTO agent_persona_bios ({', '.join(AGENT_BIO_COLUMNS)}) "  # nosec B608
     f"VALUES ({', '.join('?' for _ in AGENT_BIO_COLUMNS)})"
 )
 
@@ -97,7 +97,7 @@ class SQLiteAgentBioAdapter(AgentBioDatabaseAdapter):
         q_marks = ",".join("?" for _ in agent_ids_list)
         sql = (
             "SELECT * FROM agent_persona_bios "
-            f"WHERE agent_id IN ({q_marks}) "
+            f"WHERE agent_id IN ({q_marks}) "  # nosec B608
             "ORDER BY agent_id, created_at DESC"
         )
         rows = conn.execute(sql, tuple(agent_ids_list)).fetchall()

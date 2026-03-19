@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import Response
@@ -29,9 +30,9 @@ POSTS_ROUTE: str = "GET /v1/simulations/posts"
 @log_route_completion_decorator(route=POSTS_ROUTE, success_type=list)
 async def get_simulation_posts(
     request: Request,
-    post_ids: list[str] | None = Query(
-        default=None, description="Filter by canonical post_ids"
-    ),
+    post_ids: Annotated[
+        list[str] | None, Query(description="Filter by canonical post_ids")
+    ] = None,
 ) -> list[PostSchema] | Response:
     """Return posts from the database (via SqliteTransactionProvider; DB path from SIM_DB_PATH or local dev DB in LOCAL mode)."""
     return await _execute_get_simulation_posts(request, post_ids=post_ids)

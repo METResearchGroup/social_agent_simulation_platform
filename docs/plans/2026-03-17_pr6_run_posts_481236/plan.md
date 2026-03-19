@@ -379,4 +379,3 @@ Rejected because PR 5 deliberately isolated posts first; likes/comments deserve 
 
 - Store planning artifacts at `docs/plans/2026-03-17_pr6_run_posts_481236/`.
 - No UI screenshots are required because this PR should stay out of `ui/`.
-

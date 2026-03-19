@@ -161,4 +161,3 @@ flowchart TD
 
 - Store Phase 2 notes/migration rationale in: `docs/plans/2026-02-20_auth_phase2_user_attribution_739214/`
   - Suggested: `docs/plans/2026-02-20_auth_phase2_user_attribution_739214/plan.md` with schema sketch + example JWT claim mapping.
-

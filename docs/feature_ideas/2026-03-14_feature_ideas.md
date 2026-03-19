@@ -1,6 +1,6 @@
 # Feature Ideas and Technical Debt Scan
 
-**Scan date:** 2026-03-14  
+**Scan date:** 2026-03-14
 **Scope:** Full repo scan (excluding generated/vendor artifacts and prior `docs/feature_ideas/` reports)
 
 ## Summary
@@ -75,7 +75,7 @@
 
 ### File: `feeds/feed_generator.py` (line 73)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Feed generation loop
 
 > `# TODO: right now we load all posts per agent, but obviously`
@@ -84,7 +84,7 @@
 
 ### File: `feeds/feed_generator.py` (line 74)
 
-**Type:** Future improvement phrase (`optimize`, `later`)  
+**Type:** Future improvement phrase (`optimize`, `later`)
 **Context:** Continuation of feed-generation TODO
 
 > `# can optimize and personalize later to save on queries.`
@@ -93,7 +93,7 @@
 
 ### File: `feeds/candidate_generation.py` (line 8)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Candidate loading strategy note
 
 > `# TODO: we can get arbitrarily complex with how we do this later`
@@ -102,7 +102,7 @@
 
 ### File: `simulation/api/services/agent_command_service.py` (line 33)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Pre-transaction handle-existence check
 
 > `# TODO: that this can cause a slight race condition if we do this check`
@@ -111,7 +111,7 @@
 
 ### File: `simulation/core/command_service.py` (line 398)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Ownership of agent-creation log
 
 > `# TODO: this log should live within agent_factory.`
@@ -120,7 +120,7 @@
 
 ### File: `ui/components/form/ConfigForm.tsx` (line 191)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Feed algorithm select option rendering
 
 > `{/* Fetch failures are caught in the useEffect above; check console for error/warning. TODO: switch to structured logging. */}`
@@ -129,7 +129,7 @@
 
 ### File: `db/adapters/sqlite/agent_bio_adapter.py` (line 3)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Adapter module docstring extension point
 
 > `TODO: For caching or async, consider a caching layer around`
@@ -138,7 +138,7 @@
 
 ### File: `ml_tooling/llm/llm_service.py` (line 199)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Batch completion error model
 
 > `TODO: Consider supporting partial results for batch completions instead of`
@@ -147,7 +147,7 @@
 
 ### File: `simulation/core/metrics/builtins/actions.py` (line 85)
 
-**Type:** Future improvement phrase (`revisit later`)  
+**Type:** Future improvement phrase (`revisit later`)
 **Context:** Run metric implementation limitation
 
 > `Limitation (revisit later): compute() uses deps.run_repo.list_turn_metadata,`
@@ -156,7 +156,7 @@
 
 ### File: `simulation/core/metrics/builtins/actions.py` (line 86)
 
-**Type:** Future improvement phrase (`consider`)  
+**Type:** Future improvement phrase (`consider`)
 **Context:** Scaling note for run metrics aggregation
 
 > `which loads all turn rows into memory. For large runs, consider replacing`
@@ -165,7 +165,7 @@
 
 ### File: `ml_tooling/llm/providers/gemini_provider.py` (line 82)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Structured-output support stub
 
 > `"We'll revisit this later when actively working with Gemini models."`
@@ -174,7 +174,7 @@
 
 ### File: `ml_tooling/llm/providers/groq_provider.py` (line 61)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Structured-output support stub
 
 > `"We'll revisit this later when actively working with Groq models."`
@@ -183,7 +183,7 @@
 
 ### File: `simulation/api/schemas/simulation.py` (line 144)
 
-**Type:** Feature gap phrase (`not yet supported`)  
+**Type:** Feature gap phrase (`not yet supported`)
 **Context:** Create-agent request documentation
 
 > `Fast-follows (not yet supported):`
@@ -192,7 +192,7 @@
 
 ### File: `simulation/api/services/run_query_service.py` (line 47)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:** Turn payload contract note
 
 > `Note: agent_actions are currently not persisted in SQLite. This endpoint returns`
@@ -201,7 +201,7 @@
 
 ### File: `simulation/api/routes/simulation.py` (line 356)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Runs list execution model
 
 > `# Use to_thread for consistency with other async routes and to prepare for real I/O later.`
@@ -210,7 +210,7 @@
 
 ### File: `db/schema.py` (line 10)
 
-**Type:** Future improvement phrase (`later`)  
+**Type:** Future improvement phrase (`later`)
 **Context:** Schema migration sequencing note
 
 > `` `generated_feeds.run_id -> runs.run_id` foreign key; a later migration adds it.``
@@ -219,7 +219,7 @@
 
 ### File: `scripts/lint_schema_conventions.py` (line 19)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Legacy table cleanup list (seed state)
 
 > `# TODO: Delete these legacy tables once migration renames/replaces them.`
@@ -228,7 +228,7 @@
 
 ### File: `scripts/lint_schema_conventions.py` (line 29)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Legacy table cleanup list (turn events)
 
 > `# TODO: Delete these legacy tables once migration renames/replaces them.`

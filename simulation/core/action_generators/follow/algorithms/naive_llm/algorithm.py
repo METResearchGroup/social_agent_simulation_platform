@@ -41,10 +41,10 @@ def _collect_unique_authors(
         author_handle = post.author_handle
         if author_handle == agent_handle:
             continue
-        if author_handle not in result:
-            result[author_handle] = post
-        # select the most recent post for each author (newest first)
-        elif post.created_at > result[author_handle].created_at:
+        if (
+            author_handle not in result
+            or post.created_at > result[author_handle].created_at
+        ):
             result[author_handle] = post
     return result
 

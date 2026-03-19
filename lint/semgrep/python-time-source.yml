@@ -74,4 +74,3 @@ rules:
         - "**/*.py"
       exclude:
         - /lib/timestamp_utils.py
-

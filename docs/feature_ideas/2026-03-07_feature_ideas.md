@@ -1,6 +1,6 @@
 # Feature Ideas and Technical Debt Scan
 
-**Scan date:** 2026-03-07  
+**Scan date:** 2026-03-07
 **Scope:** Full repo (excluding generated/vendor artifacts and prior `docs/feature_ideas/*` reports)
 
 ## Summary
@@ -76,7 +76,7 @@
 
 ### File: `db/schema.py` (line 10)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Schema docstring describes deferred FK rollout.
 
 > `generated_feeds.run_id -> runs.run_id` foreign key; a later migration adds it.
@@ -85,7 +85,7 @@
 
 ### File: `db/schema.py` (line 112)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:** Inline migration caveat in table definition.
 
 > \# NOTE: This FK is applied by the second Alembic migration
@@ -94,7 +94,7 @@
 
 ### File: `db/adapters/sqlite/agent_bio_adapter.py` (line 3)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Adapter docstring flags scaling extension point.
 
 > TODO: For caching or async, consider a caching layer around
@@ -104,7 +104,7 @@
 
 ### File: `feeds/feed_generator.py` (line 73)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Feed construction currently over-fetches.
 
 > \# TODO: right now we load all posts per agent, but obviously
@@ -113,7 +113,7 @@
 
 ### File: `feeds/feed_generator.py` (line 74)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Follow-up comment on personalization and query efficiency.
 
 > \# can optimize and personalize later to save on queries
@@ -122,7 +122,7 @@
 
 ### File: `feeds/candidate_generation.py` (line 8)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Candidate generation intentionally simple for now.
 
 > \# TODO: we can get arbitrarily complex with how we do this later
@@ -131,7 +131,7 @@
 
 ### File: `feeds/algorithms/interfaces.py` (line 51)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Algorithm interface still tied to Bluesky model type.
 
 > ],  # TODO: decouple from Bluesky-specific type
@@ -140,7 +140,7 @@
 
 ### File: `ml_tooling/llm/llm_service.py` (line 199)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Batch completion error policy extension point.
 
 > TODO: Consider supporting partial results for batch completions instead of
@@ -150,7 +150,7 @@
 
 ### File: `ml_tooling/llm/providers/registry.py` (line 58)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:** Provider registration location rationale.
 
 > \# NOTE: choosing to do this here instead of **init** so that we can use the
@@ -159,7 +159,7 @@
 
 ### File: `ml_tooling/llm/providers/gemini_provider.py` (line 82)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Structured-output support intentionally deferred.
 
 > "We'll revisit this later when actively working with Gemini models."
@@ -168,7 +168,7 @@
 
 ### File: `ml_tooling/llm/providers/groq_provider.py` (line 61)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Structured-output support intentionally deferred.
 
 > "We'll revisit this later when actively working with Groq models."
@@ -177,7 +177,7 @@
 
 ### File: `ml_tooling/llm/providers/groq_provider.py` (line 74)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Groq completion kwargs implementation intentionally deferred.
 
 > "We'll revisit this later when actively working with Groq models."
@@ -186,7 +186,7 @@
 
 ### File: `simulation/core/metrics/builtins/actions.py` (line 85)
 
-**Type:** Technical debt  
+**Type:** Technical debt
 **Context:** Metric implementation documents memory-scaling limitation.
 
 > Limitation (revisit later): compute() uses deps.run_repo.list_turn_metadata,
@@ -196,7 +196,7 @@
 
 ### File: `simulation/core/models/feeds.py` (line 1)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Feed model explicitly scoped to one post source.
 
 > \# TODO: for now, we support only Bluesky posts being added to feeds
@@ -205,7 +205,7 @@
 
 ### File: `simulation/core/models/feeds.py` (line 2)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Follow-on expansion called out inline.
 
 > \# We'll revisit how to add AI-generated posts to feeds later on
@@ -214,7 +214,7 @@
 
 ### File: `simulation/core/command_service.py` (line 398)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Logging responsibility boundary noted for refactor.
 
 > \# TODO: this log should live within agent_factory
@@ -223,7 +223,7 @@
 
 ### File: `simulation/api/services/agent_command_service.py` (line 33)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Known race condition in create path.
 
 > \# TODO: that this can cause a slight race condition if we do this check
@@ -234,7 +234,7 @@
 
 ### File: `simulation/api/routes/simulation.py` (line 332)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Route implementation anticipates future async/real I/O concerns.
 
 > \# Use to_thread for consistency with other async routes and to prepare for real I/O later
@@ -243,7 +243,7 @@
 
 ### File: `ui/components/form/ConfigForm.tsx` (line 191)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** UI error handling currently relies on console logs.
 
 > {/*Fetch failures are caught in the useEffect above; check console for error/warning. TODO: switch to structured logging.*/}
@@ -252,7 +252,7 @@
 
 ### File: `ui/lib/api/simulation.ts` (line 285)
 
-**Type:** NOTE  
+**Type:** NOTE
 **Context:** Client intentionally drops most run-details payload fields.
 
 > // NOTE: `getRunDetails` intentionally returns only `{ runId, config }`, where `config` is mapped via
@@ -261,7 +261,7 @@
 
 ### File: `docs/runbooks/PRODUCTION_DEPLOYMENT.md` (line 20)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Deployment guidance signals scaling migration path.
 
 > With SQLite, use 1–2 workers to avoid write contention. For higher concurrency, use a dedicated DB (e.g. Postgres) in a later phase.
@@ -270,7 +270,7 @@
 
 ### File: `docs/runbooks/RAILWAY_DEPLOYMENT.md` (line 103)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** Railway runbook reiterates DB scaling migration.
 
 > - For higher production concurrency, plan migration to a server database (for example Postgres) in a later phase.
@@ -279,7 +279,7 @@
 
 ### File: `docs/RULES.md` (line 62)
 
-**Type:** Feature idea  
+**Type:** Feature idea
 **Context:** API design convention captures deferred async job architecture.
 
 > - Prefer sync endpoints first to lock in behavior and contracts; add async/job-based APIs later for concurrency and scale.
@@ -288,7 +288,7 @@
 
 ### File: `docs/RULES.md` (line 169)
 
-**Type:** TODO  
+**Type:** TODO
 **Context:** Repo rule encourages explicit extension points for future infra work.
 
 > - When adding infrastructure that may be extended later (caching, read replicas, async batch loaders), add short TODO: comments at the boundary (e.g. above batch-fetch calls or in adapter docstrings) to indicate where future extensions could be wired in.

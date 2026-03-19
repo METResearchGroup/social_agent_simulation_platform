@@ -95,7 +95,6 @@ def main():
     profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
     feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
     for handle in BLUESKY_PROFILES:
-        print(f"Getting profile information for {handle}...")
         profile_info = get_bsky_profile_information(handle)
 
         profile = transform_bsky_profile(profile_info["profile"])
@@ -103,10 +102,6 @@ def main():
         feed_posts = transform_bsky_author_feed(profile_info["author_feed"])
         feed_post_repo.create_or_update_feed_posts(feed_posts)
 
-        print(f"Profile information for {handle} written to database.")
-
 
 if __name__ == "__main__":
-    print("Initializing agents...")
     main()
-    print("Agents initialized successfully.")

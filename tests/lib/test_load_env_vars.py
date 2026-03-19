@@ -12,7 +12,7 @@ from lib.load_env_vars import EnvVarsContainer
 def reset_env_container():
     """Reset the EnvVarsContainer singleton before each test for isolation."""
     EnvVarsContainer._instance = None
-    yield
+    return
 
 
 class TestLoadEnvVars:

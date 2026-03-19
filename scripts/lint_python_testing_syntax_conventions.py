@@ -12,7 +12,7 @@ import ast
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable  # noqa: UP035
 
 
 @dataclass(frozen=True)
@@ -110,16 +110,16 @@ def main(argv: list[str]) -> int:
         all_violations.extend(_find_module_level_test_functions(f))
 
     if not all_violations:
-        print("OK: no module-level test_* functions found")
+        print("OK: no module-level test_* functions found")  # noqa: T201
         return 0
 
     for v in all_violations:
         rel = v.path
-        try:
+        try:  # noqa: SIM105
             rel = v.path.relative_to(Path.cwd())
         except ValueError:
             pass
-        print(
+        print(  # noqa: T201
             f"{rel}:{v.lineno} test function '{v.name}' is not allowed; "
             "define tests as methods on class Test...:"
         )

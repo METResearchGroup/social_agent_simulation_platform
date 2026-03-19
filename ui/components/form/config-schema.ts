@@ -184,4 +184,3 @@ export function pruneConfig(config: JsonObject): JsonObject | null {
   if (entries.length === 0) return null;
   return Object.fromEntries(entries);
 }
-

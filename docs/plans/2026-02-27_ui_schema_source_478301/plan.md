@@ -39,6 +39,6 @@ Treat the previously handwritten interfaces as generated aliases: run `scripts/g
 5. Document the workflow in `docs/plans/2026-02-27_ui_schema_source_478301/plan.md` and `README.md`.
 
 ## Assumptions / defaults
-- Node 20+ for `npm run generate:api` and `tsx` before removal (no longer needed). 
-- Backend OpenAPI spec generation remains upstream of all UI contracts. 
+- Node 20+ for `npm run generate:api` and `tsx` before removal (no longer needed).
+- Backend OpenAPI spec generation remains upstream of all UI contracts.
 - No UI screenshot work required for this plan.
