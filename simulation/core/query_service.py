@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     LikeRepository,
     MetricsRepository,
     RunFollowEdgeRepository,
+    RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
 )
@@ -38,6 +39,7 @@ class SimulationQueryService:
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
         run_post_repo: RunPostRepository,
+        run_post_like_repo: RunPostLikeRepository,
         generated_feed_repo: GeneratedFeedRepository,
         like_repo: LikeRepository,
         comment_repo: CommentRepository,
@@ -47,6 +49,7 @@ class SimulationQueryService:
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
         self.run_post_repo = run_post_repo
+        self.run_post_like_repo = run_post_like_repo
         self.generated_feed_repo = generated_feed_repo
         self.like_repo = like_repo
         self.comment_repo = comment_repo
@@ -114,8 +117,14 @@ class SimulationQueryService:
         run_post_snapshots = self.run_post_repo.read_run_posts_by_ids(
             run_id, post_ids_list
         )
+        like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
+            run_id, post_ids_list
+        )
         post_id_to_post = {
-            snap.run_post_id: run_post_snapshot_to_post(snap)
+            snap.run_post_id: run_post_snapshot_to_post(
+                snap,
+                like_count=like_counts.get(snap.run_post_id, 0),
+            )
             for snap in run_post_snapshots
         }
 

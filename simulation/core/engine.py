@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     ProfileRepository,
     RunAgentRepository,
     RunFollowEdgeRepository,
+    RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
     UserAgentProfileMetadataRepository,
@@ -59,6 +60,7 @@ class SimulationEngine:
         run_agent_repo: RunAgentRepository,
         run_follow_edge_repo: RunFollowEdgeRepository,
         run_post_repo: RunPostRepository,
+        run_post_like_repo: RunPostLikeRepository,
         agent_factory: Callable[[int], list[SimulationAgent]],
         action_history_store_factory: Callable[[], ActionHistoryStore],
         query_service: SimulationQueryService,
@@ -77,6 +79,7 @@ class SimulationEngine:
         self.run_follow_edge_repo = run_follow_edge_repo
         self.agent_factory = agent_factory
         self.action_history_store_factory = action_history_store_factory
+        self.run_post_like_repo = run_post_like_repo
         self.query_service = query_service
         self.command_service = command_service
 
@@ -125,8 +128,15 @@ class SimulationEngine:
 
     def read_posts_for_run(self, run_id: str, post_ids: Iterable[str]) -> list[Post]:
         """Resolve run_post_ids to Post objects from run_posts."""
-        snapshots = self.run_post_repo.read_run_posts_by_ids(run_id, post_ids)
-        return [run_post_snapshot_to_post(s) for s in snapshots]
+        post_ids_list = list(post_ids)
+        snapshots = self.run_post_repo.read_run_posts_by_ids(run_id, post_ids_list)
+        like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
+            run_id, post_ids_list
+        )
+        return [
+            run_post_snapshot_to_post(s, like_count=like_counts.get(s.run_post_id, 0))
+            for s in snapshots
+        ]
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         self.command_service.update_run_status(run, status)

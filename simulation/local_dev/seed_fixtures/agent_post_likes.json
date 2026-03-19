@@ -1,0 +1,63 @@
+[
+  {
+    "liker_handle": "@alice.bsky.social",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example1/post1",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@bob.tech",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example10/post10",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@bob.tech",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example2/post2",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@charlie.dev",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example3/post3",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@diana.design",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example4/post4",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@edward.data",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example5/post5",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@fiona.frontend",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example6/post6",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@george.backend",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example7/post7",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@hannah.ai",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example8/post8",
+    "created_at": "2025-02-01T00:00:00Z"
+  },
+  {
+    "liker_handle": "@alice.bsky.social",
+    "post_source": "bluesky",
+    "post_source_post_id": "bluesky:at://did:plc:example9/post9",
+    "created_at": "2025-02-01T00:00:00Z"
+  }
+]
+

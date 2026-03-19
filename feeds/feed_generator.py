@@ -5,6 +5,7 @@ from pydantic import JsonValue
 
 from db.repositories.interfaces import (
     GeneratedFeedRepository,
+    RunPostLikeRepository,
     RunPostRepository,
 )
 from feeds.algorithms import FeedAlgorithmResult, get_feed_generator
@@ -25,6 +26,7 @@ def generate_feeds(
     generated_feed_repo: GeneratedFeedRepository,
     feed_algorithm: str,
     run_post_repo: RunPostRepository,
+    run_post_like_repo: RunPostLikeRepository,
     feed_algorithm_config: Mapping[str, JsonValue] | None = None,
 ) -> dict[str, list[Post]]:
     """Generate feeds for all the agents.
@@ -51,6 +53,7 @@ def generate_feeds(
         feed_algorithm=feed_algorithm,
         feed_algorithm_config=feed_algorithm_config,
         run_post_repo=run_post_repo,
+        run_post_like_repo=run_post_like_repo,
     )
     _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
     return _hydrate_generated_feeds(
@@ -58,6 +61,7 @@ def generate_feeds(
         run_id=run_id,
         turn_number=turn_number,
         run_post_repo=run_post_repo,
+        run_post_like_repo=run_post_like_repo,
     )
 
 
@@ -69,6 +73,7 @@ def _generate_feeds(
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
     run_post_repo: RunPostRepository,
+    run_post_like_repo: RunPostLikeRepository,
 ) -> dict[str, GeneratedFeed]:
     """Generate a feed per agent via the feed algorithm; no persistence."""
     feeds: dict[str, GeneratedFeed] = {}
@@ -81,6 +86,7 @@ def _generate_feeds(
             feed_algorithm=feed_algorithm,
             feed_algorithm_config=feed_algorithm_config,
             run_post_repo=run_post_repo,
+            run_post_like_repo=run_post_like_repo,
         )
         feeds[agent.handle] = feed
     return feeds
@@ -99,13 +105,23 @@ def _load_hydrated_posts(
     feeds: dict[str, GeneratedFeed],
     run_id: str,
     run_post_repo: RunPostRepository,
+    run_post_like_repo: RunPostLikeRepository,
 ) -> dict[str, Post]:
     """Collect all post IDs from feeds, fetch posts from run_posts, return post_id -> post map."""
     all_post_ids: set[str] = set()
     for feed in feeds.values():
         all_post_ids.update(feed.post_ids)
     snapshots = run_post_repo.read_run_posts_by_ids(run_id, list(all_post_ids))
-    return {s.run_post_id: run_post_snapshot_to_post(s) for s in snapshots}
+    like_counts = run_post_like_repo.count_likes_by_run_post_ids(
+        run_id, list(all_post_ids)
+    )
+    return {
+        s.run_post_id: run_post_snapshot_to_post(
+            s,
+            like_count=like_counts.get(s.run_post_id, 0),
+        )
+        for s in snapshots
+    }
 
 
 def _hydrate_generated_feeds(
@@ -113,12 +129,14 @@ def _hydrate_generated_feeds(
     run_id: str,
     turn_number: int,
     run_post_repo: RunPostRepository,
+    run_post_like_repo: RunPostLikeRepository,
 ) -> dict[str, list[Post]]:
     """Hydrate feeds using a single batch query, then map each feed's post IDs to posts."""
     post_id_to_post: dict[str, Post] = _load_hydrated_posts(
         feeds=feeds,
         run_id=run_id,
         run_post_repo=run_post_repo,
+        run_post_like_repo=run_post_like_repo,
     )
     agent_to_hydrated_feeds, missing_post_ids_by_agent = _hydrate_feed_items(
         feeds=feeds, post_id_to_post=post_id_to_post
@@ -208,6 +226,7 @@ def _generate_single_agent_feed(
     feed_algorithm: str,
     feed_algorithm_config: Mapping[str, JsonValue] | None,
     run_post_repo: RunPostRepository,
+    run_post_like_repo: RunPostLikeRepository,
 ) -> GeneratedFeed:
     """Load candidate posts for one agent, run the feed algorithm, and return the generated feed (no persistence)."""
     candidate_posts: list[Post] = load_candidate_posts(
@@ -215,6 +234,7 @@ def _generate_single_agent_feed(
         run_id=run_id,
         generated_feed_repo=generated_feed_repo,
         run_post_repo=run_post_repo,
+        run_post_like_repo=run_post_like_repo,
     )
     return _generate_feed(
         agent=agent,

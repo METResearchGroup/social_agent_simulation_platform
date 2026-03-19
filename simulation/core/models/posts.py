@@ -137,7 +137,9 @@ class Post(BaseModel):
         return data
 
 
-def run_post_snapshot_to_post(snapshot: RunPostSnapshot) -> Post:
+def run_post_snapshot_to_post(
+    snapshot: RunPostSnapshot, *, like_count: int = 0
+) -> Post:
     """Map RunPostSnapshot to Post using run-scoped identity semantics.
 
     Uses post_id=run_post_id and uri=f"seed_state:{run_post_id}" so
@@ -154,7 +156,7 @@ def run_post_snapshot_to_post(snapshot: RunPostSnapshot) -> Post:
         text=snapshot.body_text_at_start,
         created_at=snapshot.published_at_start,
         bookmark_count=0,
-        like_count=0,
+        like_count=like_count,
         quote_count=0,
         reply_count=0,
         repost_count=0,

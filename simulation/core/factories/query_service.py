@@ -7,6 +7,7 @@ from db.repositories.interfaces import (
     LikeRepository,
     MetricsRepository,
     RunFollowEdgeRepository,
+    RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
 )
@@ -18,6 +19,7 @@ def create_query_service(
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
     run_post_repo: RunPostRepository,
+    run_post_like_repo: RunPostLikeRepository,
     generated_feed_repo: GeneratedFeedRepository,
     like_repo: LikeRepository,
     comment_repo: CommentRepository,
@@ -29,6 +31,7 @@ def create_query_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
         run_post_repo=run_post_repo,
+        run_post_like_repo=run_post_like_repo,
         generated_feed_repo=generated_feed_repo,
         like_repo=like_repo,
         comment_repo=comment_repo,

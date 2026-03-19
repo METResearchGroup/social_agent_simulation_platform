@@ -6,6 +6,7 @@ from pydantic import JsonValue
 
 from db.repositories.interfaces import (
     GeneratedFeedRepository,
+    RunPostLikeRepository,
     RunPostRepository,
 )
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
@@ -22,9 +23,11 @@ class FeedGeneratorAdapter(FeedGenerator):
         *,
         generated_feed_repo: GeneratedFeedRepository,
         run_post_repo: RunPostRepository,
+        run_post_like_repo: RunPostLikeRepository,
     ) -> None:
         self._generated_feed_repo = generated_feed_repo
         self._run_post_repo = run_post_repo
+        self._run_post_like_repo = run_post_like_repo
 
     def generate_feeds(
         self,
@@ -41,5 +44,6 @@ class FeedGeneratorAdapter(FeedGenerator):
             generated_feed_repo=self._generated_feed_repo,
             feed_algorithm=feed_algorithm,
             run_post_repo=self._run_post_repo,
+            run_post_like_repo=self._run_post_like_repo,
             feed_algorithm_config=feed_algorithm_config,
         )
