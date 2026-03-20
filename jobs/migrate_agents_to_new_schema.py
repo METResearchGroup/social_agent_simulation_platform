@@ -16,6 +16,7 @@ from db.repositories.profile_repository import create_sqlite_profile_repository
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
+from lib.agent_id import canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
@@ -50,8 +51,9 @@ def main() -> None:
 
     migrated_agents = len(profiles)
     for profile in profiles:
+        canonical_id = canonical_agent_id(profile.did)
         agent = Agent(
-            agent_id=profile.did,
+            agent_id=canonical_id,
             handle=profile.handle,
             persona_source=PersonaSource.SYNC_BLUESKY,
             display_name=profile.display_name,
@@ -72,10 +74,10 @@ def main() -> None:
             bio_text = _DEFAULT_BIO_WHEN_EMPTY
             bio_source = PersonaBioSource.USER_PROVIDED
 
-        if agent_bio_repo.get_latest_agent_bio(profile.did) is None:
+        if agent_bio_repo.get_latest_agent_bio(canonical_id) is None:
             agent_bio = AgentBio(
                 id=uuid.uuid4().hex,
-                agent_id=profile.did,
+                agent_id=canonical_id,
                 persona_bio=bio_text,
                 persona_bio_source=bio_source,
                 created_at=now,
@@ -85,7 +87,7 @@ def main() -> None:
 
         metadata = UserAgentProfileMetadata(
             id=uuid.uuid4().hex,
-            agent_id=profile.did,
+            agent_id=canonical_id,
             followers_count=profile.followers_count,
             follows_count=profile.follows_count,
             posts_count=profile.posts_count,

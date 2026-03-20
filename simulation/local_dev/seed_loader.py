@@ -31,6 +31,7 @@ from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
     SQLiteUserAgentProfileMetadataAdapter,
 )
 from db.backfills.agent_posts import backfill_agent_posts_from_feed_posts
+from lib.agent_id import is_canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
@@ -160,6 +161,38 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         )
     user_md = [UserAgentProfileMetadata.model_validate(item) for item in metadata_raw]
     follow_edges = [AgentFollowEdge.model_validate(item) for item in follow_edges_raw]
+
+    for agent in agents:
+        if not is_canonical_agent_id(agent.agent_id):
+            msg = f"Seed agents.json agent_id must be canonical 16-char hex: {agent.agent_id!r}"
+            raise ValueError(msg)
+    for bio in bios:
+        if not is_canonical_agent_id(bio.agent_id):
+            msg = (
+                "Seed agent_persona_bios.json agent_id must be canonical 16-char hex: "
+                f"{bio.agent_id!r}"
+            )
+            raise ValueError(msg)
+    for md in user_md:
+        if not is_canonical_agent_id(md.agent_id):
+            msg = (
+                "Seed user_agent_profile_metadata.json agent_id must be canonical 16-char hex: "
+                f"{md.agent_id!r}"
+            )
+            raise ValueError(msg)
+    for edge in follow_edges:
+        if not is_canonical_agent_id(edge.follower_agent_id):
+            msg = (
+                "Seed agent_follow_edges.json follower_agent_id must be canonical 16-char hex: "
+                f"{edge.follower_agent_id!r}"
+            )
+            raise ValueError(msg)
+        if not is_canonical_agent_id(edge.target_agent_id):
+            msg = (
+                "Seed agent_follow_edges.json target_agent_id must be canonical 16-char hex: "
+                f"{edge.target_agent_id!r}"
+            )
+            raise ValueError(msg)
     posts = [
         Post.model_validate({**item, "source": PostSource.BLUESKY})
         for item in posts_raw

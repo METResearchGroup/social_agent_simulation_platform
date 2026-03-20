@@ -5,6 +5,7 @@ import sqlite3
 from fastapi.testclient import TestClient
 
 from db.adapters.sqlite.sqlite import LOCAL_DEV_DB_PATH, SIM_DB_PATH_ENV, get_db_path
+from lib.agent_id import canonical_agent_id
 from simulation.api.main import app
 from simulation.local_dev.seed_loader import (
     FIXTURES_DIR,
@@ -33,6 +34,8 @@ class TestLocalModeSeed:
 
         seed_local_db_if_needed(db_path=temp_db, fixtures_dir=FIXTURES_DIR)
 
+        alice_agent_id = canonical_agent_id("agent_0240dc0d4a4c7e73")
+
         conn = sqlite3.connect(temp_db)
         try:
             row = conn.execute(
@@ -50,7 +53,7 @@ class TestLocalModeSeed:
             ).fetchone()[0]
             alice_posts_count = conn.execute(
                 "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
-                ("agent_0240dc0d4a4c7e73",),
+                (alice_agent_id,),
             ).fetchone()[0]
             alice_counts = conn.execute(
                 """
@@ -58,7 +61,7 @@ class TestLocalModeSeed:
                 FROM user_agent_profile_metadata
                 WHERE agent_id = ?
                 """,
-                ("agent_0240dc0d4a4c7e73",),
+                (alice_agent_id,),
             ).fetchone()
             agent_post_likes_count = conn.execute(
                 "SELECT COUNT(*) FROM agent_post_likes"
@@ -87,7 +90,7 @@ class TestLocalModeSeed:
             ).fetchone()[0]
             alice_posts_count_before = conn.execute(
                 "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
-                ("agent_0240dc0d4a4c7e73",),
+                (alice_agent_id,),
             ).fetchone()[0]
             agent_post_likes_count_before = conn.execute(
                 "SELECT COUNT(*) FROM agent_post_likes"
@@ -111,7 +114,7 @@ class TestLocalModeSeed:
             ).fetchone()[0]
             alice_posts_count_after = conn.execute(
                 "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
-                ("agent_0240dc0d4a4c7e73",),
+                (alice_agent_id,),
             ).fetchone()[0]
             agent_post_likes_count_after = conn.execute(
                 "SELECT COUNT(*) FROM agent_post_likes"

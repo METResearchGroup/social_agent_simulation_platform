@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     AgentRepository,
     UserAgentProfileMetadataRepository,
 )
+from lib.agent_id import canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from simulation.api.errors import ApiAgentNotFoundError, ApiHandleAlreadyExistsError
 from simulation.api.schemas.simulation import AgentSchema, CreateAgentRequest
@@ -102,8 +103,8 @@ def _build_agent_schema(handle: str, display_name: str, bio_text: str) -> AgentS
 
 
 def _generate_agent_id() -> str:
-    """Generate a new unique agent ID."""
-    return uuid.uuid4().hex
+    """Generate a new unique canonical agent ID."""
+    return canonical_agent_id()
 
 
 def _generate_agent(
