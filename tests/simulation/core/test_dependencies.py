@@ -28,16 +28,20 @@ from db.repositories.interfaces import (
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
-from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories import (
+    AgentRepos,
+    CommandServiceRepos,
+    RunRepos,
+    TurnRepos,
     create_command_service,
     create_default_agent_factory,
     create_engine,
     create_query_service,
 )
 from simulation.core.models.agents import SimulationAgent
-from simulation.core.query_service import SimulationQueryService
+from simulation.core.services.command_service import SimulationCommandService
+from simulation.core.services.query_service import SimulationQueryService
 from simulation.core.utils.exceptions import InsufficientAgentsError
 from tests.factories import AgentFactory
 
@@ -236,28 +240,35 @@ class TestServiceBuilders:
 
     def test_create_command_service(self):
         mock_simulation_persistence = Mock(spec=SimulationPersistenceService)
-        service = create_command_service(
-            run_repo=Mock(spec=RunRepository),
-            metrics_repo=Mock(spec=MetricsRepository),
-            simulation_persistence=mock_simulation_persistence,
+        repos = CommandServiceRepos(
+            agent=AgentRepos(
+                agent_repo=Mock(spec=AgentRepository),
+                agent_bio_repo=Mock(spec=AgentBioRepository),
+                agent_follow_edge_repo=Mock(spec=AgentFollowEdgeRepository),
+                user_agent_profile_metadata_repo=Mock(
+                    spec=UserAgentProfileMetadataRepository
+                ),
+                agent_post_repo=Mock(spec=AgentPostRepository),
+                agent_post_like_repo=Mock(spec=AgentPostLikeRepository),
+                agent_post_comment_repo=Mock(spec=AgentPostCommentRepository),
+            ),
+            run=RunRepos(
+                run_repo=Mock(spec=RunRepository),
+                metrics_repo=Mock(spec=MetricsRepository),
+                run_agent_repo=Mock(spec=RunAgentRepository),
+                run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
+                run_post_repo=Mock(spec=RunPostRepository),
+                run_post_like_repo=Mock(spec=RunPostLikeRepository),
+                run_post_comment_repo=Mock(spec=RunPostCommentRepository),
+            ),
+            turn=TurnRepos(generated_feed_repo=Mock(spec=GeneratedFeedRepository)),
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
-            generated_feed_repo=Mock(spec=GeneratedFeedRepository),
-            agent_repo=Mock(spec=AgentRepository),
-            agent_bio_repo=Mock(spec=AgentBioRepository),
-            agent_follow_edge_repo=Mock(spec=AgentFollowEdgeRepository),
-            user_agent_profile_metadata_repo=Mock(
-                spec=UserAgentProfileMetadataRepository
-            ),
-            run_agent_repo=Mock(spec=RunAgentRepository),
-            run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
-            run_post_repo=Mock(spec=RunPostRepository),
-            run_post_like_repo=Mock(spec=RunPostLikeRepository),
-            run_post_comment_repo=Mock(spec=RunPostCommentRepository),
-            agent_post_repo=Mock(spec=AgentPostRepository),
-            agent_post_like_repo=Mock(spec=AgentPostLikeRepository),
-            agent_post_comment_repo=Mock(spec=AgentPostCommentRepository),
             transaction_provider=Mock(),
+        )
+        service = create_command_service(
+            repos=repos,
+            simulation_persistence=mock_simulation_persistence,
             agent_factory=Mock(return_value=[]),
         )
         assert isinstance(service, SimulationCommandService)

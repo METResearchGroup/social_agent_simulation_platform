@@ -4,10 +4,10 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from simulation.core.command_service import SimulationCommandService
 from simulation.core.engine import SimulationEngine
 from simulation.core.models.runs import RunStatus
-from simulation.core.query_service import SimulationQueryService
+from simulation.core.services.command_service import SimulationCommandService
+from simulation.core.services.query_service import SimulationQueryService
 from tests.factories import AgentFactory, RunFactory
 
 

@@ -12,7 +12,7 @@ from db.repositories.interfaces import (
     RunPostRepository,
     RunRepository,
 )
-from simulation.core.query_service import SimulationQueryService
+from simulation.core.services.query_service import SimulationQueryService
 
 
 def create_query_service(

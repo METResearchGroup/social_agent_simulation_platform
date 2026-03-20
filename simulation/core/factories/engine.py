@@ -75,6 +75,12 @@ from simulation.core.factories.agent import create_default_agent_factory
 from simulation.core.factories.command_service import create_command_service
 from simulation.core.factories.query_service import create_query_service
 from simulation.core.models.agents import SimulationAgent
+from simulation.core.services.command_service_bundles import (
+    AgentRepos,
+    CommandServiceRepos,
+    RunRepos,
+    TurnRepos,
+)
 
 
 def create_engine(
@@ -250,26 +256,33 @@ def create_engine(
         comment_repo=comment_repo,
         follow_repo=follow_repo,
     )
-    command_service = create_command_service(
-        run_repo=run_repo,
-        metrics_repo=metrics_repo,
-        simulation_persistence=simulation_persistence,
+    command_repos = CommandServiceRepos(
+        agent=AgentRepos(
+            agent_repo=agent_repo,
+            agent_bio_repo=agent_bio_repo,
+            agent_follow_edge_repo=agent_follow_edge_repo,
+            user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
+            agent_post_repo=agent_post_repo,
+            agent_post_like_repo=agent_post_like_repo,
+            agent_post_comment_repo=agent_post_comment_repo,
+        ),
+        run=RunRepos(
+            run_repo=run_repo,
+            metrics_repo=metrics_repo,
+            run_agent_repo=run_agent_repo,
+            run_follow_edge_repo=run_follow_edge_repo,
+            run_post_repo=run_post_repo,
+            run_post_like_repo=run_post_like_repo,
+            run_post_comment_repo=run_post_comment_repo,
+        ),
+        turn=TurnRepos(generated_feed_repo=generated_feed_repo),
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
-        generated_feed_repo=generated_feed_repo,
-        agent_repo=agent_repo,
-        agent_bio_repo=agent_bio_repo,
-        agent_follow_edge_repo=agent_follow_edge_repo,
-        user_agent_profile_metadata_repo=user_agent_profile_metadata_repo,
-        run_agent_repo=run_agent_repo,
-        run_follow_edge_repo=run_follow_edge_repo,
-        run_post_repo=run_post_repo,
-        agent_post_repo=agent_post_repo,
-        run_post_like_repo=run_post_like_repo,
-        run_post_comment_repo=run_post_comment_repo,
-        agent_post_like_repo=agent_post_like_repo,
-        agent_post_comment_repo=agent_post_comment_repo,
         transaction_provider=transaction_provider,
+    )
+    command_service = create_command_service(
+        repos=command_repos,
+        simulation_persistence=simulation_persistence,
         agent_factory=agent_factory,
         action_history_store_factory=action_history_store_factory,
     )

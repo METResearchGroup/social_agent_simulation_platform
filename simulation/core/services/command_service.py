@@ -1,38 +1,13 @@
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from uuid import uuid4
 
 from pydantic import JsonValue
 
-from db.adapters.base import TransactionProvider
-from db.repositories.interfaces import (
-    AgentBioRepository,
-    AgentFollowEdgeRepository,
-    AgentPostCommentRepository,
-    AgentPostLikeRepository,
-    AgentPostRepository,
-    AgentRepository,
-    FeedPostRepository,
-    GeneratedFeedRepository,
-    MetricsRepository,
-    ProfileRepository,
-    RunAgentRepository,
-    RunFollowEdgeRepository,
-    RunPostCommentRepository,
-    RunPostLikeRepository,
-    RunPostRepository,
-    RunRepository,
-    UserAgentProfileMetadataRepository,
-)
 from db.services.simulation_persistence_service import SimulationPersistenceService
-from feeds.interfaces import FeedGenerator
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore, record_action_targets
-from simulation.core.action_policy import (
-    AgentActionFeedFilter,
-    AgentActionRulesValidator,
-)
 from simulation.core.agent_actions import (
     generate_comments,
     generate_follows,
@@ -57,6 +32,10 @@ from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
+from simulation.core.services.command_service_bundles import (
+    CommandServiceRepos,
+    CommandServiceRuntime,
+)
 from simulation.core.utils.exceptions import RunStatusUpdateError, SimulationRunFailure
 from simulation.core.utils.retry import retry_with_exponential_backoff
 from simulation.core.utils.validators import (
@@ -77,57 +56,39 @@ class SimulationCommandService:
 
     def __init__(
         self,
-        run_repo: RunRepository,
-        metrics_repo: MetricsRepository,
+        *,
+        repos: CommandServiceRepos,
         metrics_collector: MetricsCollector,
         simulation_persistence: SimulationPersistenceService,
-        profile_repo: ProfileRepository,
-        feed_post_repo: FeedPostRepository,
-        generated_feed_repo: GeneratedFeedRepository,
-        agent_repo: AgentRepository,
-        agent_bio_repo: AgentBioRepository,
-        agent_follow_edge_repo: AgentFollowEdgeRepository,
-        user_agent_profile_metadata_repo: UserAgentProfileMetadataRepository,
-        run_agent_repo: RunAgentRepository,
-        run_follow_edge_repo: RunFollowEdgeRepository,
-        run_post_repo: RunPostRepository,
-        run_post_like_repo: RunPostLikeRepository,
-        run_post_comment_repo: RunPostCommentRepository,
-        agent_post_repo: AgentPostRepository,
-        agent_post_like_repo: AgentPostLikeRepository,
-        agent_post_comment_repo: AgentPostCommentRepository,
-        transaction_provider: TransactionProvider,
-        agent_factory: Callable[[int], list[SimulationAgent]],
-        action_history_store_factory: Callable[[], ActionHistoryStore],
-        feed_generator: FeedGenerator,
-        agent_action_rules_validator: AgentActionRulesValidator,
-        agent_action_feed_filter: AgentActionFeedFilter,
-    ):
-        self.run_repo = run_repo
-        self.metrics_repo = metrics_repo
+        runtime: CommandServiceRuntime,
+    ) -> None:
+        self.run_repo = repos.run.run_repo
+        self.metrics_repo = repos.run.metrics_repo
         self.metrics_collector = metrics_collector
         self.simulation_persistence = simulation_persistence
-        self.profile_repo = profile_repo
-        self.feed_post_repo = feed_post_repo
-        self.generated_feed_repo = generated_feed_repo
-        self.agent_repo = agent_repo
-        self.agent_bio_repo = agent_bio_repo
-        self.agent_follow_edge_repo = agent_follow_edge_repo
-        self.user_agent_profile_metadata_repo = user_agent_profile_metadata_repo
-        self.run_agent_repo = run_agent_repo
-        self.run_follow_edge_repo = run_follow_edge_repo
-        self.run_post_repo = run_post_repo
-        self.run_post_like_repo = run_post_like_repo
-        self.run_post_comment_repo = run_post_comment_repo
-        self.agent_post_repo = agent_post_repo
-        self.agent_post_like_repo = agent_post_like_repo
-        self.agent_post_comment_repo = agent_post_comment_repo
-        self.transaction_provider = transaction_provider
-        self.agent_factory = agent_factory
-        self.action_history_store_factory = action_history_store_factory
-        self.feed_generator = feed_generator
-        self.agent_action_rules_validator = agent_action_rules_validator
-        self.agent_action_feed_filter = agent_action_feed_filter
+        self.profile_repo = repos.profile_repo
+        self.feed_post_repo = repos.feed_post_repo
+        self.generated_feed_repo = repos.turn.generated_feed_repo
+        self.agent_repo = repos.agent.agent_repo
+        self.agent_bio_repo = repos.agent.agent_bio_repo
+        self.agent_follow_edge_repo = repos.agent.agent_follow_edge_repo
+        self.user_agent_profile_metadata_repo = (
+            repos.agent.user_agent_profile_metadata_repo
+        )
+        self.run_agent_repo = repos.run.run_agent_repo
+        self.run_follow_edge_repo = repos.run.run_follow_edge_repo
+        self.run_post_repo = repos.run.run_post_repo
+        self.run_post_like_repo = repos.run.run_post_like_repo
+        self.run_post_comment_repo = repos.run.run_post_comment_repo
+        self.agent_post_repo = repos.agent.agent_post_repo
+        self.agent_post_like_repo = repos.agent.agent_post_like_repo
+        self.agent_post_comment_repo = repos.agent.agent_post_comment_repo
+        self.transaction_provider = repos.transaction_provider
+        self.agent_factory = runtime.agent_factory
+        self.action_history_store_factory = runtime.action_history_store_factory
+        self.feed_generator = runtime.feed_generator
+        self.agent_action_rules_validator = runtime.agent_action_rules_validator
+        self.agent_action_feed_filter = runtime.agent_action_feed_filter
 
     def execute_run(
         self, run_config: RunConfig, created_by_app_user_id: str | None = None

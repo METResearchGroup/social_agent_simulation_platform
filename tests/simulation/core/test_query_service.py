@@ -1,4 +1,4 @@
-"""Tests for simulation.core.query_service module."""
+"""Tests for simulation.core.services.query_service module."""
 
 from unittest.mock import Mock
 
@@ -6,7 +6,7 @@ import pytest
 
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.turns import TurnData
-from simulation.core.query_service import SimulationQueryService
+from simulation.core.services.query_service import SimulationQueryService
 from simulation.core.utils.exceptions import RunNotFoundError
 from tests.factories import (
     AgentRecordFactory,

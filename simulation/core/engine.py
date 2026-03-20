@@ -18,7 +18,6 @@ from db.repositories.interfaces import (
 from simulation.core.action_history import (
     ActionHistoryStore,
 )
-from simulation.core.command_service import SimulationCommandService
 from simulation.core.metrics.defaults import (
     get_default_metric_keys,
     resolve_metric_keys_by_scope,
@@ -30,7 +29,8 @@ from simulation.core.models.posts import Post, run_post_snapshot_to_post
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
-from simulation.core.query_service import SimulationQueryService
+from simulation.core.services.command_service import SimulationCommandService
+from simulation.core.services.query_service import SimulationQueryService
 
 
 def _get_turn_keys(run_config: RunConfig) -> list[str]:
