@@ -36,6 +36,7 @@ class RandomSimpleFollowGenerator(FollowGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates using scoring and random probability."""
         if not candidates:
@@ -56,6 +57,7 @@ class RandomSimpleFollowGenerator(FollowGenerator):
             generated_follow: GeneratedFollow = _build_generated_follow(
                 post=post,
                 agent_handle=agent_handle,
+                agent_id=agent_id,
                 run_id=run_id,
                 turn_number=turn_number,
             )
@@ -131,12 +133,13 @@ def _build_generated_follow(
     *,
     post: Post,
     agent_handle: str,
+    agent_id: str,
     run_id: str,
     turn_number: int,
 ) -> GeneratedFollow:
     """Build a GeneratedFollow with IDs and metadata."""
-    user_id: str = post.author_handle
-    follow_id: str = f"follow_{run_id}_{turn_number}_{agent_handle}_{user_id}"
+    target_agent_id: str = post.author_agent_id or post.author_handle
+    follow_id: str = f"follow_{run_id}_{turn_number}_{agent_handle}_{target_agent_id}"
     created_at: str = get_current_timestamp()
     generation_metadata: dict[str, float | str] = {
         "policy": FOLLOW_POLICY,
@@ -145,8 +148,8 @@ def _build_generated_follow(
     return GeneratedFollow(
         follow=Follow(
             follow_id=follow_id,
-            agent_id=agent_handle,
-            user_id=user_id,
+            agent_id=agent_id,
+            target_agent_id=target_agent_id,
             created_at=created_at,
         ),
         explanation=EXPLANATION,

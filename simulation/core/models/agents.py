@@ -44,10 +44,15 @@ class SimulationAgent:
         Returns:
             A GeneratedFeed instance for this agent
         """
+        if self.agent_id is None:
+            raise ValueError(
+                "SimulationAgent.agent_id must be set to build a GeneratedFeed"
+            )
         return GeneratedFeed(
             feed_id=GeneratedFeed.generate_feed_id(),
             run_id=run_id,
             turn_number=turn_number,
+            agent_id=self.agent_id,
             agent_handle=self.handle,
             post_ids=[],
             created_at=created_at,

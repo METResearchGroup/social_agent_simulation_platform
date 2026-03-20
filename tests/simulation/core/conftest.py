@@ -71,6 +71,9 @@ def mock_repos():
     feed_post_repo.list_all_feed_posts.return_value = []
     feed_post_repo.read_feed_posts_by_ids.return_value = []
 
+    run_agent_repo = Mock(spec=RunAgentRepository)
+    run_agent_repo.list_run_agents.return_value = []
+
     return {
         "run_repo": Mock(spec=RunRepository),
         "metrics_repo": Mock(spec=MetricsRepository),
@@ -84,7 +87,7 @@ def mock_repos():
         "user_agent_profile_metadata_repo": Mock(
             spec=UserAgentProfileMetadataRepository
         ),
-        "run_agent_repo": Mock(spec=RunAgentRepository),
+        "run_agent_repo": run_agent_repo,
         "run_follow_edge_repo": run_follow_edge_repo,
         "agent_post_repo": agent_post_repo,
         "agent_post_like_repo": agent_post_like_repo,

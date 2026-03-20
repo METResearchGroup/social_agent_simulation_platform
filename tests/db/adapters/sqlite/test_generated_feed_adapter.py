@@ -7,6 +7,7 @@ from unittest.mock import Mock
 import pytest
 
 from db.adapters.sqlite.generated_feed_adapter import SQLiteGeneratedFeedAdapter
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.feeds import GeneratedFeed
 from tests.db.adapters.sqlite.conftest import create_mock_row
 
@@ -20,7 +21,12 @@ def adapter():
 @pytest.fixture
 def default_test_data():
     """Common test data used across multiple tests."""
-    return {"run_id": "run_123", "turn_number": 0, "agent_handle": "agent.bsky.social"}
+    return {
+        "run_id": "run_123",
+        "turn_number": 0,
+        "agent_handle": "agent.bsky.social",
+        "agent_id": canonical_agent_id("agent.bsky.social"),
+    }
 
 
 class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
@@ -34,6 +40,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
         run_id = default_test_data["run_id"]
         turn_number = default_test_data["turn_number"]
         agent_handle = default_test_data["agent_handle"]
+        agent_id_1 = default_test_data["agent_id"]
 
         post_ids_1 = [f"bluesky:{u}" for u in ["uri1", "uri2", "uri3"]]
         post_ids_2 = [f"bluesky:{u}" for u in ["uri4", "uri5"]]
@@ -42,6 +49,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "feed_id": "feed_1",
             "run_id": run_id,
             "turn_number": turn_number,
+            "agent_id": agent_id_1,
             "agent_handle": agent_handle,
             "post_ids": json.dumps(post_ids_1),
             "created_at": "2024_01_01-12:00:00",
@@ -50,6 +58,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "feed_id": "feed_2",
             "run_id": run_id,
             "turn_number": turn_number,
+            "agent_id": canonical_agent_id("another.agent.bsky.social"),
             "agent_handle": "another.agent.bsky.social",
             "post_ids": json.dumps(post_ids_2),
             "created_at": "2024_01_01-12:00:01",
@@ -129,6 +138,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
         row_data = {
             "run_id": run_id,
             "turn_number": turn_number,
+            "agent_id": default_test_data["agent_id"],
             "agent_handle": "agent.bsky.social",
             "post_ids": json.dumps(["bluesky:uri1"]),
             "created_at": "2024_01_01-12:00:00",
@@ -155,6 +165,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "feed_id": None,
             "run_id": run_id,
             "turn_number": turn_number,
+            "agent_id": default_test_data["agent_id"],
             "agent_handle": "agent.bsky.social",
             "post_ids": json.dumps(["bluesky:uri1"]),
             "created_at": "2024_01_01-12:00:00",
@@ -181,6 +192,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             "feed_id": "feed_1",
             "run_id": run_id,
             "turn_number": turn_number,
+            "agent_id": default_test_data["agent_id"],
             "agent_handle": "agent.bsky.social",
             "post_ids": "not valid json",
             "created_at": "2024_01_01-12:00:00",

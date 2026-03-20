@@ -234,9 +234,11 @@ class TestServiceBuilders:
             comment_repo=Mock(spec=CommentRepository),
             follow_repo=Mock(spec=FollowRepository),
             run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
+            run_agent_repo=Mock(spec=RunAgentRepository),
         )
         assert isinstance(service, SimulationQueryService)
         assert service.run_follow_edge_repo is not None
+        assert service.run_agent_repo is not None
 
     def test_create_command_service(self):
         mock_simulation_persistence = Mock(spec=SimulationPersistenceService)

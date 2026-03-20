@@ -220,10 +220,15 @@ def _generate_feed(
         limit=MAX_POSTS_PER_FEED,
         config=feed_algorithm_config,
     )
+    if agent.agent_id is None:
+        raise ValueError(
+            "SimulationAgent.agent_id must be set to persist a generated feed"
+        )
     return GeneratedFeed(
         feed_id=result.feed_id,
         run_id=run_id,
         turn_number=turn_number,
+        agent_id=agent.agent_id,
         agent_handle=result.agent_handle,
         post_ids=result.post_ids,
         created_at=get_current_timestamp(),

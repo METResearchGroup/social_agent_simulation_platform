@@ -48,7 +48,7 @@ def persisted_like_to_generated(row: PersistedLike) -> GeneratedLike:
     return GeneratedLike(
         like=Like(
             like_id=row.like_id,
-            agent_id=row.agent_handle,
+            agent_id=row.agent_id,
             post_id=row.post_id,
             created_at=row.created_at,
         ),
@@ -62,7 +62,7 @@ def persisted_comment_to_generated(row: PersistedComment) -> GeneratedComment:
     return GeneratedComment(
         comment=Comment(
             comment_id=row.comment_id,
-            agent_id=row.agent_handle,
+            agent_id=row.agent_id,
             post_id=row.post_id,
             text=row.text,
             created_at=row.created_at,
@@ -77,8 +77,8 @@ def persisted_follow_to_generated(row: PersistedFollow) -> GeneratedFollow:
     return GeneratedFollow(
         follow=Follow(
             follow_id=row.follow_id,
-            agent_id=row.agent_handle,
-            user_id=row.user_id,
+            agent_id=row.agent_id,
+            target_agent_id=row.target_agent_id,
             created_at=row.created_at,
         ),
         explanation=normalize_action_explanation(row.explanation),

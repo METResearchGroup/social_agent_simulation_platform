@@ -43,6 +43,7 @@ def _build_generated_comment(
     *,
     post: Post,
     agent_handle: str,
+    agent_id: str,
     run_id: str,
     turn_number: int,
     text: str,
@@ -55,7 +56,7 @@ def _build_generated_comment(
     return GeneratedComment(
         comment=Comment(
             comment_id=comment_id,
-            agent_id=agent_handle,
+            agent_id=agent_id,
             post_id=post_id,
             text=text,
             created_at=created_at,
@@ -83,6 +84,7 @@ class NaiveLLMCommentGenerator(LLMActionGeneratorMixin, CommentGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedComment]:
         """Generate comments from candidates using LLM prediction."""
         if not candidates:
@@ -111,6 +113,7 @@ class NaiveLLMCommentGenerator(LLMActionGeneratorMixin, CommentGenerator):
             _build_generated_comment(
                 post=post_by_id[item.post_id],
                 agent_handle=agent_handle,
+                agent_id=agent_id,
                 run_id=run_id,
                 turn_number=turn_number,
                 text=item.text,

@@ -4,6 +4,7 @@ import uuid
 
 from pydantic import BaseModel, field_validator
 
+from lib.agent_id import is_canonical_agent_id
 from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 
 
@@ -13,9 +14,18 @@ class GeneratedFeed(BaseModel):
     feed_id: str
     run_id: str
     turn_number: int
+    agent_id: str
     agent_handle: str
     post_ids: list[str]
     created_at: str
+
+    @field_validator("agent_id", mode="before")
+    @classmethod
+    def validate_agent_id_canonical(cls, v: object) -> str:
+        s = validate_non_empty_string(v)  # pyright: ignore[reportArgumentType]
+        if not is_canonical_agent_id(s):
+            raise ValueError("agent_id must be a canonical 16-char lowercase hex id")
+        return s
 
     @field_validator("feed_id", "run_id", "agent_handle", "created_at", mode="before")
     @classmethod

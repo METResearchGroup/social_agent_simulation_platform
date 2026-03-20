@@ -19,6 +19,7 @@ class LikeGenerator(ABC):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedLike]:
         """Generate likes from candidates."""
         ...
@@ -35,6 +36,7 @@ class FollowGenerator(ABC):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates."""
         ...
@@ -51,6 +53,7 @@ class CommentGenerator(ABC):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedComment]:
         """Generate comments from candidates."""
         ...

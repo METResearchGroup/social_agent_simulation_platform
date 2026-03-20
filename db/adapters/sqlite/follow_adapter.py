@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from db.adapters.base import FollowDatabaseAdapter
+from db.adapters.sqlite.agent_id_resolve import resolve_agent_id_sqlite
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.persisted_actions import PersistedFollow
 
@@ -30,10 +31,12 @@ class SQLiteFollowAdapter(FollowDatabaseAdapter):
             gen_meta_json = _metadata_to_json(meta) if meta else None
             model_used = getattr(meta, "model_used", None) if meta else None
             gen_created_at = getattr(meta, "created_at", None) if meta else None
+            actor_id = resolve_agent_id_sqlite(conn, g.follow.agent_id)
+            target_id = resolve_agent_id_sqlite(conn, g.follow.target_agent_id)
             conn.execute(
                 """
                 INSERT INTO follows (
-                    follow_id, run_id, turn_number, agent_handle, user_id,
+                    follow_id, run_id, turn_number, agent_id, target_agent_id,
                     created_at, explanation, model_used, generation_metadata_json,
                     generation_created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -42,8 +45,8 @@ class SQLiteFollowAdapter(FollowDatabaseAdapter):
                     g.follow.follow_id,
                     run_id,
                     turn_number,
-                    g.follow.agent_id,
-                    g.follow.user_id,
+                    actor_id,
+                    target_id,
                     g.follow.created_at,
                     g.explanation or None,
                     model_used,
@@ -55,15 +58,15 @@ class SQLiteFollowAdapter(FollowDatabaseAdapter):
     def read_follows_by_run_turn(
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedFollow]:
-        """Read all follow rows for (run_id, turn_number). Ordered by agent_handle, user_id."""
+        """Read all follow rows for (run_id, turn_number). Ordered by agent_id, target_agent_id."""
         conn = _require_sqlite_connection(conn)
         rows = conn.execute(
             """
-            SELECT follow_id, run_id, turn_number, agent_handle, user_id, created_at,
+            SELECT follow_id, run_id, turn_number, agent_id, target_agent_id, created_at,
                    explanation, model_used, generation_metadata_json, generation_created_at
             FROM follows
             WHERE run_id = ? AND turn_number = ?
-            ORDER BY agent_handle, user_id, follow_id
+            ORDER BY agent_id, target_agent_id, follow_id
             """,
             (run_id, turn_number),
         ).fetchall()
@@ -72,8 +75,8 @@ class SQLiteFollowAdapter(FollowDatabaseAdapter):
                 follow_id=row[0],
                 run_id=row[1],
                 turn_number=row[2],
-                agent_handle=row[3],
-                user_id=row[4],
+                agent_id=row[3],
+                target_agent_id=row[4],
                 created_at=row[5],
                 explanation=row[6],
                 model_used=row[7],

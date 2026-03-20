@@ -19,6 +19,7 @@ def generate_likes(
     run_id: str,
     turn_number: int,
     agent_handle: str,
+    agent_id: str,
 ) -> list[GeneratedLike]:
     if not candidates:
         return []
@@ -28,6 +29,7 @@ def generate_likes(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
+        agent_id=agent_id,
     )
 
 
@@ -37,6 +39,7 @@ def generate_comments(
     run_id: str,
     turn_number: int,
     agent_handle: str,
+    agent_id: str,
 ) -> list[GeneratedComment]:
     if not candidates:
         return []
@@ -46,6 +49,7 @@ def generate_comments(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
+        agent_id=agent_id,
     )
 
 
@@ -55,6 +59,7 @@ def generate_follows(
     run_id: str,
     turn_number: int,
     agent_handle: str,
+    agent_id: str,
 ) -> list[GeneratedFollow]:
     if not candidates:
         return []
@@ -64,4 +69,5 @@ def generate_follows(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
+        agent_id=agent_id,
     )

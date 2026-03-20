@@ -82,7 +82,10 @@ def simulation_client(temp_db):
 
 
 @pytest.fixture
-def client_no_auth_override():
-    """TestClient without auth override. Used by test_auth to exercise real JWT verification."""
+def client_no_auth_override(temp_db):
+    """TestClient without auth override. Used by test_auth to exercise real JWT verification.
+
+    Uses ``temp_db`` so migrations run against an isolated DB (not the repo's db.sqlite).
+    """
     with TestClient(app=app) as client:
         yield client

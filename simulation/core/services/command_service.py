@@ -5,6 +5,7 @@ from uuid import uuid4
 from pydantic import JsonValue
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
+from lib.agent_id import canonical_agent_id
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore, record_action_targets
@@ -366,6 +367,11 @@ class SimulationCommandService:
             if not feed:
                 continue
 
+            if agent.agent_id is None:
+                raise ValueError(
+                    f"SimulationAgent {agent.handle!r} must have agent_id set for action generation"
+                )
+
             # Filter the feed into action-specific eligible candidates. For
             # example, we don't want to allow an agent to like a post they've
             # already liked, or comment on a post they've already commented on.
@@ -382,22 +388,25 @@ class SimulationCommandService:
                 run_id=run_id,
                 turn_number=turn_number,
                 agent_handle=agent.handle,
+                agent_id=agent.agent_id,
             )
             comments = generate_comments(
                 action_candidates.comment_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
                 agent_handle=agent.handle,
+                agent_id=agent.agent_id,
             )
             follows = generate_follows(
                 action_candidates.follow_candidates,
                 run_id=run_id,
                 turn_number=turn_number,
                 agent_handle=agent.handle,
+                agent_id=agent.agent_id,
             )
 
             # Validate the action rules.
-            like_post_ids, comment_post_ids, follow_user_ids = (
+            like_post_ids, comment_post_ids, follow_target_agent_ids = (
                 self.agent_action_rules_validator.validate(
                     run_id=run_id,
                     turn_number=turn_number,
@@ -415,7 +424,7 @@ class SimulationCommandService:
                 agent_handle=agent.handle,
                 like_post_ids=like_post_ids,
                 comment_post_ids=comment_post_ids,
-                follow_user_ids=follow_user_ids,
+                follow_target_agent_ids=follow_target_agent_ids,
                 action_history_store=action_history_store,
             )
 
@@ -762,7 +771,9 @@ class SimulationCommandService:
                 raise ValueError(
                     "Run follow edge snapshot references an agent missing from run_agents"
                 )
-            action_history_store.record_follow(run_id, follower_handle, target_handle)
+            action_history_store.record_follow(
+                run_id, follower_handle, canonical_agent_id(target_handle)
+            )
 
     def preload_like_history_from_snapshots(
         self,

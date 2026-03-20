@@ -1,5 +1,6 @@
 """Tests for simulation.core.action_generators.like.algorithms.random_simple module."""
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_generators.like.algorithms import random_simple as mod
 from simulation.core.action_generators.like.algorithms.random_simple import (
     TOP_K_POSTS_TO_LIKE,
@@ -43,6 +44,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         assert result == []
 
@@ -56,6 +58,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_prob0",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         assert result == []
 
@@ -69,6 +72,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_prob100",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         expected_count = min(TOP_K_POSTS_TO_LIKE, len(candidates))
         assert len(result) == expected_count
@@ -86,6 +90,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         assert len(result) <= TOP_K_POSTS_TO_LIKE
 
@@ -101,6 +106,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         post_ids = [like.like.post_id for like in result]
         assert post_ids[0] == "bluesky:post_high"
@@ -118,6 +124,7 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         post_ids = [like.like.post_id for like in result]
         assert post_ids[0] == "bluesky:post_new"
@@ -138,12 +145,14 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
         result2 = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
         expected_post_ids = [like.like.post_id for like in result1]
         assert [like.like.post_id for like in result2] == expected_post_ids
@@ -159,11 +168,12 @@ class TestRandomSimpleLikeGeneratorGenerate:
             run_id="run_1",
             turn_number=2,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
         assert len(result) == 1
         like = result[0]
         assert like.like.like_id == "like_run_1_2_agent.bsky.social_bluesky:post_1"
-        assert like.like.agent_id == "agent.bsky.social"
+        assert like.like.agent_id == canonical_agent_id("agent.bsky.social")
         assert like.like.post_id == "bluesky:post_1"
         assert like.explanation
         assert like.metadata.generation_metadata == {

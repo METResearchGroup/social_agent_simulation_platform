@@ -3,6 +3,7 @@
 import re
 
 import simulation.core.action_generators.follow.algorithms.random_simple as random_simple_follow
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_generators.follow.algorithms.random_simple import (
     FOLLOW_POLICY,
     TOP_K_USERS_TO_FOLLOW,
@@ -49,6 +50,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         expected_result: list = []
         assert result == expected_result
@@ -66,6 +68,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         expected_count = min(TOP_K_USERS_TO_FOLLOW, len(candidates))
         assert len(result) == expected_count
@@ -84,8 +87,9 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_42",
             turn_number=3,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
-        followed_user_ids = [follow.follow.user_id for follow in result]
+        followed_user_ids = [follow.follow.target_agent_id for follow in result]
         expected_unique_count = len(set(followed_user_ids))
         assert len(followed_user_ids) == expected_unique_count
 
@@ -103,8 +107,9 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_self",
             turn_number=0,
             agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
-        followed_user_ids = [follow.follow.user_id for follow in result]
+        followed_user_ids = [follow.follow.target_agent_id for follow in result]
         assert agent_handle not in followed_user_ids
         expected_other_user = "other-user.bsky.social"
         assert expected_other_user in followed_user_ids
@@ -128,8 +133,9 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_threshold",
             turn_number=5,
             agent_handle="agent1.bsky.social",
+            agent_id=canonical_agent_id("agent1.bsky.social"),
         )
-        followed_user_ids = [follow.follow.user_id for follow in result]
+        followed_user_ids = [follow.follow.target_agent_id for follow in result]
         expected_result = ["author-a.bsky.social"]
         assert followed_user_ids == expected_result
 
@@ -146,6 +152,7 @@ class TestRandomSimpleFollowPolicy:
             run_id="run_1",
             turn_number=2,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
         assert len(result) == 1
         follow = result[0]
@@ -157,8 +164,8 @@ class TestRandomSimpleFollowPolicy:
             follow.follow.follow_id
             == f"follow_{expected_run_id}_{expected_turn}_{expected_handle}_{expected_user_id}"
         )
-        assert follow.follow.agent_id == expected_handle
-        assert follow.follow.user_id == expected_user_id
+        assert follow.follow.agent_id == canonical_agent_id(expected_handle)
+        assert follow.follow.target_agent_id == expected_user_id
         assert follow.explanation
         assert CREATED_AT_PATTERN.match(follow.follow.created_at), (
             f"created_at should be YYYY_MM_DD-HH:MM:SS, got {follow.follow.created_at!r}"

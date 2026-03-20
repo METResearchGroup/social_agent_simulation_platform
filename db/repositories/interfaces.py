@@ -752,7 +752,7 @@ class GeneratedFeedRepository(ABC):
 
         Note:
             This write is idempotent: an existing row with the same composite
-            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            key (agent_id, run_id, turn_number) may be replaced. Callers can
             safely retry or recompute; duplicate writes do not raise.
             Implementations (e.g. SQLite) may use INSERT OR REPLACE
             (delete+insert semantics).
@@ -761,12 +761,12 @@ class GeneratedFeedRepository(ABC):
 
     @abstractmethod
     def get_generated_feed(
-        self, agent_handle: str, run_id: str, turn_number: int
+        self, agent_id: str, run_id: str, turn_number: int
     ) -> GeneratedFeed:
         """Get a generated feed by composite key.
 
         Args:
-            agent_handle: Agent handle to look up
+            agent_id: Canonical agent id to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
 
@@ -788,11 +788,11 @@ class GeneratedFeedRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_post_ids_for_run(self, agent_handle: str, run_id: str) -> set[str]:
+    def get_post_ids_for_run(self, agent_id: str, run_id: str) -> set[str]:
         """Get all post_ids from generated feeds for a specific agent and run.
 
         Args:
-            agent_handle: Agent handle to filter by
+            agent_id: Canonical agent id to filter by
             run_id: Run ID to filter by
 
         Returns:
@@ -800,7 +800,7 @@ class GeneratedFeedRepository(ABC):
             Returns empty set if no feeds found.
 
         Raises:
-            ValueError: If agent_handle or run_id is empty
+            ValueError: If agent_id or run_id is empty
         """
         raise NotImplementedError
 

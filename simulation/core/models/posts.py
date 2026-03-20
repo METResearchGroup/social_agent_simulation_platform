@@ -31,6 +31,7 @@ class Post(BaseModel):
     post_id: str
     source: PostSource
     uri: str
+    author_agent_id: str | None = None
     author_handle: str
     author_display_name: str
     text: str
@@ -154,6 +155,7 @@ def run_post_snapshot_to_post(
         post_id=snapshot.run_post_id,
         source=PostSource.SEED_STATE,
         uri=f"seed_state:{snapshot.run_post_id}",
+        author_agent_id=snapshot.author_agent_id,
         author_handle=snapshot.author_handle_at_start,
         author_display_name=snapshot.author_display_name_at_start,
         text=snapshot.body_text_at_start,

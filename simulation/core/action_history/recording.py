@@ -9,7 +9,7 @@ def record_action_targets(
     agent_handle: str,
     like_post_ids: list[str],
     comment_post_ids: list[str],
-    follow_user_ids: list[str],
+    follow_target_agent_ids: list[str],
     action_history_store: ActionHistoryStore,
 ) -> None:
     """Record validated action targets into action history."""
@@ -17,5 +17,5 @@ def record_action_targets(
         action_history_store.record_like(run_id, agent_handle, post_id)
     for post_id in comment_post_ids:
         action_history_store.record_comment(run_id, agent_handle, post_id)
-    for user_id in follow_user_ids:
-        action_history_store.record_follow(run_id, agent_handle, user_id)
+    for target_agent_id in follow_target_agent_ids:
+        action_history_store.record_follow(run_id, agent_handle, target_agent_id)

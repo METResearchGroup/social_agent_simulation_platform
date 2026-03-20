@@ -8,6 +8,7 @@ from db.repositories.interfaces import (
     GeneratedFeedRepository,
     LikeRepository,
     MetricsRepository,
+    RunAgentRepository,
     RunFollowEdgeRepository,
     RunPostCommentRepository,
     RunPostLikeRepository,
@@ -47,6 +48,7 @@ class SimulationQueryService:
         comment_repo: CommentRepository,
         follow_repo: FollowRepository,
         run_follow_edge_repo: RunFollowEdgeRepository,
+        run_agent_repo: RunAgentRepository,
     ):
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
@@ -58,6 +60,7 @@ class SimulationQueryService:
         self.comment_repo = comment_repo
         self.follow_repo = follow_repo
         self.run_follow_edge_repo = run_follow_edge_repo
+        self.run_agent_repo = run_agent_repo
 
     @validate_inputs((validate_run_id, "run_id"))
     def get_run(self, run_id: str) -> Run | None:
@@ -112,6 +115,12 @@ class SimulationQueryService:
         if not feeds:
             return None
 
+        run_agents = self.run_agent_repo.list_run_agents(run_id)
+        agent_id_to_handle = {ra.agent_id: ra.handle_at_start for ra in run_agents}
+
+        def _handle_for_agent_id(agent_id: str) -> str:
+            return agent_id_to_handle.get(agent_id, agent_id)
+
         post_ids_set: set[str] = set()
         for feed in feeds:
             post_ids_set.update(feed.post_ids)
@@ -141,19 +150,22 @@ class SimulationQueryService:
             for post_id in feed.post_ids:
                 if post_id in post_id_to_post:
                     hydrated_posts.append(post_id_to_post[post_id])
-            feeds_dict[feed.agent_handle] = hydrated_posts
+            feed_key = feed.agent_handle or _handle_for_agent_id(feed.agent_id)
+            feeds_dict[feed_key] = hydrated_posts
 
         actions_by_agent: dict[
             str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
         ] = defaultdict(list)
         for row in self.like_repo.read_likes_by_run_turn(run_id, turn_number):
-            actions_by_agent[row.agent_handle].append(persisted_like_to_generated(row))
+            actions_by_agent[_handle_for_agent_id(row.agent_id)].append(
+                persisted_like_to_generated(row)
+            )
         for row in self.comment_repo.read_comments_by_run_turn(run_id, turn_number):
-            actions_by_agent[row.agent_handle].append(
+            actions_by_agent[_handle_for_agent_id(row.agent_id)].append(
                 persisted_comment_to_generated(row)
             )
         for row in self.follow_repo.read_follows_by_run_turn(run_id, turn_number):
-            actions_by_agent[row.agent_handle].append(
+            actions_by_agent[_handle_for_agent_id(row.agent_id)].append(
                 persisted_follow_to_generated(row)
             )
 
@@ -165,7 +177,7 @@ class SimulationQueryService:
             if isinstance(a, GeneratedComment):
                 return (a.comment.post_id, a.comment.comment_id)
             if isinstance(a, GeneratedFollow):
-                return (a.follow.user_id, a.follow.follow_id)
+                return (a.follow.target_agent_id, a.follow.follow_id)
             raise TypeError(
                 f"_action_sort_key only supports GeneratedLike, GeneratedComment, "
                 f"GeneratedFollow; got unsupported action type {type(a)!r}"

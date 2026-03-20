@@ -10,7 +10,7 @@ from db.schema import generated_feeds
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.utils.validators import (
-    validate_handle_exists,
+    validate_agent_id,
     validate_run_id,
     validate_turn_number,
 )
@@ -38,7 +38,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         Args:
             row: SQLite Row object containing generated feed data
             context: Optional context string to include in error messages
-                     (e.g., "generated feed agent_handle=user.bsky.social, run_id=...")
+                     (e.g., "generated feed agent_id=..., run_id=...")
 
         Raises:
             ValueError: If any required field is NULL. Error message includes
@@ -71,7 +71,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
 
     def read_generated_feed(
         self,
-        agent_handle: str,
+        agent_id: str,
         run_id: str,
         turn_number: int,
         *,
@@ -80,7 +80,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         """Read a generated feed from SQLite.
 
         Args:
-            agent_handle: Agent handle to look up
+            agent_id: Canonical agent id to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
             conn: Connection.
@@ -95,26 +95,46 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             KeyError: If required columns are missing from the database row
         """
         row = conn.execute(
-            "SELECT * FROM generated_feeds WHERE agent_handle = ? AND run_id = ? AND turn_number = ?",
-            (agent_handle, run_id, turn_number),
+            "SELECT * FROM generated_feeds WHERE agent_id = ? AND run_id = ? AND turn_number = ?",
+            (agent_id, run_id, turn_number),
         ).fetchone()
 
         if row is None:
             raise ValueError(
-                f"Generated feed not found for agent {agent_handle}, run {run_id}, turn {turn_number}"
+                f"Generated feed not found for agent_id {agent_id}, run {run_id}, turn {turn_number}"
             )
 
-        context = f"generated feed agent_handle={agent_handle}, run_id={run_id}, turn_number={turn_number}"
+        context = f"generated feed agent_id={agent_id}, run_id={run_id}, turn_number={turn_number}"
         self._validate_generated_feed_row(row, context=context)
-        return self._row_to_generated_feed(row)
+        return self._row_to_generated_feed(row, conn=conn)
 
-    def _row_to_generated_feed(self, row: sqlite3.Row) -> GeneratedFeed:
+    def _resolve_display_handle(
+        self, row: sqlite3.Row, *, conn: sqlite3.Connection
+    ) -> str:
+        ah = row["agent_handle"]
+        if ah is not None and str(ah).strip() != "":
+            return str(ah)
+        r2 = conn.execute(
+            "SELECT handle FROM agent WHERE agent_id = ?",
+            (row["agent_id"],),
+        ).fetchone()
+        if r2 is None:
+            raise ValueError(
+                f"generated_feeds row missing agent_handle and agent {row['agent_id']!r} not found"
+            )
+        return str(r2[0])
+
+    def _row_to_generated_feed(
+        self, row: sqlite3.Row, *, conn: sqlite3.Connection
+    ) -> GeneratedFeed:
         """Build GeneratedFeed from a validated row. Call _validate_generated_feed_row first."""
+        display_handle = self._resolve_display_handle(row, conn=conn)
         return GeneratedFeed(
             feed_id=row["feed_id"],
             run_id=row["run_id"],
             turn_number=row["turn_number"],
-            agent_handle=row["agent_handle"],
+            agent_id=row["agent_id"],
+            agent_handle=display_handle,
             post_ids=json.loads(row["post_ids"]),
             created_at=row["created_at"],
         )
@@ -122,10 +142,10 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     def _context_for_generated_feed_row(self, row: sqlite3.Row) -> str:
         """Build context string for validation error messages."""
         try:
-            ah = row["agent_handle"] if row["agent_handle"] is not None else "unknown"
+            aid = row["agent_id"] if row["agent_id"] is not None else "unknown"
             rid = row["run_id"] if row["run_id"] is not None else "unknown"
             tn = row["turn_number"] if row["turn_number"] is not None else "unknown"
-            return f"generated feed agent_handle={ah}, run_id={rid}, turn_number={tn}"
+            return f"generated feed agent_id={aid}, run_id={rid}, turn_number={tn}"
         except (KeyError, TypeError):
             return "generated feed (identifying info unavailable)"
 
@@ -148,19 +168,17 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             self._validate_generated_feed_row(
                 row, context=self._context_for_generated_feed_row(row)
             )
-            feeds.append(self._row_to_generated_feed(row))
+            feeds.append(self._row_to_generated_feed(row, conn=conn))
         return feeds
 
-    @validate_inputs(
-        (validate_handle_exists, "agent_handle"), (validate_run_id, "run_id")
-    )
+    @validate_inputs((validate_agent_id, "agent_id"), (validate_run_id, "run_id"))
     def read_post_ids_for_run(
-        self, agent_handle: str, run_id: str, *, conn: sqlite3.Connection
+        self, agent_id: str, run_id: str, *, conn: sqlite3.Connection
     ) -> set[str]:
         """Read all post_ids from generated feeds for a specific agent and run.
 
         Args:
-            agent_handle: Agent handle to filter by
+            agent_id: Canonical agent id to filter by
             run_id: Run ID to filter by
             conn: Connection.
 
@@ -169,16 +187,16 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             Returns empty set if no feeds found.
 
         Raises:
-            ValueError: If agent_handle or run_id is empty
+            ValueError: If agent_id or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
         rows = conn.execute(
             """
             SELECT post_ids
             FROM generated_feeds
-            WHERE agent_handle = ? AND run_id = ?
+            WHERE agent_id = ? AND run_id = ?
         """,
-            (agent_handle, run_id),
+            (agent_id, run_id),
         ).fetchall()
         return {pid for row in rows for pid in json.loads(row["post_ids"])}
 
@@ -215,5 +233,5 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         feeds = []
         for row in rows:
             self._validate_generated_feed_row(row, context=context)
-            feeds.append(self._row_to_generated_feed(row))
+            feeds.append(self._row_to_generated_feed(row, conn=conn))
         return feeds

@@ -39,10 +39,10 @@ class Comment(BaseModel):
 class Follow(BaseModel):
     follow_id: str
     agent_id: str
-    user_id: str
+    target_agent_id: str
     created_at: str
 
-    @field_validator("follow_id", "agent_id", "user_id", mode="before")
+    @field_validator("follow_id", "agent_id", "target_agent_id", mode="before")
     @classmethod
     def validate_identifier_fields(cls, v: str, info: ValidationInfo) -> str:
         """Validate that identifier fields are non-empty strings."""

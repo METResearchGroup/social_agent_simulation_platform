@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.repositories.generated_feed_repository import SQLiteGeneratedFeedRepository
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.feeds import GeneratedFeed
 from tests.db.repositories.conftest import make_mock_transaction_provider
 from tests.factories import GeneratedFeedFactory
@@ -214,19 +215,20 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         )
 
         # Act & Assert
+        aid = canonical_agent_id("test.bsky.social")
         with pytest.raises(ValueError, match="Generated feed not found"):
-            repo.get_generated_feed("test.bsky.social", "run_123", 1)
+            repo.get_generated_feed(aid, "run_123", 1)
 
         mock_adapter.read_generated_feed.assert_called_once()
         assert mock_adapter.read_generated_feed.call_args[0][:3] == (
-            "test.bsky.social",
+            aid,
             "run_123",
             1,
         )
         assert mock_adapter.read_generated_feed.call_args[1]["conn"] is not None
 
-    def test_raises_value_error_when_agent_handle_is_empty(self):
-        """Test that get_generated_feed raises ValueError when agent_handle is empty."""
+    def test_raises_value_error_when_agent_id_is_empty(self):
+        """Test that get_generated_feed raises ValueError when agent_id is empty."""
         # Arrange
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         repo = SQLiteGeneratedFeedRepository(
@@ -235,7 +237,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         )
 
         # Act & Assert
-        with pytest.raises(ValueError, match="handle cannot be empty"):
+        with pytest.raises(ValueError, match="agent_id cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
         mock_adapter.read_generated_feed.assert_not_called()
@@ -251,7 +253,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
 
         # Act & Assert
         with pytest.raises(ValueError, match="run_id cannot be empty"):
-            repo.get_generated_feed("test.bsky.social", "", 1)
+            repo.get_generated_feed(canonical_agent_id("test.bsky.social"), "", 1)
 
         mock_adapter.read_generated_feed.assert_not_called()
 

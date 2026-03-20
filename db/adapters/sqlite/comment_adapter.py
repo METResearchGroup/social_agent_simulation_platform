@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from db.adapters.base import CommentDatabaseAdapter
+from db.adapters.sqlite.agent_id_resolve import resolve_agent_id_sqlite
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.persisted_actions import PersistedComment
 
@@ -30,10 +31,11 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
             gen_meta_json = _metadata_to_json(meta) if meta else None
             model_used = getattr(meta, "model_used", None) if meta else None
             gen_created_at = getattr(meta, "created_at", None) if meta else None
+            actor_id = resolve_agent_id_sqlite(conn, g.comment.agent_id)
             conn.execute(
                 """
                 INSERT INTO comments (
-                    comment_id, run_id, turn_number, agent_handle, post_id, text,
+                    comment_id, run_id, turn_number, agent_id, post_id, text,
                     created_at, explanation, model_used, generation_metadata_json,
                     generation_created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -42,7 +44,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
                     g.comment.comment_id,
                     run_id,
                     turn_number,
-                    g.comment.agent_id,
+                    actor_id,
                     g.comment.post_id,
                     g.comment.text,
                     g.comment.created_at,
@@ -56,16 +58,16 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
     def read_comments_by_run_turn(
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedComment]:
-        """Read all comment rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
+        """Read all comment rows for (run_id, turn_number). Ordered by agent_id, post_id."""
         conn = _require_sqlite_connection(conn)
         rows = conn.execute(
             """
-            SELECT comment_id, run_id, turn_number, agent_handle, post_id, text,
+            SELECT comment_id, run_id, turn_number, agent_id, post_id, text,
                    created_at, explanation, model_used, generation_metadata_json,
                    generation_created_at
             FROM comments
             WHERE run_id = ? AND turn_number = ?
-            ORDER BY agent_handle, post_id, comment_id
+            ORDER BY agent_id, post_id, comment_id
             """,
             (run_id, turn_number),
         ).fetchall()
@@ -74,7 +76,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
                 comment_id=row[0],
                 run_id=row[1],
                 turn_number=row[2],
-                agent_handle=row[3],
+                agent_id=row[3],
                 post_id=row[4],
                 text=row[5],
                 created_at=row[6],

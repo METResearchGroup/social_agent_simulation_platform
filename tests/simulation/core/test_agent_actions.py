@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock, patch
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.agent_actions import generate_follows
 from tests.factories import (
     AgentFactory,
@@ -16,12 +17,14 @@ class TestAgentActions:
     def test_follow_users_returns_empty_for_empty_feed(self):
         """generate_follows returns [] when candidates are empty and does not resolve generator."""
         agent = AgentFactory.create(handle="agent1.bsky.social")
+        agent_id = canonical_agent_id(agent.handle)
         with patch("simulation.core.agent_actions.get_follow_generator") as mock_get:
             result = generate_follows(
                 [],
                 run_id="run_1",
                 turn_number=0,
                 agent_handle=agent.handle,
+                agent_id=agent_id,
             )
 
         expected_result: list = []
@@ -31,6 +34,7 @@ class TestAgentActions:
     def test_follow_users_delegates_to_follow_generator(self):
         """generate_follows delegates candidate generation to configured follow generator."""
         agent = AgentFactory.create(handle="agent1.bsky.social")
+        agent_id = canonical_agent_id(agent.handle)
         feed = [
             PostFactory.create(
                 uri="post_1",
@@ -49,7 +53,7 @@ class TestAgentActions:
             follow=FollowFactory.create(
                 follow_id="follow_1",
                 agent_id=agent.handle,
-                user_id="author1.bsky.social",
+                target_agent_id="author1.bsky.social",
                 created_at="2024_01_01-12:00:00",
             ),
             explanation="reason",
@@ -67,6 +71,7 @@ class TestAgentActions:
                 run_id="run_1",
                 turn_number=3,
                 agent_handle=agent.handle,
+                agent_id=agent_id,
             )
 
         expected_result = [generated_follow]
@@ -77,4 +82,5 @@ class TestAgentActions:
             run_id="run_1",
             turn_number=3,
             agent_handle=agent.handle,
+            agent_id=agent_id,
         )

@@ -44,8 +44,12 @@ def load_seen_post_ids(
 
     Returns a set of post_ids.
     """
+    if agent.agent_id is None:
+        raise ValueError(
+            "SimulationAgent.agent_id must be set to load seen post ids for a run"
+        )
     return generated_feed_repo.get_post_ids_for_run(
-        agent_handle=agent.handle, run_id=run_id
+        agent_id=agent.agent_id, run_id=run_id
     )
 
 

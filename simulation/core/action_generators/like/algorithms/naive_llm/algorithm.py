@@ -43,6 +43,7 @@ def _build_generated_like(
     *,
     post: Post,
     agent_handle: str,
+    agent_id: str,
     run_id: str,
     turn_number: int,
     model_used: str | None,
@@ -54,7 +55,7 @@ def _build_generated_like(
     return GeneratedLike(
         like=Like(
             like_id=like_id,
-            agent_id=agent_handle,
+            agent_id=agent_id,
             post_id=post_id,
             created_at=created_at,
         ),
@@ -81,6 +82,7 @@ class NaiveLLMLikeGenerator(LLMActionGeneratorMixin, LikeGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedLike]:
         """Generate likes from candidates using LLM prediction."""
         if not candidates:
@@ -106,6 +108,7 @@ class NaiveLLMLikeGenerator(LLMActionGeneratorMixin, LikeGenerator):
             _build_generated_like(
                 post=post_by_id[pid],
                 agent_handle=agent_handle,
+                agent_id=agent_id,
                 run_id=run_id,
                 turn_number=turn_number,
                 model_used=model_used,

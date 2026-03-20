@@ -247,6 +247,7 @@ def create_engine(
         comment_repo=comment_repo,
         follow_repo=follow_repo,
         run_follow_edge_repo=run_follow_edge_repo,
+        run_agent_repo=run_agent_repo,
     )
     simulation_persistence = create_simulation_persistence_service(
         run_repo=run_repo,

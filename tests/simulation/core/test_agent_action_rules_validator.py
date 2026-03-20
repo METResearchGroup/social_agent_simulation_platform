@@ -90,13 +90,13 @@ class TestAgentActionRulesValidator:
                 follows=[
                     GeneratedFollowFactory.create(
                         agent_id="agent1",
-                        user_id="user_1",
+                        target_agent_id="user_1",
                         explanation="reason",
                         metadata=_meta(),
                     ),
                     GeneratedFollowFactory.create(
                         agent_id="agent1",
-                        user_id="user_1",
+                        target_agent_id="user_1",
                         explanation="reason",
                         metadata=_meta(),
                     ),
@@ -129,7 +129,7 @@ class TestAgentActionRulesValidator:
             follows=[
                 GeneratedFollowFactory.create(
                     agent_id="agent1",
-                    user_id="user_3",
+                    target_agent_id="user_3",
                     explanation="reason",
                     metadata=_meta(),
                 )
@@ -179,7 +179,7 @@ class TestAgentActionRulesValidator:
         follows = [
             GeneratedFollowFactory.create(
                 agent_id="agent1",
-                user_id="user_3",
+                target_agent_id="user_3",
                 explanation="reason",
                 metadata=_meta(),
             )

@@ -6,6 +6,7 @@ import pytest
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_history import InMemoryActionHistoryStore
 from simulation.core.action_policy import (
     ActionCandidateFeeds,
@@ -540,8 +541,10 @@ class TestSimulationCommandServiceExecuteRun:
                     [
                         GeneratedFollowFactory.create(
                             follow=FollowFactory.create(
-                                agent_id=kwargs["agent_handle"],
-                                user_id=candidates[0].author_handle,
+                                agent_id=kwargs["agent_id"],
+                                target_agent_id=canonical_agent_id(
+                                    candidates[0].author_handle
+                                ),
                             )
                         )
                     ]
@@ -565,6 +568,7 @@ class TestSimulationCommandServiceExecuteRun:
                 "run_id": sample_run.run_id,
                 "turn_number": turn_number,
                 "agent_handle": "agent1.bsky.social",
+                "agent_id": agent_one.agent_id,
             }
         assert (
             mock_repos[
@@ -647,7 +651,7 @@ class TestSimulationCommandServiceExecuteRun:
                 GeneratedLikeFactory.create(
                     like=LikeFactory.create(
                         like_id="like_1",
-                        agent_id=agent.handle,
+                        agent_id=agent.agent_id,
                         post_id=canonical_post_id,
                         created_at="2024_01_01-12:00:00",
                     ),
@@ -661,7 +665,7 @@ class TestSimulationCommandServiceExecuteRun:
                 GeneratedCommentFactory.create(
                     comment=CommentFactory.create(
                         comment_id="comment_1",
-                        agent_id=agent.handle,
+                        agent_id=agent.agent_id,
                         post_id=canonical_post_id,
                         text="nice post",
                         created_at="2024_01_01-12:00:00",
@@ -676,8 +680,8 @@ class TestSimulationCommandServiceExecuteRun:
                 GeneratedFollowFactory.create(
                     follow=FollowFactory.create(
                         follow_id="follow_1",
-                        agent_id=agent.handle,
-                        user_id="user_1",
+                        agent_id=agent.agent_id,
+                        target_agent_id=canonical_agent_id("user_1"),
                         created_at="2024_01_01-12:00:00",
                     ),
                     explanation="reason",
@@ -690,7 +694,7 @@ class TestSimulationCommandServiceExecuteRun:
         command_service.agent_action_rules_validator.validate.return_value = (
             [canonical_post_id],
             [canonical_post_id],
-            ["user_1"],
+            [canonical_agent_id("user_1")],
         )
         command_service.feed_generator.generate_feeds.return_value = {
             agent.handle: [feed_post]
@@ -738,7 +742,7 @@ class TestSimulationCommandServiceExecuteRun:
         action_history_store.record_follow.assert_called_once_with(
             sample_run.run_id,
             agent.handle,
-            "user_1",
+            canonical_agent_id("user_1"),
         )
 
     def test_simulate_turn_uses_action_specific_filtered_candidates(
@@ -842,18 +846,21 @@ class TestSimulationCommandServiceExecuteRun:
             run_id=sample_run.run_id,
             turn_number=0,
             agent_handle=agent.handle,
+            agent_id=agent.agent_id,
         )
         mock_generate_comments.assert_called_once_with(
             [comment_only_post],
             run_id=sample_run.run_id,
             turn_number=0,
             agent_handle=agent.handle,
+            agent_id=agent.agent_id,
         )
         mock_generate_follows.assert_called_once_with(
             [follow_only_post],
             run_id=sample_run.run_id,
             turn_number=0,
             agent_handle=agent.handle,
+            agent_id=agent.agent_id,
         )
 
     def test_simulate_turn_produces_non_zero_likes_with_real_agent_and_filter(
@@ -941,6 +948,17 @@ class TestSimulationCommandServiceActionPersistence:
             comment_repo=comment_repo,
             follow_repo=follow_repo,
         )
+        with transaction_provider.run_transaction() as conn:
+            for handle in ("agent1.bsky.social", "user2.bsky.social"):
+                aid = canonical_agent_id(handle)
+                conn.execute(
+                    """
+                    INSERT INTO agent (
+                        agent_id, handle, persona_source, display_name, created_at, updated_at
+                    ) VALUES (?, ?, 'test', ?, '2026-01-01', '2026-01-01')
+                    """,
+                    (aid, handle, handle),
+                )
         run = run_repo.create_run(
             RunConfigFactory.create(
                 num_agents=1, num_turns=1, feed_algorithm="chronological"
@@ -960,7 +978,7 @@ class TestSimulationCommandServiceActionPersistence:
                 GeneratedLikeFactory.create(
                     like=LikeFactory.create(
                         like_id="like_1",
-                        agent_id=agent.handle,
+                        agent_id=agent.agent_id,
                         post_id="bluesky:at://did:plc:post1",
                         created_at="2026-02-24T12:00:00Z",
                     ),
@@ -974,7 +992,7 @@ class TestSimulationCommandServiceActionPersistence:
                 GeneratedCommentFactory.create(
                     comment=CommentFactory.create(
                         comment_id="comment_1",
-                        agent_id=agent.handle,
+                        agent_id=agent.agent_id,
                         post_id="bluesky:at://did:plc:post1",
                         text="Nice!",
                         created_at="2026-02-24T12:00:00Z",
@@ -989,8 +1007,8 @@ class TestSimulationCommandServiceActionPersistence:
                 GeneratedFollowFactory.create(
                     follow=FollowFactory.create(
                         follow_id="follow_1",
-                        agent_id=agent.handle,
-                        user_id="user2.bsky.social",
+                        agent_id=agent.agent_id,
+                        target_agent_id=canonical_agent_id("user2.bsky.social"),
                         created_at="2026-02-24T12:00:00Z",
                     ),
                     explanation="Interesting",
@@ -1089,15 +1107,17 @@ class TestSimulationCommandServiceActionPersistence:
 
         assert len(persisted_likes) == 1
         assert persisted_likes[0].like_id == "like_1"
-        assert persisted_likes[0].agent_handle == "agent1.bsky.social"
+        assert persisted_likes[0].agent_id == agent.agent_id
         assert persisted_likes[0].post_id == "bluesky:at://did:plc:post1"
 
         assert len(persisted_comments) == 1
         assert persisted_comments[0].comment_id == "comment_1"
-        assert persisted_comments[0].agent_handle == "agent1.bsky.social"
+        assert persisted_comments[0].agent_id == agent.agent_id
         assert persisted_comments[0].text == "Nice!"
 
         assert len(persisted_follows) == 1
         assert persisted_follows[0].follow_id == "follow_1"
-        assert persisted_follows[0].agent_handle == "agent1.bsky.social"
-        assert persisted_follows[0].user_id == "user2.bsky.social"
+        assert persisted_follows[0].agent_id == agent.agent_id
+        assert persisted_follows[0].target_agent_id == canonical_agent_id(
+            "user2.bsky.social"
+        )

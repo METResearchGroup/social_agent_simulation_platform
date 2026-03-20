@@ -8,6 +8,22 @@ import pytest
 from db.adapters.base import TransactionProvider
 from db.adapters.sqlite.sqlite import get_connection
 from simulation.core.models.agent import Agent, PersonaSource
+from simulation.core.models.feeds import GeneratedFeed
+
+
+def ensure_agent_row_for_generated_feed(feed: GeneratedFeed) -> None:
+    """Insert an agent row so ``generated_feeds.agent_id`` FK writes succeed in tests."""
+    handle = feed.agent_handle.strip()
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO agent (
+                agent_id, handle, persona_source, display_name, created_at, updated_at
+            ) VALUES (?, ?, 'test', ?, '2026-01-01', '2026-01-01')
+            """,
+            (feed.agent_id, handle, handle),
+        )
+        conn.commit()
 
 
 def ensure_run_exists(run_id: str) -> None:
