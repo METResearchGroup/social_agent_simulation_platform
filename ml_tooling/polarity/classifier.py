@@ -57,7 +57,7 @@ class PolarityPipeline:
             results.append(
                 [
                     {"label": label, "score": score}
-                    for label, score in zip(self.labels, probs)
+                    for label, score in zip(self.labels, probs, strict=True)
                 ]
             )
 
