@@ -88,6 +88,8 @@ API routes
 Error and failure semantics:
 
 - Use a stable error payload shape (e.g. code, message, detail) and sanitize detail; avoid exposing stack traces or internal paths.
+- Validate inputs at the start of a function before performing expensive work. If validation can fail (e.g. missing agent_id), check first and raise immediately so invalid inputs fail fast rather than after costly computation.
+- When deriving a value from optional or partially populated data, raise a clear error (e.g. ValueError) if the data cannot be resolved, rather than returning an empty string or default that would cause silent mismatches or incorrect behavior downstream.
 - Partial results on mid-run failure: return 200 with status="failed", partial data (e.g. likes_per_turn), and an error object—reserve 500 for pre-creation or infrastructure failures so clients can rely on partial results when a run exists.
 - During development, we prefer to fail fast. For critical pipelines (e.g. metrics that must be correct for a run), use fail-fast: if any step fails, fail the whole operation (e.g. run status to FAILED) rather than returning best-effort or partial results for that pipeline. Partial persisted data (e.g. completed turns) may still be returned to the client with status failed. We may choose to change this in the future, and we may choose to prioritize uptime. But right now, during development, we prioritize failing fast.
 
@@ -113,6 +115,10 @@ Deterministic outputs:
 - For API and serialized data, treat ordering as part of the contract unless otherwise specified: document or enforce it (e.g. “ordered by turn_number ascending”) so clients get stable, repeatable results.
 - When a pipeline has dependencies between steps (e.g. metric A required by metric B), resolve and execute in a stable topological order; use deterministic tie-breaking (e.g. alphabetical by key) so runs are reproducible.
 
+Consistent keying for related data:
+
+- When building dictionaries or maps that group related data (e.g. feeds and actions by agent), use the same resolution logic for keys. Prefer a single helper (e.g. _handle_for_agent_id) for key derivation so feeds and actions are keyed consistently and stale or alternate representations do not split data.
+
 Response schema consistency:
 
 - For response fields that depend on each other (e.g. status and error), use a shared enum for the discriminating field and a Pydantic @model_validator(mode="after") to enforce the invariant (e.g. when status is "failed", error must be set; when "completed", error must be None) so invalid combinations are rejected at the boundary.
@@ -123,6 +129,8 @@ Validation helpers
   (e.g. non-empty string) in a central module (e.g. lib/validation_utils.py) and
   reuse. Avoid duplicating patterns like `if not v or not v.strip(): raise ValueError(...)`.
 - Before adding a one-off check: Look for the same pattern elsewhere and centralize (e.g. “value in allowed set” → validate_value_in_set).
+
+- At repository boundaries that expect canonical identifiers (e.g. 16-char hex agent_id), reject non-canonical values (handles, malformed strings) with explicit validation. Use a dedicated validator (e.g. validate_canonical_agent_id) that enforces the format and raises with a clear error so callers fail fast instead of getting empty or incorrect results.
 
 Registries and swappable implementations
 
@@ -171,6 +179,7 @@ Document the contract, not just the implementation
 Persistence and model boundaries
 
 - When adding computed or derived data (e.g. metrics), persist it in dedicated storage (e.g. turn_metrics / run_metrics tables and a dedicated repository) rather than overloading existing models or repositories. Keeps core models stable and avoids bloating a single repo with unrelated concerns.
+- When resolving identifiers (e.g. handles to agent_ids), prefer targeted SQL lookups with parameterized queries over fetching all rows and scanning in Python. Validate that canonical-looking IDs actually exist in the backing store before returning them; do not trust format alone.
 
 Persistence scopes
 
