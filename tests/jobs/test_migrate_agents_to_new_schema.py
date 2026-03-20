@@ -1,6 +1,7 @@
 """Integration tests for jobs.migrate_agents_to_new_schema."""
 
 from jobs.migrate_agents_to_new_schema import main
+from lib.agent_id import canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from tests.factories import (
     BlueskyProfileFactory,
@@ -75,24 +76,27 @@ class TestMigrateAgentsToNewSchema:
         assert "alice.bsky.social" in handles
         assert "bob.bsky.social" in handles
 
+        alice_id = canonical_agent_id("did:plc:alice123")
+        bob_id = canonical_agent_id("did:plc:bob456")
+
         alice_agent = agent_repo.get_agent_by_handle("alice.bsky.social")
         assert alice_agent is not None
-        assert alice_agent.agent_id == "did:plc:alice123"
+        assert alice_agent.agent_id == alice_id
         assert alice_agent.display_name == "Alice"
 
-        alice_bio = agent_bio_repo.get_latest_agent_bio("did:plc:alice123")
+        alice_bio = agent_bio_repo.get_latest_agent_bio(alice_id)
         assert alice_bio is not None
         assert "AI-generated comprehensive bio" in alice_bio.persona_bio
 
-        bob_bio = agent_bio_repo.get_latest_agent_bio("did:plc:bob456")
+        bob_bio = agent_bio_repo.get_latest_agent_bio(bob_id)
         assert bob_bio is not None
         assert bob_bio.persona_bio == "No bio provided."
 
-        alice_meta = metadata_repo.get_by_agent_id("did:plc:alice123")
+        alice_meta = metadata_repo.get_by_agent_id(alice_id)
         assert alice_meta is not None
         assert alice_meta.followers_count == 100
         assert alice_meta.posts_count == 10
 
-        bob_meta = metadata_repo.get_by_agent_id("did:plc:bob456")
+        bob_meta = metadata_repo.get_by_agent_id(bob_id)
         assert bob_meta is not None
         assert bob_meta.followers_count == 200
