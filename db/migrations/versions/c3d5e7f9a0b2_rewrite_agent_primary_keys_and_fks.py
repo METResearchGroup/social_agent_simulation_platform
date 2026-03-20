@@ -26,12 +26,17 @@ the same ``new_id`` (see ``AgentIdMigrationCollisionError``).
 tables pointing at ``(run_id, agent_id)`` in ``run_agents`` → ``run_agents`` →
 ``agent`` (PK swap last).
 
-SQLite enables ``PRAGMA foreign_keys=OFF`` for the update batch, then restores
-FK enforcement for validation.
+SQLite enables ``PRAGMA foreign_keys=OFF`` for the update batch. Rewrites use a
+two-phase temp-id strategy (``migtmp_<uuid>``) so chains like ``A→B, B→C`` do
+not collide on ``agent.agent_id`` / composite keys. After ``PRAGMA
+foreign_keys=ON``, ``PRAGMA foreign_key_check`` runs before canonical-format
+validation.
 
 Downgrade is intentionally unsupported (restore from backup).
 """
 
+import logging
+import uuid
 from typing import Mapping, Sequence, cast
 
 from alembic import op
@@ -67,35 +72,64 @@ _RUN_AGENT_FK_COLUMNS: tuple[tuple[str, str], ...] = (
     ("run_follow_edges", "target_agent_id"),
 )
 
+_LOG = logging.getLogger(__name__)
+
+
+def _unique_migration_temp_ids(count: int, reserved: set[str]) -> list[str]:
+    """Return ``count`` distinct temp ids that cannot collide with ``reserved``."""
+    out: list[str] = []
+    while len(out) < count:
+        # Prefix keeps these outside the 16-char canonical agent_id space and schema TEXT.
+        candidate = f"migtmp_{uuid.uuid4().hex}"
+        if candidate in reserved:
+            continue
+        reserved.add(candidate)
+        out.append(candidate)
+    return out
+
+
+def _rewrite_agent_id_everywhere(connection, old_id: str, new_id: str) -> None:
+    """Rewrite ``old_id`` to ``new_id`` across all FK paths (FKs may be OFF)."""
+    for table, column in _AGENT_FK_COLUMNS:
+        connection.execute(
+            text(
+                f"UPDATE {table} SET {column} = :new_id WHERE {column} = :old_id"  # nosec B608
+            ),
+            {"new_id": new_id, "old_id": old_id},
+        )
+    for table, column in _RUN_AGENT_FK_COLUMNS:
+        connection.execute(
+            text(
+                f"UPDATE {table} SET {column} = :new_id WHERE {column} = :old_id"  # nosec B608
+            ),
+            {"new_id": new_id, "old_id": old_id},
+        )
+    connection.execute(
+        text("UPDATE run_agents SET agent_id = :new_id WHERE agent_id = :old_id"),
+        {"new_id": new_id, "old_id": old_id},
+    )
+    connection.execute(
+        text("UPDATE agent SET agent_id = :new_id WHERE agent_id = :old_id"),
+        {"new_id": new_id, "old_id": old_id},
+    )
+
 
 def _apply_rewrites(connection, old_to_new: dict[str, str]) -> None:
+    """Two-phase rewrite so chains like A→B, B→C never hit PK/UNIQUE conflicts."""
     pairs = migration_pairs(old_to_new)
     if not pairs:
         return
 
-    for old_id, new_id in pairs:
-        for table, column in _AGENT_FK_COLUMNS:
-            connection.execute(
-                text(
-                    f"UPDATE {table} SET {column} = :new_id WHERE {column} = :old_id"  # nosec B608
-                ),
-                {"new_id": new_id, "old_id": old_id},
-            )
-        for table, column in _RUN_AGENT_FK_COLUMNS:
-            connection.execute(
-                text(
-                    f"UPDATE {table} SET {column} = :new_id WHERE {column} = :old_id"  # nosec B608
-                ),
-                {"new_id": new_id, "old_id": old_id},
-            )
-        connection.execute(
-            text("UPDATE run_agents SET agent_id = :new_id WHERE agent_id = :old_id"),
-            {"new_id": new_id, "old_id": old_id},
-        )
-        connection.execute(
-            text("UPDATE agent SET agent_id = :new_id WHERE agent_id = :old_id"),
-            {"new_id": new_id, "old_id": old_id},
-        )
+    reserved: set[str] = set(old_to_new.keys()) | set(old_to_new.values())
+    temp_ids = _unique_migration_temp_ids(len(pairs), reserved)
+    trios = list(
+        zip(temp_ids, [p[0] for p in pairs], [p[1] for p in pairs], strict=True)
+    )
+
+    for temp_id, old_id, _new_id in trios:
+        _rewrite_agent_id_everywhere(connection, old_id, temp_id)
+    for temp_id, _old_id, new_id in trios:
+        _rewrite_agent_id_everywhere(connection, temp_id, new_id)
 
 
 def _validate_agent_fk_columns(connection) -> None:
@@ -120,6 +154,18 @@ def _validate_agent_fk_columns(connection) -> None:
                 )
 
 
+def _assert_foreign_key_integrity(connection) -> None:
+    """Run SQLite referential integrity check; raise if any FK violations exist."""
+    rows = connection.execute(text("PRAGMA foreign_key_check")).fetchall()
+    if not rows:
+        return
+    for row in rows:
+        _LOG.error("PRAGMA foreign_key_check violation: %s", row)
+    raise ValueError(
+        f"post-migration PRAGMA foreign_key_check reported {len(rows)} violation(s): {rows!r}"
+    )
+
+
 def upgrade() -> None:
     conn = op.get_bind()
     row_maps = (
@@ -127,7 +173,8 @@ def upgrade() -> None:
             text(
                 "SELECT a.agent_id AS agent_id, a.handle AS handle, bp.did AS did "
                 "FROM agent a "
-                "LEFT JOIN bluesky_profiles bp ON bp.handle = a.handle"
+                "LEFT JOIN bluesky_profiles bp ON bp.handle = a.handle "
+                "ORDER BY a.agent_id"
             )
         )
         .mappings()
@@ -144,6 +191,7 @@ def upgrade() -> None:
     finally:
         conn.exec_driver_sql("PRAGMA foreign_keys=ON")
 
+    _assert_foreign_key_integrity(conn)
     _validate_agent_fk_columns(conn)
 
 

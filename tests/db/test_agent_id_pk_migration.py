@@ -13,6 +13,8 @@ from lib.agent_id import canonical_agent_id, is_canonical_agent_id
 from lib.constants import REPO_ROOT
 from scripts.migrations.agent_id_migration import (
     AgentIdMigrationCollisionError,
+    build_old_to_new_map,
+    migration_pairs,
     stable_source_for_agent_row,
 )
 
@@ -257,3 +259,79 @@ class TestAgentIdPkMigration:
 
         with pytest.raises(AgentIdMigrationCollisionError):
             command.upgrade(cfg, "head")
+
+    def test_two_phase_chain_a_to_b_to_c(self, tmp_path: Path, monkeypatch) -> None:
+        """Chained map (A→B, B→C) must not hit PK conflicts; uses mapping helpers."""
+        legacy_a = "aa0e8400-e29b-41d4-a716-446655440099"
+        handle_a = "chainalpha.integration.bsky.social"
+        handle_b = "chainbeta.integration.bsky.social"
+        id_b = canonical_agent_id(handle_a)
+        id_c = canonical_agent_id(handle_b)
+        assert id_b != id_c
+
+        agent_rows = [
+            (legacy_a, handle_a, None),
+            (id_b, handle_b, None),
+        ]
+        old_to_new = build_old_to_new_map(agent_rows)
+        pairs = migration_pairs(old_to_new)
+        assert len(pairs) == 2
+        assert pairs[0][1] == pairs[1][0] == id_b
+
+        db_path = str(tmp_path / "m5.sqlite")
+        cfg = _cfg(monkeypatch, db_path)
+        command.upgrade(cfg, "b2c4d6e8f0a1")
+
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute(
+                """
+                INSERT INTO agent (
+                  agent_id, handle, persona_source, display_name, created_at, updated_at
+                ) VALUES (?, ?, 'test', 'Alpha', '2026-01-01', '2026-01-01')
+                """,
+                (legacy_a, handle_a),
+            )
+            conn.execute(
+                """
+                INSERT INTO agent (
+                  agent_id, handle, persona_source, display_name, created_at, updated_at
+                ) VALUES (?, ?, 'test', 'Beta', '2026-01-01', '2026-01-01')
+                """,
+                (id_b, handle_b),
+            )
+            conn.execute(
+                """
+                INSERT INTO agent_posts (
+                  agent_post_id, agent_id, body_text, published_at, created_at, updated_at
+                ) VALUES (?, ?, 'x', '2026-01-01', '2026-01-01', '2026-01-01')
+                """,
+                ("chain-post-1", legacy_a),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        command.upgrade(cfg, "head")
+
+        conn = sqlite3.connect(db_path)
+        try:
+            assert _fk_violations(conn) == []
+            row_a = conn.execute(
+                "SELECT agent_id FROM agent WHERE handle = ?", (handle_a,)
+            ).fetchone()
+            assert row_a is not None
+            assert row_a[0] == id_b
+            row_b = conn.execute(
+                "SELECT agent_id FROM agent WHERE handle = ?", (handle_b,)
+            ).fetchone()
+            assert row_b is not None
+            assert row_b[0] == id_c
+            post = conn.execute(
+                "SELECT agent_id FROM agent_posts WHERE agent_post_id = ?",
+                ("chain-post-1",),
+            ).fetchone()
+            assert post is not None
+            assert post[0] == id_b
+        finally:
+            conn.close()
