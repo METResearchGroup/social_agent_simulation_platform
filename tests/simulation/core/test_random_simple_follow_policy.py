@@ -110,9 +110,56 @@ class TestRandomSimpleFollowPolicy:
             agent_id=canonical_agent_id(agent_handle),
         )
         followed_user_ids = [follow.follow.target_agent_id for follow in result]
-        assert agent_handle not in followed_user_ids
-        expected_other_user = "other-user.bsky.social"
-        assert expected_other_user in followed_user_ids
+        assert canonical_agent_id(agent_handle) not in followed_user_ids
+        expected_other_user_id = canonical_agent_id("other-user.bsky.social")
+        assert expected_other_user_id in followed_user_ids
+
+    def test_excludes_self_by_canonical_id_when_author_agent_id_set(self, monkeypatch):
+        """RandomSimpleFollowGenerator excludes self by canonical ID when author_agent_id is set."""
+        monkeypatch.setattr(random_simple_follow, "FOLLOW_PROBABILITY", 1.0)
+        generator = RandomSimpleFollowGenerator()
+        agent_handle = "agent.bsky.social"
+        agent_canonical_id = canonical_agent_id(agent_handle)
+        other_handle = "other-user.bsky.social"
+        other_canonical_id = canonical_agent_id(other_handle)
+        candidates = [
+            PostFactory.create(
+                uri="self_post",
+                author_handle=agent_handle,
+                author_agent_id=agent_canonical_id,
+                author_display_name="Agent",
+                text="content",
+                like_count=0,
+                bookmark_count=0,
+                quote_count=0,
+                reply_count=0,
+                repost_count=0,
+                created_at="2024_01_01-12:00:00",
+            ),
+            PostFactory.create(
+                uri="other_post",
+                author_handle=other_handle,
+                author_agent_id=other_canonical_id,
+                author_display_name="Other",
+                text="content",
+                like_count=0,
+                bookmark_count=0,
+                quote_count=0,
+                reply_count=0,
+                repost_count=0,
+                created_at="2024_01_01-12:00:00",
+            ),
+        ]
+        result = generator.generate(
+            candidates=candidates,
+            run_id="run_self",
+            turn_number=0,
+            agent_handle=agent_handle,
+            agent_id=agent_canonical_id,
+        )
+        followed_user_ids = [follow.follow.target_agent_id for follow in result]
+        assert agent_canonical_id not in followed_user_ids
+        assert other_canonical_id in followed_user_ids
 
     def test_threshold_boundary_includes_below_and_excludes_equal(self, monkeypatch):
         """Random below threshold yields follow; at-or-above threshold does not."""
@@ -136,7 +183,7 @@ class TestRandomSimpleFollowPolicy:
             agent_id=canonical_agent_id("agent1.bsky.social"),
         )
         followed_user_ids = [follow.follow.target_agent_id for follow in result]
-        expected_result = ["author-a.bsky.social"]
+        expected_result = [canonical_agent_id("author-a.bsky.social")]
         assert followed_user_ids == expected_result
 
     def test_generated_follow_has_required_fields_and_metadata(self, monkeypatch):
@@ -159,7 +206,7 @@ class TestRandomSimpleFollowPolicy:
         expected_run_id = "run_1"
         expected_turn = 2
         expected_handle = "agent.bsky.social"
-        expected_user_id = "target-user.bsky.social"
+        expected_user_id = canonical_agent_id("target-user.bsky.social")
         assert (
             follow.follow.follow_id
             == f"follow_{expected_run_id}_{expected_turn}_{expected_handle}_{expected_user_id}"

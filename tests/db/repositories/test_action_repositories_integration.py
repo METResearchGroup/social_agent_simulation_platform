@@ -65,11 +65,12 @@ class TestSQLiteLikeRepositoryIntegration:
         run_id = _make_run(run_repo)
         turn_number = 0
 
+        alice_id = canonical_agent_id("alice.bsky.social")
         likes = [
             GeneratedLikeFactory.create(
                 like=LikeFactory.create(
                     like_id="like_1",
-                    agent_id="alice.bsky.social",
+                    agent_id=alice_id,
                     post_id="at://did:plc:post1",
                     created_at="2026-02-24T12:00:00Z",
                 ),
@@ -86,7 +87,7 @@ class TestSQLiteLikeRepositoryIntegration:
         result = like_repo.read_likes_by_run_turn(run_id, turn_number)
         assert len(result) == 1
         assert result[0].like_id == "like_1"
-        assert result[0].agent_id == canonical_agent_id("alice.bsky.social")
+        assert result[0].agent_id == alice_id
         assert result[0].post_id == "at://did:plc:post1"
         assert result[0].run_id == run_id
         assert result[0].turn_number == turn_number
@@ -108,11 +109,12 @@ class TestSQLiteCommentRepositoryIntegration:
         run_id = _make_run(run_repo)
         turn_number = 0
 
+        bob_id = canonical_agent_id("bob.bsky.social")
         comments = [
             GeneratedCommentFactory.create(
                 comment=CommentFactory.create(
                     comment_id="comment_1",
-                    agent_id="bob.bsky.social",
+                    agent_id=bob_id,
                     post_id="at://did:plc:post2",
                     text="Nice one!",
                     created_at="2026-02-24T12:01:00Z",
@@ -130,7 +132,7 @@ class TestSQLiteCommentRepositoryIntegration:
         result = comment_repo.read_comments_by_run_turn(run_id, turn_number)
         assert len(result) == 1
         assert result[0].comment_id == "comment_1"
-        assert result[0].agent_id == canonical_agent_id("bob.bsky.social")
+        assert result[0].agent_id == bob_id
         assert result[0].post_id == "at://did:plc:post2"
         assert result[0].text == "Nice one!"
         assert result[0].run_id == run_id
@@ -147,12 +149,14 @@ class TestSQLiteFollowRepositoryIntegration:
         run_id = _make_run(run_repo)
         turn_number = 0
 
+        alice_id = canonical_agent_id("alice.bsky.social")
+        charlie_id = canonical_agent_id("charlie.bsky.social")
         follows = [
             GeneratedFollowFactory.create(
                 follow=FollowFactory.create(
                     follow_id="follow_1",
-                    agent_id="alice.bsky.social",
-                    target_agent_id="charlie.bsky.social",
+                    agent_id=alice_id,
+                    target_agent_id=charlie_id,
                     created_at="2026-02-24T12:02:00Z",
                 ),
                 explanation="Interesting account",
@@ -168,7 +172,7 @@ class TestSQLiteFollowRepositoryIntegration:
         result = follow_repo.read_follows_by_run_turn(run_id, turn_number)
         assert len(result) == 1
         assert result[0].follow_id == "follow_1"
-        assert result[0].agent_id == canonical_agent_id("alice.bsky.social")
-        assert result[0].target_agent_id == canonical_agent_id("charlie.bsky.social")
+        assert result[0].agent_id == alice_id
+        assert result[0].target_agent_id == charlie_id
         assert result[0].run_id == run_id
         assert result[0].turn_number == turn_number

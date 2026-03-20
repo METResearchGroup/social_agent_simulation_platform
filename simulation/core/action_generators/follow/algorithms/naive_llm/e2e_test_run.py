@@ -101,6 +101,9 @@ def main() -> None:
         )
         generated_items = list(result)
         assert generated_items, "Expected at least one generated follow action"  # noqa: S101  # nosec B101
+        expected_agent_id = canonical_agent_id(agent_handle)
+        for item in generated_items:
+            assert item.follow.agent_id == expected_agent_id  # noqa: S101  # nosec B101
         assert all(item is not None for item in generated_items)  # noqa: S101  # nosec B101
 
 

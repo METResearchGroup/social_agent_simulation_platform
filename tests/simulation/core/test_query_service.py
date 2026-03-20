@@ -194,6 +194,20 @@ class TestSimulationQueryServiceGetTurnData:
         mock_repos[
             "run_post_repo"
         ].read_run_posts_by_ids.return_value = run_post_snapshots
+        agent1_id = canonical_agent_id("agent1.bsky.social")
+        agent2_id = canonical_agent_id("agent2.bsky.social")
+        mock_repos["run_agent_repo"].list_run_agents.return_value = [
+            RunAgentSnapshotFactory.create(
+                run_id=sample_run.run_id,
+                agent_id=agent1_id,
+                handle_at_start="agent1.bsky.social",
+            ),
+            RunAgentSnapshotFactory.create(
+                run_id=sample_run.run_id,
+                agent_id=agent2_id,
+                handle_at_start="agent2.bsky.social",
+            ),
+        ]
 
         result = query_service.get_turn_data(sample_run.run_id, 0)
 

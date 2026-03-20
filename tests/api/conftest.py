@@ -14,6 +14,13 @@ from simulation.api.dependencies.auth import require_auth
 from simulation.api.main import app
 
 
+@pytest.fixture
+def client(temp_db):
+    """Isolated DB so migrations do not depend on the repo's db.sqlite."""
+    with TestClient(app) as client:
+        yield client
+
+
 def _mock_require_current_app_user(
     request: Request, claims: dict = Depends(require_auth)
 ):

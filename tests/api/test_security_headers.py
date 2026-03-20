@@ -1,16 +1,6 @@
 """Tests for security headers middleware."""
 
 import pytest
-from fastapi.testclient import TestClient
-
-from simulation.api.main import app
-
-
-@pytest.fixture
-def client(temp_db):
-    """Isolated DB so migrations do not depend on the repo's db.sqlite."""
-    with TestClient(app) as client:
-        yield client
 
 
 class TestSecurityHeaders:

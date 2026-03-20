@@ -35,22 +35,52 @@ def _norm_handle(value: str) -> str:
     return t.strip().lower()
 
 
-def _resolve_agent_id(conn: sa.Connection, raw: str) -> str:
+def _build_handle_to_agent_id_map(
+    conn: sa.Connection,
+) -> tuple[dict[str, str], set[str]]:
+    """Build normalized_handle -> agent_id map. Returns (map, canonical_ids_in_agent)."""
+    rows = conn.execute(text("SELECT agent_id, handle FROM agent")).fetchall()
+    handle_to_id: dict[str, str] = {}
+    canonical_ids: set[str] = set()
+    for agent_id, handle in rows:
+        canonical_ids.add(str(agent_id))
+        if handle:
+            norm = _norm_handle(handle)
+            if norm in handle_to_id and handle_to_id[norm] != str(agent_id):
+                raise ValueError(
+                    f"action_feed_id_semantics migration: normalized handle collision "
+                    f"for {norm!r} -> agent_ids {handle_to_id[norm]!r} and {agent_id!r}"
+                )
+            handle_to_id[norm] = str(agent_id)
+    return handle_to_id, canonical_ids
+
+
+def _resolve_agent_id(
+    raw: str,
+    handle_to_id: dict[str, str],
+    canonical_ids: set[str],
+) -> str:
     if is_canonical_agent_id(raw):
+        if raw not in canonical_ids:
+            raise ValueError(
+                f"action_feed_id_semantics migration: canonical id {raw!r} not in agent table"
+            )
         return raw
     want = _norm_handle(raw)
-    rows = conn.execute(
-        text("SELECT agent_id, handle FROM agent"),
-    ).fetchall()
-    for agent_id, handle in rows:
-        if _norm_handle(handle) == want:
-            return str(agent_id)
+    if want in handle_to_id:
+        return handle_to_id[want]
     raise ValueError(
         f"action_feed_id_semantics migration: cannot resolve agent row for handle/id {raw!r}"
     )
 
 
-def _backfill_agent_id_column(conn: sa.Connection, table: str, column: str) -> None:
+def _backfill_agent_id_column(
+    conn: sa.Connection,
+    table: str,
+    column: str,
+    handle_to_id: dict[str, str],
+    canonical_ids: set[str],
+) -> None:
     pk_col = (
         "like_id"
         if table == "likes"
@@ -65,15 +95,20 @@ def _backfill_agent_id_column(conn: sa.Connection, table: str, column: str) -> N
         if current is None:
             raise ValueError(f"{table}.{column} is NULL for {pk_col}={pk!r}")
         if is_canonical_agent_id(current):
+            _resolve_agent_id(current, handle_to_id, canonical_ids)
             continue
-        resolved = _resolve_agent_id(conn, current)
+        resolved = _resolve_agent_id(current, handle_to_id, canonical_ids)
         conn.execute(
             text(f"UPDATE {table} SET {column} = :nid WHERE {pk_col} = :pk"),  # nosec B608
             {"nid": resolved, "pk": pk},
         )
 
 
-def _backfill_follow_target(conn: sa.Connection) -> None:
+def _backfill_follow_target(
+    conn: sa.Connection,
+    handle_to_id: dict[str, str],
+    canonical_ids: set[str],
+) -> None:
     rows = conn.execute(
         text("SELECT follow_id, target_agent_id FROM follows")
     ).fetchall()
@@ -83,8 +118,9 @@ def _backfill_follow_target(conn: sa.Connection) -> None:
                 f"follows.target_agent_id is NULL for follow_id={follow_id!r}"
             )
         if is_canonical_agent_id(current):
+            _resolve_agent_id(current, handle_to_id, canonical_ids)
             continue
-        resolved = _resolve_agent_id(conn, current)
+        resolved = _resolve_agent_id(current, handle_to_id, canonical_ids)
         conn.execute(
             text("UPDATE follows SET target_agent_id = :nid WHERE follow_id = :fid"),
             {"nid": resolved, "fid": follow_id},
@@ -94,6 +130,7 @@ def _backfill_follow_target(conn: sa.Connection) -> None:
 def upgrade() -> None:
     conn = op.get_bind()
     assert isinstance(conn, sa.Connection)  # nosec B101
+    handle_to_id, canonical_ids = _build_handle_to_agent_id_map(conn)
     conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
     try:
         # --- likes ---
@@ -103,7 +140,9 @@ def upgrade() -> None:
         conn.execute(
             sa.text("ALTER TABLE likes RENAME COLUMN agent_handle TO agent_id")
         )
-        _backfill_agent_id_column(conn, "likes", "agent_id")
+        _backfill_agent_id_column(
+            conn, "likes", "agent_id", handle_to_id, canonical_ids
+        )
         with op.batch_alter_table("likes", schema=None) as batch_op:
             batch_op.create_unique_constraint(
                 "uq_likes_run_turn_agent_post",
@@ -125,7 +164,9 @@ def upgrade() -> None:
         conn.execute(
             sa.text("ALTER TABLE comments RENAME COLUMN agent_handle TO agent_id")
         )
-        _backfill_agent_id_column(conn, "comments", "agent_id")
+        _backfill_agent_id_column(
+            conn, "comments", "agent_id", handle_to_id, canonical_ids
+        )
         with op.batch_alter_table("comments", schema=None) as batch_op:
             batch_op.create_unique_constraint(
                 "uq_comments_run_turn_agent_post",
@@ -150,8 +191,10 @@ def upgrade() -> None:
         conn.execute(
             sa.text("ALTER TABLE follows RENAME COLUMN user_id TO target_agent_id")
         )
-        _backfill_agent_id_column(conn, "follows", "agent_id")
-        _backfill_follow_target(conn)
+        _backfill_agent_id_column(
+            conn, "follows", "agent_id", handle_to_id, canonical_ids
+        )
+        _backfill_follow_target(conn, handle_to_id, canonical_ids)
         with op.batch_alter_table("follows", schema=None) as batch_op:
             batch_op.create_unique_constraint(
                 "uq_follows_run_turn_agent_target",
@@ -199,7 +242,7 @@ def upgrade() -> None:
         for row in old_rows:
             rowd = dict(zip(cols, row, strict=True))
             ah = rowd["agent_handle"]
-            aid = _resolve_agent_id(conn, ah)
+            aid = _resolve_agent_id(ah, handle_to_id, canonical_ids)
             conn.execute(
                 text(
                     """

@@ -174,6 +174,7 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
     def test_gets_generated_feed_when_found(self):
         """Test that get_generated_feed returns a feed when found."""
         # Arrange
+        aid = canonical_agent_id("test.bsky.social")
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         expected_feed = GeneratedFeedFactory.create(
             feed_id="feed_test123",
@@ -190,13 +191,13 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         )
 
         # Act
-        result = repo.get_generated_feed("test.bsky.social", "run_123", 1)
+        result = repo.get_generated_feed(aid, "run_123", 1)
 
         # Assert
         assert result == expected_feed
         mock_adapter.read_generated_feed.assert_called_once()
         assert mock_adapter.read_generated_feed.call_args[0][:3] == (
-            "test.bsky.social",
+            aid,
             "run_123",
             1,
         )

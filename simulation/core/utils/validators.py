@@ -52,6 +52,22 @@ def validate_agent_id(agent_id: str) -> str:
     return _validate_non_empty_string_labeled(agent_id, label="agent_id")
 
 
+def validate_canonical_agent_id(agent_id: str) -> str:
+    """Validate that agent_id is the canonical 16-char lowercase hex format.
+
+    Returns stripped value. Use for GeneratedFeed and repository boundaries
+    that must reject handles or malformed IDs.
+    """
+    from lib.agent_id import is_canonical_agent_id
+
+    stripped = _validate_non_empty_string_labeled(agent_id, label="agent_id")
+    if not is_canonical_agent_id(stripped):
+        raise ValueError(
+            f"agent_id must be 16 lowercase hex chars (got {len(stripped)} chars)"
+        )
+    return stripped
+
+
 def validate_num_agents(num_agents: int) -> int:
     """Validate that num_agents is a positive integer."""
     return validate_nonnegative_value(num_agents, "num_agents", ok_equals_zero=False)

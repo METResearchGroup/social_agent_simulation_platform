@@ -52,8 +52,8 @@ class TestAgentActions:
         generated_follow = GeneratedFollowFactory.create(
             follow=FollowFactory.create(
                 follow_id="follow_1",
-                agent_id=agent.handle,
-                target_agent_id="author1.bsky.social",
+                agent_id=agent_id,
+                target_agent_id=canonical_agent_id("author1.bsky.social"),
                 created_at="2024_01_01-12:00:00",
             ),
             explanation="reason",

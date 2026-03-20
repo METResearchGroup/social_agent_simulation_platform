@@ -223,6 +223,8 @@ class TestServiceBuilders:
     """Tests for create_query_service and create_command_service functions."""
 
     def test_create_query_service(self):
+        run_agent_repo_mock = Mock(spec=RunAgentRepository)
+        run_follow_edge_repo_mock = Mock(spec=RunFollowEdgeRepository)
         service = create_query_service(
             run_repo=Mock(spec=RunRepository),
             metrics_repo=Mock(spec=MetricsRepository),
@@ -233,12 +235,12 @@ class TestServiceBuilders:
             like_repo=Mock(spec=LikeRepository),
             comment_repo=Mock(spec=CommentRepository),
             follow_repo=Mock(spec=FollowRepository),
-            run_follow_edge_repo=Mock(spec=RunFollowEdgeRepository),
-            run_agent_repo=Mock(spec=RunAgentRepository),
+            run_follow_edge_repo=run_follow_edge_repo_mock,
+            run_agent_repo=run_agent_repo_mock,
         )
         assert isinstance(service, SimulationQueryService)
-        assert service.run_follow_edge_repo is not None
-        assert service.run_agent_repo is not None
+        assert service.run_agent_repo is run_agent_repo_mock
+        assert service.run_follow_edge_repo is run_follow_edge_repo_mock
 
     def test_create_command_service(self):
         mock_simulation_persistence = Mock(spec=SimulationPersistenceService)

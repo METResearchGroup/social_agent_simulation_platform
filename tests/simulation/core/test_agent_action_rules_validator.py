@@ -2,6 +2,7 @@
 
 import pytest
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_history import InMemoryActionHistoryStore
 from simulation.core.action_policy import AgentActionRulesValidator
 from tests.factories import (
@@ -89,14 +90,14 @@ class TestAgentActionRulesValidator:
                 comments=[],
                 follows=[
                     GeneratedFollowFactory.create(
-                        agent_id="agent1",
-                        target_agent_id="user_1",
+                        agent_id=canonical_agent_id("agent1"),
+                        target_agent_id=canonical_agent_id("user_1"),
                         explanation="reason",
                         metadata=_meta(),
                     ),
                     GeneratedFollowFactory.create(
-                        agent_id="agent1",
-                        target_agent_id="user_1",
+                        agent_id=canonical_agent_id("agent1"),
+                        target_agent_id=canonical_agent_id("user_1"),
                         explanation="reason",
                         metadata=_meta(),
                     ),
@@ -128,8 +129,8 @@ class TestAgentActionRulesValidator:
             ],
             follows=[
                 GeneratedFollowFactory.create(
-                    agent_id="agent1",
-                    target_agent_id="user_3",
+                    agent_id=canonical_agent_id("agent1"),
+                    target_agent_id=canonical_agent_id("user_3"),
                     explanation="reason",
                     metadata=_meta(),
                 )
@@ -178,8 +179,8 @@ class TestAgentActionRulesValidator:
         ]
         follows = [
             GeneratedFollowFactory.create(
-                agent_id="agent1",
-                target_agent_id="user_3",
+                agent_id=canonical_agent_id("agent1"),
+                target_agent_id=canonical_agent_id("user_3"),
                 explanation="reason",
                 metadata=_meta(),
             )
@@ -197,5 +198,5 @@ class TestAgentActionRulesValidator:
 
         assert like_post_ids == ["post_1"]
         assert comment_post_ids == ["post_2"]
-        assert follow_user_ids == ["user_3"]
+        assert follow_user_ids == [canonical_agent_id("user_3")]
         assert not history.has_liked("run_123", "agent1.bsky.social", "post_1")

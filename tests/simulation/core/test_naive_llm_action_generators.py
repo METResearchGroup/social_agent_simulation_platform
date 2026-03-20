@@ -55,6 +55,9 @@ def _post(
     )
 
 
+AGENT_ID = canonical_agent_id("agent1.bsky.social")
+
+
 @pytest.fixture
 def sample_candidates() -> list[Post]:
     """Sample feed posts for testing."""
@@ -81,7 +84,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         assert result == expected_result
@@ -180,7 +183,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         assert result == expected_result
@@ -288,7 +291,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         assert result == expected_result
@@ -331,10 +334,16 @@ class TestNaiveLLMFollowGenerator:
             agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
-        expected_result = ["alice.bsky.social", "carol.bsky.social"]
-        assert [g.follow.target_agent_id for g in result] == expected_result
-        expected_result = "LLM prediction (naive_llm)"
-        assert result[0].explanation == expected_result
+        expected_ids = {
+            canonical_agent_id("alice.bsky.social"),
+            canonical_agent_id("carol.bsky.social"),
+        }
+        target_ids = [g.follow.target_agent_id for g in result]
+        assert set(target_ids) == expected_ids
+        assert target_ids == sorted(target_ids), (
+            "Output must be sorted by target_agent_id"
+        )
+        assert result[0].explanation == "LLM prediction (naive_llm)"
         mock_llm.structured_completion.assert_called_once()
 
     def test_filters_invalid_user_ids(
@@ -358,8 +367,9 @@ class TestNaiveLLMFollowGenerator:
 
         expected_result = 1
         assert len(result) == expected_result
-        expected_result = "alice.bsky.social"
-        assert result[0].follow.target_agent_id == expected_result
+        assert result[0].follow.target_agent_id == canonical_agent_id(
+            "alice.bsky.social"
+        )
 
     def test_ordering_is_sorted_by_user_id(
         self,
@@ -380,5 +390,12 @@ class TestNaiveLLMFollowGenerator:
             agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
-        expected_result = ["alice.bsky.social", "carol.bsky.social"]
-        assert [g.follow.target_agent_id for g in result] == expected_result
+        expected_ids = {
+            canonical_agent_id("alice.bsky.social"),
+            canonical_agent_id("carol.bsky.social"),
+        }
+        target_ids = [g.follow.target_agent_id for g in result]
+        assert set(target_ids) == expected_ids
+        assert target_ids == sorted(target_ids), (
+            "Output must be sorted by target_agent_id"
+        )

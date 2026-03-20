@@ -15,12 +15,19 @@ def _norm_handle(value: str) -> str:
 
 
 def resolve_agent_id_sqlite(conn: sqlite3.Connection, raw: str) -> str:
-    """Return ``raw`` if already canonical; else resolve via ``agent.handle``."""
-    if is_canonical_agent_id(raw):
-        return raw
-    want = _norm_handle(raw)
-    rows = conn.execute("SELECT agent_id, handle FROM agent").fetchall()
-    for agent_id, handle in rows:
-        if _norm_handle(handle) == want:
-            return str(agent_id)
+    """Resolve to canonical agent_id. Handles: validate via agent table; else resolve via agent.handle."""
+    want = _norm_handle(raw) if not is_canonical_agent_id(raw) else None
+    if want is None:
+        row = conn.execute(
+            "SELECT agent_id FROM agent WHERE agent_id = ? LIMIT 1", (raw.strip(),)
+        ).fetchone()
+        if row is not None:
+            return str(row[0])
+        raise ValueError(f"Cannot resolve agent_id for {raw!r} (not in agent table)")
+    row = conn.execute(
+        "SELECT agent_id FROM agent WHERE lower(trim(ltrim(trim(coalesce(handle,'')), '@'))) = ? LIMIT 1",
+        (want,),
+    ).fetchone()
+    if row is not None:
+        return str(row[0])
     raise ValueError(f"Cannot resolve agent_id for {raw!r}")

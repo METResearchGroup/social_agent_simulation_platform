@@ -150,7 +150,7 @@ class SimulationQueryService:
             for post_id in feed.post_ids:
                 if post_id in post_id_to_post:
                     hydrated_posts.append(post_id_to_post[post_id])
-            feed_key = feed.agent_handle or _handle_for_agent_id(feed.agent_id)
+            feed_key = _handle_for_agent_id(feed.agent_id)
             feeds_dict[feed_key] = hydrated_posts
 
         actions_by_agent: dict[

@@ -9,6 +9,8 @@ from simulation.core.action_generators.comment.algorithms.random_simple import (
 from simulation.core.models.posts import Post
 from tests.factories import PostFactory
 
+AGENT_ID = canonical_agent_id("agent1.bsky.social")
+
 
 def _post(
     uri: str,
@@ -48,7 +50,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -68,7 +70,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_prob0",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -88,7 +90,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_prob100",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -119,7 +121,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_social",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -174,7 +176,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_order",
             turn_number=0,
             agent_handle="agent1.bsky.social",
-            agent_id=canonical_agent_id("agent1.bsky.social"),
+            agent_id=AGENT_ID,
         )
 
         # Assert

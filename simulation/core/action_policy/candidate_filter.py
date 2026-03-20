@@ -23,7 +23,10 @@ def _follow_target_key_for_history(post: Post) -> str:
         return post.author_agent_id
     if post.author_handle:
         return canonical_agent_id(post.author_handle)
-    return post.author_agent_id or ""
+    raise ValueError(
+        f"Cannot derive follow target key for post {post.post_id!r}: "
+        "missing author_agent_id and author_handle"
+    )
 
 
 class HistoryAwareActionFeedFilter(AgentActionFeedFilter):

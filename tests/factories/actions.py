@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from typing import Final, TypeVar, cast
 
@@ -110,17 +111,17 @@ class FollowFactory(BaseFactory[Follow]):
         agent_value = (
             agent_id
             if agent_id is not None
-            else canonical_agent_id("tests.follow.actor")
+            else canonical_agent_id(f"tests.follow.actor.{uuid.uuid4()}")
         )
         target_value = (
             target_agent_id
             if target_agent_id is not None
-            else canonical_agent_id("tests.follow.target")
+            else canonical_agent_id(f"tests.follow.target.{uuid.uuid4()}")
         )
         follow_id_value = (
             follow_id
             if follow_id is not None
-            else f"follow_{agent_value}_{target_value}"
+            else f"follow_{agent_value}_{target_value}_{uuid.uuid4().hex[:8]}"
         )
         return Follow(
             follow_id=follow_id_value,
@@ -356,17 +357,17 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
         agent_value = (
             agent_id
             if agent_id is not None
-            else canonical_agent_id("tests.persisted_follow.actor")
+            else canonical_agent_id(f"tests.persisted_follow.actor.{uuid.uuid4()}")
         )
         target_value = (
             target_agent_id
             if target_agent_id is not None
-            else canonical_agent_id("tests.persisted_follow.target")
+            else canonical_agent_id(f"tests.persisted_follow.target.{uuid.uuid4()}")
         )
         follow_id_value = (
             follow_id
             if follow_id is not None
-            else f"follow_{agent_value}_{target_value}"
+            else f"follow_{agent_value}_{target_value}_{uuid.uuid4().hex[:8]}"
         )
         explanation_value = _resolve_unset(
             explanation,

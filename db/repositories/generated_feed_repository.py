@@ -5,7 +5,7 @@ from db.repositories.interfaces import GeneratedFeedRepository
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.utils.validators import (
-    validate_agent_id,
+    validate_canonical_agent_id,
     validate_run_id,
     validate_turn_number,
 )
@@ -61,7 +61,7 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         return feed
 
     @validate_inputs(
-        (validate_agent_id, "agent_id"),
+        (validate_canonical_agent_id, "agent_id"),
         (validate_run_id, "run_id"),
         (validate_turn_number, "turn_number"),
     )
@@ -101,7 +101,9 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_all_generated_feeds(conn=c)
 
-    @validate_inputs((validate_agent_id, "agent_id"), (validate_run_id, "run_id"))
+    @validate_inputs(
+        (validate_canonical_agent_id, "agent_id"), (validate_run_id, "run_id")
+    )
     def get_post_ids_for_run(self, agent_id: str, run_id: str) -> set[str]:
         """Get all post_ids from generated feeds for a specific agent and run.
 
