@@ -128,19 +128,55 @@ def _has_any_app_tables(conn: sqlite3.Connection) -> bool:
     return False
 
 
-def _apply_migrations(cfg: Any, has_version: bool, has_tables: bool) -> None:
-    """Run Alembic upgrade or stamp+upgrade depending on DB state."""
+def _log_sqlite_alembic_revision(db_path: str) -> None:
+    """Log the Alembic version row after migrate (best-effort)."""
+    try:
+        with sqlite3.connect(db_path) as conn:
+            if not _table_exists(conn, "alembic_version"):
+                logger.warning(
+                    "No alembic_version table after migrate (%s); "
+                    "database may not be initialized correctly",
+                    db_path,
+                )
+                return
+            row = conn.execute(
+                "SELECT version_num FROM alembic_version LIMIT 1"
+            ).fetchone()
+        if row and row[0]:
+            logger.info("SQLite Alembic revision: %s (%s)", row[0], db_path)
+        else:
+            logger.warning("alembic_version row missing after migrate (%s)", db_path)
+    except OSError as exc:
+        logger.warning("Could not read Alembic revision from %s: %s", db_path, exc)
+
+
+def _apply_migrations(
+    cfg: Any, db_path: str, has_version: bool, has_tables: bool
+) -> None:
+    """Apply every pending Alembic revision through ``head`` for ``db_path``.
+
+    Normal path: ``upgrade head`` applies the full revision chain (all prior
+    migrations) in order—required before data-only migrations run.
+
+    Legacy path: a pre-Alembic file may have application tables but no
+    ``alembic_version`` row. Stamp the baseline (initial) revision, then
+    ``upgrade head`` so missing DDL runs.
+    """
     from alembic import command
     from alembic.script import ScriptDirectory
 
-    if has_version or not has_tables:
-        command.upgrade(cfg, "head")
-        return
-    script = ScriptDirectory.from_config(cfg)
-    revisions = list(script.walk_revisions())
-    baseline_revision = revisions[-1].revision
-    command.stamp(cfg, baseline_revision)
+    if not has_version and has_tables:
+        logger.info(
+            "Database %s has application tables but no alembic_version; "
+            "stamping initial revision, then upgrading to head",
+            db_path,
+        )
+        script = ScriptDirectory.from_config(cfg)
+        revisions = list(script.walk_revisions())
+        baseline_revision = revisions[-1].revision
+        command.stamp(cfg, baseline_revision)
     command.upgrade(cfg, "head")
+    _log_sqlite_alembic_revision(db_path)
 
 
 def _restore_sim_db_env(
@@ -160,8 +196,10 @@ def _restore_sim_db_env(
 def initialize_database() -> None:
     """Initialize the database by applying Alembic migrations to HEAD.
 
-    This is safe to call repeatedly; if the database is already at HEAD, Alembic
-    will make no changes.
+    Always runs ``alembic upgrade head`` against the configured SQLite file so
+    every prior revision (DDL and data) is applied in order before the API or
+    jobs use the DB. Safe to call repeatedly; when already at HEAD, Alembic is a
+    no-op.
     """
     from alembic.config import Config
 
@@ -184,7 +222,7 @@ def initialize_database() -> None:
     elif old_sim_db_url is None and old_sim_db_path is None:
         os.environ["SIM_DB_PATH"] = db_path
     try:
-        _apply_migrations(cfg, has_version, has_tables)
+        _apply_migrations(cfg, db_path, has_version, has_tables)
     finally:
         _restore_sim_db_env(old_sim_db_path, old_sim_db_url)
 
