@@ -13,7 +13,7 @@ POLARITIES = ["negative", "neutral", "positive"]
 def track_init_time():
     start = time.perf_counter()
     polarity_model = PolarityModel()
-    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")
+    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")  # noqa: T201
     polarity_model.extract_polarity("")
 
     return polarity_model
@@ -34,21 +34,21 @@ def print_polarity_table(label: PolarityLabel, case_name: str) -> None:
     text = label.text
     text_lines = [text[i : i + wrap_width] for i in range(0, len(text), wrap_width)]
 
-    print(f"[{case_name}]")
-    print(sep)
-    print(header)
-    print(sep)
+    print(f"[{case_name}]")  # noqa: T201
+    print(sep)  # noqa: T201
+    print(header)  # noqa: T201
+    print(sep)  # noqa: T201
 
     first_line = text_lines[0] if text_lines else ""
     print(
         f"| {first_line:<{w_text}} | {label.polarity_label.value:<{w_label}} | {label.polarity_prob:<{w_prob}.4f} |"
-    )
+    )  # noqa: T201
 
     for text_line in text_lines[1:]:
-        print(f"| {text_line:<{w_text}} | {'':{w_label}} | {'':{w_prob}} |")
+        print(f"| {text_line:<{w_text}} | {'':{w_label}} | {'':{w_prob}} |")  # noqa: T201
 
-    print(sep)
-    print()
+    print(sep)  # noqa: T201
+    print()  # noqa: T201
 
 
 def verify_diff_cases(polarity_model: PolarityModel) -> None:
@@ -90,20 +90,20 @@ def run_model_track_time(polarity_model: PolarityModel) -> None:
     sep = f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
     header = f"| {col1:<{w1}} | {col2:<{w2}} | {col3:<{w3}} |"
 
-    print(sep)
-    print(header)
-    print(sep)
+    print(sep)  # noqa: T201
+    print(header)  # noqa: T201
+    print(sep)  # noqa: T201
     for n, elapsed in results:
         throughput = n / elapsed if elapsed > 0 else float("inf")
-        print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")
-    print(sep)
+        print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")  # noqa: T201
+    print(sep)  # noqa: T201
 
 
 if __name__ == "__main__":
     polarity_model = track_init_time()
-    print("\n")
+    print("\n")  # noqa: T201
 
     verify_diff_cases(polarity_model)
-    print("\n")
+    print("\n")  # noqa: T201
 
     run_model_track_time(polarity_model)
