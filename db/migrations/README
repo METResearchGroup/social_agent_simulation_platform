@@ -10,7 +10,17 @@ This repo uses **Alembic** to manage schema changes for the SQLite database.
 
 - **Runtime DB access** uses `sqlite3` adapters in `db/adapters/sqlite/`.
 - **Migration schema metadata** (for Alembic autogenerate) lives in `db/schema.py`.
-- **Bootstrap**: `db/adapters/sqlite/sqlite.py::initialize_database()` applies Alembic migrations to `head`.
+- **Bootstrap**: `db/adapters/sqlite/sqlite.py::initialize_database()` runs `alembic upgrade head`, which applies **every** pending revision in order (all prior DDL and data migrations). The FastAPI app calls this on startup; jobs that use the DB should call it too. If you manage a SQLite file out-of-band, run `upgrade head` after pulling code so the file is never stuck on an old revision while new code expects a newer schema.
+
+### Ensuring a SQLite file is fully migrated
+
+After `git pull` (or when a migration error suggests schema drift), point Alembic at your database and upgrade:
+
+```bash
+SIM_DB_PATH=/absolute/path/to/your.sqlite uv run python -m alembic -c pyproject.toml upgrade head
+```
+
+Data-only revisions still require that all **earlier** revisions have been applied first; `upgrade head` walks the whole chain from the DB’s current `alembic_version` to the latest head.
 
 ### Schema docs (versioned)
 
