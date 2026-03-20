@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,6 +32,7 @@ from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
     SQLiteUserAgentProfileMetadataAdapter,
 )
 from db.backfills.agent_posts import backfill_agent_posts_from_feed_posts
+from lib.agent_id import is_canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
@@ -118,6 +120,19 @@ def _set_seed_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
     )
 
 
+def _validate_canonical_ids(
+    collection: Iterable[object],
+    *,
+    attr_name: str,
+    source_label: str,
+) -> None:
+    for item in collection:
+        value = getattr(item, attr_name)
+        if not is_canonical_agent_id(value):
+            msg = f"{source_label} {attr_name} must be canonical 16-char hex: {value!r}"
+            raise ValueError(msg)
+
+
 def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     runs_raw = _read_json_list(fixtures_dir / "runs.json")
     agents_raw = _read_json_list(fixtures_dir / "agents.json")
@@ -160,6 +175,30 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         )
     user_md = [UserAgentProfileMetadata.model_validate(item) for item in metadata_raw]
     follow_edges = [AgentFollowEdge.model_validate(item) for item in follow_edges_raw]
+
+    _validate_canonical_ids(
+        agents, attr_name="agent_id", source_label="Seed agents.json"
+    )
+    _validate_canonical_ids(
+        bios,
+        attr_name="agent_id",
+        source_label="Seed agent_persona_bios.json",
+    )
+    _validate_canonical_ids(
+        user_md,
+        attr_name="agent_id",
+        source_label="Seed user_agent_profile_metadata.json",
+    )
+    _validate_canonical_ids(
+        follow_edges,
+        attr_name="follower_agent_id",
+        source_label="Seed agent_follow_edges.json",
+    )
+    _validate_canonical_ids(
+        follow_edges,
+        attr_name="target_agent_id",
+        source_label="Seed agent_follow_edges.json",
+    )
     posts = [
         Post.model_validate({**item, "source": PostSource.BLUESKY})
         for item in posts_raw
