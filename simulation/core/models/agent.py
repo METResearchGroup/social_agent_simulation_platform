@@ -2,8 +2,9 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ValidationInfo, field_validator
 
+from lib.agent_id import is_canonical_agent_id
 from lib.validation_utils import validate_non_empty_string
 
 
@@ -26,8 +27,18 @@ class Agent(BaseModel):
 
     @field_validator("agent_id")
     @classmethod
-    def validate_agent_id(cls, v: str) -> str:
-        return validate_non_empty_string(v)
+    def validate_agent_id(cls, v: str, info: ValidationInfo) -> str:
+        cleaned = validate_non_empty_string(v)
+        if is_canonical_agent_id(cleaned):
+            return cleaned
+
+        # Keep reads rollout-safe for legacy persisted IDs until full migration.
+        strict_mode = bool(
+            info.context and info.context.get("enforce_canonical_agent_id", False)
+        )
+        if strict_mode:
+            raise ValueError("agent_id must match ^[0-9a-f]{16}$")
+        return cleaned
 
     @field_validator("handle")
     @classmethod
