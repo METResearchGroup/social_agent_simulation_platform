@@ -148,18 +148,25 @@ def _validate_all_resolvable(
         text("SELECT follow_id, user_id FROM follows")
     ).fetchall():
         if target is None:
-            raise ValueError(
-                f"follows.target_agent_id is NULL for follow_id={follow_id!r}"
-            )
+            raise ValueError(f"follows.user_id is NULL for follow_id={follow_id!r}")
         _resolve_agent_id(target, handle_to_id, canonical_ids)
 
+    seen_pks: set[tuple[str, str, int]] = set()
     for row in conn.execute(
-        text("SELECT agent_handle FROM generated_feeds")
+        text("SELECT agent_handle, run_id, turn_number FROM generated_feeds")
     ).fetchall():
-        (ah,) = row
+        ah, run_id, turn_number = row
         if ah is None:
             raise ValueError("generated_feeds.agent_handle is NULL")
-        _resolve_agent_id(ah, handle_to_id, canonical_ids)
+        resolved_aid = _resolve_agent_id(ah, handle_to_id, canonical_ids)
+        pk = (resolved_aid, run_id, turn_number)
+        if pk in seen_pks:
+            raise ValueError(
+                f"action_feed_id_semantics migration: generated_feeds PK collision: "
+                f"(agent_id={resolved_aid!r}, run_id={run_id!r}, turn_number={turn_number}) "
+                f"would be duplicated (different agent_handle values resolve to same agent_id)"
+            )
+        seen_pks.add(pk)
 
 
 def upgrade() -> None:
