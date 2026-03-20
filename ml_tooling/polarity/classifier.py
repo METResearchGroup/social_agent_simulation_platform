@@ -27,7 +27,7 @@ class PolarityPipeline:
         self.model = AutoModelForSequenceClassification.from_pretrained(POLARITY_MODEL)
         self.labels = POLARITIES
 
-    def _preprocess(self, text: str) -> str:
+    def _normalize_placeholders(self, text: str) -> str:
         tokens = []
         for t in text.split(" "):
             if t.startswith("@") and len(t) > 1:
@@ -42,7 +42,7 @@ class PolarityPipeline:
 
         input_list = [text] if is_single else text
 
-        normalized_inputs = [self._preprocess(t) for t in input_list]
+        normalized_inputs = [self._normalize_placeholders(t) for t in input_list]
         encoded = self.tokenizer(
             normalized_inputs, return_tensors="pt", padding=True, truncation=True
         )
