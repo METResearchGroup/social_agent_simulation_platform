@@ -7,6 +7,7 @@ from scipy.special import softmax
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from lib.timestamp_utils import get_current_timestamp
+from ml_tooling.polarity.constants import POLARITIES
 from ml_tooling.polarity.models import PolarityLabel, PolarityValue
 
 RawPolarity = dict[str, float]
@@ -24,7 +25,7 @@ class PolarityPipeline:
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained(POLARITY_MODEL)
         self.model = AutoModelForSequenceClassification.from_pretrained(POLARITY_MODEL)
-        self.labels = ["negative", "neutral", "positive"]
+        self.labels = POLARITIES
 
     def _preprocess(self, text: str) -> str:
         tokens = []

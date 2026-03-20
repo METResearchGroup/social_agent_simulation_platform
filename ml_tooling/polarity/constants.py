@@ -1,0 +1,1 @@
+POLARITIES = ["negative", "neutral", "positive"]

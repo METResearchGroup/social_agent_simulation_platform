@@ -3,11 +3,10 @@ import time
 from transformers import logging as transformers_logging
 
 from ml_tooling.polarity.classifier import PolarityModel
+from ml_tooling.polarity.constants import POLARITIES
 from ml_tooling.polarity.models import PolarityLabel
 
 transformers_logging.set_verbosity_error()
-
-POLARITIES = ["negative", "neutral", "positive"]
 
 
 def track_init_time():
