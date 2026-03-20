@@ -40,9 +40,9 @@ def print_polarity_table(label: PolarityLabel, case_name: str) -> None:
     print(sep)  # noqa: T201
 
     first_line = text_lines[0] if text_lines else ""
-    print(
+    print(  # noqa: T201
         f"| {first_line:<{w_text}} | {label.polarity_label.value:<{w_label}} | {label.polarity_prob:<{w_prob}.4f} |"
-    )  # noqa: T201
+    )
 
     for text_line in text_lines[1:]:
         print(f"| {text_line:<{w_text}} | {'':{w_label}} | {'':{w_prob}} |")  # noqa: T201
