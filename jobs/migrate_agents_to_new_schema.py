@@ -20,9 +20,96 @@ from lib.agent_id import canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
+from simulation.core.models.generated.bio import GeneratedBio
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
 _DEFAULT_BIO_WHEN_EMPTY: str = "No bio provided."
+
+
+def _resolve_bio(
+    profile, generated_bios: dict[str, GeneratedBio]
+) -> tuple[str, PersonaBioSource]:
+    """Resolve persona bio text/source for a profile."""
+    if profile.handle in generated_bios:
+        return generated_bios[profile.handle].generated_bio, PersonaBioSource.AI_GENERATED
+    if profile.bio and profile.bio.strip():
+        return profile.bio.strip(), PersonaBioSource.USER_PROVIDED
+    return _DEFAULT_BIO_WHEN_EMPTY, PersonaBioSource.USER_PROVIDED
+
+
+def _build_agent(profile, now: str) -> Agent:
+    """Build the canonical Agent model for a migrated profile."""
+    return Agent(
+        agent_id=canonical_agent_id(profile.did),
+        handle=profile.handle,
+        persona_source=PersonaSource.SYNC_BLUESKY,
+        display_name=profile.display_name,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _build_metadata(profile, canonical_id: str, now: str) -> UserAgentProfileMetadata:
+    """Build profile metadata snapshot for the migrated agent."""
+    return UserAgentProfileMetadata(
+        id=uuid.uuid4().hex,
+        agent_id=canonical_id,
+        followers_count=profile.followers_count,
+        follows_count=profile.follows_count,
+        posts_count=profile.posts_count,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _create_agent_bio_if_missing(
+    *,
+    agent_bio_repo,
+    canonical_id: str,
+    bio_text: str,
+    bio_source: PersonaBioSource,
+    now: str,
+) -> None:
+    """Create agent bio exactly once during migration."""
+    if agent_bio_repo.get_latest_agent_bio(canonical_id) is not None:
+        return
+
+    agent_bio = AgentBio(
+        id=uuid.uuid4().hex,
+        agent_id=canonical_id,
+        persona_bio=bio_text,
+        persona_bio_source=bio_source,
+        created_at=now,
+        updated_at=now,
+    )
+    agent_bio_repo.create_agent_bio(agent_bio)
+
+
+def _migrate_profile(
+    *,
+    profile,
+    generated_bios: dict[str, GeneratedBio],
+    agent_repo,
+    agent_bio_repo,
+    metadata_repo,
+    now: str,
+) -> None:
+    """Migrate one legacy profile into canonical agent tables."""
+    agent = _build_agent(profile=profile, now=now)
+    canonical_id = agent.agent_id
+    agent_repo.create_or_update_agent(agent)
+
+    bio_text, bio_source = _resolve_bio(profile=profile, generated_bios=generated_bios)
+    _create_agent_bio_if_missing(
+        agent_bio_repo=agent_bio_repo,
+        canonical_id=canonical_id,
+        bio_text=bio_text,
+        bio_source=bio_source,
+        now=now,
+    )
+    metadata_repo.create_or_update_metadata(
+        _build_metadata(profile=profile, canonical_id=canonical_id, now=now)
+    )
 
 
 def main() -> None:
@@ -51,50 +138,14 @@ def main() -> None:
 
     migrated_agents = len(profiles)
     for profile in profiles:
-        canonical_id = canonical_agent_id(profile.did)
-        agent = Agent(
-            agent_id=canonical_id,
-            handle=profile.handle,
-            persona_source=PersonaSource.SYNC_BLUESKY,
-            display_name=profile.display_name,
-            created_at=now,
-            updated_at=now,
+        _migrate_profile(
+            profile=profile,
+            generated_bios=generated_bios,
+            agent_repo=agent_repo,
+            agent_bio_repo=agent_bio_repo,
+            metadata_repo=metadata_repo,
+            now=now,
         )
-        agent_repo.create_or_update_agent(agent)
-
-        bio_text: str
-        bio_source: PersonaBioSource
-        if profile.handle in generated_bios:
-            bio_text = generated_bios[profile.handle].generated_bio
-            bio_source = PersonaBioSource.AI_GENERATED
-        elif profile.bio and profile.bio.strip():
-            bio_text = profile.bio.strip()
-            bio_source = PersonaBioSource.USER_PROVIDED
-        else:
-            bio_text = _DEFAULT_BIO_WHEN_EMPTY
-            bio_source = PersonaBioSource.USER_PROVIDED
-
-        if agent_bio_repo.get_latest_agent_bio(canonical_id) is None:
-            agent_bio = AgentBio(
-                id=uuid.uuid4().hex,
-                agent_id=canonical_id,
-                persona_bio=bio_text,
-                persona_bio_source=bio_source,
-                created_at=now,
-                updated_at=now,
-            )
-            agent_bio_repo.create_agent_bio(agent_bio)
-
-        metadata = UserAgentProfileMetadata(
-            id=uuid.uuid4().hex,
-            agent_id=canonical_id,
-            followers_count=profile.followers_count,
-            follows_count=profile.follows_count,
-            posts_count=profile.posts_count,
-            created_at=now,
-            updated_at=now,
-        )
-        metadata_repo.create_or_update_metadata(metadata)
     sys.stdout.write(f"Migrated {migrated_agents} agents.\n")
 
 
