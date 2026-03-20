@@ -53,6 +53,7 @@ emotion = [
 
 polarity = [
     "agent-simulation-platform[ml-core]",
+    "scipy>=1.15.3",
 ]
 
 [build-system]
