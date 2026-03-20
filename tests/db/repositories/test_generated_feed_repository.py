@@ -258,6 +258,17 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
 
         mock_adapter.read_generated_feed.assert_not_called()
 
+    def test_rejects_non_canonical_agent_id(self):
+        """Test that get_generated_feed rejects malformed agent_id (e.g. handle) and does not call adapter."""
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            repo.get_generated_feed("test.bsky.social", "run_123", 1)
+        mock_adapter.read_generated_feed.assert_not_called()
+
 
 class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
     """Tests for SQLiteGeneratedFeedRepository.list_all_generated_feeds method."""

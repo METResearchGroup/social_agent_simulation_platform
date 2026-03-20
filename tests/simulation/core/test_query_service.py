@@ -147,7 +147,7 @@ class TestSimulationQueryServiceGetTurnData:
             run_id=sample_run.run_id,
             turn_number=0,
             agent_id=canonical_agent_id("agent1.bsky.social"),
-            agent_handle="agent1.bsky.social",
+            agent_handle="stale.handle.agent1",  # differs from handle_at_start; get_turn_data uses handle_at_start
             post_ids=["rp_1", "rp_2"],
             created_at="2024_01_01-12:00:00",
         )
@@ -213,6 +213,9 @@ class TestSimulationQueryServiceGetTurnData:
 
         assert isinstance(result, TurnData)
         assert result is not None
+        # Keys come from handle_at_start (run_agent snapshot), not feed.agent_handle
+        assert "agent1.bsky.social" in result.feeds
+        assert "stale.handle.agent1" not in result.feeds
         assert len(result.feeds["agent1.bsky.social"]) == 2
         assert len(result.feeds["agent2.bsky.social"]) == 1
         call_args = mock_repos["run_post_repo"].read_run_posts_by_ids.call_args
@@ -289,7 +292,7 @@ class TestSimulationQueryServiceGetTurnData:
             run_id=sample_run.run_id,
             turn_number=0,
             agent_id=like_actor,
-            agent_handle="agent1.bsky.social",
+            agent_handle="outdated.display.handle",  # differs from handle_at_start; get_turn_data uses handle_at_start
             post_ids=["rp_post1"],
             created_at="2026-02-24T12:00:00Z",
         )
@@ -308,7 +311,9 @@ class TestSimulationQueryServiceGetTurnData:
         result = query_service.get_turn_data(sample_run.run_id, 0)
 
         assert result is not None
+        # Keys from handle_at_start, not feed.agent_handle
         assert "agent1.bsky.social" in result.actions
+        assert "outdated.display.handle" not in result.actions
         agent_actions = result.actions["agent1.bsky.social"]
         assert len(agent_actions) == 1
         assert isinstance(agent_actions[0], GeneratedLike)

@@ -9,8 +9,8 @@ from __future__ import annotations
 import random
 from datetime import datetime, timezone
 
-from lib.agent_id import canonical_agent_id, is_canonical_agent_id
 from lib.timestamp_utils import CREATED_AT_FORMAT, get_current_timestamp
+from simulation.core.action_generators.follow.utils import derive_target_agent_id
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
@@ -139,11 +139,7 @@ def _build_generated_follow(
     turn_number: int,
 ) -> GeneratedFollow:
     """Build a GeneratedFollow with IDs and metadata."""
-    target_agent_id: str = (
-        post.author_agent_id
-        if post.author_agent_id and is_canonical_agent_id(post.author_agent_id)
-        else canonical_agent_id(post.author_handle)
-    )
+    target_agent_id: str = derive_target_agent_id(post)
     follow_id: str = f"follow_{run_id}_{turn_number}_{agent_handle}_{target_agent_id}"
     created_at: str = get_current_timestamp()
     generation_metadata: dict[str, float | str] = {

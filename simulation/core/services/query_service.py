@@ -119,7 +119,12 @@ class SimulationQueryService:
         agent_id_to_handle = {ra.agent_id: ra.handle_at_start for ra in run_agents}
 
         def _handle_for_agent_id(agent_id: str) -> str:
-            return agent_id_to_handle.get(agent_id, agent_id)
+            if agent_id in agent_id_to_handle:
+                return agent_id_to_handle[agent_id]
+            raise ValueError(
+                f"agent_id {agent_id!r} not found in run agents; "
+                "unresolved canonical ID in run-agent snapshot"
+            )
 
         post_ids_set: set[str] = set()
         for feed in feeds:

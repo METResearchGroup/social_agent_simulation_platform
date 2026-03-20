@@ -127,10 +127,47 @@ def _backfill_follow_target(
         )
 
 
+def _validate_all_resolvable(
+    conn: sa.Connection,
+    handle_to_id: dict[str, str],
+    canonical_ids: set[str],
+) -> None:
+    """Read-only validation: resolve every affected handle/id before any DDL. Fail fast if any unresolved."""
+    for table, col in (
+        ("likes", "agent_handle"),
+        ("comments", "agent_handle"),
+        ("follows", "agent_handle"),
+    ):
+        rows = conn.execute(text(f"SELECT {col} FROM {table}")).fetchall()  # nosec B608
+        for (val,) in rows:
+            if val is None:
+                raise ValueError(f"{table}.{col} is NULL")
+            _resolve_agent_id(val, handle_to_id, canonical_ids)
+
+    for follow_id, target in conn.execute(
+        text("SELECT follow_id, user_id FROM follows")
+    ).fetchall():
+        if target is None:
+            raise ValueError(
+                f"follows.target_agent_id is NULL for follow_id={follow_id!r}"
+            )
+        _resolve_agent_id(target, handle_to_id, canonical_ids)
+
+    for row in conn.execute(
+        text("SELECT agent_handle FROM generated_feeds")
+    ).fetchall():
+        (ah,) = row
+        if ah is None:
+            raise ValueError("generated_feeds.agent_handle is NULL")
+        _resolve_agent_id(ah, handle_to_id, canonical_ids)
+
+
 def upgrade() -> None:
     conn = op.get_bind()
     assert isinstance(conn, sa.Connection)  # nosec B101
     handle_to_id, canonical_ids = _build_handle_to_agent_id_map(conn)
+    _validate_all_resolvable(conn, handle_to_id, canonical_ids)
+
     conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
     try:
         # --- likes ---

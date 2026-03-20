@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import logging
 
-from lib.agent_id import canonical_agent_id, is_canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
 from ml_tooling.llm.llm_service import LLMService
 from simulation.core.action_generators.follow.algorithms.naive_llm.prompt import (
@@ -17,6 +16,7 @@ from simulation.core.action_generators.follow.algorithms.naive_llm.prompt import
 from simulation.core.action_generators.follow.algorithms.naive_llm.response_models import (
     FollowPrediction,
 )
+from simulation.core.action_generators.follow.utils import derive_target_agent_id
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.action_generators.mixins.llm_action_generator_mixin import (
     LLMActionGeneratorMixin,
@@ -84,11 +84,7 @@ def _build_generated_follow(
     model_used: str | None,
 ) -> GeneratedFollow:
     """Build a GeneratedFollow with IDs and metadata."""
-    target_agent_id = (
-        post.author_agent_id
-        if post.author_agent_id and is_canonical_agent_id(post.author_agent_id)
-        else canonical_agent_id(post.author_handle)
-    )
+    target_agent_id = derive_target_agent_id(post)
     follow_id = f"follow_{run_id}_{turn_number}_{agent_handle}_{target_agent_id}"
     created_at = get_current_timestamp()
     return GeneratedFollow(
