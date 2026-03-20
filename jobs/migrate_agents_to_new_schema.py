@@ -31,7 +31,9 @@ def _resolve_bio(
 ) -> tuple[str, PersonaBioSource]:
     """Resolve persona bio text/source for a profile."""
     if profile.handle in generated_bios:
-        return generated_bios[profile.handle].generated_bio, PersonaBioSource.AI_GENERATED
+        return generated_bios[
+            profile.handle
+        ].generated_bio, PersonaBioSource.AI_GENERATED
     if profile.bio and profile.bio.strip():
         return profile.bio.strip(), PersonaBioSource.USER_PROVIDED
     return _DEFAULT_BIO_WHEN_EMPTY, PersonaBioSource.USER_PROVIDED
