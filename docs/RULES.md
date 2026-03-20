@@ -76,6 +76,8 @@ Testing:
   - Should I/O operations be mocked or use real I/O?
 - Use explicit expected-result variables in tests (e.g. expected_result = {...} then assert against it) to keep assertions readable.
 - Make use of fixtures to systematize resource setup/teardown across tests.
+- Test factories must produce deterministic defaults when tests use a seeded Faker. Use `get_faker()` (e.g. `fake.uuid4()`) for IDs and other random-looking values instead of `uuid.uuid4()` or `random` so factory behavior is driven by the per-test seeded Faker and tests remain reproducible.
+- At repository boundaries that validate canonical identifiers (e.g. agent_id), add negative-path tests that call the repository with invalid inputs (e.g. malformed handles, non-canonical IDs) and assert (1) an appropriate ValueError (or equivalent) is raised and (2) the underlying adapter/DB is not called. This prevents regression to handle-based or permissive lookups.
 
 Docstrings:
 
@@ -90,6 +92,7 @@ Error and failure semantics:
 - Use a stable error payload shape (e.g. code, message, detail) and sanitize detail; avoid exposing stack traces or internal paths.
 - Validate inputs at the start of a function before performing expensive work. If validation can fail (e.g. missing agent_id), check first and raise immediately so invalid inputs fail fast rather than after costly computation.
 - When deriving a value from optional or partially populated data, raise a clear error (e.g. ValueError) if the data cannot be resolved, rather than returning an empty string or default that would cause silent mismatches or incorrect behavior downstream.
+- When resolving a handle or partial identifier to a canonical ID and multiple rows match, raise an explicit ambiguity error that includes the conflicting IDs/handles. Do not silently return the first match or collapse distinct entities.
 - Partial results on mid-run failure: return 200 with status="failed", partial data (e.g. likes_per_turn), and an error object—reserve 500 for pre-creation or infrastructure failures so clients can rely on partial results when a run exists.
 - During development, we prefer to fail fast. For critical pipelines (e.g. metrics that must be correct for a run), use fail-fast: if any step fails, fail the whole operation (e.g. run status to FAILED) rather than returning best-effort or partial results for that pipeline. Partial persisted data (e.g. completed turns) may still be returned to the client with status failed. We may choose to change this in the future, and we may choose to prioritize uptime. But right now, during development, we prioritize failing fast.
 
@@ -118,6 +121,7 @@ Deterministic outputs:
 Consistent keying for related data:
 
 - When building dictionaries or maps that group related data (e.g. feeds and actions by agent), use the same resolution logic for keys. Prefer a single helper (e.g. _handle_for_agent_id) for key derivation so feeds and actions are keyed consistently and stale or alternate representations do not split data.
+- When keying related data (e.g. feeds and actions by agent), write tests that use distinct values for the stored field (e.g. feed.agent_handle) and the authoritative field (e.g. handle_at_start), and assert that the authoritative field is used for keys. This guards against regressions that would key by the wrong field and split or mis-group data.
 
 Response schema consistency:
 
@@ -180,6 +184,7 @@ Persistence and model boundaries
 
 - When adding computed or derived data (e.g. metrics), persist it in dedicated storage (e.g. turn_metrics / run_metrics tables and a dedicated repository) rather than overloading existing models or repositories. Keeps core models stable and avoids bloating a single repo with unrelated concerns.
 - When resolving identifiers (e.g. handles to agent_ids), prefer targeted SQL lookups with parameterized queries over fetching all rows and scanning in Python. Validate that canonical-looking IDs actually exist in the backing store before returning them; do not trust format alone.
+- When resolving handles or partial identifiers to canonical IDs, perform normalization in Python using the same logic as callers (e.g. shared `_norm_handle`). Avoid SQL-only normalization (e.g. `ltrim(..., '@')`) that can diverge from Python semantics (e.g. stripping all leading `@` vs one). Fetch candidate rows and filter in Python if needed so resolution matches the canonical helper exactly.
 
 Persistence scopes
 
@@ -197,6 +202,7 @@ Persistence scopes
 - Migration contract (lossy vs non-lossy):
   - __Counts are lossy__ and may be preserved as summaries/caches (e.g. `*_count` fields) but do not imply row identities.
   - __Row-level facts__ (edges, posts, likes, comments) may only be migrated/backfilled when there is row-level source data to infer them from. Never synthesize rows from aggregate counts.
+- For migrations that perform DDL (renames, drops, schema changes), run a read-only validation pass first to ensure all affected data can be resolved or migrated. If any row would fail the migration’s resolution logic, fail the migration before applying DDL so the database is not left half-migrated.
 
 Frontend — Shared components
 
