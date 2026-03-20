@@ -14,9 +14,9 @@ See `strategy_planning/2026-03-20_agent_id_migration/proposal.md` for background
 
 ## Delivered in this unit
 
-- `lib/agent_id_migration.py` — `stable_source_for_agent_row`, `build_old_to_new_map`, collision error.
+- `scripts/migrations/agent_id_migration.py` — `stable_source_for_agent_row`, `build_old_to_new_map`, collision error.
 - `db/migrations/versions/c3d5e7f9a0b2_rewrite_agent_primary_keys_and_fks.py` — one-way data migration after `b2c4d6e8f0a1`.
-- `tests/lib/test_agent_id_migration.py` — mapping unit tests.
+- `tests/scripts/migrations/test_agent_id_migration.py` — mapping unit tests.
 - `tests/db/test_agent_id_pk_migration.py` — upgrade tests on temp SQLite.
 - Regenerated `docs/db/` snapshot for current branch.
 

@@ -1,7 +1,7 @@
 import pytest
 
 from lib.agent_id import canonical_agent_id, is_canonical_agent_id
-from lib.agent_id_migration import (
+from scripts.migrations.agent_id_migration import (
     AgentIdMigrationCollisionError,
     build_old_to_new_map,
     migration_pairs,

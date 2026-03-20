@@ -10,11 +10,11 @@ from alembic import command
 from alembic.config import Config
 
 from lib.agent_id import canonical_agent_id, is_canonical_agent_id
-from lib.agent_id_migration import (
+from lib.constants import REPO_ROOT
+from scripts.migrations.agent_id_migration import (
     AgentIdMigrationCollisionError,
     stable_source_for_agent_row,
 )
-from lib.constants import REPO_ROOT
 
 
 def _cfg(monkeypatch: pytest.MonkeyPatch, db_path: str) -> Config:

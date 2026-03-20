@@ -13,7 +13,7 @@ Data migration only (no DDL). For every row in ``agent``, compute::
     )
     new_id = canonical_agent_id(stable_source)
 
-**Precedence (frozen)** matches ``lib/agent_id_migration.py`` / strategy doc:
+**Precedence (frozen)** matches ``scripts/migrations/agent_id_migration.py`` / strategy doc:
 
 1. Bluesky DID when non-empty after strip (from joined ``bluesky_profiles``).
 2. Else trimmed ``agent.handle``; if empty, fall through.
@@ -38,7 +38,7 @@ from alembic import op
 from sqlalchemy import text
 
 from lib.agent_id import is_canonical_agent_id
-from lib.agent_id_migration import (
+from scripts.migrations.agent_id_migration import (
     agent_rows_from_mappings,
     build_old_to_new_map,
     migration_pairs,
