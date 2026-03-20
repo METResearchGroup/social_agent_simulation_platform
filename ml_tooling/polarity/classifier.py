@@ -40,9 +40,12 @@ class PolarityPipeline:
         is_single = isinstance(text, str)
 
         input_list = [text] if is_single else text
+
+        normalized_inputs = [self._preprocess(t) for t in input_list]
         encoded = self.tokenizer(
-            input_list, return_tensors="pt", padding=True, truncation=True
+            normalized_inputs, return_tensors="pt", padding=True, truncation=True
         )
+
         with torch.no_grad():
             output = self.model(**encoded)
 
