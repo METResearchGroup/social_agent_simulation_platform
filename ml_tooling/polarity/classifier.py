@@ -101,7 +101,7 @@ class PolarityModel:
     def extract_polarity_batch(self, texts: list[str]) -> list[PolarityLabel]:
         response = cast(PolarityBatchResponse, self._polarity_pipeline(texts))
         if len(response) != len(texts):
-            raise ValueError("Emotion pipeline returned unexpected batch size")
+            raise ValueError("Polarity pipeline returned unexpected batch size")
         return [
             self._to_polarity_label(response[i], text) for i, text in enumerate(texts)
         ]
