@@ -280,6 +280,25 @@ def _latest_version_dir(out_root: Path) -> Path | None:
     return sorted(candidates, key=lambda p: p.name)[-1]
 
 
+def _prune_snapshots_from_non_latest(out_root: Path) -> list[Path]:
+    """Remove schema.snapshot.json from all version dirs except the latest.
+
+    Returns the paths that were removed.
+    """
+    latest_dir = _latest_version_dir(out_root)
+    if latest_dir is None:
+        return []
+    removed: list[Path] = []
+    for p in out_root.iterdir():
+        if not p.is_dir() or not _VERSION_DIR_RE.match(p.name):
+            continue
+        snapshot_path = p / "schema.snapshot.json"
+        if p != latest_dir and snapshot_path.exists():
+            snapshot_path.unlink()
+            removed.append(snapshot_path)
+    return removed
+
+
 def _now_version_prefix() -> str:
     # Use the repo-wide UTC clock contract, then normalize to the
     # script's existing folder-prefix format (YYYY_MM_DD-HHMMSS).
@@ -680,6 +699,11 @@ def main() -> int:
         action="store_true",
         help="Verify the latest docs/db/* folder matches migrations at head.",
     )
+    mode.add_argument(
+        "--prune-snapshots",
+        action="store_true",
+        help="Remove schema.snapshot.json from all docs/db/* except the latest.",
+    )
     parser.add_argument(
         "--out-root",
         type=Path,
@@ -728,8 +752,24 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
+        removed = _prune_snapshots_from_non_latest(out_root)
+        if removed:
+            for path in removed:
+                print(f"Pruned: {path}", file=sys.stderr)
         (out_root / "LATEST.txt").write_text(version_dir_name + "\n", encoding="utf-8")
         print(f"Wrote schema docs to: {out_dir}")
+        return 0
+
+    if args.prune_snapshots:
+        removed = _prune_snapshots_from_non_latest(out_root)
+        if removed:
+            print(
+                f"Removed schema.snapshot.json from {len(removed)} non-latest folder(s)."
+            )
+            for path in removed:
+                print(f"  {path}")
+        else:
+            print("No orphan schema.snapshot.json files found.")
         return 0
 
     assert args.check
@@ -746,6 +786,18 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    for p in out_root.iterdir():
+        if not p.is_dir() or not _VERSION_DIR_RE.match(p.name) or p == latest_dir:
+            continue
+        if (p / "schema.snapshot.json").exists():
+            print(
+                "ERROR: schema.snapshot.json must exist only in the latest folder.\n"
+                f"Found in: {p / 'schema.snapshot.json'}\n\n"
+                "Fix: uv run python scripts/generate_db_schema_docs.py --prune-snapshots\n",
+                file=sys.stderr,
+            )
+            return 1
 
     baseline_snapshot_path = latest_dir / "schema.snapshot.json"
     baseline_snapshot = _load_snapshot(baseline_snapshot_path)
