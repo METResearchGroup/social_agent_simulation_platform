@@ -19,12 +19,18 @@ PolarityCallable = Callable[[str | list[str]], PolarityResponse]
 
 POLARITY_TASK: Final[Literal["sentiment-analysis"]] = "sentiment-analysis"
 POLARITY_MODEL: Final[str] = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+# commit hash from August 4, 2025
+POLARITY_REVISION: Final[str] = "3216a57f2a0d9c45a2e6c20157c20c49fb4bf9c7"
 
 
 class PolarityPipeline:
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained(POLARITY_MODEL)
-        self.model = AutoModelForSequenceClassification.from_pretrained(POLARITY_MODEL)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            POLARITY_MODEL, revision=POLARITY_REVISION
+        )
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            POLARITY_MODEL, revision=POLARITY_REVISION
+        )
         self.labels = POLARITIES
 
     def _normalize_placeholders(self, text: str) -> str:

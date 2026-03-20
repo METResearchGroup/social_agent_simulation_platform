@@ -1,3 +1,4 @@
+# bandit: ignore: B101
 import uuid
 from datetime import datetime
 
