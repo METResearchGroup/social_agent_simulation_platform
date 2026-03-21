@@ -277,17 +277,22 @@ generated_feeds = sa.Table(
     sa.Column("feed_id", sa.Text(), nullable=False),
     sa.Column("run_id", sa.Text(), nullable=False),
     sa.Column("turn_number", sa.Integer(), nullable=False),
-    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("agent_handle", sa.Text(), nullable=True),
     sa.Column("post_ids", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
-    # NOTE: This FK is applied by the second Alembic migration.
     sa.ForeignKeyConstraint(
         ["run_id"],
         ["runs.run_id"],
         name="fk_generated_feeds_run_id",
     ),
+    sa.ForeignKeyConstraint(
+        ["agent_id"],
+        ["agent.agent_id"],
+        name="fk_generated_feeds_agent_id",
+    ),
     sa.PrimaryKeyConstraint(
-        "agent_handle", "run_id", "turn_number", name="pk_generated_feeds"
+        "agent_id", "run_id", "turn_number", name="pk_generated_feeds"
     ),
 )
 
@@ -496,7 +501,7 @@ likes = sa.Table(
     sa.Column("like_id", sa.Text(), primary_key=True),
     sa.Column("run_id", sa.Text(), nullable=False),
     sa.Column("turn_number", sa.Integer(), nullable=False),
-    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("agent_id", sa.Text(), nullable=False),
     sa.Column("post_id", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
     sa.Column("explanation", sa.Text(), nullable=True),
@@ -504,6 +509,7 @@ likes = sa.Table(
     sa.Column("generation_metadata_json", sa.Text(), nullable=True),
     sa.Column("generation_created_at", sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_likes_run_id"),
+    sa.ForeignKeyConstraint(["agent_id"], ["agent.agent_id"], name="fk_likes_agent_id"),
     sa.CheckConstraint("turn_number >= 0", name="ck_likes_turn_number_gte_0"),
     # Within a single run+turn, an agent can like a given post at most once.
     # The domain validator tries to prevent duplicates, but this is the persistence
@@ -511,7 +517,7 @@ likes = sa.Table(
     sa.UniqueConstraint(
         "run_id",
         "turn_number",
-        "agent_handle",
+        "agent_id",
         "post_id",
         name="uq_likes_run_turn_agent_post",
     ),
@@ -523,7 +529,7 @@ comments = sa.Table(
     sa.Column("comment_id", sa.Text(), primary_key=True),
     sa.Column("run_id", sa.Text(), nullable=False),
     sa.Column("turn_number", sa.Integer(), nullable=False),
-    sa.Column("agent_handle", sa.Text(), nullable=False),
+    sa.Column("agent_id", sa.Text(), nullable=False),
     sa.Column("post_id", sa.Text(), nullable=False),
     sa.Column("text", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
@@ -532,6 +538,9 @@ comments = sa.Table(
     sa.Column("generation_metadata_json", sa.Text(), nullable=True),
     sa.Column("generation_created_at", sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_comments_run_id"),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_comments_agent_id"
+    ),
     sa.CheckConstraint("turn_number >= 0", name="ck_comments_turn_number_gte_0"),
     # Within a single run+turn, an agent can comment on a given post at most once.
     # This matches the current action rules validator (duplicates rejected) and ensures the
@@ -539,7 +548,7 @@ comments = sa.Table(
     sa.UniqueConstraint(
         "run_id",
         "turn_number",
-        "agent_handle",
+        "agent_id",
         "post_id",
         name="uq_comments_run_turn_agent_post",
     ),
@@ -551,14 +560,22 @@ follows = sa.Table(
     sa.Column("follow_id", sa.Text(), primary_key=True),
     sa.Column("run_id", sa.Text(), nullable=False),
     sa.Column("turn_number", sa.Integer(), nullable=False),
-    sa.Column("agent_handle", sa.Text(), nullable=False),
-    sa.Column("user_id", sa.Text(), nullable=False),
+    sa.Column("agent_id", sa.Text(), nullable=False),
+    sa.Column("target_agent_id", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
     sa.Column("explanation", sa.Text(), nullable=True),
     sa.Column("model_used", sa.Text(), nullable=True),
     sa.Column("generation_metadata_json", sa.Text(), nullable=True),
     sa.Column("generation_created_at", sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_follows_run_id"),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_follows_agent_id"
+    ),
+    sa.ForeignKeyConstraint(
+        ["target_agent_id"],
+        ["agent.agent_id"],
+        name="fk_follows_target_agent_id",
+    ),
     sa.CheckConstraint("turn_number >= 0", name="ck_follows_turn_number_gte_0"),
     # Within a single run+turn, an agent can follow a given user at most once.
     # This prevents duplicate follow actions for the same target and keeps persistence aligned with
@@ -566,9 +583,9 @@ follows = sa.Table(
     sa.UniqueConstraint(
         "run_id",
         "turn_number",
-        "agent_handle",
-        "user_id",
-        name="uq_follows_run_turn_agent_user",
+        "agent_id",
+        "target_agent_id",
+        name="uq_follows_run_turn_agent_target",
     ),
 )
 
@@ -655,17 +672,17 @@ sa.Index(
     "idx_likes_run_turn_agent",
     likes.c.run_id,
     likes.c.turn_number,
-    likes.c.agent_handle,
+    likes.c.agent_id,
 )
 sa.Index(
     "idx_comments_run_turn_agent",
     comments.c.run_id,
     comments.c.turn_number,
-    comments.c.agent_handle,
+    comments.c.agent_id,
 )
 sa.Index(
     "idx_follows_run_turn_agent",
     follows.c.run_id,
     follows.c.turn_number,
-    follows.c.agent_handle,
+    follows.c.agent_id,
 )

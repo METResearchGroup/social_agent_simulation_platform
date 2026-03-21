@@ -16,6 +16,7 @@ from simulation.core.action_generators.follow.algorithms.naive_llm.prompt import
 from simulation.core.action_generators.follow.algorithms.naive_llm.response_models import (
     FollowPrediction,
 )
+from simulation.core.action_generators.follow.utils import derive_target_agent_id
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.action_generators.mixins.llm_action_generator_mixin import (
     LLMActionGeneratorMixin,
@@ -77,19 +78,20 @@ def _build_generated_follow(
     *,
     post: Post,
     agent_handle: str,
+    agent_id: str,
     run_id: str,
     turn_number: int,
     model_used: str | None,
 ) -> GeneratedFollow:
     """Build a GeneratedFollow with IDs and metadata."""
-    user_id = post.author_handle
-    follow_id = f"follow_{run_id}_{turn_number}_{agent_handle}_{user_id}"
+    target_agent_id = derive_target_agent_id(post)
+    follow_id = f"follow_{run_id}_{turn_number}_{agent_handle}_{target_agent_id}"
     created_at = get_current_timestamp()
     return GeneratedFollow(
         follow=Follow(
             follow_id=follow_id,
-            agent_id=agent_handle,
-            user_id=user_id,
+            agent_id=agent_id,
+            target_agent_id=target_agent_id,
             created_at=created_at,
         ),
         explanation=EXPLANATION,
@@ -115,6 +117,7 @@ class NaiveLLMFollowGenerator(LLMActionGeneratorMixin, FollowGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedFollow]:
         """Generate follows from candidates using LLM prediction."""
         if not candidates:
@@ -143,11 +146,12 @@ class NaiveLLMFollowGenerator(LLMActionGeneratorMixin, FollowGenerator):
             _build_generated_follow(
                 post=author_to_post[uid],
                 agent_handle=agent_handle,
+                agent_id=agent_id,
                 run_id=run_id,
                 turn_number=turn_number,
                 model_used=model_used,
             )
             for uid in to_follow_ids
         ]
-        generated.sort(key=lambda g: g.follow.user_id)
+        generated.sort(key=lambda g: g.follow.target_agent_id)
         return generated

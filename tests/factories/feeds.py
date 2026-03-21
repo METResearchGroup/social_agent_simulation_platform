@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timezone
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.feeds import GeneratedFeed
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
@@ -21,12 +22,22 @@ class GeneratedFeedFactory(BaseFactory[GeneratedFeed]):
         feed_id: str | None = None,
         run_id: str | None = None,
         turn_number: int = 0,
+        agent_id: str | None = None,
         agent_handle: str | None = None,
         post_ids: list[str] | None = None,
         created_at: str | None = None,
     ) -> GeneratedFeed:
         fake = get_faker()
         run_id_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
+        if agent_id is not None:
+            agent_id_value = agent_id
+        elif agent_handle is not None:
+            h = agent_handle.strip()
+            if h.startswith("@"):
+                h = h[1:]
+            agent_id_value = canonical_agent_id(h)
+        else:
+            agent_id_value = canonical_agent_id("tests.feed.owner")
         agent_value = (
             agent_handle
             if agent_handle is not None
@@ -45,6 +56,7 @@ class GeneratedFeedFactory(BaseFactory[GeneratedFeed]):
             feed_id=feed_id_value,
             run_id=run_id_value,
             turn_number=turn_number,
+            agent_id=agent_id_value,
             agent_handle=agent_value,
             post_ids=post_ids_value,
             created_at=created_at_value,

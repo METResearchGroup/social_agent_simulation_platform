@@ -36,6 +36,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedLike]:
         """Generate likes from candidates using scoring and random probability."""
         if not candidates:
@@ -53,6 +54,7 @@ class RandomSimpleLikeGenerator(LikeGenerator):
                 _build_generated_like(
                     post=post,
                     agent_handle=agent_handle,
+                    agent_id=agent_id,
                     run_id=run_id,
                     turn_number=turn_number,
                 )
@@ -91,6 +93,7 @@ def _build_generated_like(
     *,
     post: Post,
     agent_handle: str,
+    agent_id: str,
     run_id: str,
     turn_number: int,
 ) -> GeneratedLike:
@@ -101,7 +104,7 @@ def _build_generated_like(
     return GeneratedLike(
         like=Like(
             like_id=like_id,
-            agent_id=agent_handle,
+            agent_id=agent_id,
             post_id=post_id,
             created_at=created_at,
         ),

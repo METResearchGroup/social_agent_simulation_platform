@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Final, TypeVar, cast
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.actions import Comment, Follow, Like
 from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
@@ -46,7 +47,7 @@ class LikeFactory(BaseFactory[Like]):
     ) -> Like:
         fake = get_faker()
         agent_value = (
-            agent_id if agent_id is not None else f"{fake.user_name()}.bsky.social"
+            agent_id if agent_id is not None else canonical_agent_id("tests.like.actor")
         )
         post_value = post_id if post_id is not None else f"post_{fake.uuid4()}"
         like_id_value = (
@@ -75,7 +76,9 @@ class CommentFactory(BaseFactory[Comment]):
     ) -> Comment:
         fake = get_faker()
         agent_value = (
-            agent_id if agent_id is not None else f"{fake.user_name()}.bsky.social"
+            agent_id
+            if agent_id is not None
+            else canonical_agent_id("tests.comment.actor")
         )
         post_value = post_id if post_id is not None else f"post_{fake.uuid4()}"
         comment_id_value = (
@@ -101,23 +104,29 @@ class FollowFactory(BaseFactory[Follow]):
         *,
         follow_id: str | None = None,
         agent_id: str | None = None,
-        user_id: str | None = None,
+        target_agent_id: str | None = None,
         created_at: str | None = None,
     ) -> Follow:
         fake = get_faker()
         agent_value = (
-            agent_id if agent_id is not None else f"{fake.user_name()}.bsky.social"
+            agent_id
+            if agent_id is not None
+            else canonical_agent_id(f"tests.follow.actor.{fake.uuid4()}")
         )
-        user_value = (
-            user_id if user_id is not None else f"{fake.user_name()}.bsky.social"
+        target_value = (
+            target_agent_id
+            if target_agent_id is not None
+            else canonical_agent_id(f"tests.follow.target.{fake.uuid4()}")
         )
         follow_id_value = (
-            follow_id if follow_id is not None else f"follow_{agent_value}_{user_value}"
+            follow_id
+            if follow_id is not None
+            else f"follow_{agent_value}_{target_value}_{fake.uuid4()[:8]}"
         )
         return Follow(
             follow_id=follow_id_value,
             agent_id=agent_value,
-            user_id=user_value,
+            target_agent_id=target_value,
             created_at=created_at
             if created_at is not None
             else _timestamp_utc_compact(),
@@ -190,13 +199,15 @@ class GeneratedFollowFactory(BaseFactory[GeneratedFollow]):
         explanation: str | None = None,
         metadata: GenerationMetadata | None = None,
         agent_id: str | None = None,
-        user_id: str | None = None,
+        target_agent_id: str | None = None,
     ) -> GeneratedFollow:
         fake = get_faker()
         follow_value = (
             follow
             if follow is not None
-            else FollowFactory.create(agent_id=agent_id, user_id=user_id)
+            else FollowFactory.create(
+                agent_id=agent_id, target_agent_id=target_agent_id
+            )
         )
         return GeneratedFollow(
             follow=follow_value,
@@ -217,7 +228,7 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
         like_id: str | None = None,
         run_id: str | None = None,
         turn_number: int = 0,
-        agent_handle: str | None = None,
+        agent_id: str | None = None,
         post_id: str | None = None,
         created_at: str | None = None,
         explanation: str | None | _UnsetType = UNSET,
@@ -228,9 +239,9 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
         fake = get_faker()
         run_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
         agent_value = (
-            agent_handle
-            if agent_handle is not None
-            else f"{fake.user_name()}.bsky.social"
+            agent_id
+            if agent_id is not None
+            else canonical_agent_id("tests.persisted_like.actor")
         )
         post_value = post_id if post_id is not None else f"post_{fake.uuid4()}"
         like_id_value = (
@@ -253,7 +264,7 @@ class PersistedLikeFactory(BaseFactory[PersistedLike]):
             like_id=like_id_value,
             run_id=run_value,
             turn_number=turn_number,
-            agent_handle=agent_value,
+            agent_id=agent_value,
             post_id=post_value,
             created_at=created_at
             if created_at is not None
@@ -273,7 +284,7 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
         comment_id: str | None = None,
         run_id: str | None = None,
         turn_number: int = 0,
-        agent_handle: str | None = None,
+        agent_id: str | None = None,
         post_id: str | None = None,
         text: str | None = None,
         created_at: str | None = None,
@@ -285,9 +296,9 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
         fake = get_faker()
         run_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
         agent_value = (
-            agent_handle
-            if agent_handle is not None
-            else f"{fake.user_name()}.bsky.social"
+            agent_id
+            if agent_id is not None
+            else canonical_agent_id("tests.persisted_comment.actor")
         )
         post_value = post_id if post_id is not None else f"post_{fake.uuid4()}"
         comment_id_value = (
@@ -312,7 +323,7 @@ class PersistedCommentFactory(BaseFactory[PersistedComment]):
             comment_id=comment_id_value,
             run_id=run_value,
             turn_number=turn_number,
-            agent_handle=agent_value,
+            agent_id=agent_value,
             post_id=post_value,
             text=text if text is not None else fake.sentence(nb_words=6),
             created_at=created_at
@@ -333,8 +344,8 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
         follow_id: str | None = None,
         run_id: str | None = None,
         turn_number: int = 0,
-        agent_handle: str | None = None,
-        user_id: str | None = None,
+        agent_id: str | None = None,
+        target_agent_id: str | None = None,
         created_at: str | None = None,
         explanation: str | None | _UnsetType = UNSET,
         model_used: str | None | _UnsetType = UNSET,
@@ -344,15 +355,19 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
         fake = get_faker()
         run_value = run_id if run_id is not None else f"run_{fake.uuid4()}"
         agent_value = (
-            agent_handle
-            if agent_handle is not None
-            else f"{fake.user_name()}.bsky.social"
+            agent_id
+            if agent_id is not None
+            else canonical_agent_id(f"tests.persisted_follow.actor.{fake.uuid4()}")
         )
-        user_value = (
-            user_id if user_id is not None else f"{fake.user_name()}.bsky.social"
+        target_value = (
+            target_agent_id
+            if target_agent_id is not None
+            else canonical_agent_id(f"tests.persisted_follow.target.{fake.uuid4()}")
         )
         follow_id_value = (
-            follow_id if follow_id is not None else f"follow_{agent_value}_{user_value}"
+            follow_id
+            if follow_id is not None
+            else f"follow_{agent_value}_{target_value}_{fake.uuid4()[:8]}"
         )
         explanation_value = _resolve_unset(
             explanation,
@@ -371,8 +386,8 @@ class PersistedFollowFactory(BaseFactory[PersistedFollow]):
             follow_id=follow_id_value,
             run_id=run_value,
             turn_number=turn_number,
-            agent_handle=agent_value,
-            user_id=user_value,
+            agent_id=agent_value,
+            target_agent_id=target_value,
             created_at=created_at
             if created_at is not None
             else _timestamp_utc_compact(),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from lib.agent_id import canonical_agent_id, is_canonical_agent_id
 from simulation.core.action_history.interfaces import ActionHistoryStore
 from simulation.core.action_policy.interfaces import AgentActionFeedFilter
 from simulation.core.models.posts import Post
@@ -14,6 +15,18 @@ class ActionCandidateFeeds:
     like_candidates: list[Post]
     comment_candidates: list[Post]
     follow_candidates: list[Post]
+
+
+def _follow_target_key_for_history(post: Post) -> str:
+    """Match ``record_follow`` / follow generation: canonical id when available."""
+    if post.author_agent_id and is_canonical_agent_id(post.author_agent_id):
+        return post.author_agent_id
+    if post.author_handle:
+        return canonical_agent_id(post.author_handle)
+    raise ValueError(
+        f"Cannot derive follow target key for post {post.post_id!r}: "
+        "missing author_agent_id and author_handle"
+    )
 
 
 class HistoryAwareActionFeedFilter(AgentActionFeedFilter):
@@ -43,7 +56,9 @@ class HistoryAwareActionFeedFilter(AgentActionFeedFilter):
             post
             for post in feed
             if not action_history_store.has_followed(
-                run_id, agent_handle, post.author_handle
+                run_id,
+                agent_handle,
+                _follow_target_key_for_history(post),
             )
         ]
         return ActionCandidateFeeds(

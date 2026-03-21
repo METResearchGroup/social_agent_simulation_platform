@@ -9,7 +9,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -21,7 +22,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -33,7 +35,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -45,7 +48,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -57,7 +61,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -69,7 +74,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -81,7 +87,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -93,7 +100,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -105,7 +113,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -117,7 +126,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -129,7 +139,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -141,7 +152,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -153,7 +165,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -165,7 +178,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -177,7 +191,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -189,7 +204,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -201,7 +217,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -213,7 +230,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -225,7 +243,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -237,7 +256,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -249,7 +269,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -261,7 +282,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -273,7 +295,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -285,7 +308,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -297,7 +321,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 8
+    "turn_number": 8,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -309,7 +334,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 8
+    "turn_number": 8,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -321,7 +347,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 8
+    "turn_number": 8,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -333,7 +360,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 9
+    "turn_number": 9,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -345,7 +373,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 9
+    "turn_number": 9,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -357,7 +386,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-15T10:30:00",
-    "turn_number": 9
+    "turn_number": 9,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -369,7 +399,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -381,7 +412,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -393,7 +425,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -405,7 +438,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -417,7 +451,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -429,7 +464,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -441,7 +477,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -453,7 +490,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -465,7 +503,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -477,7 +516,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -489,7 +529,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -501,7 +542,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-15T14:45:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -513,7 +555,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -525,7 +568,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -537,7 +581,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -549,7 +594,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -561,7 +607,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -573,7 +620,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -585,7 +633,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -597,7 +646,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -609,7 +659,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -621,7 +672,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -633,7 +685,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -645,7 +698,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -657,7 +711,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -669,7 +724,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -681,7 +737,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-16T09:15:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -693,7 +750,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -705,7 +763,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -717,7 +776,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -729,7 +789,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -741,7 +802,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -753,7 +815,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -765,7 +828,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -777,7 +841,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -789,7 +854,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -801,7 +867,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -813,7 +880,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -825,7 +893,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -837,7 +906,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -849,7 +919,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -861,7 +932,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -873,7 +945,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -885,7 +958,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -897,7 +971,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -909,7 +984,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -921,7 +997,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -933,7 +1010,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -945,7 +1023,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -957,7 +1036,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -969,7 +1049,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 5
+    "turn_number": 5,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -981,7 +1062,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -993,7 +1075,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1005,7 +1088,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1017,7 +1101,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 6
+    "turn_number": 6,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -1029,7 +1114,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -1041,7 +1127,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1053,7 +1140,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1065,7 +1153,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-17T08:20:00",
-    "turn_number": 7
+    "turn_number": 7,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -1077,7 +1166,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -1089,7 +1179,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1101,7 +1192,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1113,7 +1205,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 0
+    "turn_number": 0,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -1125,7 +1218,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -1137,7 +1231,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1149,7 +1244,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1161,7 +1257,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 1
+    "turn_number": 1,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -1173,7 +1270,8 @@
       "bluesky:at://did:plc:example3/post3"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -1185,7 +1283,8 @@
       "bluesky:at://did:plc:example4/post4"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1197,7 +1296,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1209,7 +1309,8 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 2
+    "turn_number": 2,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -1221,7 +1322,8 @@
       "bluesky:at://did:plc:example6/post6"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -1233,7 +1335,8 @@
       "bluesky:at://did:plc:example7/post7"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1245,7 +1348,8 @@
       "bluesky:at://did:plc:example8/post8"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1257,7 +1361,8 @@
       "bluesky:at://did:plc:example5/post5"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 3
+    "turn_number": 3,
+    "agent_id": "3cb6d2d8b3398451"
   },
   {
     "agent_handle": "@alice.bsky.social",
@@ -1269,7 +1374,8 @@
       "bluesky:at://did:plc:example9/post9"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "9fd6a35a1132f8df"
   },
   {
     "agent_handle": "@bob.tech",
@@ -1281,7 +1387,8 @@
       "bluesky:at://did:plc:example10/post10"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "6b89de43980a9096"
   },
   {
     "agent_handle": "@charlie.dev",
@@ -1293,7 +1400,8 @@
       "bluesky:at://did:plc:example1/post1"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "d4bcb9799721fe93"
   },
   {
     "agent_handle": "@diana.design",
@@ -1305,6 +1413,7 @@
       "bluesky:at://did:plc:example2/post2"
     ],
     "run_id": "run_2025-01-18T11:00:00",
-    "turn_number": 4
+    "turn_number": 4,
+    "agent_id": "3cb6d2d8b3398451"
   }
 ]

@@ -25,8 +25,10 @@ class InMemoryActionHistoryStore(ActionHistoryStore):
     def has_commented(self, run_id: str, agent_handle: str, post_id: str) -> bool:
         return post_id in self._comments_by_run_agent[run_id][agent_handle]
 
-    def has_followed(self, run_id: str, agent_handle: str, user_id: str) -> bool:
-        return user_id in self._follows_by_run_agent[run_id][agent_handle]
+    def has_followed(
+        self, run_id: str, agent_handle: str, target_agent_id: str
+    ) -> bool:
+        return target_agent_id in self._follows_by_run_agent[run_id][agent_handle]
 
     def record_like(self, run_id: str, agent_handle: str, post_id: str) -> None:
         self._likes_by_run_agent[run_id][agent_handle].add(post_id)
@@ -34,5 +36,7 @@ class InMemoryActionHistoryStore(ActionHistoryStore):
     def record_comment(self, run_id: str, agent_handle: str, post_id: str) -> None:
         self._comments_by_run_agent[run_id][agent_handle].add(post_id)
 
-    def record_follow(self, run_id: str, agent_handle: str, user_id: str) -> None:
-        self._follows_by_run_agent[run_id][agent_handle].add(user_id)
+    def record_follow(
+        self, run_id: str, agent_handle: str, target_agent_id: str
+    ) -> None:
+        self._follows_by_run_agent[run_id][agent_handle].add(target_agent_id)

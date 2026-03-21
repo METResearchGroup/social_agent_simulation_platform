@@ -213,6 +213,10 @@ def _generate_feed(
     feed_algorithm_config: Mapping[str, JsonValue] | None,
 ) -> GeneratedFeed:
     """Run the registered feed algorithm on candidate posts and return a generated feed."""
+    if agent.agent_id is None:
+        raise ValueError(
+            "SimulationAgent.agent_id must be set to persist a generated feed"
+        )
     algorithm = get_feed_generator(feed_algorithm)
     result: FeedAlgorithmResult = algorithm.generate(
         candidate_posts=candidate_posts,
@@ -224,6 +228,7 @@ def _generate_feed(
         feed_id=result.feed_id,
         run_id=run_id,
         turn_number=turn_number,
+        agent_id=agent.agent_id,
         agent_handle=result.agent_handle,
         post_ids=result.post_ids,
         created_at=get_current_timestamp(),

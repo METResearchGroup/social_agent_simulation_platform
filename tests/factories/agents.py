@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.posts import Post
 from tests.factories.base import BaseFactory
@@ -18,8 +19,12 @@ class AgentFactory(BaseFactory[SimulationAgent]):
         posts_count: int | None = None,
     ) -> SimulationAgent:
         fake = get_faker()
+        resolved_handle = (
+            handle if handle is not None else f"{fake.user_name()}.bsky.social"
+        )
         agent = SimulationAgent(
-            handle=handle if handle is not None else f"{fake.user_name()}.bsky.social"
+            handle=resolved_handle,
+            agent_id=canonical_agent_id(resolved_handle),
         )
         if posts is not None:
             agent.posts = list(posts)

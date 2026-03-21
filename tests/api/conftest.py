@@ -14,6 +14,13 @@ from simulation.api.dependencies.auth import require_auth
 from simulation.api.main import app
 
 
+@pytest.fixture
+def client(temp_db):
+    """Isolated DB so migrations do not depend on the repo's db.sqlite."""
+    with TestClient(app) as client:
+        yield client
+
+
 def _mock_require_current_app_user(
     request: Request, claims: dict = Depends(require_auth)
 ):
@@ -82,7 +89,10 @@ def simulation_client(temp_db):
 
 
 @pytest.fixture
-def client_no_auth_override():
-    """TestClient without auth override. Used by test_auth to exercise real JWT verification."""
+def client_no_auth_override(temp_db):
+    """TestClient without auth override. Used by test_auth to exercise real JWT verification.
+
+    Uses ``temp_db`` so migrations run against an isolated DB (not the repo's db.sqlite).
+    """
     with TestClient(app=app) as client:
         yield client

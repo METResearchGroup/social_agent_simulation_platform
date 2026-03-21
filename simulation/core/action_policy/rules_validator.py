@@ -68,7 +68,7 @@ def _dispatch_duplicate_follow(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
-        follow_user_ids=identifiers,
+        follow_target_agent_ids=identifiers,
     )
 
 
@@ -118,7 +118,7 @@ def _dispatch_history_follow(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
-        follow_user_ids=identifiers,
+        follow_target_agent_ids=identifiers,
         action_history_store=action_history_store,
     )
 
@@ -153,7 +153,7 @@ class AgentActionRulesValidator:
         """Validate action invariants and return extracted target identifiers."""
         like_post_ids = [like.like.post_id for like in likes]
         comment_post_ids = [comment.comment.post_id for comment in comments]
-        follow_user_ids = [follow.follow.user_id for follow in follows]
+        follow_target_agent_ids = [follow.follow.target_agent_id for follow in follows]
 
         self.validate_duplicates(
             run_id=run_id,
@@ -161,7 +161,7 @@ class AgentActionRulesValidator:
             agent_handle=agent_handle,
             like_post_ids=like_post_ids,
             comment_post_ids=comment_post_ids,
-            follow_user_ids=follow_user_ids,
+            follow_target_agent_ids=follow_target_agent_ids,
         )
 
         self.validate_previously_acted_on(
@@ -170,11 +170,11 @@ class AgentActionRulesValidator:
             agent_handle=agent_handle,
             like_post_ids=like_post_ids,
             comment_post_ids=comment_post_ids,
-            follow_user_ids=follow_user_ids,
+            follow_target_agent_ids=follow_target_agent_ids,
             action_history_store=action_history_store,
         )
 
-        return like_post_ids, comment_post_ids, follow_user_ids
+        return like_post_ids, comment_post_ids, follow_target_agent_ids
 
     def validate_duplicates(
         self,
@@ -184,7 +184,7 @@ class AgentActionRulesValidator:
         agent_handle: str,
         like_post_ids: list[str],
         comment_post_ids: list[str],
-        follow_user_ids: list[str],
+        follow_target_agent_ids: list[str],
     ) -> None:
         self._validate_duplicates(
             action_type=TurnAction.LIKE,
@@ -205,7 +205,7 @@ class AgentActionRulesValidator:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
-            identifiers=follow_user_ids,
+            identifiers=follow_target_agent_ids,
         )
 
     def validate_previously_acted_on(
@@ -216,7 +216,7 @@ class AgentActionRulesValidator:
         agent_handle: str,
         like_post_ids: list[str],
         comment_post_ids: list[str],
-        follow_user_ids: list[str],
+        follow_target_agent_ids: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
         self._validate_previously_acted_on(
@@ -240,7 +240,7 @@ class AgentActionRulesValidator:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
-            identifiers=follow_user_ids,
+            identifiers=follow_target_agent_ids,
             action_history_store=action_history_store,
         )
 
@@ -320,13 +320,13 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
-        follow_user_ids: list[str],
+        follow_target_agent_ids: list[str],
     ) -> None:
-        duplicate_follow_targets = self._find_duplicates(follow_user_ids)
+        duplicate_follow_targets = self._find_duplicates(follow_target_agent_ids)
         if duplicate_follow_targets:
             raise ValueError(
                 f"Agent {agent_handle} followed duplicate targets in run {run_id}, "
-                f"turn {turn_number}. Duplicate user IDs: {duplicate_follow_targets}"
+                f"turn {turn_number}. Duplicate target agent IDs: {duplicate_follow_targets}"
             )
 
     def _validate_previously_liked(
@@ -367,13 +367,13 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
-        follow_user_ids: list[str],
+        follow_target_agent_ids: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
-        for user_id in follow_user_ids:
-            if action_history_store.has_followed(run_id, agent_handle, user_id):
+        for target_agent_id in follow_target_agent_ids:
+            if action_history_store.has_followed(run_id, agent_handle, target_agent_id):
                 raise ValueError(
-                    f"Agent {agent_handle} cannot follow user {user_id} again in run {run_id}, "
+                    f"Agent {agent_handle} cannot follow target {target_agent_id} again in run {run_id}, "
                     f"turn {turn_number}"
                 )
 

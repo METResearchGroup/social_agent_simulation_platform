@@ -3,6 +3,7 @@
 Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
+from lib.agent_id import canonical_agent_id
 from lib.load_env_vars import EnvVarsContainer
 from simulation.core.factories.action_generators.follow.naive_llm import (
     create_naive_llm_follow_generator,
@@ -87,17 +88,22 @@ def main() -> None:
     ]
 
     for i, candidates in enumerate([candidates_1, candidates_2, candidates_3], 1):
+        agent_handle = "test_agent.bsky.social"
         result = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=i,
-            agent_handle="test_agent.bsky.social",
+            agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
         assert hasattr(result, "__iter__"), (  # noqa: S101  # nosec B101
             "Expected generator.generate() to be iterable"
         )
         generated_items = list(result)
         assert generated_items, "Expected at least one generated follow action"  # noqa: S101  # nosec B101
+        expected_agent_id = canonical_agent_id(agent_handle)
+        for item in generated_items:
+            assert item.follow.agent_id == expected_agent_id  # noqa: S101  # nosec B101
         assert all(item is not None for item in generated_items)  # noqa: S101  # nosec B101
 
 

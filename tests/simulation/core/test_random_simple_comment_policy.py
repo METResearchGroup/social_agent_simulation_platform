@@ -1,5 +1,6 @@
 """Tests for simulation.core.action_generators.comment.algorithms.random_simple module."""
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_generators.comment.algorithms import random_simple as mod
 from simulation.core.action_generators.comment.algorithms.random_simple import (
     TOP_K_POSTS_TO_COMMENT,
@@ -7,6 +8,8 @@ from simulation.core.action_generators.comment.algorithms.random_simple import (
 )
 from simulation.core.models.posts import Post
 from tests.factories import PostFactory
+
+AGENT_ID = canonical_agent_id("agent1.bsky.social")
 
 
 def _post(
@@ -47,6 +50,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -66,6 +70,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_prob0",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -85,6 +90,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_prob100",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -115,6 +121,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_social",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -139,12 +146,14 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
         result2 = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
 
         # Assert
@@ -167,6 +176,7 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id="run_order",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         # Assert
@@ -190,13 +200,14 @@ class TestRandomSimpleCommentGeneratorGenerate:
             run_id=expected_run_id,
             turn_number=expected_turn,
             agent_handle=expected_handle,
+            agent_id=canonical_agent_id(expected_handle),
         )
 
         # Assert
         assert len(result) == 1
         comment = result[0]
         assert comment.comment.comment_id == expected_comment_id
-        assert comment.comment.agent_id == expected_handle
+        assert comment.comment.agent_id == canonical_agent_id(expected_handle)
         assert comment.comment.post_id == expected_post_id
         assert comment.comment.text
         assert comment.explanation

@@ -66,6 +66,56 @@
         "from_columns": [
           "agent_id"
         ],
+        "from_table": "comments",
+        "name": "fk_comments_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "agent_id"
+        ],
+        "from_table": "follows",
+        "name": "fk_follows_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "target_agent_id"
+        ],
+        "from_table": "follows",
+        "name": "fk_follows_target_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "agent_id"
+        ],
+        "from_table": "generated_feeds",
+        "name": null,
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "agent_id"
+        ],
+        "from_table": "likes",
+        "name": "fk_likes_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
+          "agent_id"
+        ],
         "from_table": "run_agents",
         "name": "fk_run_agents_agent_id",
         "to_columns": [
@@ -243,7 +293,7 @@
           "run_id"
         ],
         "from_table": "generated_feeds",
-        "name": "fk_generated_feeds_run_id",
+        "name": null,
         "to_columns": [
           "run_id"
         ]
@@ -1094,7 +1144,7 @@
         },
         {
           "default": null,
-          "name": "agent_handle",
+          "name": "agent_id",
           "nullable": false,
           "primary_key": 0,
           "type": "TEXT"
@@ -1152,6 +1202,18 @@
       "foreign_keys": [
         {
           "columns": [
+            "agent_id"
+          ],
+          "name": "fk_comments_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        },
+        {
+          "columns": [
             "run_id"
           ],
           "name": "fk_comments_run_id",
@@ -1168,7 +1230,7 @@
           "columns": [
             "run_id",
             "turn_number",
-            "agent_handle"
+            "agent_id"
           ],
           "name": "idx_comments_run_turn_agent",
           "unique": false
@@ -1185,7 +1247,7 @@
           "columns": [
             "run_id",
             "turn_number",
-            "agent_handle",
+            "agent_id",
             "post_id"
           ],
           "name": "uq_comments_run_turn_agent_post"
@@ -1329,14 +1391,14 @@
         },
         {
           "default": null,
-          "name": "agent_handle",
+          "name": "agent_id",
           "nullable": false,
           "primary_key": 0,
           "type": "TEXT"
         },
         {
           "default": null,
-          "name": "user_id",
+          "name": "target_agent_id",
           "nullable": false,
           "primary_key": 0,
           "type": "TEXT"
@@ -1380,6 +1442,30 @@
       "foreign_keys": [
         {
           "columns": [
+            "agent_id"
+          ],
+          "name": "fk_follows_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        },
+        {
+          "columns": [
+            "target_agent_id"
+          ],
+          "name": "fk_follows_target_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        },
+        {
+          "columns": [
             "run_id"
           ],
           "name": "fk_follows_run_id",
@@ -1396,7 +1482,7 @@
           "columns": [
             "run_id",
             "turn_number",
-            "agent_handle"
+            "agent_id"
           ],
           "name": "idx_follows_run_turn_agent",
           "unique": false
@@ -1413,10 +1499,10 @@
           "columns": [
             "run_id",
             "turn_number",
-            "agent_handle",
-            "user_id"
+            "agent_id",
+            "target_agent_id"
           ],
-          "name": "uq_follows_run_turn_agent_user"
+          "name": "uq_follows_run_turn_agent_target"
         }
       ]
     },
@@ -1446,9 +1532,16 @@
         },
         {
           "default": null,
-          "name": "agent_handle",
+          "name": "agent_id",
           "nullable": false,
           "primary_key": 1,
+          "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "agent_handle",
+          "nullable": true,
+          "primary_key": 0,
           "type": "TEXT"
         },
         {
@@ -1469,9 +1562,21 @@
       "foreign_keys": [
         {
           "columns": [
+            "agent_id"
+          ],
+          "name": null,
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        },
+        {
+          "columns": [
             "run_id"
           ],
-          "name": "fk_generated_feeds_run_id",
+          "name": null,
           "ondelete": null,
           "onupdate": null,
           "referred_columns": [
@@ -1483,11 +1588,11 @@
       "indexes": [],
       "primary_key": {
         "columns": [
-          "agent_handle",
+          "agent_id",
           "run_id",
           "turn_number"
         ],
-        "name": "pk_generated_feeds"
+        "name": null
       },
       "unique_constraints": []
     },
@@ -1522,7 +1627,7 @@
         },
         {
           "default": null,
-          "name": "agent_handle",
+          "name": "agent_id",
           "nullable": false,
           "primary_key": 0,
           "type": "TEXT"
@@ -1573,6 +1678,18 @@
       "foreign_keys": [
         {
           "columns": [
+            "agent_id"
+          ],
+          "name": "fk_likes_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        },
+        {
+          "columns": [
             "run_id"
           ],
           "name": "fk_likes_run_id",
@@ -1589,7 +1706,7 @@
           "columns": [
             "run_id",
             "turn_number",
-            "agent_handle"
+            "agent_id"
           ],
           "name": "idx_likes_run_turn_agent",
           "unique": false
@@ -1606,7 +1723,7 @@
           "columns": [
             "run_id",
             "turn_number",
-            "agent_handle",
+            "agent_id",
             "post_id"
           ],
           "name": "uq_likes_run_turn_agent_post"

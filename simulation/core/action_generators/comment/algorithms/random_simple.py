@@ -42,6 +42,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
     ) -> list[GeneratedComment]:
         """Generate comments from candidates using scoring and random probability."""
         if not candidates:
@@ -64,6 +65,7 @@ class RandomSimpleCommentGenerator(CommentGenerator):
                 _build_generated_comment(
                     post=post,
                     agent_handle=agent_handle,
+                    agent_id=agent_id,
                     run_id=run_id,
                     turn_number=turn_number,
                 )
@@ -123,6 +125,7 @@ def _build_generated_comment(
     *,
     post: Post,
     agent_handle: str,
+    agent_id: str,
     run_id: str,
     turn_number: int,
 ) -> GeneratedComment:
@@ -139,7 +142,7 @@ def _build_generated_comment(
     return GeneratedComment(
         comment=Comment(
             comment_id=comment_id,
-            agent_id=agent_handle,
+            agent_id=agent_id,
             post_id=post_id,
             text=text,
             created_at=created_at,

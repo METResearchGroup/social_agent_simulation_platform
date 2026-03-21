@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_generators.comment.algorithms.naive_llm import (
     NaiveLLMCommentGenerator,
 )
@@ -54,6 +55,9 @@ def _post(
     )
 
 
+AGENT_ID = canonical_agent_id("agent1.bsky.social")
+
+
 @pytest.fixture
 def sample_candidates() -> list[Post]:
     """Sample feed posts for testing."""
@@ -80,6 +84,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         assert result == expected_result
@@ -101,11 +106,13 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=1,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
+        agent_aid = canonical_agent_id("agent.bsky.social")
         expected_result = [
-            ("bluesky:post_1", "agent.bsky.social"),
-            ("bluesky:post_3", "agent.bsky.social"),
+            ("bluesky:post_1", agent_aid),
+            ("bluesky:post_3", agent_aid),
         ]
         assert [(g.like.post_id, g.like.agent_id) for g in result] == expected_result
         expected_result = "LLM prediction (naive_llm)"
@@ -128,6 +135,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         post_ids = [g.like.post_id for g in result]
@@ -152,6 +160,7 @@ class TestNaiveLLMLikeGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         expected_result = ["bluesky:post_1", "bluesky:post_3"]
@@ -174,6 +183,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         assert result == expected_result
@@ -198,6 +208,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=1,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         expected_result = [
@@ -228,6 +239,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         expected_result = 1
@@ -256,6 +268,7 @@ class TestNaiveLLMCommentGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         expected_result = ["bluesky:post_1", "bluesky:post_3"]
@@ -278,6 +291,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent1.bsky.social",
+            agent_id=AGENT_ID,
         )
 
         assert result == expected_result
@@ -294,6 +308,7 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         expected_result: list = []
@@ -316,12 +331,19 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=1,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
-        expected_result = ["alice.bsky.social", "carol.bsky.social"]
-        assert [g.follow.user_id for g in result] == expected_result
-        expected_result = "LLM prediction (naive_llm)"
-        assert result[0].explanation == expected_result
+        expected_ids = {
+            canonical_agent_id("alice.bsky.social"),
+            canonical_agent_id("carol.bsky.social"),
+        }
+        target_ids = [g.follow.target_agent_id for g in result]
+        assert set(target_ids) == expected_ids
+        assert target_ids == sorted(target_ids), (
+            "Output must be sorted by target_agent_id"
+        )
+        assert result[0].explanation == "LLM prediction (naive_llm)"
         mock_llm.structured_completion.assert_called_once()
 
     def test_filters_invalid_user_ids(
@@ -340,12 +362,14 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
         expected_result = 1
         assert len(result) == expected_result
-        expected_result = "alice.bsky.social"
-        assert result[0].follow.user_id == expected_result
+        assert result[0].follow.target_agent_id == canonical_agent_id(
+            "alice.bsky.social"
+        )
 
     def test_ordering_is_sorted_by_user_id(
         self,
@@ -363,7 +387,15 @@ class TestNaiveLLMFollowGenerator:
             run_id="run_1",
             turn_number=0,
             agent_handle="agent.bsky.social",
+            agent_id=canonical_agent_id("agent.bsky.social"),
         )
 
-        expected_result = ["alice.bsky.social", "carol.bsky.social"]
-        assert [g.follow.user_id for g in result] == expected_result
+        expected_ids = {
+            canonical_agent_id("alice.bsky.social"),
+            canonical_agent_id("carol.bsky.social"),
+        }
+        target_ids = [g.follow.target_agent_id for g in result]
+        assert set(target_ids) == expected_ids
+        assert target_ids == sorted(target_ids), (
+            "Output must be sorted by target_agent_id"
+        )

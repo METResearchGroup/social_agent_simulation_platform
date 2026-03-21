@@ -15,7 +15,7 @@ class PersistedLike(BaseModel):
     like_id: str
     run_id: str
     turn_number: int
-    agent_handle: str
+    agent_id: str
     post_id: str
     created_at: str
     explanation: str | None = None
@@ -35,7 +35,7 @@ class PersistedComment(BaseModel):
     comment_id: str
     run_id: str
     turn_number: int
-    agent_handle: str
+    agent_id: str
     post_id: str
     text: str
     created_at: str
@@ -56,8 +56,8 @@ class PersistedFollow(BaseModel):
     follow_id: str
     run_id: str
     turn_number: int
-    agent_handle: str
-    user_id: str
+    agent_id: str
+    target_agent_id: str
     created_at: str
     explanation: str | None = None
     model_used: str | None = None

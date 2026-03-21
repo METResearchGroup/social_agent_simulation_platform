@@ -849,7 +849,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
 
         Note:
             This write is idempotent: an existing row with the same composite
-            key (agent_handle, run_id, turn_number) may be replaced. Callers can
+            key (agent_id, run_id, turn_number) may be replaced. Callers can
             safely retry or recompute; duplicate writes do not raise.
             Implementations (e.g. SQLite) may use INSERT OR REPLACE
             (delete+insert semantics).
@@ -859,7 +859,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
     @abstractmethod
     def read_generated_feed(
         self,
-        agent_handle: str,
+        agent_id: str,
         run_id: str,
         turn_number: int,
         *,
@@ -868,7 +868,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
         """Read a generated feed by composite key.
 
         Args:
-            agent_handle: Agent handle to look up
+            agent_id: Canonical agent id to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
             conn: Connection.
@@ -907,12 +907,12 @@ class GeneratedFeedDatabaseAdapter(ABC):
 
     @abstractmethod
     def read_post_ids_for_run(
-        self, agent_handle: str, run_id: str, *, conn: object
+        self, agent_id: str, run_id: str, *, conn: object
     ) -> set[str]:
         """Read all post_ids from generated feeds for a specific agent and run.
 
         Args:
-            agent_handle: Agent handle to filter by
+            agent_id: Canonical agent id to filter by
             run_id: Run ID to filter by
             conn: Connection.
 
@@ -921,7 +921,7 @@ class GeneratedFeedDatabaseAdapter(ABC):
             Returns empty set if no feeds found.
 
         Raises:
-            ValueError: If agent_handle or run_id is empty
+            ValueError: If agent_id or run_id is empty
             Exception: Database-specific exception if the operation fails.
                       Implementations should document the specific exception types
                       they raise.
@@ -1216,7 +1216,7 @@ class LikeDatabaseAdapter(ABC):
     def read_likes_by_run_turn(
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedLike]:
-        """Read all like rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
+        """Read all like rows for (run_id, turn_number). Ordered by agent_id, post_id."""
         raise NotImplementedError
 
 
@@ -1239,7 +1239,7 @@ class CommentDatabaseAdapter(ABC):
     def read_comments_by_run_turn(
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedComment]:
-        """Read all comment rows for (run_id, turn_number). Ordered by agent_handle, post_id."""
+        """Read all comment rows for (run_id, turn_number). Ordered by agent_id, post_id."""
         raise NotImplementedError
 
 
@@ -1262,5 +1262,5 @@ class FollowDatabaseAdapter(ABC):
     def read_follows_by_run_turn(
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[PersistedFollow]:
-        """Read all follow rows for (run_id, turn_number). Ordered by agent_handle, user_id."""
+        """Read all follow rows for (run_id, turn_number). Ordered by agent_id, target_agent_id."""
         raise NotImplementedError

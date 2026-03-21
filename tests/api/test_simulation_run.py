@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import SimulationRunFailure
+from tests.db.repositories.conftest import ensure_agent_row_for_generated_feed
 from tests.factories import (
     EngineFactory,
     GeneratedFeedFactory,
@@ -351,16 +352,16 @@ class TestSimulationRun:
                 created_at="2026-01-01T00:01:00.000Z",
             )
         )
-        generated_feed_repo.write_generated_feed(
-            GeneratedFeedFactory.create(
-                feed_id="feed-1",
-                run_id=run.run_id,
-                turn_number=0,
-                agent_handle="test.agent",
-                post_ids=["bluesky:at://did:plc:example1/post1"],
-                created_at="2026-01-01T00:00:00.000Z",
-            )
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed-1",
+            run_id=run.run_id,
+            turn_number=0,
+            agent_handle="test.agent",
+            post_ids=["bluesky:at://did:plc:example1/post1"],
+            created_at="2026-01-01T00:00:00.000Z",
         )
+        ensure_agent_row_for_generated_feed(feed)
+        generated_feed_repo.write_generated_feed(feed)
 
         client, _ = simulation_client
         response = client.get(f"/v1/simulations/runs/{run.run_id}/turns")

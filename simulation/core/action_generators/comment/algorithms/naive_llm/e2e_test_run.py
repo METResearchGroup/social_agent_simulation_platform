@@ -3,6 +3,7 @@
 Requires OPENAI_API_KEY or provider key per ml_tooling LLM config.
 """
 
+from lib.agent_id import canonical_agent_id
 from lib.load_env_vars import EnvVarsContainer
 from simulation.core.factories.action_generators.comment.naive_llm import (
     create_naive_llm_comment_generator,
@@ -59,11 +60,13 @@ def main() -> None:
     ]
 
     for i, candidates in enumerate([candidates_1, candidates_2, candidates_3], 1):
+        agent_handle = "test_agent.bsky.social"
         result = generator.generate(
             candidates=candidates,
             run_id=run_id,
             turn_number=i,
-            agent_handle="test_agent.bsky.social",
+            agent_handle=agent_handle,
+            agent_id=canonical_agent_id(agent_handle),
         )
         assert hasattr(result, "__iter__"), (  # noqa: S101  # nosec B101
             "Expected generator.generate() to be iterable"

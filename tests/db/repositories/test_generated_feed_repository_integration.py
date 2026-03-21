@@ -6,7 +6,11 @@ These tests use a real SQLite database to test end-to-end functionality.
 import pytest
 from pydantic import ValidationError
 
-from tests.db.repositories.conftest import ensure_run_exists
+from lib.agent_id import canonical_agent_id
+from tests.db.repositories.conftest import (
+    ensure_agent_row_for_generated_feed,
+    ensure_run_exists,
+)
 from tests.factories import GeneratedFeedFactory
 
 
@@ -25,6 +29,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
+        ensure_agent_row_for_generated_feed(feed)
 
         # Create feed
         created_feed = repo.write_generated_feed(feed)
@@ -33,7 +38,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert created_feed.turn_number == 1
 
         # Read it back
-        retrieved_feed = repo.get_generated_feed("test.bsky.social", "run_123", 1)
+        retrieved_feed = repo.get_generated_feed(feed.agent_id, "run_123", 1)
         assert retrieved_feed is not None
         assert retrieved_feed.feed_id == created_feed.feed_id
         assert retrieved_feed.run_id == created_feed.run_id
@@ -56,6 +61,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_ids=["bluesky:at://did:plc:test1/app.bsky.feed.post/post1"],
             created_at="2024-01-01T00:00:00Z",
         )
+        ensure_agent_row_for_generated_feed(initial_feed)
         repo.write_generated_feed(initial_feed)
 
         # Update the feed (same composite key, different feed_id and post_ids)
@@ -70,10 +76,11 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             ],
             created_at="2024-01-02T00:00:00Z",
         )
+        ensure_agent_row_for_generated_feed(updated_feed)
         repo.write_generated_feed(updated_feed)
 
         # Verify update
-        retrieved_feed = repo.get_generated_feed("test.bsky.social", "run_123", 1)
+        retrieved_feed = repo.get_generated_feed(updated_feed.agent_id, "run_123", 1)
         assert retrieved_feed is not None
         assert retrieved_feed.feed_id == "feed_updated"
         assert retrieved_feed.run_id == "run_123"
@@ -91,7 +98,9 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         repo = generated_feed_repo
 
         with pytest.raises(ValueError, match="Generated feed not found"):
-            repo.get_generated_feed("nonexistent.bsky.social", "run_999", 99)
+            repo.get_generated_feed(
+                canonical_agent_id("nonexistent.bsky.social"), "run_999", 99
+            )
 
     def test_list_all_generated_feeds_retrieves_all_feeds(self, generated_feed_repo):
         """Test that list_all_generated_feeds retrieves all feeds from the database."""
@@ -113,6 +122,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         ]
 
         for feed in feeds:
+            ensure_agent_row_for_generated_feed(feed)
             repo.write_generated_feed(feed)
 
         # List all feeds
@@ -148,7 +158,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
     def test_multiple_feeds_with_same_agent_handle_but_different_run_id_turn_number(
         self, generated_feed_repo
     ):
-        """Test that multiple feeds with same agent_handle but different run_id/turn_number can coexist."""
+        """Test multiple feeds with same agent_handle but different run_id/turn_number."""
         repo = generated_feed_repo
         ensure_run_exists("run_1")
         ensure_run_exists("run_2")
@@ -177,15 +187,17 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_ids=["bluesky:at://did:plc:test3/app.bsky.feed.post/post3"],
             created_at="2024-01-03T00:00:00Z",
         )
+        for f in (feed1, feed2, feed3):
+            ensure_agent_row_for_generated_feed(f)
 
         repo.write_generated_feed(feed1)
         repo.write_generated_feed(feed2)
         repo.write_generated_feed(feed3)
 
-        # Retrieve each feed
-        retrieved1 = repo.get_generated_feed("alice.bsky.social", "run_1", 1)
-        retrieved2 = repo.get_generated_feed("alice.bsky.social", "run_1", 2)
-        retrieved3 = repo.get_generated_feed("alice.bsky.social", "run_2", 1)
+        aid = feed1.agent_id
+        retrieved1 = repo.get_generated_feed(aid, "run_1", 1)
+        retrieved2 = repo.get_generated_feed(aid, "run_1", 2)
+        retrieved3 = repo.get_generated_feed(aid, "run_2", 1)
 
         assert retrieved1 is not None
         assert retrieved2 is not None
@@ -200,8 +212,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
     def test_write_generated_feed_with_empty_agent_handle_raises_error(
         self, generated_feed_repo
     ):
-        """Test that creating GeneratedFeed with empty agent_handle raises ValidationError from Pydantic."""
-        # Pydantic validation happens at model creation time, not in repository
+        """Empty agent_handle raises ValidationError from Pydantic."""
         with pytest.raises(ValidationError) as exc_info:
             GeneratedFeedFactory.create(
                 feed_id="feed_test123",
@@ -214,13 +225,13 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
         assert "value cannot be empty" in str(exc_info.value)
 
-    def test_get_generated_feed_with_empty_agent_handle_raises_error(
+    def test_get_generated_feed_with_empty_agent_id_raises_error(
         self, generated_feed_repo
     ):
-        """Test that get_generated_feed raises ValueError when agent_handle is empty."""
+        """Test that get_generated_feed raises ValueError when agent_id is empty."""
         repo = generated_feed_repo
 
-        with pytest.raises(ValueError, match="handle cannot be empty"):
+        with pytest.raises(ValueError, match="agent_id cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
 
     def test_generated_feed_with_multiple_post_ids(self, generated_feed_repo):
@@ -240,9 +251,10 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_ids=post_ids,
             created_at="2024-01-01T00:00:00Z",
         )
+        ensure_agent_row_for_generated_feed(feed)
 
         repo.write_generated_feed(feed)
-        retrieved = repo.get_generated_feed("test.bsky.social", "run_123", 1)
+        retrieved = repo.get_generated_feed(feed.agent_id, "run_123", 1)
 
         assert retrieved is not None
         assert retrieved.post_ids == post_ids
@@ -256,7 +268,6 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         ensure_run_exists("run_123")
         ensure_run_exists("run_456")
 
-        # Create feeds for different turns
         feed1 = GeneratedFeedFactory.create(
             feed_id="feed_turn0_agent1",
             run_id="run_123",
@@ -289,16 +300,16 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             post_ids=["bluesky:at://did:plc:test4/app.bsky.feed.post/post4"],
             created_at="2024-01-01T00:00:03Z",
         )
+        for f in (feed1, feed2, feed3, feed4):
+            ensure_agent_row_for_generated_feed(f)
 
         repo.write_generated_feed(feed1)
         repo.write_generated_feed(feed2)
         repo.write_generated_feed(feed3)
         repo.write_generated_feed(feed4)
 
-        # Read feeds for run_123, turn 0
         feeds = repo.read_feeds_for_turn("run_123", 0)
 
-        # Should return only feeds for run_123, turn 0
         assert len(feeds) == 2
         feed_dict = {f.agent_handle: f for f in feeds}
         assert "agent1.bsky.social" in feed_dict
@@ -306,7 +317,6 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         assert feed_dict["agent1.bsky.social"].feed_id == "feed_turn0_agent1"
         assert feed_dict["agent2.bsky.social"].feed_id == "feed_turn0_agent2"
 
-        # Read feeds for run_123, turn 1
         feeds_turn1 = repo.read_feeds_for_turn("run_123", 1)
         assert len(feeds_turn1) == 1
         assert feeds_turn1[0].feed_id == "feed_turn1_agent1"

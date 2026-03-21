@@ -15,7 +15,9 @@ class ActionHistoryStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def has_followed(self, run_id: str, agent_handle: str, user_id: str) -> bool:
+    def has_followed(
+        self, run_id: str, agent_handle: str, target_agent_id: str
+    ) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -27,5 +29,7 @@ class ActionHistoryStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def record_follow(self, run_id: str, agent_handle: str, user_id: str) -> None:
+    def record_follow(
+        self, run_id: str, agent_handle: str, target_agent_id: str
+    ) -> None:
         raise NotImplementedError
