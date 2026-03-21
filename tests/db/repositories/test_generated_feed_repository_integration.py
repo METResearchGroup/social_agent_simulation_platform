@@ -3,6 +3,8 @@
 These tests use a real SQLite database to test end-to-end functionality.
 """
 
+import sqlite3
+
 import pytest
 from pydantic import ValidationError
 
@@ -233,6 +235,42 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
         with pytest.raises(ValueError, match="agent_id cannot be empty"):
             repo.get_generated_feed("", "run_123", 1)
+
+    def test_get_post_ids_for_run_rejects_handle_before_db(self, generated_feed_repo):
+        """Handle-shaped ``agent_id`` must not query ``generated_feeds``."""
+        repo = generated_feed_repo
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            repo.get_post_ids_for_run("test.bsky.social", "run_123")
+
+    def test_get_post_ids_for_run_ignores_stale_agent_handle_column(
+        self, generated_feed_repo, temp_db
+    ):
+        """Lookups use ``agent_id`` only; ``agent_handle`` may differ from run-start labels."""
+        repo = generated_feed_repo
+        ensure_run_exists("run_123")
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed_pids",
+            run_id="run_123",
+            turn_number=0,
+            agent_handle="original.bsky.social",
+            post_ids=["bluesky:at://did:plc:x/app.bsky.feed.post/p1"],
+            created_at="2024-01-01T00:00:00Z",
+        )
+        ensure_agent_row_for_generated_feed(feed)
+        repo.write_generated_feed(feed)
+        aid = feed.agent_id
+        conn = sqlite3.connect(temp_db)
+        try:
+            conn.execute(
+                "UPDATE generated_feeds SET agent_handle = ? WHERE agent_id = ? AND run_id = ?",
+                ("stale.bsky.social", aid, "run_123"),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        ids = repo.get_post_ids_for_run(aid, "run_123")
+        assert ids == {"bluesky:at://did:plc:x/app.bsky.feed.post/p1"}
 
     def test_generated_feed_with_multiple_post_ids(self, generated_feed_repo):
         """Test that generated feeds with multiple post IDs are handled correctly."""

@@ -694,14 +694,16 @@ class FeedPostRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list_feed_posts_by_author(self, author_handle: str) -> list[Post]:
-        """List all feed posts by a specific author.
+    def list_feed_posts_by_author_agent_id(self, author_agent_id: str) -> list[Post]:
+        """List feed posts whose canonical author is ``author_agent_id``.
+
+        Author identity is ``Post.author_agent_id`` only; ``author_handle`` is display data.
 
         Args:
-            author_handle: Author handle to filter by
+            author_agent_id: Canonical 16-char lowercase hex id
 
         Returns:
-            List of Post models for the author.
+            List of Post models for that author.
         """
         raise NotImplementedError
 

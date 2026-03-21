@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from db.adapters.base import CommentDatabaseAdapter
-from db.adapters.sqlite.agent_id_resolve import resolve_agent_id_sqlite
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.persisted_actions import PersistedComment
+from simulation.core.utils.validators import validate_canonical_agent_id
 
 from ._serialization import _metadata_to_json
 from ._validation import _require_sqlite_connection
@@ -31,7 +31,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
             gen_meta_json = _metadata_to_json(meta) if meta else None
             model_used = getattr(meta, "model_used", None) if meta else None
             gen_created_at = getattr(meta, "created_at", None) if meta else None
-            actor_id = resolve_agent_id_sqlite(conn, g.comment.agent_id)
+            actor_id = validate_canonical_agent_id(g.comment.agent_id)
             conn.execute(
                 """
                 INSERT INTO comments (

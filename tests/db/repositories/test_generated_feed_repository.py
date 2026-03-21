@@ -270,6 +270,34 @@ class TestSQLiteGeneratedFeedRepositoryGetGeneratedFeed:
         mock_adapter.read_generated_feed.assert_not_called()
 
 
+class TestSQLiteGeneratedFeedRepositoryGetPostIdsForRun:
+    """Tests for SQLiteGeneratedFeedRepository.get_post_ids_for_run."""
+
+    def test_rejects_non_canonical_agent_id(self):
+        """Handle-shaped strings are rejected before the adapter runs."""
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            repo.get_post_ids_for_run("alice.bsky.social", "run_1")
+        mock_adapter.read_post_ids_for_run.assert_not_called()
+
+    def test_calls_adapter_with_canonical_agent_id(self):
+        aid = canonical_agent_id("alice.bsky.social")
+        mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
+        mock_adapter.read_post_ids_for_run.return_value = {"p1"}
+        repo = SQLiteGeneratedFeedRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+        result = repo.get_post_ids_for_run(aid, "run_1")
+        assert result == {"p1"}
+        mock_adapter.read_post_ids_for_run.assert_called_once()
+        assert mock_adapter.read_post_ids_for_run.call_args[0][:2] == (aid, "run_1")
+
+
 class TestSQLiteGeneratedFeedRepositoryListAllGeneratedFeeds:
     """Tests for SQLiteGeneratedFeedRepository.list_all_generated_feeds method."""
 

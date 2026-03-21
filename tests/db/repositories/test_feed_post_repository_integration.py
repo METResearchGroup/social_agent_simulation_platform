@@ -167,15 +167,17 @@ class TestSQLiteFeedPostRepositoryIntegration:
                 "bluesky:at://did:plc:nonexistent/app.bsky.feed.post/test"
             )
 
-    def test_list_feed_posts_by_author_retrieves_correct_posts(
+    def test_list_feed_posts_by_author_agent_id_retrieves_correct_posts(
         self, feed_post_repo, agent_repo
     ):
-        """Test that list_feed_posts_by_author filters correctly by author."""
+        """Test that list_feed_posts_by_author_agent_id filters by author_agent_id."""
         repo = feed_post_repo
         _seed_agent_for_handle(
             agent_repo, handle="alice.bsky.social", display_name="Alice"
         )
         _seed_agent_for_handle(agent_repo, handle="bob.bsky.social", display_name="Bob")
+        alice_id = canonical_agent_id("alice.bsky.social")
+        bob_id = canonical_agent_id("bob.bsky.social")
 
         # Create posts by different authors
         post1 = PostFactory.create(
@@ -220,7 +222,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         repo.create_or_update_feed_post(post3)
 
         # List posts by Alice
-        alice_posts = repo.list_feed_posts_by_author("alice.bsky.social")
+        alice_posts = repo.list_feed_posts_by_author_agent_id(alice_id)
         assert len(alice_posts) == 2
         uris = {p.uri for p in alice_posts}
         assert uris == {
@@ -229,7 +231,7 @@ class TestSQLiteFeedPostRepositoryIntegration:
         }
 
         # List posts by Bob
-        bob_posts = repo.list_feed_posts_by_author("bob.bsky.social")
+        bob_posts = repo.list_feed_posts_by_author_agent_id(bob_id)
         assert len(bob_posts) == 1
         assert bob_posts[0].uri == "at://did:plc:bob/app.bsky.feed.post/post1"
 
@@ -290,13 +292,15 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert posts == []
         assert isinstance(posts, list)
 
-    def test_list_feed_posts_by_author_returns_empty_list_when_not_found(
+    def test_list_feed_posts_by_author_agent_id_returns_empty_when_not_found(
         self, feed_post_repo
     ):
-        """Test that list_feed_posts_by_author returns empty list when no posts found."""
+        """Test that list_feed_posts_by_author_agent_id returns empty when no posts."""
         repo = feed_post_repo
 
-        posts = repo.list_feed_posts_by_author("nonexistent.bsky.social")
+        posts = repo.list_feed_posts_by_author_agent_id(
+            canonical_agent_id("nonexistent.bsky.social")
+        )
         assert posts == []
         assert isinstance(posts, list)
 
@@ -331,14 +335,14 @@ class TestSQLiteFeedPostRepositoryIntegration:
         with pytest.raises(ValueError, match="post_id cannot be empty"):
             repo.get_feed_post("")
 
-    def test_list_feed_posts_by_author_with_empty_handle_raises_error(
+    def test_list_feed_posts_by_author_agent_id_with_empty_id_raises_error(
         self, feed_post_repo
     ):
-        """Test that list_feed_posts_by_author raises ValueError when author_handle is empty."""
+        """Test that list_feed_posts_by_author_agent_id raises when author_agent_id is empty."""
         repo = feed_post_repo
 
-        with pytest.raises(ValueError, match="handle cannot be empty"):
-            repo.list_feed_posts_by_author("")
+        with pytest.raises(ValueError, match="agent_id cannot be empty"):
+            repo.list_feed_posts_by_author_agent_id("")
 
     def test_feed_post_with_long_text(self, feed_post_repo, agent_repo):
         """Test that feed posts with long text are handled correctly."""

@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from db.adapters.base import FeedPostDatabaseAdapter
 from db.repositories.feed_post_repository import SQLiteFeedPostRepository
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.posts import Post
 from tests.db.repositories.conftest import make_mock_transaction_provider
 from tests.factories import PostFactory
@@ -411,13 +412,14 @@ class TestSQLiteFeedPostRepositoryGetFeedPost:
         mock_adapter.read_feed_post.assert_not_called()
 
 
-class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
-    """Tests for SQLiteFeedPostRepository.list_feed_posts_by_author method."""
+class TestSQLiteFeedPostRepositoryListFeedPostsByAuthorAgentId:
+    """Tests for SQLiteFeedPostRepository.list_feed_posts_by_author_agent_id."""
 
     def test_lists_feed_posts_when_found(self):
-        """Test that list_feed_posts_by_author returns posts when found."""
+        """Test that list_feed_posts_by_author_agent_id returns posts when found."""
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
+        aid = canonical_agent_id("test.bsky.social")
         expected_posts = [
             PostFactory.create(
                 post_id=f"bluesky:at://did:plc:test{i}/app.bsky.feed.post/test{i}",
@@ -434,73 +436,85 @@ class TestSQLiteFeedPostRepositoryListFeedPostsByAuthor:
             )
             for i in range(1, 4)
         ]
-        mock_adapter.read_feed_posts_by_author.return_value = expected_posts
+        mock_adapter.read_feed_posts_by_author_agent_id.return_value = expected_posts
         repo = SQLiteFeedPostRepository(
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
 
         # Act
-        result = repo.list_feed_posts_by_author("test.bsky.social")
+        result = repo.list_feed_posts_by_author_agent_id(aid)
 
         # Assert
         assert result == expected_posts
-        mock_adapter.read_feed_posts_by_author.assert_called_once()
-        assert mock_adapter.read_feed_posts_by_author.call_args[0][0] == (
-            "test.bsky.social"
+        mock_adapter.read_feed_posts_by_author_agent_id.assert_called_once()
+        assert mock_adapter.read_feed_posts_by_author_agent_id.call_args[0][0] == aid
+        assert (
+            mock_adapter.read_feed_posts_by_author_agent_id.call_args[1]["conn"]
+            is not None
         )
-        assert mock_adapter.read_feed_posts_by_author.call_args[1]["conn"] is not None
 
     def test_lists_feed_posts_when_not_found(self):
-        """Test that list_feed_posts_by_author returns empty list when no posts found."""
+        """Test that list_feed_posts_by_author_agent_id returns empty list when no posts."""
         # Arrange
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
-        mock_adapter.read_feed_posts_by_author.return_value = []
+        mock_adapter.read_feed_posts_by_author_agent_id.return_value = []
         repo = SQLiteFeedPostRepository(
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
+        aid = canonical_agent_id("nonexistent.bsky.social")
 
         # Act
-        result = repo.list_feed_posts_by_author("nonexistent.bsky.social")
+        result = repo.list_feed_posts_by_author_agent_id(aid)
 
         # Assert
         assert result == []
-        mock_adapter.read_feed_posts_by_author.assert_called_once()
-        assert mock_adapter.read_feed_posts_by_author.call_args[0][0] == (
-            "nonexistent.bsky.social"
+        mock_adapter.read_feed_posts_by_author_agent_id.assert_called_once()
+        assert mock_adapter.read_feed_posts_by_author_agent_id.call_args[0][0] == aid
+        assert (
+            mock_adapter.read_feed_posts_by_author_agent_id.call_args[1]["conn"]
+            is not None
         )
-        assert mock_adapter.read_feed_posts_by_author.call_args[1]["conn"] is not None
 
-    def test_raises_value_error_when_author_handle_is_empty(self):
-        """Test that list_feed_posts_by_author raises ValueError when author_handle is empty."""
-        # Arrange
+    def test_raises_value_error_when_author_agent_id_is_empty(self):
+        """Test that list_feed_posts_by_author_agent_id raises when author_agent_id is empty."""
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         repo = SQLiteFeedPostRepository(
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="handle cannot be empty"):
-            repo.list_feed_posts_by_author("")
+        with pytest.raises(ValueError, match="agent_id cannot be empty"):
+            repo.list_feed_posts_by_author_agent_id("")
 
-        mock_adapter.read_feed_posts_by_author.assert_not_called()
+        mock_adapter.read_feed_posts_by_author_agent_id.assert_not_called()
 
-    def test_raises_value_error_when_author_handle_is_whitespace(self):
-        """Test that list_feed_posts_by_author raises ValueError when author_handle is whitespace."""
-        # Arrange
+    def test_raises_value_error_when_author_agent_id_is_whitespace(self):
+        """Test that list_feed_posts_by_author_agent_id raises when id is whitespace-only."""
         mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
         repo = SQLiteFeedPostRepository(
             db_adapter=mock_adapter,
             transaction_provider=make_mock_transaction_provider(),
         )
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="handle cannot be empty"):
-            repo.list_feed_posts_by_author("   ")
+        with pytest.raises(ValueError, match="agent_id cannot be empty"):
+            repo.list_feed_posts_by_author_agent_id("   ")
 
-        mock_adapter.read_feed_posts_by_author.assert_not_called()
+        mock_adapter.read_feed_posts_by_author_agent_id.assert_not_called()
+
+    def test_rejects_handle_shaped_author_agent_id(self):
+        """Handle-shaped strings are rejected before the adapter runs."""
+        mock_adapter = Mock(spec=FeedPostDatabaseAdapter)
+        repo = SQLiteFeedPostRepository(
+            db_adapter=mock_adapter,
+            transaction_provider=make_mock_transaction_provider(),
+        )
+
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            repo.list_feed_posts_by_author_agent_id("alice.bsky.social")
+
+        mock_adapter.read_feed_posts_by_author_agent_id.assert_not_called()
 
 
 class TestSQLiteFeedPostRepositoryListAllFeedPosts:

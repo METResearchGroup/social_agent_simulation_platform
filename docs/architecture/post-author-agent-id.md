@@ -24,6 +24,7 @@ It is **not** derived from `author_handle` at runtime. Algorithms that need “w
 | Location | Role |
 |----------|------|
 | `simulation/core/models/posts.py` | `Post.author_agent_id` (required) |
+| `db/repositories/feed_post_repository.py` | `list_feed_posts_by_author_agent_id` — lists posts by `author_agent_id`, not by handle |
 | `db/adapters/sqlite/feed_post_adapter.py` | Read/write `feed_posts` including `author_agent_id` |
 | `feeds/candidate_generation.py` | Self-exclusion via `author_agent_id` vs `agent.agent_id` |
 | `simulation/core/action_policy/candidate_filter.py` | Follow history key uses `post.author_agent_id` |

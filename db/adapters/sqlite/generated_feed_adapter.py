@@ -10,7 +10,7 @@ from db.schema import generated_feeds
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.utils.validators import (
-    validate_agent_id,
+    validate_canonical_agent_id,
     validate_run_id,
     validate_turn_number,
 )
@@ -69,6 +69,11 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         )
         conn.execute(_INSERT_GENERATED_FEED_SQL, row_values)
 
+    @validate_inputs(
+        (validate_canonical_agent_id, "agent_id"),
+        (validate_run_id, "run_id"),
+        (validate_turn_number, "turn_number"),
+    )
     def read_generated_feed(
         self,
         agent_id: str,
@@ -79,8 +84,11 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     ) -> GeneratedFeed:
         """Read a generated feed from SQLite.
 
+        Lookups are keyed by canonical ``agent_id`` (16-char lowercase hex), not by
+        ``agent_handle``. The handle on the returned model is display metadata only.
+
         Args:
-            agent_id: Agent id to look up
+            agent_id: Canonical agent id to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
             conn: Connection.
@@ -89,7 +97,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             GeneratedFeed model for the specified agent, run, and turn.
 
         Raises:
-            ValueError: If no feed is found for the given composite key
+            ValueError: If ``agent_id`` is not canonical, or no feed is found for the key
             ValueError: If the feed data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from the database row
@@ -111,6 +119,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
     def _resolve_display_handle(
         self, row: sqlite3.Row, *, conn: sqlite3.Connection
     ) -> str:
+        """Return a display handle for the row; never used as a persistence or lookup key."""
         ah = row["agent_handle"]
         if ah is not None and str(ah).strip() != "":
             return str(ah)
@@ -171,14 +180,19 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             feeds.append(self._row_to_generated_feed(row, conn=conn))
         return feeds
 
-    @validate_inputs((validate_agent_id, "agent_id"), (validate_run_id, "run_id"))
+    @validate_inputs(
+        (validate_canonical_agent_id, "agent_id"), (validate_run_id, "run_id")
+    )
     def read_post_ids_for_run(
         self, agent_id: str, run_id: str, *, conn: sqlite3.Connection
     ) -> set[str]:
         """Read all post_ids from generated feeds for a specific agent and run.
 
+        Filter uses canonical ``agent_id`` only; ``agent_handle`` on stored rows is not
+        an alternate lookup key.
+
         Args:
-            agent_id: Agent id to filter by
+            agent_id: Canonical agent id to filter by
             run_id: Run ID to filter by
             conn: Connection.
 
@@ -187,7 +201,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             Returns empty set if no feeds found.
 
         Raises:
-            ValueError: If agent_id or run_id is empty
+            ValueError: If ``agent_id`` is not canonical, or run_id is empty
             sqlite3.OperationalError: If database operation fails
         """
         rows = conn.execute(
