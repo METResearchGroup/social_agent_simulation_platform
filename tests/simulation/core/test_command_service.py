@@ -490,6 +490,12 @@ class TestSimulationCommandServiceExecuteRun:
 
         agent_one = AgentFactory.create(handle="agent1.bsky.social")
         agent_two = AgentFactory.create(handle="agent2.bsky.social")
+        agent_one.display_name = "Agent One"
+        agent_one.bio = "Persona one"
+        agent_two.display_name = "Agent Two"
+        agent_two.bio = "Persona two"
+        assert agent_one.agent_id is not None
+        assert agent_two.agent_id is not None
         mock_agent_factory.side_effect = None
         mock_agent_factory.return_value = [agent_one, agent_two]
         mock_repos[
@@ -497,8 +503,8 @@ class TestSimulationCommandServiceExecuteRun:
         ].list_edges_for_follower_agent_ids.return_value = [
             AgentFollowEdge(
                 agent_follow_edge_id="edge_internal",
-                follower_agent_id="did:plc:agent1",
-                target_agent_id="did:plc:agent2",
+                follower_agent_id=agent_one.agent_id,
+                target_agent_id=agent_two.agent_id,
                 created_at="2026-03-17T00:00:00Z",
             )
         ]
@@ -507,6 +513,7 @@ class TestSimulationCommandServiceExecuteRun:
             uri="at://did:plc:post1",
             author_display_name="Agent Two",
             author_handle="agent2.bsky.social",
+            author_agent_id=agent_two.agent_id,
             text="already followed",
             bookmark_count=0,
             like_count=0,
@@ -731,17 +738,17 @@ class TestSimulationCommandServiceExecuteRun:
         command_service.agent_action_rules_validator.validate.assert_called_once()
         action_history_store.record_like.assert_called_once_with(
             sample_run.run_id,
-            agent.handle,
+            agent.agent_id,
             canonical_post_id,
         )
         action_history_store.record_comment.assert_called_once_with(
             sample_run.run_id,
-            agent.handle,
+            agent.agent_id,
             canonical_post_id,
         )
         action_history_store.record_follow.assert_called_once_with(
             sample_run.run_id,
-            agent.handle,
+            agent.agent_id,
             canonical_agent_id("user_1"),
         )
 

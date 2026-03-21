@@ -2,6 +2,7 @@
 
 from unittest.mock import Mock
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.action_policy import HistoryAwareActionFeedFilter
 from tests.factories import PostFactory
 
@@ -29,6 +30,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         # Arrange
         run_id = "run_1"
         agent_handle = "agent.bsky.social"
+        agent_id = canonical_agent_id(agent_handle)
         post_1 = _build_post("post_1", "author1.bsky.social")
         post_2 = _build_post("post_2", "author2.bsky.social")
         feed = [post_1, post_2]
@@ -42,11 +44,13 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         result = HistoryAwareActionFeedFilter().filter_candidates(
             run_id=run_id,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             feed=feed,
             action_history_store=action_history_store,
         )
 
         # Assert
+        action_history_store.has_liked.assert_any_call(run_id, agent_id, post_1.post_id)
         assert result.like_candidates == expected
 
     def test_excludes_previously_commented_posts(self):
@@ -54,6 +58,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         # Arrange
         run_id = "run_1"
         agent_handle = "agent.bsky.social"
+        agent_id = canonical_agent_id(agent_handle)
         post_1 = _build_post("post_1", "author1.bsky.social")
         post_2 = _build_post("post_2", "author2.bsky.social")
         feed = [post_1, post_2]
@@ -67,6 +72,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         result = HistoryAwareActionFeedFilter().filter_candidates(
             run_id=run_id,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             feed=feed,
             action_history_store=action_history_store,
         )
@@ -79,6 +85,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         # Arrange
         run_id = "run_1"
         agent_handle = "agent.bsky.social"
+        agent_id = canonical_agent_id(agent_handle)
         post_1 = _build_post("post_1", "author1.bsky.social")
         post_2 = _build_post("post_2", "author2.bsky.social")
         feed = [post_1, post_2]
@@ -92,6 +99,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         result = HistoryAwareActionFeedFilter().filter_candidates(
             run_id=run_id,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             feed=feed,
             action_history_store=action_history_store,
         )
@@ -104,6 +112,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         # Arrange
         run_id = "run_1"
         agent_handle = "agent.bsky.social"
+        agent_id = canonical_agent_id(agent_handle)
         post_1 = _build_post("post_1", "author1.bsky.social")
         post_2 = _build_post("post_2", "author2.bsky.social")
         feed = [post_1, post_2]
@@ -117,6 +126,7 @@ class TestHistoryAwareActionFeedFilterFilterCandidates:
         result = HistoryAwareActionFeedFilter().filter_candidates(
             run_id=run_id,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             feed=feed,
             action_history_store=action_history_store,
         )

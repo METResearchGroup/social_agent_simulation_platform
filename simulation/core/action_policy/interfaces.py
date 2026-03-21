@@ -19,6 +19,7 @@ class AgentActionFeedFilter(ABC):
         *,
         run_id: str,
         agent_handle: str,
+        agent_id: str,
         feed: list[Post],
         action_history_store: ActionHistoryStore,
     ) -> ActionCandidateFeeds:

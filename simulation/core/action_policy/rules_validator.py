@@ -13,12 +13,13 @@ from simulation.core.models.generated.like import GeneratedLike
 _DuplicateValidator = Callable[
     ["AgentActionRulesValidator", str, int, str, list[str]], None
 ]
-# Type alias for history validator: (validator, run_id, turn_number, agent_handle, identifiers, store) -> None
+# Type alias for history validator
 _HistoryValidator = Callable[
     [
         "AgentActionRulesValidator",
         str,
         int,
+        str,
         str,
         list[str],
         ActionHistoryStore,
@@ -77,6 +78,7 @@ def _dispatch_history_like(
     run_id: str,
     turn_number: int,
     agent_handle: str,
+    agent_id: str,
     identifiers: list[str],
     action_history_store: ActionHistoryStore,
 ) -> None:
@@ -84,6 +86,7 @@ def _dispatch_history_like(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
+        agent_id=agent_id,
         like_post_ids=identifiers,
         action_history_store=action_history_store,
     )
@@ -94,6 +97,7 @@ def _dispatch_history_comment(
     run_id: str,
     turn_number: int,
     agent_handle: str,
+    agent_id: str,
     identifiers: list[str],
     action_history_store: ActionHistoryStore,
 ) -> None:
@@ -101,6 +105,7 @@ def _dispatch_history_comment(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
+        agent_id=agent_id,
         comment_post_ids=identifiers,
         action_history_store=action_history_store,
     )
@@ -111,6 +116,7 @@ def _dispatch_history_follow(
     run_id: str,
     turn_number: int,
     agent_handle: str,
+    agent_id: str,
     identifiers: list[str],
     action_history_store: ActionHistoryStore,
 ) -> None:
@@ -118,6 +124,7 @@ def _dispatch_history_follow(
         run_id=run_id,
         turn_number=turn_number,
         agent_handle=agent_handle,
+        agent_id=agent_id,
         follow_target_agent_ids=identifiers,
         action_history_store=action_history_store,
     )
@@ -145,6 +152,7 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
         likes: list[GeneratedLike],
         comments: list[GeneratedComment],
         follows: list[GeneratedFollow],
@@ -168,6 +176,7 @@ class AgentActionRulesValidator:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             like_post_ids=like_post_ids,
             comment_post_ids=comment_post_ids,
             follow_target_agent_ids=follow_target_agent_ids,
@@ -214,6 +223,7 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
         like_post_ids: list[str],
         comment_post_ids: list[str],
         follow_target_agent_ids: list[str],
@@ -224,6 +234,7 @@ class AgentActionRulesValidator:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             identifiers=like_post_ids,
             action_history_store=action_history_store,
         )
@@ -232,6 +243,7 @@ class AgentActionRulesValidator:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             identifiers=comment_post_ids,
             action_history_store=action_history_store,
         )
@@ -240,6 +252,7 @@ class AgentActionRulesValidator:
             run_id=run_id,
             turn_number=turn_number,
             agent_handle=agent_handle,
+            agent_id=agent_id,
             identifiers=follow_target_agent_ids,
             action_history_store=action_history_store,
         )
@@ -267,6 +280,7 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
         identifiers: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
@@ -280,6 +294,7 @@ class AgentActionRulesValidator:
             run_id,
             turn_number,
             agent_handle,
+            agent_id,
             identifiers,
             action_history_store,
         )
@@ -335,11 +350,12 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
         like_post_ids: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
         for post_id in like_post_ids:
-            if action_history_store.has_liked(run_id, agent_handle, post_id):
+            if action_history_store.has_liked(run_id, agent_id, post_id):
                 raise ValueError(
                     f"Agent {agent_handle} cannot like post {post_id} again in run {run_id}, "
                     f"turn {turn_number}"
@@ -351,11 +367,12 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
         comment_post_ids: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
         for post_id in comment_post_ids:
-            if action_history_store.has_commented(run_id, agent_handle, post_id):
+            if action_history_store.has_commented(run_id, agent_id, post_id):
                 raise ValueError(
                     f"Agent {agent_handle} cannot comment on post {post_id} again in run {run_id}, "
                     f"turn {turn_number}"
@@ -367,11 +384,12 @@ class AgentActionRulesValidator:
         run_id: str,
         turn_number: int,
         agent_handle: str,
+        agent_id: str,
         follow_target_agent_ids: list[str],
         action_history_store: ActionHistoryStore,
     ) -> None:
         for target_agent_id in follow_target_agent_ids:
-            if action_history_store.has_followed(run_id, agent_handle, target_agent_id):
+            if action_history_store.has_followed(run_id, agent_id, target_agent_id):
                 raise ValueError(
                     f"Agent {agent_handle} cannot follow target {target_agent_id} again in run {run_id}, "
                     f"turn {turn_number}"
