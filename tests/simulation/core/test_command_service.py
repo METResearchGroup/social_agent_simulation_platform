@@ -6,7 +6,7 @@ import pytest
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from feeds.interfaces import FeedGenerator
-from lib.agent_id import canonical_agent_id
+from lib.agent_id import canonical_agent_id, is_canonical_agent_id
 from simulation.core.action_history import InMemoryActionHistoryStore
 from simulation.core.action_policy import (
     ActionCandidateFeeds,
@@ -86,7 +86,7 @@ def command_service(
 ):
     seed_agent_records = [
         AgentRecordFactory.create(
-            agent_id=f"did:plc:agent{i}",
+            agent_id=canonical_agent_id(f"agent{i}.bsky.social"),
             handle=f"agent{i}.bsky.social",
             display_name=f"Agent {i}",
             created_at="2026-03-13T00:00:00Z",
@@ -309,19 +309,22 @@ class TestSimulationCommandServiceExecuteRun:
             AgentFactory.create(handle="agent1.bsky.social"),
             AgentFactory.create(handle="agent2.bsky.social"),
         ]
+        id1 = canonical_agent_id("agent1.bsky.social")
+        id2 = canonical_agent_id("agent2.bsky.social")
+        id3 = canonical_agent_id("agent3.bsky.social")
         mock_repos[
             "agent_follow_edge_repo"
         ].list_edges_for_follower_agent_ids.return_value = [
             AgentFollowEdge(
                 agent_follow_edge_id="edge_internal",
-                follower_agent_id="did:plc:agent1",
-                target_agent_id="did:plc:agent2",
+                follower_agent_id=id1,
+                target_agent_id=id2,
                 created_at="2026-03-17T00:00:00Z",
             ),
             AgentFollowEdge(
                 agent_follow_edge_id="edge_external",
-                follower_agent_id="did:plc:agent1",
-                target_agent_id="did:plc:agent3",
+                follower_agent_id=id1,
+                target_agent_id=id3,
                 created_at="2026-03-17T00:00:00Z",
             ),
         ]
@@ -337,7 +340,7 @@ class TestSimulationCommandServiceExecuteRun:
         mock_repos[
             "agent_follow_edge_repo"
         ].list_edges_for_follower_agent_ids.assert_called_once_with(
-            ["did:plc:agent1", "did:plc:agent2"],
+            [id1, id2],
             conn=mock_transaction_provider.mock_conn,
         )
         mock_repos["run_agent_repo"].write_run_agents.assert_called_once_with(
@@ -358,7 +361,7 @@ class TestSimulationCommandServiceExecuteRun:
         assert [
             (snapshot.follower_agent_id, snapshot.target_agent_id)
             for snapshot in follow_snapshots
-        ] == [("did:plc:agent1", "did:plc:agent2")]
+        ] == [(id1, id2)]
         assert all(
             snapshot.created_at == sample_run.created_at
             for snapshot in follow_snapshots
@@ -383,16 +386,18 @@ class TestSimulationCommandServiceExecuteRun:
         mock_agent_factory.side_effect = None
         mock_agent_factory.return_value = selected_agents
 
+        aid1 = canonical_agent_id("agent1.bsky.social")
+        aid2 = canonical_agent_id("agent2.bsky.social")
         seed_agents = [
             AgentRecordFactory.create(
-                agent_id="did:plc:agent1",
+                agent_id=aid1,
                 handle="agent1.bsky.social",
                 display_name="Agent One",
                 created_at="2026-03-13T00:00:00Z",
                 updated_at="2026-03-13T00:00:00Z",
             ),
             AgentRecordFactory.create(
-                agent_id="did:plc:agent2",
+                agent_id=aid2,
                 handle="agent2.bsky.social",
                 display_name="Agent Two",
                 created_at="2026-03-13T00:00:01Z",
@@ -405,14 +410,14 @@ class TestSimulationCommandServiceExecuteRun:
         }
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.side_effect = None
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.return_value = {
-            "did:plc:agent1": AgentBioFactory.create(
-                agent_id="did:plc:agent1",
+            aid1: AgentBioFactory.create(
+                agent_id=aid1,
                 persona_bio="Persona one",
                 created_at="2026-03-13T00:00:00Z",
                 updated_at="2026-03-13T00:00:00Z",
             ),
-            "did:plc:agent2": AgentBioFactory.create(
-                agent_id="did:plc:agent2",
+            aid2: AgentBioFactory.create(
+                agent_id=aid2,
                 persona_bio="Persona two",
                 created_at="2026-03-13T00:00:01Z",
                 updated_at="2026-03-13T00:00:01Z",
@@ -424,16 +429,16 @@ class TestSimulationCommandServiceExecuteRun:
         mock_repos[
             "user_agent_profile_metadata_repo"
         ].get_metadata_by_agent_ids.return_value = {
-            "did:plc:agent1": UserAgentProfileMetadataFactory.create(
-                agent_id="did:plc:agent1",
+            aid1: UserAgentProfileMetadataFactory.create(
+                agent_id=aid1,
                 followers_count=10,
                 follows_count=11,
                 posts_count=12,
                 created_at="2026-03-13T00:00:00Z",
                 updated_at="2026-03-13T00:00:00Z",
             ),
-            "did:plc:agent2": UserAgentProfileMetadataFactory.create(
-                agent_id="did:plc:agent2",
+            aid2: UserAgentProfileMetadataFactory.create(
+                agent_id=aid2,
                 followers_count=20,
                 follows_count=21,
                 posts_count=22,
@@ -455,10 +460,9 @@ class TestSimulationCommandServiceExecuteRun:
         assert call_args[0][0] == sample_run.run_id
         snapshots = call_args[0][1]
         assert [snapshot.selection_order for snapshot in snapshots] == [0, 1]
-        assert [snapshot.agent_id for snapshot in snapshots] == [
-            "did:plc:agent1",
-            "did:plc:agent2",
-        ]
+        assert [snapshot.agent_id for snapshot in snapshots] == [aid1, aid2]
+        assert is_canonical_agent_id(aid1)
+        assert is_canonical_agent_id(aid2)
         assert [snapshot.handle_at_start for snapshot in snapshots] == [
             "agent1.bsky.social",
             "agent2.bsky.social",

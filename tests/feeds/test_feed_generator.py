@@ -13,6 +13,7 @@ from db.repositories.interfaces import (
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
 from feeds.algorithms.interfaces import FeedAlgorithmResult
 from feeds.feed_generator import _generate_feed, generate_feeds
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import Post, PostSource
 from tests.factories import AgentFactory, PostFactory, RunPostSnapshotFactory
@@ -34,7 +35,7 @@ def mock_run_post_repo(sample_posts):
             run_post_id=p.post_id,
             run_id="run_123",
             agent_post_id=f"ap_{p.post_id}",
-            author_agent_id="did:plc:author",
+            author_agent_id=canonical_agent_id("author1.bsky.social"),
             author_handle_at_start=p.author_handle,
             author_display_name_at_start=p.author_display_name,
             body_text_at_start=p.text,
@@ -79,7 +80,7 @@ def sample_posts():
     """Fixture providing sample Post objects."""
     return [
         PostFactory.create(
-            uri="at://did:plc:test1/app.bsky.feed.post/post1",
+            uri="at://local.test/app.bsky.feed.post/post1",
             author_handle="author1.bsky.social",
             author_display_name="Author One",
             text="First post",
@@ -91,7 +92,7 @@ def sample_posts():
             created_at="2024-01-01T00:00:00Z",
         ),
         PostFactory.create(
-            uri="at://did:plc:test2/app.bsky.feed.post/post2",
+            uri="at://local.test/app.bsky.feed.post/post2",
             author_handle="author2.bsky.social",
             author_display_name="Author Two",
             text="Second post",
@@ -103,7 +104,7 @@ def sample_posts():
             created_at="2024-01-02T00:00:00Z",
         ),
         PostFactory.create(
-            uri="at://did:plc:test3/app.bsky.feed.post/post3",
+            uri="at://local.test/app.bsky.feed.post/post3",
             author_handle="author3.bsky.social",
             author_display_name="Author Three",
             text="Third post",
@@ -147,9 +148,9 @@ class TestGenerateFeed:
         assert len(result.post_ids) <= 20  # MAX_POSTS_PER_FEED
         # Posts should be sorted by created_at descending (newest first)
         expected_order = [
-            "bluesky:at://did:plc:test3/app.bsky.feed.post/post3",
-            "bluesky:at://did:plc:test2/app.bsky.feed.post/post2",
-            "bluesky:at://did:plc:test1/app.bsky.feed.post/post1",
+            "bluesky:at://local.test/app.bsky.feed.post/post3",
+            "bluesky:at://local.test/app.bsky.feed.post/post2",
+            "bluesky:at://local.test/app.bsky.feed.post/post1",
         ]
         assert result.post_ids == expected_order
 
@@ -160,7 +161,7 @@ class TestGenerateFeed:
         same_timestamp = "2024-01-02T00:00:00Z"
         posts_same_created_at = [
             PostFactory.create(
-                uri="at://did:plc:z/app.bsky.feed.post/post_z",
+                uri="at://local.test/app.bsky.feed.post/post_z",
                 author_handle="author.bsky.social",
                 author_display_name="Author",
                 text="Post Z",
@@ -172,7 +173,7 @@ class TestGenerateFeed:
                 created_at=same_timestamp,
             ),
             PostFactory.create(
-                uri="at://did:plc:a/app.bsky.feed.post/post_a",
+                uri="at://local.test/app.bsky.feed.post/post_a",
                 author_handle="author.bsky.social",
                 author_display_name="Author",
                 text="Post A",
@@ -196,8 +197,8 @@ class TestGenerateFeed:
 
         # Uri "a" < "z" alphabetically, so post_a comes before post_z
         expected_order = [
-            "bluesky:at://did:plc:a/app.bsky.feed.post/post_a",
-            "bluesky:at://did:plc:z/app.bsky.feed.post/post_z",
+            "bluesky:at://local.test/app.bsky.feed.post/post_a",
+            "bluesky:at://local.test/app.bsky.feed.post/post_z",
         ]
         assert result.post_ids == expected_order
 
@@ -258,9 +259,9 @@ class TestGenerateFeed:
             config={"order": "oldest_first"},
         )
         expected_result = [
-            "bluesky:at://did:plc:test1/app.bsky.feed.post/post1",
-            "bluesky:at://did:plc:test2/app.bsky.feed.post/post2",
-            "bluesky:at://did:plc:test3/app.bsky.feed.post/post3",
+            "bluesky:at://local.test/app.bsky.feed.post/post1",
+            "bluesky:at://local.test/app.bsky.feed.post/post2",
+            "bluesky:at://local.test/app.bsky.feed.post/post3",
         ]
         assert result.post_ids == expected_result
 

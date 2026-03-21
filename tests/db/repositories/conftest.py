@@ -7,6 +7,7 @@ import pytest
 
 from db.adapters.base import TransactionProvider
 from db.adapters.sqlite.sqlite import get_connection
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.feeds import GeneratedFeed
 
@@ -52,7 +53,7 @@ def ensure_run_exists(run_id: str) -> None:
 def agent_in_db(agent_repo):
     """Create an agent in the database for bio tests (test.bsky.social)."""
     agent = Agent(
-        agent_id="did:plc:test123",
+        agent_id=canonical_agent_id("test.bsky.social"),
         handle="test.bsky.social",
         persona_source=PersonaSource.SYNC_BLUESKY,
         display_name="Test User",
@@ -60,14 +61,14 @@ def agent_in_db(agent_repo):
         updated_at="2026_02_19-10:00:00",
     )
     agent_repo.create_or_update_agent(agent)
-    return "did:plc:test123"
+    return canonical_agent_id("test.bsky.social")
 
 
 @pytest.fixture
 def agent_in_db_meta(agent_repo):
     """Create an agent in the database for metadata tests (meta.bsky.social)."""
     agent = Agent(
-        agent_id="did:plc:meta123",
+        agent_id=canonical_agent_id("meta.bsky.social"),
         handle="meta.bsky.social",
         persona_source=PersonaSource.SYNC_BLUESKY,
         display_name="Meta User",
@@ -75,7 +76,7 @@ def agent_in_db_meta(agent_repo):
         updated_at="2026_02_19-10:00:00",
     )
     agent_repo.create_or_update_agent(agent)
-    return "did:plc:meta123"
+    return canonical_agent_id("meta.bsky.social")
 
 
 def make_mock_transaction_provider() -> TransactionProvider:
