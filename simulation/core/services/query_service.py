@@ -16,11 +16,13 @@ from db.repositories.interfaces import (
     RunRepository,
 )
 from lib.validation_decorators import validate_inputs
+from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post, run_post_snapshot_to_post
+from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
@@ -77,6 +79,11 @@ class SimulationQueryService:
         return self.run_repo.get_turn_metadata(run_id, turn_number)
 
     @validate_inputs((validate_run_id, "run_id"))
+    def list_run_agents(self, run_id: str) -> list[RunAgentSnapshot]:
+        """List run-start agent snapshots for a run."""
+        return self.run_agent_repo.list_run_agents(run_id)
+
+    @validate_inputs((validate_run_id, "run_id"))
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
         """List all turn metadata for a run in turn order."""
         metadata_list: list[TurnMetadata] = self.run_repo.list_turn_metadata(
@@ -106,25 +113,23 @@ class SimulationQueryService:
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
-        """Returns full turn data with feeds and posts."""
+        """Returns full turn data with feeds and posts.
+
+        ``feeds`` and ``actions`` maps are keyed by canonical ``agent_id`` only.
+        """
         run = self.run_repo.get_run(run_id)
         if run is None:
             raise RunNotFoundError(run_id)
 
-        feeds = self.generated_feed_repo.read_feeds_for_turn(run_id, turn_number)
-        if not feeds:
+        feeds: list[GeneratedFeed] = self.generated_feed_repo.read_feeds_for_turn(
+            run_id, turn_number
+        )
+        like_rows = self.like_repo.read_likes_by_run_turn(run_id, turn_number)
+        comment_rows = self.comment_repo.read_comments_by_run_turn(run_id, turn_number)
+        follow_rows = self.follow_repo.read_follows_by_run_turn(run_id, turn_number)
+
+        if not feeds and not like_rows and not comment_rows and not follow_rows:
             return None
-
-        run_agents = self.run_agent_repo.list_run_agents(run_id)
-        agent_id_to_handle = {ra.agent_id: ra.handle_at_start for ra in run_agents}
-
-        def _handle_for_agent_id(agent_id: str) -> str:
-            if agent_id in agent_id_to_handle:
-                return agent_id_to_handle[agent_id]
-            raise ValueError(
-                f"agent_id {agent_id!r} not found in run agents; "
-                "unresolved canonical ID in run-agent snapshot"
-            )
 
         post_ids_set: set[str] = set()
         for feed in feeds:
@@ -150,29 +155,25 @@ class SimulationQueryService:
         }
 
         feeds_dict: dict[str, list[Post]] = {}
+        feed_records: dict[str, GeneratedFeed] = {}
         for feed in feeds:
-            hydrated_posts = []
+            hydrated_posts: list[Post] = []
             for post_id in feed.post_ids:
                 if post_id in post_id_to_post:
                     hydrated_posts.append(post_id_to_post[post_id])
-            feed_key = _handle_for_agent_id(feed.agent_id)
-            feeds_dict[feed_key] = hydrated_posts
+            agent_key = feed.agent_id
+            feeds_dict[agent_key] = hydrated_posts
+            feed_records[agent_key] = feed
 
         actions_by_agent: dict[
             str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
         ] = defaultdict(list)
-        for row in self.like_repo.read_likes_by_run_turn(run_id, turn_number):
-            actions_by_agent[_handle_for_agent_id(row.agent_id)].append(
-                persisted_like_to_generated(row)
-            )
-        for row in self.comment_repo.read_comments_by_run_turn(run_id, turn_number):
-            actions_by_agent[_handle_for_agent_id(row.agent_id)].append(
-                persisted_comment_to_generated(row)
-            )
-        for row in self.follow_repo.read_follows_by_run_turn(run_id, turn_number):
-            actions_by_agent[_handle_for_agent_id(row.agent_id)].append(
-                persisted_follow_to_generated(row)
-            )
+        for row in like_rows:
+            actions_by_agent[row.agent_id].append(persisted_like_to_generated(row))
+        for row in comment_rows:
+            actions_by_agent[row.agent_id].append(persisted_comment_to_generated(row))
+        for row in follow_rows:
+            actions_by_agent[row.agent_id].append(persisted_follow_to_generated(row))
 
         def _action_sort_key(
             a: GeneratedLike | GeneratedComment | GeneratedFollow,
@@ -189,13 +190,14 @@ class SimulationQueryService:
             )
 
         actions_dict: dict[str, list] = {
-            agent_handle: sorted(agent_actions, key=_action_sort_key)
-            for agent_handle, agent_actions in actions_by_agent.items()
+            agent_id: sorted(agent_actions, key=_action_sort_key)
+            for agent_id, agent_actions in actions_by_agent.items()
         }
 
         return TurnData(
             turn_number=turn_number,
             agents=[],
             feeds=feeds_dict,
+            feed_records=feed_records,
             actions=actions_dict,
         )

@@ -5,6 +5,7 @@ from __future__ import annotations
 from lib.validation_decorators import validate_inputs
 from simulation.api.errors import ApiRunNotFoundError
 from simulation.api.schemas.simulation import (
+    AgentActionSchema,
     FeedSchema,
     PostSchema,
     RunConfigDetail,
@@ -14,10 +15,14 @@ from simulation.api.schemas.simulation import (
     TurnSchema,
 )
 from simulation.core.engine import SimulationEngine
+from simulation.core.models.actions import TurnAction
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run
-from simulation.core.models.turns import TurnMetadata
+from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.utils.validators import validate_run_id
 
 MAX_UNFILTERED_POSTS: int = 500
@@ -42,11 +47,7 @@ def list_runs(*, engine: SimulationEngine) -> list[RunListItem]:
 def get_turns_for_run(
     *, run_id: str, engine: SimulationEngine
 ) -> dict[str, TurnSchema]:
-    """Build TurnSchema payloads from persisted turn metadata + generated feeds.
-
-    Note: agent_actions are currently not persisted in SQLite. This endpoint returns
-    an empty agent_actions mapping for now.
-    """
+    """Build TurnSchema payloads from persisted turn metadata via ``get_turn_data``."""
     validated_run_id = validate_run_id(run_id)
     run = engine.get_run(validated_run_id)
     if run is None:
@@ -55,26 +56,100 @@ def get_turns_for_run(
     metadata_list = engine.list_turn_metadata(validated_run_id)
     metadata_sorted = sorted(metadata_list, key=lambda m: m.turn_number)
 
+    run_agents = engine.list_run_agents(validated_run_id)
+    agent_id_to_handle = {ra.agent_id: ra.handle_at_start for ra in run_agents}
+
     turns: dict[str, TurnSchema] = {}
     for item in metadata_sorted:
-        feeds = engine.read_feeds_for_turn(validated_run_id, item.turn_number)
-        agent_feeds = {
-            feed.agent_handle: FeedSchema(
-                feed_id=feed.feed_id,
-                run_id=feed.run_id,
-                turn_number=feed.turn_number,
-                agent_handle=feed.agent_handle,
-                post_ids=list(feed.post_ids),
-                created_at=feed.created_at,
+        turn_data = engine.get_turn_data(validated_run_id, item.turn_number)
+        if turn_data is None:
+            turns[str(item.turn_number)] = TurnSchema(
+                turn_number=item.turn_number,
+                agent_feeds={},
+                agent_actions={},
             )
-            for feed in feeds
-        }
-        turns[str(item.turn_number)] = TurnSchema(
-            turn_number=item.turn_number,
-            agent_feeds=agent_feeds,
-            agent_actions={},
-        )
+        else:
+            turns[str(item.turn_number)] = _turn_data_to_schema(
+                turn_data,
+                agent_id_to_handle=agent_id_to_handle,
+            )
     return turns
+
+
+def _resolve_agent_handle(agent_id: str, agent_id_to_handle: dict[str, str]) -> str:
+    return agent_id_to_handle.get(agent_id, agent_id)
+
+
+def _generated_action_to_schema(
+    action: GeneratedLike | GeneratedComment | GeneratedFollow,
+    *,
+    agent_handle: str,
+) -> AgentActionSchema:
+    if isinstance(action, GeneratedLike):
+        return AgentActionSchema(
+            action_id=action.like.like_id,
+            agent_id=action.like.agent_id,
+            agent_handle=agent_handle,
+            post_id=action.like.post_id,
+            target_agent_id=None,
+            type=TurnAction.LIKE,
+            created_at=action.like.created_at,
+        )
+    if isinstance(action, GeneratedComment):
+        return AgentActionSchema(
+            action_id=action.comment.comment_id,
+            agent_id=action.comment.agent_id,
+            agent_handle=agent_handle,
+            post_id=action.comment.post_id,
+            target_agent_id=None,
+            type=TurnAction.COMMENT,
+            created_at=action.comment.created_at,
+        )
+    if isinstance(action, GeneratedFollow):
+        return AgentActionSchema(
+            action_id=action.follow.follow_id,
+            agent_id=action.follow.agent_id,
+            agent_handle=agent_handle,
+            post_id=None,
+            target_agent_id=action.follow.target_agent_id,
+            type=TurnAction.FOLLOW,
+            created_at=action.follow.created_at,
+        )
+    raise TypeError(
+        f"Unsupported generated action type for API serialization: {type(action)!r}"
+    )
+
+
+def _turn_data_to_schema(
+    turn_data: TurnData,
+    *,
+    agent_id_to_handle: dict[str, str],
+) -> TurnSchema:
+    agent_feeds: dict[str, FeedSchema] = {}
+    for agent_id, record in turn_data.feed_records.items():
+        agent_feeds[agent_id] = FeedSchema(
+            feed_id=record.feed_id,
+            run_id=record.run_id,
+            turn_number=record.turn_number,
+            agent_id=record.agent_id,
+            agent_handle=record.agent_handle,
+            post_ids=list(record.post_ids),
+            created_at=record.created_at,
+        )
+
+    agent_actions: dict[str, list[AgentActionSchema]] = {}
+    for agent_id, actions in turn_data.actions.items():
+        handle = _resolve_agent_handle(agent_id, agent_id_to_handle)
+        agent_actions[agent_id] = [
+            _generated_action_to_schema(action, agent_handle=handle)
+            for action in actions
+        ]
+
+    return TurnSchema(
+        turn_number=turn_data.turn_number,
+        agent_feeds=agent_feeds,
+        agent_actions=agent_actions,
+    )
 
 
 def _post_to_schema(post: Post) -> PostSchema:
@@ -82,6 +157,7 @@ def _post_to_schema(post: Post) -> PostSchema:
         post_id=post.post_id,
         source=post.source,
         uri=post.uri,
+        author_agent_id=post.author_agent_id,
         author_display_name=post.author_display_name,
         author_handle=post.author_handle,
         text=post.text,

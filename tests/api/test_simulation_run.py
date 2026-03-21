@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import SimulationRunFailure
@@ -375,6 +376,14 @@ class TestSimulationRun:
         assert "turn_number" in sample
         assert "agent_feeds" in sample
         assert "agent_actions" in sample
+        expected_agent_id = canonical_agent_id("test.agent")
+        assert list(sample["agent_feeds"].keys()) == [expected_agent_id]
+        feed_payload = sample["agent_feeds"][expected_agent_id]
+        assert feed_payload["agent_id"] == expected_agent_id
+        assert feed_payload["agent_handle"] == "test.agent"
+        assert sample["agent_actions"] == {}
+        assert data["1"]["agent_feeds"] == {}
+        assert data["1"]["agent_actions"] == {}
 
     def test_get_simulations_run_turns_missing_run_returns_404(self, simulation_client):
         """Unknown run_id for turns endpoint returns stable RUN_NOT_FOUND payload."""

@@ -26,6 +26,7 @@ from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post, run_post_snapshot_to_post
+from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
@@ -116,6 +117,9 @@ class SimulationEngine:
 
     def list_run_follow_edges(self, run_id: str) -> list[RunFollowEdgeSnapshot]:
         return self.query_service.list_run_follow_edges(run_id)
+
+    def list_run_agents(self, run_id: str) -> list[RunAgentSnapshot]:
+        return self.query_service.list_run_agents(run_id)
 
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
         return self.query_service.get_turn_data(run_id, turn_number)

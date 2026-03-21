@@ -347,6 +347,8 @@ class RunPostRepository(ABC):
 
         Returns:
             List of RunPostSnapshot in the same order as post_ids, skipping missing.
+            If ``post_ids`` is empty (after materializing the iterable), returns an
+            empty list. Callers need not guard before invoking.
         """
         raise NotImplementedError
 
@@ -393,7 +395,11 @@ class RunPostLikeRepository(ABC):
         run_post_ids: Iterable[str],
         conn: object | None = None,
     ) -> dict[str, int]:
-        """Count seeded run_post_likes grouped by run_post_id."""
+        """Count seeded run_post_likes grouped by run_post_id.
+
+        If ``run_post_ids`` is empty (after materializing the iterable), returns an
+        empty dict. Callers need not guard before invoking.
+        """
         raise NotImplementedError
 
 
@@ -439,7 +445,11 @@ class RunPostCommentRepository(ABC):
         run_post_ids: Iterable[str],
         conn: object | None = None,
     ) -> dict[str, int]:
-        """Count seeded run_post_comments grouped by run_post_id."""
+        """Count seeded run_post_comments grouped by run_post_id.
+
+        If ``run_post_ids`` is empty (after materializing the iterable), returns an
+        empty dict. Callers need not guard before invoking.
+        """
         raise NotImplementedError
 
 

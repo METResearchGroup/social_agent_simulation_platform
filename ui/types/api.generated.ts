@@ -285,13 +285,15 @@ export interface components {
             action_id: string;
             /** Agent Handle */
             agent_handle: string;
+            /** Agent Id */
+            agent_id: string;
             /** Created At */
             created_at: string;
             /** Post Id */
             post_id?: string | null;
+            /** Target Agent Id */
+            target_agent_id?: string | null;
             type: components["schemas"]["TurnAction"];
-            /** User Id */
-            user_id?: string | null;
         };
         /**
          * AgentFollowEdgeSchema
@@ -402,6 +404,8 @@ export interface components {
         FeedSchema: {
             /** Agent Handle */
             agent_handle: string;
+            /** Agent Id */
+            agent_id: string;
             /** Created At */
             created_at: string;
             /** Feed Id */
@@ -454,6 +458,8 @@ export interface components {
          * @description Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.
          */
         PostSchema: {
+            /** Author Agent Id */
+            author_agent_id: string;
             /** Author Display Name */
             author_display_name: string;
             /** Author Handle */
@@ -625,6 +631,8 @@ export interface components {
         /**
          * TurnSchema
          * @description Full turn payload consumed by the UI.
+         *
+         *     ``agent_feeds`` and ``agent_actions`` are keyed by the `agent_id` field.
          */
         TurnSchema: {
             /** Agent Actions */
