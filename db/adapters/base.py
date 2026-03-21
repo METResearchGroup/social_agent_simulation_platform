@@ -326,6 +326,8 @@ class RunPostDatabaseAdapter(ABC):
         """Read run-post snapshots by run_post_ids for a run.
 
         Returns list preserving order of post_ids, skipping missing.
+        If ``post_ids`` is empty (after materializing the iterable), returns an
+        empty list.
         """
         raise NotImplementedError
 
@@ -377,6 +379,8 @@ class RunPostLikeDatabaseAdapter(ABC):
         """Return baseline like_count per run_post_id at run start.
 
         Returned mapping should include 0 counts for run_post_ids with no likes.
+        If ``run_post_ids`` is empty (after materializing the iterable), returns an
+        empty dict.
         """
         raise NotImplementedError
 
@@ -427,6 +431,8 @@ class RunPostCommentDatabaseAdapter(ABC):
         """Return baseline reply_count per run_post_id at run start.
 
         Returned mapping should include 0 counts for run_post_ids with no comments.
+        If ``run_post_ids`` is empty (after materializing the iterable), returns an
+        empty dict.
         """
         raise NotImplementedError
 

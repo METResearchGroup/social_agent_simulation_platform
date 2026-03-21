@@ -136,22 +136,14 @@ class SimulationQueryService:
             post_ids_set.update(feed.post_ids)
 
         post_ids_list = list(post_ids_set)
-        run_post_snapshots = (
-            self.run_post_repo.read_run_posts_by_ids(run_id, post_ids_list)
-            if post_ids_list
-            else []
+        run_post_snapshots = self.run_post_repo.read_run_posts_by_ids(
+            run_id, post_ids_list
         )
-        like_counts = (
-            self.run_post_like_repo.count_likes_by_run_post_ids(run_id, post_ids_list)
-            if post_ids_list
-            else {}
+        like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
+            run_id, post_ids_list
         )
-        reply_counts = (
-            self.run_post_comment_repo.count_comments_by_run_post_ids(
-                run_id, post_ids_list
-            )
-            if post_ids_list
-            else {}
+        reply_counts = self.run_post_comment_repo.count_comments_by_run_post_ids(
+            run_id, post_ids_list
         )
         post_id_to_post = {
             snap.run_post_id: run_post_snapshot_to_post(
