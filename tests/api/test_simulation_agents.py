@@ -1,10 +1,18 @@
 """Tests for agent API endpoints."""
 
+import sqlite3
 import uuid
 
+from lib.agent_id import canonical_agent_id, is_canonical_agent_id
 from simulation.api.constants import DEFAULT_AGENT_LIST_LIMIT
 from simulation.core.models.agent import PersonaSource
+from simulation.core.utils.handle_utils import normalize_handle
 from tests.factories import AgentRecordFactory
+
+
+def _fixture_agent_id(handle: str) -> str:
+    """Canonical agent_id for seeded API tests (handle may include a leading ``@``)."""
+    return canonical_agent_id(handle.lstrip("@").lower())
 
 
 class TestSimulationAgents:
@@ -25,7 +33,7 @@ class TestSimulationAgents:
         # Seed the temp DB in non-sorted order so ordering assertions are meaningful.
         agent_repo.create_or_update_agent(
             AgentRecordFactory.create(
-                agent_id="did:plc:z",
+                agent_id=canonical_agent_id("z.bsky.social"),
                 handle="@z.bsky.social",
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name="@z.bsky.social",
@@ -35,7 +43,7 @@ class TestSimulationAgents:
         )
         agent_repo.create_or_update_agent(
             AgentRecordFactory.create(
-                agent_id="did:plc:a",
+                agent_id=canonical_agent_id("a.bsky.social"),
                 handle="@a.bsky.social",
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name="@a.bsky.social",
@@ -108,6 +116,46 @@ class TestSimulationAgents:
         assert data["following"] == expected_result["following"]
         assert data["posts_count"] == expected_result["posts_count"]
 
+    def test_post_simulations_agents_persists_canonical_agent_id_across_core_tables(
+        self, simulation_client, temp_db
+    ):
+        """POST creates one canonical agent_id in agent, bios, and profile metadata."""
+        client, _ = simulation_client
+        handle = f"persist-{uuid.uuid4().hex[:8]}.bsky.social"
+        body = {
+            "handle": handle,
+            "display_name": "Persistence Test",
+            "bio": "Bio for persistence check",
+        }
+        response = client.post("/v1/simulations/agents", json=body)
+        assert response.status_code == 201
+
+        conn = sqlite3.connect(temp_db)
+        try:
+            row_agent = conn.execute(
+                "SELECT agent_id FROM agent WHERE handle = ?",
+                (normalize_handle(handle),),
+            ).fetchone()
+            assert row_agent is not None
+            agent_id = row_agent[0]
+            assert is_canonical_agent_id(agent_id)
+
+            row_bio = conn.execute(
+                "SELECT agent_id FROM agent_persona_bios WHERE agent_id = ?",
+                (agent_id,),
+            ).fetchone()
+            assert row_bio is not None
+            assert row_bio[0] == agent_id
+
+            row_meta = conn.execute(
+                "SELECT agent_id FROM user_agent_profile_metadata WHERE agent_id = ?",
+                (agent_id,),
+            ).fetchone()
+            assert row_meta is not None
+            assert row_meta[0] == agent_id
+        finally:
+            conn.close()
+
     def test_post_simulations_agents_duplicate_handle_returns_409(
         self, simulation_client, temp_db
     ):
@@ -159,7 +207,7 @@ class TestSimulationAgents:
         """POST agent then GET /agents returns the new agent newest-first."""
         agent_repo.create_or_update_agent(
             AgentRecordFactory.create(
-                agent_id="did:plc:existing",
+                agent_id=_fixture_agent_id("@existing.bsky.social"),
                 handle="@existing.bsky.social",
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name="@existing.bsky.social",
@@ -193,9 +241,9 @@ class TestSimulationAgents:
         """GET /v1/simulations/agents supports limit/offset pagination."""
         repo = agent_repo
         for handle, agent_id in [
-            ("@c.bsky.social", "did:plc:c"),
-            ("@a.bsky.social", "did:plc:a"),
-            ("@b.bsky.social", "did:plc:b"),
+            ("@c.bsky.social", _fixture_agent_id("@c.bsky.social")),
+            ("@a.bsky.social", _fixture_agent_id("@a.bsky.social")),
+            ("@b.bsky.social", _fixture_agent_id("@b.bsky.social")),
         ]:
             repo.create_or_update_agent(
                 AgentRecordFactory.create(
@@ -225,7 +273,7 @@ class TestSimulationAgents:
         """GET /v1/simulations/agents?q supports case-insensitive substring matching on handle."""
         agent_repo.create_or_update_agent(
             AgentRecordFactory.create(
-                agent_id="did:plc:alpha",
+                agent_id=_fixture_agent_id("@alpha.bsky.social"),
                 handle="@alpha.bsky.social",
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name="@alpha.bsky.social",
@@ -235,7 +283,7 @@ class TestSimulationAgents:
         )
         agent_repo.create_or_update_agent(
             AgentRecordFactory.create(
-                agent_id="did:plc:beta",
+                agent_id=_fixture_agent_id("@beta.bsky.social"),
                 handle="@beta.bsky.social",
                 persona_source=PersonaSource.SYNC_BLUESKY,
                 display_name="@beta.bsky.social",
@@ -269,8 +317,8 @@ class TestSimulationAgents:
     ):
         """Whitespace-only q is treated as unset (no filtering)."""
         for handle, agent_id in [
-            ("@alpha.bsky.social", "did:plc:alpha"),
-            ("@beta.bsky.social", "did:plc:beta"),
+            ("@alpha.bsky.social", _fixture_agent_id("@alpha.bsky.social")),
+            ("@beta.bsky.social", _fixture_agent_id("@beta.bsky.social")),
         ]:
             agent_repo.create_or_update_agent(
                 AgentRecordFactory.create(
@@ -299,9 +347,9 @@ class TestSimulationAgents:
     ):
         """GET /v1/simulations/agents?q supports * and ? wildcards on handle."""
         for handle, agent_id in [
-            ("@alpha.bsky.social", "did:plc:alpha"),
-            ("@alxha.bsky.social", "did:plc:alxha"),
-            ("@beta.bsky.social", "did:plc:beta"),
+            ("@alpha.bsky.social", _fixture_agent_id("@alpha.bsky.social")),
+            ("@alxha.bsky.social", _fixture_agent_id("@alxha.bsky.social")),
+            ("@beta.bsky.social", _fixture_agent_id("@beta.bsky.social")),
         ]:
             agent_repo.create_or_update_agent(
                 AgentRecordFactory.create(
@@ -340,10 +388,13 @@ class TestSimulationAgents:
     ):
         """SQL LIKE metacharacters are treated as literals (% _ \\) in q."""
         for handle, agent_id in [
-            ("@has%percent.bsky.social", "did:plc:percent"),
-            ("@has_under_score.bsky.social", "did:plc:underscore"),
-            (r"@has\backslash.bsky.social", "did:plc:backslash"),
-            ("@control.bsky.social", "did:plc:control"),
+            ("@has%percent.bsky.social", _fixture_agent_id("@has%percent.bsky.social")),
+            (
+                "@has_under_score.bsky.social",
+                _fixture_agent_id("@has_under_score.bsky.social"),
+            ),
+            (r"@has\backslash.bsky.social", _fixture_agent_id(r"@has\backslash.bsky.social")),
+            ("@control.bsky.social", _fixture_agent_id("@control.bsky.social")),
         ]:
             agent_repo.create_or_update_agent(
                 AgentRecordFactory.create(
@@ -384,9 +435,9 @@ class TestSimulationAgents:
     ):
         """GET /v1/simulations/agents?q supports pagination with deterministic ordering."""
         for handle, agent_id in [
-            ("@c.bsky.social", "did:plc:c"),
-            ("@a.bsky.social", "did:plc:a"),
-            ("@b.bsky.social", "did:plc:b"),
+            ("@c.bsky.social", _fixture_agent_id("@c.bsky.social")),
+            ("@a.bsky.social", _fixture_agent_id("@a.bsky.social")),
+            ("@b.bsky.social", _fixture_agent_id("@b.bsky.social")),
         ]:
             agent_repo.create_or_update_agent(
                 AgentRecordFactory.create(
@@ -414,8 +465,8 @@ class TestSimulationAgents:
     ):
         """Whitespace in q is scrubbed so '  a  ' behaves like 'a'."""
         for handle, agent_id in [
-            ("@alpha.bsky.social", "did:plc:alpha"),
-            ("@beta.bsky.social", "did:plc:beta"),
+            ("@alpha.bsky.social", _fixture_agent_id("@alpha.bsky.social")),
+            ("@beta.bsky.social", _fixture_agent_id("@beta.bsky.social")),
         ]:
             agent_repo.create_or_update_agent(
                 AgentRecordFactory.create(
@@ -447,7 +498,7 @@ class TestSimulationAgents:
             handle = f"@user{i:03d}.bsky.social"
             repo.create_or_update_agent(
                 AgentRecordFactory.create(
-                    agent_id=f"did:plc:{i:03d}",
+                    agent_id=canonical_agent_id(f"user{i:03d}.bsky.social"),
                     handle=handle,
                     persona_source=PersonaSource.SYNC_BLUESKY,
                     display_name=handle,

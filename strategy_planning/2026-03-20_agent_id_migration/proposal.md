@@ -556,6 +556,8 @@ Prove the canonicalization is complete and prevent regressions.
 - action/feed/query tests pass
 - verification proves no non-canonical IDs remain
 
+**Closeout:** Phase 7 is satisfied; recorded verification commands and exit statuses are in `docs/plans/2026-03-21_agent_id_phase7_closeout/verification.md`.
+
 ---
 
 ## Tables And Columns To Verify Explicitly After Implementation
