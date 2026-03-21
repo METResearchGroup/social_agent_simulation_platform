@@ -7,6 +7,9 @@ from pydantic import BaseModel, Field, field_validator
 from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.feeds import GeneratedFeed
+from simulation.core.models.generated.comment import GeneratedComment
+from simulation.core.models.generated.follow import GeneratedFollow
+from simulation.core.models.generated.like import GeneratedLike
 
 
 class TurnResult(BaseModel):
@@ -72,9 +75,7 @@ class TurnData(BaseModel):
     agents: list[Any]  # SimulationAgent - using Any to avoid circular import
     feeds: dict[str, list[Any]]  # agent_id -> list[Post]
     feed_records: dict[str, GeneratedFeed] = Field(default_factory=dict)
-    actions: dict[
-        str, list[Any]
-    ]  # agent_id -> list[GeneratedLike | GeneratedComment | GeneratedFollow]
+    actions: dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]]
 
     @field_validator("turn_number")
     @classmethod

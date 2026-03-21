@@ -252,7 +252,7 @@ class AgentActionSchema(BaseModel):
 class TurnSchema(BaseModel):
     """Full turn payload consumed by the UI.
 
-    ``agent_feeds`` and ``agent_actions`` are keyed by canonical ``agent_id``.
+    ``agent_feeds`` and ``agent_actions`` are keyed by the `agent_id` field.
     """
 
     turn_number: int
