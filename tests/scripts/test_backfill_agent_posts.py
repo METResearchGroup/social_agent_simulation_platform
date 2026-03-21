@@ -29,15 +29,9 @@ class TestBackfillAgentPostsFromFeedPosts:
                 PostFactory.create(
                     uri="at://did:plc:agent1/app.bsky.feed.post/1",
                     author_handle="agent1.bsky.social",
+                    author_agent_id="did:plc:agent1",
                     author_display_name="Agent 1",
                     text="hello",
-                    created_at="2026-03-17T00:00:00Z",
-                ),
-                PostFactory.create(
-                    uri="at://did:plc:external/app.bsky.feed.post/2",
-                    author_handle="external.bsky.social",
-                    author_display_name="External",
-                    text="external",
                     created_at="2026-03-17T00:00:00Z",
                 ),
             ]
@@ -52,7 +46,7 @@ class TestBackfillAgentPostsFromFeedPosts:
             )
             conn.execute("COMMIT")
 
-        assert result1.feed_posts_total == 2
+        assert result1.feed_posts_total == 1
         assert result1.feed_posts_internal == 1
         assert result1.agent_posts_inserted == 1
 

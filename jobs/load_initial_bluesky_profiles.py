@@ -7,6 +7,7 @@ For now, what this looks like is:
 """
 
 from db.adapters.sqlite.sqlite import SqliteTransactionProvider, initialize_database
+from db.repositories.agent_repository import create_sqlite_agent_repository
 from db.repositories.feed_post_repository import create_sqlite_feed_post_repository
 from db.repositories.profile_repository import create_sqlite_profile_repository
 from lib.bluesky_client import BlueskyClient
@@ -48,11 +49,14 @@ def transform_bsky_profile(profile: dict) -> BlueskyProfile:
     )
 
 
-def transform_bsky_author_feed(author_feed: list[dict]) -> list[Post]:
+def transform_bsky_author_feed(
+    author_feed: list[dict], *, author_agent_id: str
+) -> list[Post]:
     """Transform raw Bluesky author feed data into Post models.
 
     Args:
         author_feed: List of post view dictionaries from Bluesky API
+        author_agent_id: ``agent.agent_id`` for the feed author (FK target)
 
     Returns:
         List of Post models
@@ -67,6 +71,7 @@ def transform_bsky_author_feed(author_feed: list[dict]) -> list[Post]:
             post_id=f"bluesky:{uri}",
             author_display_name=post_view["author"]["display_name"],
             author_handle=post_view["author"]["handle"],
+            author_agent_id=author_agent_id,
             text=post_view["record"]["text"],
             bookmark_count=post_view["bookmark_count"],
             like_count=post_view["like_count"],
@@ -94,12 +99,22 @@ def main():
     tx = SqliteTransactionProvider()
     profile_repo = create_sqlite_profile_repository(transaction_provider=tx)
     feed_post_repo = create_sqlite_feed_post_repository(transaction_provider=tx)
+    agent_repo = create_sqlite_agent_repository(transaction_provider=tx)
     for handle in BLUESKY_PROFILES:
         profile_info = get_bsky_profile_information(handle)
 
         profile = transform_bsky_profile(profile_info["profile"])
         profile_repo.create_or_update_profile(profile)
-        feed_posts = transform_bsky_author_feed(profile_info["author_feed"])
+        agent = agent_repo.get_agent_by_handle(profile.handle)
+        if agent is None:
+            raise ValueError(
+                "Cannot ingest feed posts: no agent row for "
+                f"handle {profile.handle!r}. Seed or create the agent first."
+            )
+        feed_posts = transform_bsky_author_feed(
+            profile_info["author_feed"],
+            author_agent_id=agent.agent_id,
+        )
         feed_post_repo.create_or_update_feed_posts(feed_posts)
 
 

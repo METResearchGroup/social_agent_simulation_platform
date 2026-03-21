@@ -199,10 +199,25 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         attr_name="target_agent_id",
         source_label="Seed agent_follow_edges.json",
     )
-    posts = [
-        Post.model_validate({**item, "source": PostSource.BLUESKY})
-        for item in posts_raw
-    ]
+    handle_to_agent_id = {a.handle: a.agent_id for a in agents}
+    posts: list[Post] = []
+    for item in posts_raw:
+        handle = str(item["author_handle"])
+        author_agent_id = handle_to_agent_id.get(handle)
+        if author_agent_id is None:
+            raise ValueError(
+                "Seed feed post author_handle "
+                f"{handle!r} has no matching agent in agents.json"
+            )
+        posts.append(
+            Post.model_validate(
+                {
+                    **item,
+                    "source": PostSource.BLUESKY,
+                    "author_agent_id": author_agent_id,
+                }
+            )
+        )
     feeds = [GeneratedFeed.model_validate(item) for item in feeds_raw]
 
     turn_metadata: list[TurnMetadata] = []

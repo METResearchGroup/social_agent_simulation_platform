@@ -16,7 +16,6 @@ from simulation.core.action_generators.follow.algorithms.naive_llm.prompt import
 from simulation.core.action_generators.follow.algorithms.naive_llm.response_models import (
     FollowPrediction,
 )
-from simulation.core.action_generators.follow.utils import derive_target_agent_id
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.action_generators.mixins.llm_action_generator_mixin import (
     LLMActionGeneratorMixin,
@@ -37,16 +36,16 @@ def _collect_unique_authors(
     _agent_handle: str,
     agent_id: str,
 ) -> dict[str, Post]:
-    """Return one post per canonical author (excluding self), keyed by author_handle."""
-    best_by_canonical: dict[str, Post] = {}
+    """Return one post per author ``agent_id`` (excluding self), keyed by author_handle."""
+    best_post_by_author_agent_id: dict[str, Post] = {}
     for post in candidates:
-        canonical_author = derive_target_agent_id(post)
-        if canonical_author == agent_id:
+        author_agent_id_key = post.author_agent_id
+        if author_agent_id_key == agent_id:
             continue
-        prev = best_by_canonical.get(canonical_author)
+        prev = best_post_by_author_agent_id.get(author_agent_id_key)
         if prev is None or post.created_at > prev.created_at:
-            best_by_canonical[canonical_author] = post
-    return {post.author_handle: post for post in best_by_canonical.values()}
+            best_post_by_author_agent_id[author_agent_id_key] = post
+    return {post.author_handle: post for post in best_post_by_author_agent_id.values()}
 
 
 def _authors_to_minimal_json(author_to_post: dict[str, Post]) -> str:
@@ -83,7 +82,7 @@ def _build_generated_follow(
     model_used: str | None,
 ) -> GeneratedFollow:
     """Build a GeneratedFollow with IDs and metadata."""
-    target_agent_id = derive_target_agent_id(post)
+    target_agent_id = post.author_agent_id
     follow_id = f"follow_{run_id}_{turn_number}_{agent_handle}_{target_agent_id}"
     created_at = get_current_timestamp()
     return GeneratedFollow(

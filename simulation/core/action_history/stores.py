@@ -6,7 +6,7 @@ from simulation.core.action_history.interfaces import ActionHistoryStore
 
 
 class InMemoryActionHistoryStore(ActionHistoryStore):
-    """In-memory implementation keyed by run and canonical actor agent_id."""
+    """In-memory implementation keyed by run and actor ``agent_id``."""
 
     def __init__(self) -> None:
         self._likes_by_run_agent_id: dict[str, dict[str, set[str]]] = defaultdict(

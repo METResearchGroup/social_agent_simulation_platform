@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
+from lib.agent_id import canonical_agent_id
+
 
 def create_mock_row(row_data: dict) -> MagicMock:
     """Helper function to create a mock sqlite3.Row.
@@ -15,10 +17,13 @@ def create_mock_row(row_data: dict) -> MagicMock:
     Returns:
         MagicMock configured to behave like a sqlite3.Row
     """
-    if "uri" in row_data and "post_id" not in row_data:
-        row_data = {**row_data, "post_id": f"bluesky:{row_data['uri']}"}
+    row_data = dict(row_data)
+    if "uri" in row_data and "post_id" not in row_data and row_data["uri"] is not None:
+        row_data["post_id"] = f"bluesky:{row_data['uri']}"
     if "uri" in row_data and "source" not in row_data:
-        row_data = {**row_data, "source": "bluesky"}
+        row_data["source"] = "bluesky"
+    if "author_handle" in row_data and "author_agent_id" not in row_data:
+        row_data["author_agent_id"] = canonical_agent_id(row_data["author_handle"])
     mock_row = MagicMock()
     mock_row.__getitem__ = Mock(side_effect=lambda key: row_data[key])
     mock_row.keys = Mock(return_value=list(row_data.keys()))

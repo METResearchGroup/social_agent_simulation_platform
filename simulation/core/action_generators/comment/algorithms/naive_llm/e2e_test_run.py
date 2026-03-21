@@ -23,6 +23,7 @@ def _post(
         post_id=f"bluesky:{uri}",
         uri=uri,
         author_handle=author_handle,
+        author_agent_id=canonical_agent_id(author_handle),
         author_display_name="Alice",
         text=text,
         like_count=like_count,

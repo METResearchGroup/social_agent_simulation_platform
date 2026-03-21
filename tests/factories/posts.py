@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.posts import Post, PostSource
 from tests.factories._helpers import _timestamp_utc_iso
 from tests.factories.base import BaseFactory
@@ -46,6 +47,11 @@ class PostFactory(BaseFactory[Post]):
             if author_handle is not None
             else f"{fake.user_name()}.bsky.social"
         )
+        author_agent_id_value = (
+            author_agent_id
+            if author_agent_id is not None
+            else canonical_agent_id(author_handle_value)
+        )
         author_display_name_value = (
             author_display_name if author_display_name is not None else fake.name()
         )
@@ -75,8 +81,8 @@ class PostFactory(BaseFactory[Post]):
             post_id=post_id_value,
             source=source,
             uri=uri_value,
-            author_agent_id=author_agent_id,
             author_handle=author_handle_value,
+            author_agent_id=author_agent_id_value,
             author_display_name=author_display_name_value,
             text=text_value,
             like_count=like_count_value,

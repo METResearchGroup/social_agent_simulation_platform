@@ -5,6 +5,7 @@ from datetime import timezone
 from hypothesis import strategies as st
 from hypothesis.strategies import SearchStrategy
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.metrics.defaults import get_default_metric_keys
 from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import RunConfig
@@ -45,7 +46,13 @@ def bluesky_post_strategy() -> SearchStrategy[Post]:
             "created_at": created_at,
         }
     )
-    post_dict_with_id = post_dict.map(lambda d: {**d, "post_id": f"bluesky:{d['uri']}"})
+    post_dict_with_id = post_dict.map(
+        lambda d: {
+            **d,
+            "post_id": f"bluesky:{d['uri']}",
+            "author_agent_id": canonical_agent_id(str(d["author_handle"])),
+        }
+    )
     return post_dict_with_id.map(Post.model_validate)
 
 
