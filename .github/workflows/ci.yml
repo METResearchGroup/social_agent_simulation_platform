@@ -308,7 +308,7 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync --extra test --extra ner
+        run: uv sync --extra test --extra ner --extra polarity
 
       - name: Enforce python testing conventions
         run: uv run python scripts/lint_python_testing_syntax_conventions.py
@@ -348,7 +348,7 @@ jobs:
         run: uv lock
 
       - name: Install dependencies
-        run: uv sync --extra test --extra ner
+        run: uv sync --extra test --extra ner --extra polarity
 
       - name: Add project directory to PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV

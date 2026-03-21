@@ -38,9 +38,23 @@ test = [
     "import-linter>=2.0.0",
     "bandit>=1.9.4",
 ]
+
+ml-core = [
+    "torch>=2.10.0",                                                                                                                                    
+    "transformers>=5.3.0",        
+]
+
 ner = [
-    "torch>=2.10.0",
-    "transformers>=5.3.0",
+    "agent-simulation-platform[ml-core]",
+]
+
+emotion = [
+    "agent-simulation-platform[ml-core]",
+]
+
+polarity = [
+    "agent-simulation-platform[ml-core]",
+    "scipy>=1.15.3",
 ]
 
 [build-system]
