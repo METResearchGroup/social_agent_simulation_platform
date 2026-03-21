@@ -6,7 +6,7 @@ from simulation.core.action_history.interfaces import ActionHistoryStore
 def record_action_targets(
     *,
     run_id: str,
-    agent_handle: str,
+    agent_id: str,
     like_post_ids: list[str],
     comment_post_ids: list[str],
     follow_target_agent_ids: list[str],
@@ -14,8 +14,8 @@ def record_action_targets(
 ) -> None:
     """Record validated action targets into action history."""
     for post_id in like_post_ids:
-        action_history_store.record_like(run_id, agent_handle, post_id)
+        action_history_store.record_like(run_id, agent_id, post_id)
     for post_id in comment_post_ids:
-        action_history_store.record_comment(run_id, agent_handle, post_id)
+        action_history_store.record_comment(run_id, agent_id, post_id)
     for target_agent_id in follow_target_agent_ids:
-        action_history_store.record_follow(run_id, agent_handle, target_agent_id)
+        action_history_store.record_follow(run_id, agent_id, target_agent_id)

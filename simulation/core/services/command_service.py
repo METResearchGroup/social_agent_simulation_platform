@@ -5,7 +5,6 @@ from uuid import uuid4
 from pydantic import JsonValue
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
-from lib.agent_id import canonical_agent_id
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore, record_action_targets
@@ -378,6 +377,7 @@ class SimulationCommandService:
             action_candidates = self.agent_action_feed_filter.filter_candidates(
                 run_id=run_id,
                 agent_handle=agent.handle,
+                agent_id=agent.agent_id,
                 feed=feed,
                 action_history_store=action_history_store,
             )
@@ -411,6 +411,7 @@ class SimulationCommandService:
                     run_id=run_id,
                     turn_number=turn_number,
                     agent_handle=agent.handle,
+                    agent_id=agent.agent_id,
                     likes=likes,
                     comments=comments,
                     follows=follows,
@@ -421,7 +422,7 @@ class SimulationCommandService:
             # Record the action targets into action history.
             record_action_targets(
                 run_id=run_id,
-                agent_handle=agent.handle,
+                agent_id=agent.agent_id,
                 like_post_ids=like_post_ids,
                 comment_post_ids=comment_post_ids,
                 follow_target_agent_ids=follow_target_agent_ids,
@@ -760,19 +761,20 @@ class SimulationCommandService:
         action_history_store: ActionHistoryStore,
     ) -> None:
         """Seed follow history so duplicate-follow suppression uses the run snapshot."""
-        handle_by_agent_id: dict[str, str] = {
-            snapshot.agent_id: snapshot.handle_at_start
-            for snapshot in run_agent_snapshots
-        }
+        agent_ids_in_run = {snapshot.agent_id for snapshot in run_agent_snapshots}
         for snapshot in run_follow_edge_snapshots:
-            follower_handle = handle_by_agent_id.get(snapshot.follower_agent_id)
-            target_handle = handle_by_agent_id.get(snapshot.target_agent_id)
-            if follower_handle is None or target_handle is None:
+            if snapshot.follower_agent_id not in agent_ids_in_run:
+                raise ValueError(
+                    "Run follow edge snapshot references an agent missing from run_agents"
+                )
+            if snapshot.target_agent_id not in agent_ids_in_run:
                 raise ValueError(
                     "Run follow edge snapshot references an agent missing from run_agents"
                 )
             action_history_store.record_follow(
-                run_id, follower_handle, canonical_agent_id(target_handle)
+                run_id,
+                snapshot.follower_agent_id,
+                snapshot.target_agent_id,
             )
 
     def preload_like_history_from_snapshots(
@@ -784,20 +786,16 @@ class SimulationCommandService:
         action_history_store: ActionHistoryStore,
     ) -> None:
         """Seed like history so duplicate-like suppression treats seeded likes as done."""
-        handle_by_agent_id: dict[str, str] = {
-            snapshot.agent_id: snapshot.handle_at_start
-            for snapshot in run_agent_snapshots
-        }
+        agent_ids_in_run = {snapshot.agent_id for snapshot in run_agent_snapshots}
 
         for snapshot in run_post_like_snapshots:
-            liker_handle = handle_by_agent_id.get(snapshot.liker_agent_id)
-            if liker_handle is None:
+            if snapshot.liker_agent_id not in agent_ids_in_run:
                 raise ValueError(
                     "Run post like snapshot references an agent missing from run_agents"
                 )
             action_history_store.record_like(
                 run_id,
-                liker_handle,
+                snapshot.liker_agent_id,
                 snapshot.run_post_id,
             )
 
@@ -810,20 +808,16 @@ class SimulationCommandService:
         action_history_store: ActionHistoryStore,
     ) -> None:
         """Seed comment history so duplicate-comment suppression treats seeded comments as done."""
-        handle_by_agent_id: dict[str, str] = {
-            snapshot.agent_id: snapshot.handle_at_start
-            for snapshot in run_agent_snapshots
-        }
+        agent_ids_in_run = {snapshot.agent_id for snapshot in run_agent_snapshots}
 
         for snapshot in run_post_comment_snapshots:
-            author_handle = handle_by_agent_id.get(snapshot.author_agent_id)
-            if author_handle is None:
+            if snapshot.author_agent_id not in agent_ids_in_run:
                 raise ValueError(
                     "Run post comment snapshot references an agent missing from run_agents"
                 )
             action_history_store.record_comment(
                 run_id,
-                author_handle,
+                snapshot.author_agent_id,
                 snapshot.run_post_id,
             )
 

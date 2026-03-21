@@ -17,6 +17,10 @@ def _meta():
     return GenerationMetadataFactory.create(created_at="2024_01_01-12:00:00")
 
 
+AGENT_HANDLE = "agent1.bsky.social"
+AGENT_CANONICAL_ID = canonical_agent_id(AGENT_HANDLE)
+
+
 @pytest.fixture
 def policy():
     return AgentActionRulesValidator()
@@ -33,7 +37,8 @@ class TestAgentActionRulesValidator:
             policy.validate(
                 run_id="run_123",
                 turn_number=0,
-                agent_handle="agent1.bsky.social",
+                agent_handle=AGENT_HANDLE,
+                agent_id=AGENT_CANONICAL_ID,
                 likes=[
                     GeneratedLikeFactory.create(
                         agent_id="agent1",
@@ -58,7 +63,8 @@ class TestAgentActionRulesValidator:
             policy.validate(
                 run_id="run_123",
                 turn_number=0,
-                agent_handle="agent1.bsky.social",
+                agent_handle=AGENT_HANDLE,
+                agent_id=AGENT_CANONICAL_ID,
                 likes=[],
                 comments=[
                     GeneratedCommentFactory.create(
@@ -85,7 +91,8 @@ class TestAgentActionRulesValidator:
             policy.validate(
                 run_id="run_123",
                 turn_number=0,
-                agent_handle="agent1.bsky.social",
+                agent_handle=AGENT_HANDLE,
+                agent_id=AGENT_CANONICAL_ID,
                 likes=[],
                 comments=[],
                 follows=[
@@ -109,7 +116,8 @@ class TestAgentActionRulesValidator:
         like_post_ids, comment_post_ids, follow_user_ids = policy.validate(
             run_id="run_123",
             turn_number=0,
-            agent_handle="agent1.bsky.social",
+            agent_handle=AGENT_HANDLE,
+            agent_id=AGENT_CANONICAL_ID,
             likes=[
                 GeneratedLikeFactory.create(
                     agent_id="agent1",
@@ -137,15 +145,16 @@ class TestAgentActionRulesValidator:
             ],
             action_history_store=history,
         )
-        history.record_like("run_123", "agent1.bsky.social", like_post_ids[0])
-        history.record_comment("run_123", "agent1.bsky.social", comment_post_ids[0])
-        history.record_follow("run_123", "agent1.bsky.social", follow_user_ids[0])
+        history.record_like("run_123", AGENT_CANONICAL_ID, like_post_ids[0])
+        history.record_comment("run_123", AGENT_CANONICAL_ID, comment_post_ids[0])
+        history.record_follow("run_123", AGENT_CANONICAL_ID, follow_user_ids[0])
 
         with pytest.raises(ValueError, match="cannot like post post_1 again"):
             policy.validate(
                 run_id="run_123",
                 turn_number=1,
-                agent_handle="agent1.bsky.social",
+                agent_handle=AGENT_HANDLE,
+                agent_id=AGENT_CANONICAL_ID,
                 likes=[
                     GeneratedLikeFactory.create(
                         agent_id="agent1",
@@ -189,7 +198,8 @@ class TestAgentActionRulesValidator:
         like_post_ids, comment_post_ids, follow_user_ids = policy.validate(
             run_id="run_123",
             turn_number=0,
-            agent_handle="agent1.bsky.social",
+            agent_handle=AGENT_HANDLE,
+            agent_id=AGENT_CANONICAL_ID,
             likes=likes,
             comments=comments,
             follows=follows,
@@ -199,4 +209,4 @@ class TestAgentActionRulesValidator:
         assert like_post_ids == ["post_1"]
         assert comment_post_ids == ["post_2"]
         assert follow_user_ids == [canonical_agent_id("user_3")]
-        assert not history.has_liked("run_123", "agent1.bsky.social", "post_1")
+        assert not history.has_liked("run_123", AGENT_CANONICAL_ID, "post_1")

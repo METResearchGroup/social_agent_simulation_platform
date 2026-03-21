@@ -45,7 +45,7 @@ class RandomSimpleFollowGenerator(FollowGenerator):
 
         scored_candidates: list[tuple[float, Post]] = _collect_scored_unique_authors(
             candidates=candidates,
-            agent_handle=agent_handle,
+            agent_id=agent_id,
         )
         if not scored_candidates:
             return []
@@ -72,26 +72,26 @@ class RandomSimpleFollowGenerator(FollowGenerator):
 def _collect_scored_unique_authors(
     *,
     candidates: list[Post],
-    agent_handle: str,
+    agent_id: str,
 ) -> list[tuple[float, Post]]:
-    """Choose one best post per author and return sorted tuples by score."""
+    """Choose one best post per canonical author and return sorted tuples by score."""
     best_by_author: dict[str, tuple[float, Post]] = {}
     for post in candidates:
-        author_handle = post.author_handle
-        if author_handle == agent_handle:
+        author_key = derive_target_agent_id(post)
+        if author_key == agent_id:
             continue
 
         score: float = _score_post(post)
-        existing: tuple[float, Post] | None = best_by_author.get(author_handle)
+        existing: tuple[float, Post] | None = best_by_author.get(author_key)
         if existing is None:
-            best_by_author[author_handle] = (score, post)
+            best_by_author[author_key] = (score, post)
             continue
 
         existing_score, existing_post = existing
         if score > existing_score or (
             score == existing_score and post.post_id < existing_post.post_id
         ):
-            best_by_author[author_handle] = (score, post)
+            best_by_author[author_key] = (score, post)
 
     scored: list[tuple[float, Post]] = list(best_by_author.values())
     scored.sort(

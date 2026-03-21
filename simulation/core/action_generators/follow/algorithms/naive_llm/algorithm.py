@@ -34,20 +34,19 @@ FOLLOW_POLICY: str = "naive_llm"
 
 def _collect_unique_authors(
     candidates: list[Post],
-    agent_handle: str,
+    _agent_handle: str,
+    agent_id: str,
 ) -> dict[str, Post]:
-    """Return one post per author (excluding self), keyed by author_handle."""
-    result: dict[str, Post] = {}
+    """Return one post per canonical author (excluding self), keyed by author_handle."""
+    best_by_canonical: dict[str, Post] = {}
     for post in candidates:
-        author_handle = post.author_handle
-        if author_handle == agent_handle:
+        canonical_author = derive_target_agent_id(post)
+        if canonical_author == agent_id:
             continue
-        if (
-            author_handle not in result
-            or post.created_at > result[author_handle].created_at
-        ):
-            result[author_handle] = post
-    return result
+        prev = best_by_canonical.get(canonical_author)
+        if prev is None or post.created_at > prev.created_at:
+            best_by_canonical[canonical_author] = post
+    return {post.author_handle: post for post in best_by_canonical.values()}
 
 
 def _authors_to_minimal_json(author_to_post: dict[str, Post]) -> str:
@@ -126,7 +125,7 @@ class NaiveLLMFollowGenerator(LLMActionGeneratorMixin, FollowGenerator):
             )
             return []
 
-        author_to_post = _collect_unique_authors(candidates, agent_handle)
+        author_to_post = _collect_unique_authors(candidates, agent_handle, agent_id)
         if not author_to_post:
             return []
 

@@ -37,27 +37,27 @@ class HistoryAwareActionFeedFilter(AgentActionFeedFilter):
         *,
         run_id: str,
         agent_handle: str,
+        agent_id: str,
         feed: list[Post],
         action_history_store: ActionHistoryStore,
     ) -> ActionCandidateFeeds:
+        _ = agent_handle
         like_candidates = [
             post
             for post in feed
-            if not action_history_store.has_liked(run_id, agent_handle, post.post_id)
+            if not action_history_store.has_liked(run_id, agent_id, post.post_id)
         ]
         comment_candidates = [
             post
             for post in feed
-            if not action_history_store.has_commented(
-                run_id, agent_handle, post.post_id
-            )
+            if not action_history_store.has_commented(run_id, agent_id, post.post_id)
         ]
         follow_candidates = [
             post
             for post in feed
             if not action_history_store.has_followed(
                 run_id,
-                agent_handle,
+                agent_id,
                 _follow_target_key_for_history(post),
             )
         ]
