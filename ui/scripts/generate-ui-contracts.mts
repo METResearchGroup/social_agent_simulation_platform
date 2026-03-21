@@ -68,7 +68,7 @@ lines.push(
   'export type RunConfigDetail = RunConfigBase;',
 );
 
-const fileContent = lines.join('\n');
+const fileContent = `${lines.join('\n')}\n`;
 
 fs.mkdirSync(path.dirname(generatedPath), { recursive: true });
 fs.writeFileSync(generatedPath, fileContent, 'utf8');

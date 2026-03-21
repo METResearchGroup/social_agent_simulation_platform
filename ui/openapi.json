@@ -797,7 +797,7 @@
         "type": "object"
       },
       "TurnSchema": {
-        "description": "Full turn payload consumed by the UI.\n\n``agent_feeds`` and ``agent_actions`` are keyed by canonical ``agent_id``.",
+        "description": "Full turn payload consumed by the UI.\n\n``agent_feeds`` and ``agent_actions`` are keyed by the `agent_id` field.",
         "properties": {
           "agent_actions": {
             "additionalProperties": {
