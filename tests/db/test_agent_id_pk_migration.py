@@ -17,6 +17,10 @@ from scripts.migrations.agent_id_migration import (
     migration_pairs,
     stable_source_for_agent_row,
 )
+from tests.db.agent_id_head_state_inventory import (
+    iter_legacy_shaped_agent_key_values,
+    iter_non_canonical_agent_key_values,
+)
 
 
 def _cfg(monkeypatch: pytest.MonkeyPatch, db_path: str) -> Config:
@@ -333,5 +337,227 @@ class TestAgentIdPkMigration:
             ).fetchone()
             assert post is not None
             assert post[0] == id_b
+        finally:
+            conn.close()
+
+
+def _seed_phase7_head_state_audit_rows(conn: sqlite3.Connection) -> None:
+    """Insert minimal rows so every proposal-listed agent-key column is exercised."""
+    ha = "phase7.audit.one.bsky.social"
+    hb = "phase7.audit.two.bsky.social"
+    hc = "phase7.audit.thr.bsky.social"
+    aid_a = canonical_agent_id(ha)
+    aid_b = canonical_agent_id(hb)
+    aid_c = canonical_agent_id(hc)
+    run_id = "phase7-head-state-audit-run"
+    agent_post_id = "phase7-ap-1"
+    run_post_id = "phase7-rp-1"
+
+    conn.execute(
+        """
+        INSERT INTO agent (
+          agent_id, handle, persona_source, display_name, created_at, updated_at
+        ) VALUES (?, ?, 'test', ?, '2026-01-01', '2026-01-01')
+        """,
+        (aid_a, ha, ha),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent (
+          agent_id, handle, persona_source, display_name, created_at, updated_at
+        ) VALUES (?, ?, 'test', ?, '2026-01-01', '2026-01-01')
+        """,
+        (aid_b, hb, hb),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent (
+          agent_id, handle, persona_source, display_name, created_at, updated_at
+        ) VALUES (?, ?, 'test', ?, '2026-01-01', '2026-01-01')
+        """,
+        (aid_c, hc, hc),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent_persona_bios (
+          id, agent_id, persona_bio, persona_bio_source, created_at, updated_at
+        ) VALUES (?, ?, 'bio', 'user_provided', '2026-01-01', '2026-01-01')
+        """,
+        ("bio-a", aid_a),
+    )
+    conn.execute(
+        """
+        INSERT INTO user_agent_profile_metadata (
+          id, agent_id, followers_count, follows_count, posts_count, created_at, updated_at
+        ) VALUES (?, ?, 1, 1, 1, '2026-01-01', '2026-01-01')
+        """,
+        ("meta-a", aid_a),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent_follow_edges (
+          agent_follow_edge_id, follower_agent_id, target_agent_id, created_at
+        ) VALUES (?, ?, ?, '2026-01-01')
+        """,
+        ("afe-1", aid_a, aid_b),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent_posts (
+          agent_post_id, agent_id, body_text, published_at, created_at, updated_at
+        ) VALUES (?, ?, 'x', '2026-01-01', '2026-01-01', '2026-01-01')
+        """,
+        (agent_post_id, aid_a),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent_post_likes (
+          agent_post_like_id, agent_post_id, liker_agent_id, created_at
+        ) VALUES (?, ?, ?, '2026-01-01')
+        """,
+        ("apl-1", agent_post_id, aid_c),
+    )
+    conn.execute(
+        """
+        INSERT INTO agent_post_comments (
+          agent_post_comment_id, agent_post_id, author_agent_id, body_text,
+          published_at, created_at, updated_at
+        ) VALUES (?, ?, ?, 'c', '2026-01-01', '2026-01-01', '2026-01-01')
+        """,
+        ("apc-1", agent_post_id, aid_b),
+    )
+    conn.execute(
+        """
+        INSERT INTO runs (
+          run_id, app_user_id, created_at, total_turns, total_agents, feed_algorithm,
+          metric_keys, started_at, status, completed_at
+        ) VALUES (?, NULL, '2026-01-01', 1, 2, 'chronological',
+          NULL, '2026-01-01', 'completed', '2026-01-01')
+        """,
+        (run_id,),
+    )
+    conn.execute(
+        """
+        INSERT INTO run_agents (
+          run_id, agent_id, selection_order, handle_at_start, display_name_at_start,
+          persona_bio_at_start, followers_count_at_start, follows_count_at_start,
+          posts_count_at_start, created_at
+        ) VALUES (?, ?, 0, ?, ?, '', 0, 0, 0, '2026-01-01')
+        """,
+        (run_id, aid_a, ha, ha),
+    )
+    conn.execute(
+        """
+        INSERT INTO run_agents (
+          run_id, agent_id, selection_order, handle_at_start, display_name_at_start,
+          persona_bio_at_start, followers_count_at_start, follows_count_at_start,
+          posts_count_at_start, created_at
+        ) VALUES (?, ?, 1, ?, ?, '', 0, 0, 0, '2026-01-01')
+        """,
+        (run_id, aid_b, hb, hb),
+    )
+    conn.execute(
+        """
+        INSERT INTO run_posts (
+          run_post_id, run_id, agent_post_id, author_agent_id,
+          author_handle_at_start, author_display_name_at_start, body_text_at_start,
+          published_at_start, source_post_id_at_start, source_at_start, source_uri_at_start,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, '', '2026-01-01', NULL, NULL, NULL, '2026-01-01')
+        """,
+        (run_post_id, run_id, agent_post_id, aid_a, ha, ha),
+    )
+    conn.execute(
+        """
+        INSERT INTO run_post_likes (
+          run_post_like_id, run_id, run_post_id, liker_agent_id,
+          liker_handle_at_start, liker_display_name_at_start, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, '2026-01-01')
+        """,
+        ("rpl-1", run_id, run_post_id, aid_b, hb, hb),
+    )
+    conn.execute(
+        """
+        INSERT INTO run_post_comments (
+          run_post_comment_id, run_id, run_post_id, author_agent_id,
+          author_handle_at_start, author_display_name_at_start, body_text_at_start,
+          published_at_start, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'x', '2026-01-01', '2026-01-01')
+        """,
+        ("rpc-1", run_id, run_post_id, aid_c, hc, hc),
+    )
+    conn.execute(
+        """
+        INSERT INTO run_follow_edges (
+          run_id, follower_agent_id, target_agent_id, created_at
+        ) VALUES (?, ?, ?, '2026-01-01')
+        """,
+        (run_id, aid_a, aid_b),
+    )
+    conn.execute(
+        """
+        INSERT INTO likes (
+          like_id, run_id, turn_number, agent_id, post_id, created_at
+        ) VALUES (?, ?, 0, ?, 'bluesky:post', '2026-01-01')
+        """,
+        ("like-1", run_id, aid_a),
+    )
+    conn.execute(
+        """
+        INSERT INTO comments (
+          comment_id, run_id, turn_number, agent_id, post_id, text, created_at
+        ) VALUES (?, ?, 0, ?, 'bluesky:post', 't', '2026-01-01')
+        """,
+        ("comment-1", run_id, aid_b),
+    )
+    conn.execute(
+        """
+        INSERT INTO follows (
+          follow_id, run_id, turn_number, agent_id, target_agent_id, created_at
+        ) VALUES (?, ?, 0, ?, ?, '2026-01-01')
+        """,
+        ("follow-1", run_id, aid_a, aid_b),
+    )
+    conn.execute(
+        """
+        INSERT INTO generated_feeds (
+          feed_id, run_id, turn_number, agent_id, agent_handle, post_ids, created_at
+        ) VALUES (?, ?, 0, ?, ?, '[]', '2026-01-01')
+        """,
+        ("gf-1", run_id, aid_a, ha),
+    )
+    conn.commit()
+
+
+class TestAgentIdHeadStateVerifier:
+    """Phase 7: every proposal-listed agent-key column is canonical at Alembic head."""
+
+    def test_all_agent_key_columns_are_canonical_at_head(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        db_path = str(tmp_path / "head_state.sqlite")
+        cfg = _cfg(monkeypatch, db_path)
+        command.upgrade(cfg, "head")
+
+        conn = sqlite3.connect(db_path)
+        try:
+            _seed_phase7_head_state_audit_rows(conn)
+            bad = iter_non_canonical_agent_key_values(conn)
+            assert bad == [], f"non-canonical agent keys: {bad}"
+        finally:
+            conn.close()
+
+    def test_no_legacy_shaped_values_in_agent_key_columns_at_head(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        db_path = str(tmp_path / "head_state_legacy.sqlite")
+        cfg = _cfg(monkeypatch, db_path)
+        command.upgrade(cfg, "head")
+
+        conn = sqlite3.connect(db_path)
+        try:
+            _seed_phase7_head_state_audit_rows(conn)
+            legacy = iter_legacy_shaped_agent_key_values(conn)
+            assert legacy == [], f"legacy-shaped agent keys: {legacy}"
         finally:
             conn.close()
