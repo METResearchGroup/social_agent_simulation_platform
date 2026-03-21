@@ -15,7 +15,7 @@ class GeneratedFeed(BaseModel):
     run_id: str
     turn_number: int
     agent_id: str
-    agent_handle: str
+    agent_handle: str  # Display label only; persistence and lookups use ``agent_id``
     post_ids: list[str]
     created_at: str
 

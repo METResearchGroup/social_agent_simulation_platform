@@ -759,20 +759,20 @@ class FeedPostDatabaseAdapter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_feed_posts_by_author(
-        self, author_handle: str, *, conn: object
+    def read_feed_posts_by_author_agent_id(
+        self, author_agent_id: str, *, conn: object
     ) -> list[Post]:
-        """Read all feed posts by a specific author.
+        """Read all feed posts for a canonical author ``agent_id``.
 
         Args:
-            author_handle: Author handle to filter by
+            author_agent_id: Canonical 16-char lowercase hex id (matches ``agent.agent_id``)
             conn: Connection.
 
         Returns:
             List of Post models for the author.
 
         Raises:
-            ValueError: If any feed post data is invalid (NULL fields)
+            ValueError: If ``author_agent_id`` is not canonical or any feed post row is invalid
             KeyError: If required columns are missing from any database row
             Exception: Database-specific exception if the operation fails.
                       Implementations should document the specific exception types

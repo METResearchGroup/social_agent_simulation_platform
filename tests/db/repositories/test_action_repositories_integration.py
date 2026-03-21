@@ -24,7 +24,7 @@ from tests.factories import (
 
 @pytest.fixture
 def seed_action_agents(temp_db: str) -> None:
-    """Insert minimal agent rows so action adapters can resolve handles to canonical ids."""
+    """Insert minimal agent rows so action writes satisfy FK to ``agent``."""
     conn = sqlite3.connect(temp_db)
     try:
         for handle in (
@@ -53,6 +53,19 @@ def _make_run(run_repo) -> str:
     )
     run = run_repo.create_run(config)
     return run.run_id
+
+
+_ALLOWED_ACTION_TABLES = frozenset({"likes", "comments", "follows"})
+
+
+def _count_rows(temp_db: str, table: str) -> int:
+    if table not in _ALLOWED_ACTION_TABLES:
+        raise ValueError(f"unsupported table for test helper: {table!r}")
+    conn = sqlite3.connect(temp_db)
+    try:
+        return int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+    finally:
+        conn.close()
 
 
 class TestSQLiteLikeRepositoryIntegration:
@@ -176,3 +189,78 @@ class TestSQLiteFollowRepositoryIntegration:
         assert result[0].target_agent_id == charlie_id
         assert result[0].run_id == run_id
         assert result[0].turn_number == turn_number
+
+
+class TestSQLiteActionRepositoriesCanonicalOnly:
+    """Negative paths: handle-shaped or malformed ids must not reach SQLite."""
+
+    def test_write_likes_rejects_handle_agent_id_without_persisting(
+        self, seed_action_agents, run_repo, like_repo, temp_db
+    ) -> None:
+        run_id = _make_run(run_repo)
+        before = _count_rows(temp_db, "likes")
+        bad = GeneratedLikeFactory.create(
+            like=LikeFactory.create(
+                like_id="like_bad",
+                agent_id="alice.bsky.social",
+                post_id="at://did:plc:post1",
+                created_at="2026-02-24T12:00:00Z",
+            ),
+            explanation="x",
+            metadata=GenerationMetadataFactory.create(
+                model_used=None,
+                generation_metadata=None,
+                created_at="2026-02-24T12:00:00Z",
+            ),
+        )
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            like_repo.write_likes(run_id, 0, [bad])
+        assert _count_rows(temp_db, "likes") == before
+
+    def test_write_comments_rejects_malformed_agent_id_without_persisting(
+        self, seed_action_agents, run_repo, comment_repo, temp_db
+    ) -> None:
+        run_id = _make_run(run_repo)
+        before = _count_rows(temp_db, "comments")
+        bad = GeneratedCommentFactory.create(
+            comment=CommentFactory.create(
+                comment_id="c_bad",
+                agent_id="not-valid-hex",
+                post_id="at://did:plc:post1",
+                text="hi",
+                created_at="2026-02-24T12:00:00Z",
+            ),
+            explanation="x",
+            metadata=GenerationMetadataFactory.create(
+                model_used=None,
+                generation_metadata=None,
+                created_at="2026-02-24T12:00:00Z",
+            ),
+        )
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            comment_repo.write_comments(run_id, 0, [bad])
+        assert _count_rows(temp_db, "comments") == before
+
+    def test_write_follows_rejects_handle_target_without_persisting(
+        self, seed_action_agents, run_repo, follow_repo, temp_db
+    ) -> None:
+        run_id = _make_run(run_repo)
+        before = _count_rows(temp_db, "follows")
+        alice_id = canonical_agent_id("alice.bsky.social")
+        bad = GeneratedFollowFactory.create(
+            follow=FollowFactory.create(
+                follow_id="f_bad",
+                agent_id=alice_id,
+                target_agent_id="charlie.bsky.social",
+                created_at="2026-02-24T12:00:00Z",
+            ),
+            explanation="x",
+            metadata=GenerationMetadataFactory.create(
+                model_used=None,
+                generation_metadata=None,
+                created_at="2026-02-24T12:00:00Z",
+            ),
+        )
+        with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
+            follow_repo.write_follows(run_id, 0, [bad])
+        assert _count_rows(temp_db, "follows") == before

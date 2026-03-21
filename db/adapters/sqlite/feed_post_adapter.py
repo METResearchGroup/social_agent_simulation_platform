@@ -9,7 +9,7 @@ from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import feed_posts
 from simulation.core.models.posts import Post, PostSource
 from simulation.core.utils.validators import (
-    validate_handle_exists,
+    validate_canonical_agent_id,
     validate_post_id_exists,
 )
 
@@ -158,28 +158,31 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
 
         return self._row_to_feed_post(row)
 
-    def read_feed_posts_by_author(
-        self, author_handle: str, *, conn: sqlite3.Connection
+    def read_feed_posts_by_author_agent_id(
+        self, author_agent_id: str, *, conn: sqlite3.Connection
     ) -> list[Post]:
-        """Read all feed posts by a specific author from SQLite.
+        """Read feed posts for a canonical author id.
+
+        Queries ``feed_posts.author_agent_id``. ``author_handle`` is not an authoritative
+        lookup key.
 
         Args:
-            author_handle: Author handle to filter by
+            author_agent_id: Canonical 16-char lowercase hex id
             conn: Connection.
 
         Returns:
             List of Post models for the author.
 
         Raises:
-            ValueError: If author_handle is empty
+            ValueError: If ``author_agent_id`` is not canonical
             ValueError: If any feed post data is invalid (NULL fields)
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        validate_handle_exists(author_handle)
+        validate_canonical_agent_id(author_agent_id)
         rows = conn.execute(
-            "SELECT * FROM feed_posts WHERE author_handle = ?",
-            (author_handle,),
+            "SELECT * FROM feed_posts WHERE author_agent_id = ?",
+            (author_agent_id,),
         ).fetchall()
 
         posts = []
@@ -190,13 +193,9 @@ class SQLiteFeedPostAdapter(FeedPostDatabaseAdapter):
                 post_id_value = (
                     row["post_id"] if row["post_id"] is not None else "unknown"
                 )
-                context = (
-                    f"feed post post_id={post_id_value}, author_handle={author_handle}"
-                )
+                context = f"feed post post_id={post_id_value}, author_agent_id={author_agent_id}"
             except (KeyError, TypeError):
-                context = (
-                    f"feed post (post_id unavailable), author_handle={author_handle}"
-                )
+                context = f"feed post (post_id unavailable), author_agent_id={author_agent_id}"
 
             self._validate_feed_post_row(row, context=context)
 

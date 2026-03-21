@@ -6,7 +6,7 @@ from db.adapters.base import FeedPostDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import FeedPostRepository
 from simulation.core.models.posts import Post
 from simulation.core.utils.validators import (
-    validate_handle_exists,
+    validate_canonical_agent_id,
     validate_post_id_exists,
     validate_post_ids_exist,
     validate_posts_exist,
@@ -97,25 +97,23 @@ class SQLiteFeedPostRepository(FeedPostRepository):
         with self._transaction_provider.run_transaction() as c:
             return self._db_adapter.read_feed_post(post_id, conn=c)
 
-    def list_feed_posts_by_author(self, author_handle: str) -> list[Post]:
-        """List all feed posts by a specific author from SQLite.
+    def list_feed_posts_by_author_agent_id(self, author_agent_id: str) -> list[Post]:
+        """List feed posts for the given canonical author id.
 
         Args:
-            author_handle: Author handle to filter by
+            author_agent_id: Canonical ``agent.agent_id`` / ``Post.author_agent_id``
 
         Returns:
             List of Post models for the author.
 
         Raises:
-            ValueError: If author_handle is empty or None
-
-        Note:
-            Pydantic validators only run when creating models. Since this method accepts a raw string
-            parameter (not a Post model), we validate author_handle here.
+            ValueError: If ``author_agent_id`` is not a canonical agent id
         """
-        validate_handle_exists(handle=author_handle)
+        validate_canonical_agent_id(author_agent_id)
         with self._transaction_provider.run_transaction() as c:
-            return self._db_adapter.read_feed_posts_by_author(author_handle, conn=c)
+            return self._db_adapter.read_feed_posts_by_author_agent_id(
+                author_agent_id, conn=c
+            )
 
     def list_all_feed_posts(self) -> list[Post]:
         """List all feed posts from SQLite.
