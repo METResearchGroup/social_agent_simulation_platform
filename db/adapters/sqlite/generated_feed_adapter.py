@@ -80,7 +80,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         """Read a generated feed from SQLite.
 
         Args:
-            agent_id: Canonical agent id to look up
+            agent_id: Agent id to look up
             run_id: Run ID to look up
             turn_number: Turn number to look up
             conn: Connection.
@@ -178,7 +178,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         """Read all post_ids from generated feeds for a specific agent and run.
 
         Args:
-            agent_id: Canonical agent id to filter by
+            agent_id: Agent id to filter by
             run_id: Run ID to filter by
             conn: Connection.
 

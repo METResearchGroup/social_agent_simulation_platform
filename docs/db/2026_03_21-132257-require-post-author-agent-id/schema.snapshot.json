@@ -74,6 +74,16 @@
       },
       {
         "from_columns": [
+          "author_agent_id"
+        ],
+        "from_table": "feed_posts",
+        "name": "fk_feed_posts_author_agent_id",
+        "to_columns": [
+          "agent_id"
+        ]
+      },
+      {
+        "from_columns": [
           "agent_id"
         ],
         "from_table": "follows",
@@ -1340,10 +1350,37 @@
           "nullable": false,
           "primary_key": 0,
           "type": "TEXT"
+        },
+        {
+          "default": null,
+          "name": "author_agent_id",
+          "nullable": false,
+          "primary_key": 0,
+          "type": "TEXT"
         }
       ],
-      "foreign_keys": [],
+      "foreign_keys": [
+        {
+          "columns": [
+            "author_agent_id"
+          ],
+          "name": "fk_feed_posts_author_agent_id",
+          "ondelete": null,
+          "onupdate": null,
+          "referred_columns": [
+            "agent_id"
+          ],
+          "referred_table": "agent"
+        }
+      ],
       "indexes": [
+        {
+          "columns": [
+            "author_agent_id"
+          ],
+          "name": "idx_feed_posts_author_agent_id",
+          "unique": false
+        },
         {
           "columns": [
             "author_handle"

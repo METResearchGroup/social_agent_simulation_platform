@@ -73,7 +73,7 @@ def filter_candidate_posts(
     return [
         p
         for p in candidate_posts
-        if p.post_id not in seen_post_ids and p.author_handle != agent.handle
+        if p.post_id not in seen_post_ids and p.author_agent_id != agent.agent_id
     ]
 
 

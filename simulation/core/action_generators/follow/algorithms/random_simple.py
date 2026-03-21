@@ -10,7 +10,6 @@ import random
 from datetime import datetime, timezone
 
 from lib.timestamp_utils import CREATED_AT_FORMAT, get_current_timestamp
-from simulation.core.action_generators.follow.utils import derive_target_agent_id
 from simulation.core.action_generators.interfaces import FollowGenerator
 from simulation.core.models.actions import Follow
 from simulation.core.models.generated.base import GenerationMetadata
@@ -74,24 +73,24 @@ def _collect_scored_unique_authors(
     candidates: list[Post],
     agent_id: str,
 ) -> list[tuple[float, Post]]:
-    """Choose one best post per canonical author and return sorted tuples by score."""
+    """Choose one best post per author ``agent_id`` and return sorted tuples by score."""
     best_by_author: dict[str, tuple[float, Post]] = {}
     for post in candidates:
-        author_key = derive_target_agent_id(post)
-        if author_key == agent_id:
+        author_agent_id_key = post.author_agent_id
+        if author_agent_id_key == agent_id:
             continue
 
         score: float = _score_post(post)
-        existing: tuple[float, Post] | None = best_by_author.get(author_key)
+        existing: tuple[float, Post] | None = best_by_author.get(author_agent_id_key)
         if existing is None:
-            best_by_author[author_key] = (score, post)
+            best_by_author[author_agent_id_key] = (score, post)
             continue
 
         existing_score, existing_post = existing
         if score > existing_score or (
             score == existing_score and post.post_id < existing_post.post_id
         ):
-            best_by_author[author_key] = (score, post)
+            best_by_author[author_agent_id_key] = (score, post)
 
     scored: list[tuple[float, Post]] = list(best_by_author.values())
     scored.sort(
@@ -139,7 +138,7 @@ def _build_generated_follow(
     turn_number: int,
 ) -> GeneratedFollow:
     """Build a GeneratedFollow with IDs and metadata."""
-    target_agent_id: str = derive_target_agent_id(post)
+    target_agent_id: str = post.author_agent_id
     follow_id: str = f"follow_{run_id}_{turn_number}_{agent_handle}_{target_agent_id}"
     created_at: str = get_current_timestamp()
     generation_metadata: dict[str, float | str] = {

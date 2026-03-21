@@ -1,6 +1,26 @@
 """Tests for GET /v1/simulations/posts endpoint."""
 
+import pytest
+
+from lib.agent_id import canonical_agent_id
+from simulation.core.models.agent import Agent, PersonaSource
 from tests.factories import PostFactory
+from tests.factories._helpers import _timestamp_utc_compact
+
+
+@pytest.fixture(autouse=True)
+def _seed_agent_for_posts_feed(agent_repo) -> None:
+    ts = _timestamp_utc_compact()
+    agent_repo.create_or_update_agent(
+        Agent(
+            agent_id=canonical_agent_id("test.author"),
+            handle="test.author",
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name="Test Author",
+            created_at=ts,
+            updated_at=ts,
+        )
+    )
 
 
 def _make_post(*, uri: str, text: str):

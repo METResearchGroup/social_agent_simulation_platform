@@ -326,6 +326,12 @@ feed_posts = sa.Table(
     sa.Column("reply_count", sa.Integer(), nullable=False),
     sa.Column("repost_count", sa.Integer(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("author_agent_id", sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(
+        ["author_agent_id"],
+        ["agent.agent_id"],
+        name="fk_feed_posts_author_agent_id",
+    ),
 )
 
 agent_bios = sa.Table(
@@ -596,6 +602,7 @@ sa.Index("idx_runs_status", runs.c.status)
 sa.Index("idx_runs_created_at", runs.c.created_at.desc())
 sa.Index("idx_runs_app_user_id", runs.c.app_user_id)
 sa.Index("idx_feed_posts_author_handle", feed_posts.c.author_handle)
+sa.Index("idx_feed_posts_author_agent_id", feed_posts.c.author_agent_id)
 sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
 sa.Index("idx_turn_metrics_run_id", turn_metrics.c.run_id)
 sa.Index("idx_run_agents_run_id", run_agents.c.run_id)

@@ -278,6 +278,7 @@ class TestSQLiteFeedPostAdapterReadFeedPostsByIds:
 
         # NULL uri
         row_data = {
+            "post_id": "bluesky:uri1",
             "uri": None,
             "author_display_name": "Author 1",
             "author_handle": "author1.bsky.social",

@@ -31,8 +31,8 @@ class Post(BaseModel):
     post_id: str
     source: PostSource
     uri: str
-    author_agent_id: str | None = None
     author_handle: str
+    author_agent_id: str
     author_display_name: str
     text: str
     bookmark_count: int
@@ -46,6 +46,7 @@ class Post(BaseModel):
         "post_id",
         "uri",
         "author_handle",
+        "author_agent_id",
         "author_display_name",
         "created_at",
         mode="before",

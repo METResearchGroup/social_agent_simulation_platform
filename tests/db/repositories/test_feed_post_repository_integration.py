@@ -5,15 +5,36 @@ These tests use a real SQLite database to test end-to-end functionality.
 
 import pytest
 
+from db.repositories.interfaces import AgentRepository
+from lib.agent_id import canonical_agent_id
+from simulation.core.models.agent import Agent, PersonaSource
 from tests.factories import PostFactory
+from tests.factories._helpers import _timestamp_utc_compact
+
+
+def _seed_agent_for_handle(
+    agent_repo: AgentRepository, *, handle: str, display_name: str = "Test User"
+) -> None:
+    ts = _timestamp_utc_compact()
+    agent_repo.create_or_update_agent(
+        Agent(
+            agent_id=canonical_agent_id(handle),
+            handle=handle,
+            persona_source=PersonaSource.SYNC_BLUESKY,
+            display_name=display_name,
+            created_at=ts,
+            updated_at=ts,
+        )
+    )
 
 
 class TestSQLiteFeedPostRepositoryIntegration:
     """Integration tests using a real database."""
 
-    def test_create_and_read_feed_post(self, feed_post_repo):
+    def test_create_and_read_feed_post(self, feed_post_repo, agent_repo):
         """Test creating a feed post and reading it back from the database."""
         repo = feed_post_repo
+        _seed_agent_for_handle(agent_repo, handle="test.bsky.social")
         uri = "at://did:plc:test123/app.bsky.feed.post/test"
         post = PostFactory.create(
             uri=uri,
@@ -51,10 +72,14 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert retrieved_post.created_at == created_post.created_at
 
     def test_create_or_update_feed_posts_batch_persists_to_database(
-        self, feed_post_repo
+        self, feed_post_repo, agent_repo
     ):
         """Test that create_or_update_feed_posts (batch) persists multiple posts to the database."""
         repo = feed_post_repo
+        for i in range(1, 4):
+            _seed_agent_for_handle(
+                agent_repo, handle=f"user{i}.bsky.social", display_name=f"User {i}"
+            )
         posts = [
             PostFactory.create(
                 uri=f"at://did:plc:test{i}/app.bsky.feed.post/test{i}",
@@ -84,9 +109,12 @@ class TestSQLiteFeedPostRepositoryIntegration:
             assert retrieved.text == post.text
             assert retrieved.like_count == post.like_count
 
-    def test_create_or_update_feed_post_updates_existing_post(self, feed_post_repo):
+    def test_create_or_update_feed_post_updates_existing_post(
+        self, feed_post_repo, agent_repo
+    ):
         """Test that create_or_update_feed_post updates an existing post."""
         repo = feed_post_repo
+        _seed_agent_for_handle(agent_repo, handle="test.bsky.social")
         uri = "at://did:plc:test123/app.bsky.feed.post/test"
 
         # Create initial post
@@ -139,9 +167,15 @@ class TestSQLiteFeedPostRepositoryIntegration:
                 "bluesky:at://did:plc:nonexistent/app.bsky.feed.post/test"
             )
 
-    def test_list_feed_posts_by_author_retrieves_correct_posts(self, feed_post_repo):
+    def test_list_feed_posts_by_author_retrieves_correct_posts(
+        self, feed_post_repo, agent_repo
+    ):
         """Test that list_feed_posts_by_author filters correctly by author."""
         repo = feed_post_repo
+        _seed_agent_for_handle(
+            agent_repo, handle="alice.bsky.social", display_name="Alice"
+        )
+        _seed_agent_for_handle(agent_repo, handle="bob.bsky.social", display_name="Bob")
 
         # Create posts by different authors
         post1 = PostFactory.create(
@@ -199,9 +233,13 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert len(bob_posts) == 1
         assert bob_posts[0].uri == "at://did:plc:bob/app.bsky.feed.post/post1"
 
-    def test_list_all_feed_posts_retrieves_all_posts(self, feed_post_repo):
+    def test_list_all_feed_posts_retrieves_all_posts(self, feed_post_repo, agent_repo):
         """Test that list_all_feed_posts retrieves all posts from the database."""
         repo = feed_post_repo
+        for i in range(1, 4):
+            _seed_agent_for_handle(
+                agent_repo, handle=f"user{i}.bsky.social", display_name=f"User {i}"
+            )
 
         # Create multiple posts
         posts = [
@@ -302,9 +340,12 @@ class TestSQLiteFeedPostRepositoryIntegration:
         with pytest.raises(ValueError, match="handle cannot be empty"):
             repo.list_feed_posts_by_author("")
 
-    def test_feed_post_with_long_text(self, feed_post_repo):
+    def test_feed_post_with_long_text(self, feed_post_repo, agent_repo):
         """Test that feed posts with long text are handled correctly."""
         repo = feed_post_repo
+        _seed_agent_for_handle(
+            agent_repo, handle="longpost.bsky.social", display_name="Long Post User"
+        )
 
         long_text = "This is a very long post. " * 100  # 2500+ characters
         uri = "at://did:plc:longpost/app.bsky.feed.post/test"
@@ -329,10 +370,14 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert len(retrieved.text) > 2000
 
     def test_read_feed_posts_by_ids_returns_posts_for_existing_ids(
-        self, feed_post_repo
+        self, feed_post_repo, agent_repo
     ):
         """Test that read_feed_posts_by_ids returns posts for existing post_ids."""
         repo = feed_post_repo
+        for i in range(1, 4):
+            _seed_agent_for_handle(
+                agent_repo, handle=f"user{i}.bsky.social", display_name=f"User {i}"
+            )
 
         # Create multiple posts
         posts = [
@@ -394,10 +439,12 @@ class TestSQLiteFeedPostRepositoryIntegration:
         assert isinstance(posts, list)
 
     def test_read_feed_posts_by_ids_returns_partial_results_when_some_missing(
-        self, feed_post_repo
+        self, feed_post_repo, agent_repo
     ):
         """Test that read_feed_posts_by_ids returns partial results when some post_ids don't exist."""
         repo = feed_post_repo
+        _seed_agent_for_handle(agent_repo, handle="user1.bsky.social")
+        _seed_agent_for_handle(agent_repo, handle="user2.bsky.social")
 
         # Create some posts
         post1 = PostFactory.create(
