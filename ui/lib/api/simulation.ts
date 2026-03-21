@@ -169,6 +169,7 @@ function mapFeed(apiFeed: ApiFeed): Feed {
     feedId: apiFeed.feed_id,
     runId: apiFeed.run_id,
     turnNumber: apiFeed.turn_number,
+    agentId: apiFeed.agent_id,
     agentHandle: apiFeed.agent_handle,
     postIds: apiFeed.post_ids,
     createdAt: apiFeed.created_at,
@@ -178,9 +179,10 @@ function mapFeed(apiFeed: ApiFeed): Feed {
 function mapAction(apiAction: ApiAgentAction): AgentAction {
   return {
     actionId: apiAction.action_id,
+    agentId: apiAction.agent_id,
     agentHandle: apiAction.agent_handle,
     postId: apiAction.post_id ?? undefined,
-    userId: apiAction.user_id ?? undefined,
+    targetAgentId: apiAction.target_agent_id ?? undefined,
     type: apiAction.type,
     createdAt: apiAction.created_at,
   };
@@ -191,6 +193,7 @@ function mapPost(apiPost: ApiPost): Post {
     postId: apiPost.post_id,
     source: apiPost.source,
     uri: apiPost.uri,
+    authorAgentId: apiPost.author_agent_id,
     authorDisplayName: apiPost.author_display_name,
     authorHandle: apiPost.author_handle,
     text: apiPost.text,
@@ -207,12 +210,12 @@ function mapTurn(apiTurn: ApiTurn): Turn {
   const agentFeeds: Record<string, Feed> = {};
   const agentActions: Record<string, AgentAction[]> = {};
 
-  Object.entries(apiTurn.agent_feeds).forEach(([agentHandle, apiFeed]) => {
-    agentFeeds[agentHandle] = mapFeed(apiFeed);
+  Object.entries(apiTurn.agent_feeds).forEach(([agentId, apiFeed]) => {
+    agentFeeds[agentId] = mapFeed(apiFeed);
   });
 
-  Object.entries(apiTurn.agent_actions).forEach(([agentHandle, apiActions]) => {
-    agentActions[agentHandle] = apiActions.map(mapAction);
+  Object.entries(apiTurn.agent_actions).forEach(([agentId, apiActions]) => {
+    agentActions[agentId] = apiActions.map(mapAction);
   });
 
   return {

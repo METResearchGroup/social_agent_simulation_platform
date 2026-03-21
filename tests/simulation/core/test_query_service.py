@@ -213,22 +213,23 @@ class TestSimulationQueryServiceGetTurnData:
 
         assert isinstance(result, TurnData)
         assert result is not None
-        # Keys come from handle_at_start (run_agent snapshot), not feed.agent_handle
-        assert "agent1.bsky.social" in result.feeds
+        # Keys are canonical agent_id; stale feed.agent_handle must not appear as keys
+        assert agent1_id in result.feeds
+        assert agent2_id in result.feeds
         assert "stale.handle.agent1" not in result.feeds
-        assert len(result.feeds["agent1.bsky.social"]) == 2
-        assert len(result.feeds["agent2.bsky.social"]) == 1
+        assert len(result.feeds[agent1_id]) == 2
+        assert len(result.feeds[agent2_id]) == 1
         call_args = mock_repos["run_post_repo"].read_run_posts_by_ids.call_args
         assert call_args[0][0] == sample_run.run_id
         assert set(call_args[0][1]) == {"rp_1", "rp_2", "rp_3"}
         # Verify post hydration from run_post_repo: content comes from RunPostSnapshot
-        posts_agent1 = result.feeds["agent1.bsky.social"]
+        posts_agent1 = result.feeds[agent1_id]
         assert posts_agent1[0].post_id == "rp_1"
         assert posts_agent1[0].text == "Post 1"
         assert posts_agent1[0].author_handle == "author1.bsky.social"
         assert posts_agent1[1].post_id == "rp_2"
         assert posts_agent1[1].text == "Post 2"
-        posts_agent2 = result.feeds["agent2.bsky.social"]
+        posts_agent2 = result.feeds[agent2_id]
         assert posts_agent2[0].post_id == "rp_3"
         assert posts_agent2[0].text == "Post 3"
 
@@ -311,10 +312,10 @@ class TestSimulationQueryServiceGetTurnData:
         result = query_service.get_turn_data(sample_run.run_id, 0)
 
         assert result is not None
-        # Keys from handle_at_start, not feed.agent_handle
-        assert "agent1.bsky.social" in result.actions
+        # Keys are canonical agent_id; stale feed.agent_handle must not appear as keys
+        assert like_actor in result.actions
         assert "outdated.display.handle" not in result.actions
-        agent_actions = result.actions["agent1.bsky.social"]
+        agent_actions = result.actions[like_actor]
         assert len(agent_actions) == 1
         assert isinstance(agent_actions[0], GeneratedLike)
         assert agent_actions[0].like.like_id == "like_1"
@@ -452,13 +453,8 @@ class TestSimulationQueryServiceRunPostIsolation:
 
         assert turn_data_a is not None
         assert turn_data_b is not None
-        assert (
-            turn_data_a.feeds["agent1.bsky.social"][0].text == "Original post for run A"
-        )
-        assert (
-            turn_data_b.feeds["agent1.bsky.social"][0].text
-            == "Different post for run B"
-        )
+        assert turn_data_a.feeds[agent_hex][0].text == "Original post for run A"
+        assert turn_data_b.feeds[agent_hex][0].text == "Different post for run B"
 
 
 class TestSimulationQueryServiceRunFollowEdges:

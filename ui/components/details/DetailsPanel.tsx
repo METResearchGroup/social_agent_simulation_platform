@@ -8,7 +8,7 @@ import { useRunDetail } from '@/components/run-detail/RunDetailContext';
 import { getPosts } from '@/lib/api/simulation';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { getTurnsErrorMessage } from '@/lib/error-messages';
-import { Agent, ApiError, Post, RunConfig, Turn } from '@/types';
+import { Agent, AgentAction, ApiError, Feed, Post, RunConfig, Turn } from '@/types';
 
 export default function DetailsPanel() {
   const {
@@ -133,6 +133,14 @@ function TurnDetailContent({
   runDetailsError,
   onRetryRunDetails,
 }: TurnDetailContentProps) {
+  const feedsByHandle: Record<string, Feed> = useMemo(
+    () => buildFeedsByHandle(currentTurn),
+    [currentTurn],
+  );
+  const actionsByHandle: Record<string, AgentAction[]> = useMemo(
+    () => buildActionsByHandle(currentTurn),
+    [currentTurn],
+  );
   const postIds: string[] = useMemo(
     () => getPostIdsFromTurn(currentTurn),
     [currentTurn],
@@ -219,16 +227,13 @@ function TurnDetailContent({
         <div className="space-y-4">
           {participatingAgents.map((agent) => {
             const handleKey = normalizeHandle(agent.handle);
-            const feed = currentTurn.agentFeeds[handleKey] || currentTurn.agentFeeds[agent.handle];
+            const feed = feedsByHandle[handleKey];
             const feedPosts: Post[] = feed
               ? feed.postIds
                   .map((postId) => postsById[postId])
                   .filter((post): post is Post => post !== undefined)
               : [];
-            const agentActions =
-              currentTurn.agentActions[handleKey] ||
-              currentTurn.agentActions[agent.handle] ||
-              [];
+            const agentActions = actionsByHandle[handleKey] ?? [];
 
             return (
               <div key={agent.handle} className="border border-beige-300 rounded-lg p-3">
@@ -250,13 +255,44 @@ function TurnDetailContent({
   );
 }
 
+function collectHandlesFromTurn(turn: Turn): Set<string> {
+  const handles = new Set<string>();
+  for (const feed of Object.values(turn.agentFeeds)) {
+    handles.add(normalizeHandle(feed.agentHandle));
+  }
+  for (const actions of Object.values(turn.agentActions)) {
+    for (const action of actions) {
+      handles.add(normalizeHandle(action.agentHandle));
+    }
+  }
+  return handles;
+}
+
+function buildFeedsByHandle(turn: Turn): Record<string, Feed> {
+  const byHandle: Record<string, Feed> = {};
+  for (const feed of Object.values(turn.agentFeeds)) {
+    byHandle[normalizeHandle(feed.agentHandle)] = feed;
+  }
+  return byHandle;
+}
+
+function buildActionsByHandle(turn: Turn): Record<string, AgentAction[]> {
+  const byHandle: Record<string, AgentAction[]> = {};
+  for (const actions of Object.values(turn.agentActions)) {
+    for (const action of actions) {
+      const h = normalizeHandle(action.agentHandle);
+      if (byHandle[h] === undefined) {
+        byHandle[h] = [];
+      }
+      byHandle[h].push(action);
+    }
+  }
+  return byHandle;
+}
+
 function getParticipatingAgents(turn: Turn, runAgents: Agent[]): Agent[] {
-  const participatingAgentHandles: Set<string> = new Set(
-    [...Object.keys(turn.agentFeeds), ...Object.keys(turn.agentActions)].map(
-      normalizeHandle,
-    ),
-  );
+  const participatingHandles = collectHandlesFromTurn(turn);
   return runAgents.filter((agent) =>
-    participatingAgentHandles.has(normalizeHandle(agent.handle)),
+    participatingHandles.has(normalizeHandle(agent.handle)),
   );
 }

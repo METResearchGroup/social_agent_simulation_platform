@@ -12,6 +12,10 @@
             "title": "Agent Handle",
             "type": "string"
           },
+          "agent_id": {
+            "title": "Agent Id",
+            "type": "string"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -27,10 +31,7 @@
             ],
             "title": "Post Id"
           },
-          "type": {
-            "$ref": "#/components/schemas/TurnAction"
-          },
-          "user_id": {
+          "target_agent_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -39,11 +40,15 @@
                 "type": "null"
               }
             ],
-            "title": "User Id"
+            "title": "Target Agent Id"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TurnAction"
           }
         },
         "required": [
           "action_id",
+          "agent_id",
           "agent_handle",
           "type",
           "created_at"
@@ -262,6 +267,10 @@
             "title": "Agent Handle",
             "type": "string"
           },
+          "agent_id": {
+            "title": "Agent Id",
+            "type": "string"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -290,6 +299,7 @@
           "feed_id",
           "run_id",
           "turn_number",
+          "agent_id",
           "agent_handle",
           "post_ids",
           "created_at"
@@ -377,6 +387,10 @@
       "PostSchema": {
         "description": "Post content for display in agent feeds. Matches ApiPost in ui/lib/api/simulation.ts.",
         "properties": {
+          "author_agent_id": {
+            "title": "Author Agent Id",
+            "type": "string"
+          },
           "author_display_name": {
             "title": "Author Display Name",
             "type": "string"
@@ -429,6 +443,7 @@
           "post_id",
           "source",
           "uri",
+          "author_agent_id",
           "author_display_name",
           "author_handle",
           "text",
@@ -782,7 +797,7 @@
         "type": "object"
       },
       "TurnSchema": {
-        "description": "Full turn payload consumed by the UI.",
+        "description": "Full turn payload consumed by the UI.\n\n``agent_feeds`` and ``agent_actions`` are keyed by canonical ``agent_id``.",
         "properties": {
           "agent_actions": {
             "additionalProperties": {

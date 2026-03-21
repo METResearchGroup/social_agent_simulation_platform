@@ -213,6 +213,7 @@ class FeedSchema(BaseModel):
     feed_id: str
     run_id: str
     turn_number: int
+    agent_id: str
     agent_handle: str
     post_ids: list[str]
     created_at: str
@@ -224,6 +225,7 @@ class PostSchema(BaseModel):
     post_id: str
     source: PostSource
     uri: str
+    author_agent_id: str
     author_display_name: str
     author_handle: str
     text: str
@@ -239,15 +241,19 @@ class AgentActionSchema(BaseModel):
     """Action event performed by an agent in a turn."""
 
     action_id: str
+    agent_id: str
     agent_handle: str
     post_id: str | None = None
-    user_id: str | None = None
+    target_agent_id: str | None = None
     type: TurnAction
     created_at: str
 
 
 class TurnSchema(BaseModel):
-    """Full turn payload consumed by the UI."""
+    """Full turn payload consumed by the UI.
+
+    ``agent_feeds`` and ``agent_actions`` are keyed by canonical ``agent_id``.
+    """
 
     turn_number: int
     agent_feeds: dict[str, FeedSchema]

@@ -2,10 +2,11 @@
 
 from typing import Any
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 from simulation.core.models.actions import TurnAction
+from simulation.core.models.feeds import GeneratedFeed
 
 
 class TurnResult(BaseModel):
@@ -61,15 +62,19 @@ class TurnMetadata(BaseModel):
 class TurnData(BaseModel):
     """Complete turn data with feeds and posts.
 
-    Contains all the data for a single turn, including the feeds and posts.
+    ``feeds`` and ``actions`` map canonical ``agent_id`` strings to per-agent data.
+    ``feed_records`` holds the persisted ``GeneratedFeed`` row for each agent that
+    had a feed on this turn (aligned with ``feeds`` keys). Display handles live on
+    nested models, not in dict keys.
     """
 
     turn_number: int
     agents: list[Any]  # SimulationAgent - using Any to avoid circular import
-    feeds: dict[str, list[Any]]  # dict[str, list[Post]] - contains hydrated posts
+    feeds: dict[str, list[Any]]  # agent_id -> list[Post]
+    feed_records: dict[str, GeneratedFeed] = Field(default_factory=dict)
     actions: dict[
         str, list[Any]
-    ]  # dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]] - contains actions taken by the agents
+    ]  # agent_id -> list[GeneratedLike | GeneratedComment | GeneratedFollow]
 
     @field_validator("turn_number")
     @classmethod
