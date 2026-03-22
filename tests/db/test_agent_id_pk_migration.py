@@ -17,6 +17,12 @@ from scripts.migrations.agent_id_migration import (
     migration_pairs,
     stable_source_for_agent_row,
 )
+from tests.db.agent_id_inventory import (
+    assert_agent_key_inventory_tables_exist,
+    collect_legacy_shaped_agent_key_values,
+    collect_non_canonical_agent_key_values,
+    is_legacy_shaped_agent_id,
+)
 
 
 def _cfg(monkeypatch: pytest.MonkeyPatch, db_path: str) -> Config:
@@ -333,5 +339,83 @@ class TestAgentIdPkMigration:
             ).fetchone()
             assert post is not None
             assert post[0] == id_b
+        finally:
+            conn.close()
+
+
+class TestHeadStateAgentKeyColumns:
+    """Head-state audit: every proposal-listed agent-key column is canonical at ``head``."""
+
+    def test_legacy_shape_helper_matches_proposal_negative_rules(self) -> None:
+        assert is_legacy_shaped_agent_id("did:plc:example")
+        assert is_legacy_shaped_agent_id("agent_0240dc0d4a4c7e73")
+        assert is_legacy_shaped_agent_id("550e8400-e29b-41d4-a716-446655440000")
+        assert is_legacy_shaped_agent_id(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )  # 32-hex UUID-like
+        assert is_legacy_shaped_agent_id("alice.bsky.social")
+        assert not is_legacy_shaped_agent_id("0f3a91c4d8e27b6a")
+
+    def test_empty_database_at_head_has_only_canonical_agent_key_values(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        db_path = str(tmp_path / "head_empty.sqlite")
+        cfg = _cfg(monkeypatch, db_path)
+        command.upgrade(cfg, "b2c4d6e8f0a1")
+        command.upgrade(cfg, "head")
+
+        conn = sqlite3.connect(db_path)
+        try:
+            assert_agent_key_inventory_tables_exist(conn)
+            non_canonical = collect_non_canonical_agent_key_values(conn)
+            assert non_canonical == [], non_canonical
+            legacy = collect_legacy_shaped_agent_key_values(conn)
+            assert legacy == [], legacy
+        finally:
+            conn.close()
+
+    def test_after_typical_agent_migration_all_inventory_columns_are_canonical(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Same seed/upgrade as ``test_rewrites_agent_and_agent_posts``; then full inventory audit."""
+        db_path = str(tmp_path / "head_after_typical.sqlite")
+        cfg = _cfg(monkeypatch, db_path)
+        command.upgrade(cfg, "b2c4d6e8f0a1")
+
+        legacy = "550e8400-e29b-41d4-a716-446655440000"
+        handle = "alice.integration.bsky.social"
+
+        conn = sqlite3.connect(db_path)
+        try:
+            conn.execute(
+                """
+                INSERT INTO agent (
+                  agent_id, handle, persona_source, display_name, created_at, updated_at
+                ) VALUES (?, ?, 'test', 'Alice', '2026-01-01', '2026-01-01')
+                """,
+                (legacy, handle),
+            )
+            conn.execute(
+                """
+                INSERT INTO agent_posts (
+                  agent_post_id, agent_id, body_text, published_at, created_at, updated_at
+                ) VALUES (?, ?, 'body', '2026-01-01', '2026-01-01', '2026-01-01')
+                """,
+                ("post-1", legacy),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        command.upgrade(cfg, "head")
+
+        conn = sqlite3.connect(db_path)
+        try:
+            assert _fk_violations(conn) == []
+            assert_agent_key_inventory_tables_exist(conn)
+            non_canonical = collect_non_canonical_agent_key_values(conn)
+            assert non_canonical == [], non_canonical
+            shaped = collect_legacy_shaped_agent_key_values(conn)
+            assert shaped == [], shaped
         finally:
             conn.close()

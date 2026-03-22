@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
@@ -21,7 +22,9 @@ class AgentRecordFactory(BaseFactory[Agent]):
         updated_at: str | None = None,
     ) -> Agent:
         fake = get_faker()
-        agent_id_value = agent_id if agent_id is not None else f"did:plc:{fake.uuid4()}"
+        agent_id_value = (
+            agent_id if agent_id is not None else canonical_agent_id(fake.uuid4())
+        )
         handle_value = (
             handle if handle is not None else f"@{fake.user_name()}.bsky.social"
         )
@@ -53,7 +56,9 @@ class AgentBioFactory(BaseFactory[AgentBio]):
         updated_at: str | None = None,
     ) -> AgentBio:
         fake = get_faker()
-        agent_id_value = agent_id if agent_id is not None else f"did:plc:{fake.uuid4()}"
+        agent_id_value = (
+            agent_id if agent_id is not None else canonical_agent_id(fake.uuid4())
+        )
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_compact()
         )
@@ -84,7 +89,9 @@ class UserAgentProfileMetadataFactory(BaseFactory[UserAgentProfileMetadata]):
         updated_at: str | None = None,
     ) -> UserAgentProfileMetadata:
         fake = get_faker()
-        agent_id_value = agent_id if agent_id is not None else f"did:plc:{fake.uuid4()}"
+        agent_id_value = (
+            agent_id if agent_id is not None else canonical_agent_id(fake.uuid4())
+        )
         created_at_value = (
             created_at if created_at is not None else _timestamp_utc_compact()
         )

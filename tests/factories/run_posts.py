@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.run_posts import RunPostSnapshot
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
@@ -13,7 +14,7 @@ class RunPostSnapshotFactory(BaseFactory[RunPostSnapshot]):
         run_post_id: str | None = None,
         run_id: str | None = None,
         agent_post_id: str | None = None,
-        author_agent_id: str = "did:plc:author",
+        author_agent_id: str | None = None,
         author_handle_at_start: str | None = None,
         author_display_name_at_start: str | None = None,
         body_text_at_start: str = "Post body at start",
@@ -24,6 +25,11 @@ class RunPostSnapshotFactory(BaseFactory[RunPostSnapshot]):
         created_at: str = "2024-01-01T00:00:00Z",
     ) -> RunPostSnapshot:
         fake = get_faker()
+        resolved_author = (
+            author_agent_id
+            if author_agent_id is not None
+            else canonical_agent_id("run_post_default_author")
+        )
         return RunPostSnapshot(
             run_post_id=run_post_id
             if run_post_id is not None
@@ -32,7 +38,7 @@ class RunPostSnapshotFactory(BaseFactory[RunPostSnapshot]):
             agent_post_id=agent_post_id
             if agent_post_id is not None
             else f"ap_{fake.uuid4()}",
-            author_agent_id=author_agent_id,
+            author_agent_id=resolved_author,
             author_handle_at_start=(
                 author_handle_at_start
                 if author_handle_at_start is not None

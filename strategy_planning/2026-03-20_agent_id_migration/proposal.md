@@ -556,6 +556,8 @@ Prove the canonicalization is complete and prevent regressions.
 - action/feed/query tests pass
 - verification proves no non-canonical IDs remain
 
+**Phase 7 closeout (2026-03-22):** Head-state inventory verification, ordinary test fixture canonicalization, and `POST /v1/simulations/agents` persistence proof are implemented; milestone results are recorded in [docs/plans/2026-03-22_agent_id_phase7_closeout/verification.md](../../docs/plans/2026-03-22_agent_id_phase7_closeout/verification.md).
+
 ---
 
 ## Tables And Columns To Verify Explicitly After Implementation
