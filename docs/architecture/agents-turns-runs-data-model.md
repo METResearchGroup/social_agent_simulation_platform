@@ -1,6 +1,13 @@
+---
+description: Taxonomy of Agent*, Run*, and Turn* simulation persistence scopes, lifecycle rules, and the target turn-table parent model.
+tags: [architecture, data-model, simulation, turns, runs]
+---
+
 # Agents, Turns, and Runs
 
 We have mental models around the concepts of `Agent*`, `Turn*`, and `Run*`. This doc helps differentiate these concepts.
+
+**Turn-table v2:** The normative cutover story (parent `turns`, `turn_*` table names, atomic writes, post-ID namespace) is frozen in [strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md](../../strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md). **`TurnAction.POST` / authored-post generation is deferred** to a later slice; see that proposal’s **Frozen contract (v2 milestone)** section.
 
 ## What are these concepts?
 
@@ -22,7 +29,7 @@ The tables here include:
 
 `Turn*` refers to the per-turn history of what happened during a simulation run.
 
-This is a **conceptual scope**, not only a naming convention. Some tables in this scope are literally prefixed `turn_*`, while others are legacy-named event tables that still belong to the same lifecycle.
+This is a **conceptual scope**, not only a naming convention. **At HEAD**, several tables still use legacy names (`turn_metadata`, `generated_feeds`, `likes`, `comments`, `follows`) while others already use the `turn_*` prefix (`turn_metrics`). The **target steady state** is that every per-turn table is named under the `turn_*` family and is a **child of** `turns(run_id, turn_number)` (replacing `turn_metadata` as the canonical parent). That hard cutover is specified in [strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md](../../strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md); runtime and `db/schema.py` have not fully moved yet—treat **current schema names vs target names** as a migration in progress.
 
 The key question answered by `Turn*` data is:
 
@@ -32,6 +39,7 @@ This scope includes a few kinds of per-turn data:
 - per-turn metrics
 - per-turn generated outputs, such as feeds shown to agents during that turn
 - per-turn action logs, such as likes, comments, and follows produced during that turn
+- eventually, posts authored during a turn (`turn_posts`), once implemented
 
 The important invariant is lifecycle:
 
@@ -39,7 +47,7 @@ The important invariant is lifecycle:
 - if the row should exist before a run starts, it does **not** belong to `Turn*`
 - if the row describes what was true at the start of a run, it belongs to `Run*Snapshot`, not `Turn*`
 
-TODO: migrate all Turn tables to use the `turn_*` nomenclature.
+**Target naming (v2):** `turn_generated_feeds`, `turn_likes`, `turn_comments`, `turn_follows`, with `turn_metrics` parented on `turns` via `(run_id, turn_number)`, and `turn_posts` for authored posts. **`TurnAction.POST` generation is deferred**; see the strategy proposal’s frozen contract section.
 
 ### What is `Run*`?
 
@@ -123,7 +131,9 @@ Structural expectations:
 
 - `agent_*` tables should not carry run_id/turn_number
 - `run_*` tables should include run_id
-- `turn_* / turn-event` tables should include both run_id and non-null turn_number.
+- `turn_*` / legacy turn-event tables should include both `run_id` and non-null `turn_number`, and (in the target model) reference `turns(run_id, turn_number)`.
+
+Feed-visible post IDs in turn feeds and actions share one namespace; resolution distinguishes `run_post_id` vs `turn_post_id` in application logic—see [turn-feed-post-id-contract.md](turn-feed-post-id-contract.md).
 
 ## Supporting data outside this taxonomy
 
