@@ -239,7 +239,7 @@ class RunDatabaseAdapter(ABC):
     ) -> None:
         """Write turn metadata to the database.
 
-        Writes to the `turn_metadata` table. Uses INSERT.
+        Writes to the ``turns`` table (insert or replace placeholder from feed writes).
 
         Args:
             turn_metadata: TurnMetadata model to write

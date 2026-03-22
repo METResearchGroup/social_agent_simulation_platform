@@ -34,7 +34,7 @@ class SQLiteLikeAdapter(LikeDatabaseAdapter):
             actor_id = validate_canonical_agent_id(g.like.agent_id)
             conn.execute(
                 """
-                INSERT INTO likes (
+                INSERT INTO turn_likes (
                     like_id, run_id, turn_number, agent_id, post_id,
                     created_at, explanation, model_used, generation_metadata_json,
                     generation_created_at
@@ -63,7 +63,7 @@ class SQLiteLikeAdapter(LikeDatabaseAdapter):
             """
             SELECT like_id, run_id, turn_number, agent_id, post_id, created_at,
                    explanation, model_used, generation_metadata_json, generation_created_at
-            FROM likes
+            FROM turn_likes
             WHERE run_id = ? AND turn_number = ?
             ORDER BY agent_id, post_id, like_id
             """,

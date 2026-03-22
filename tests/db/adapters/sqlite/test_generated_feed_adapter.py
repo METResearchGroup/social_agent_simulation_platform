@@ -88,7 +88,7 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             call_args = mock_conn.execute.call_args
             assert (
                 call_args[0][0]
-                == "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?"
+                == "SELECT * FROM turn_generated_feeds WHERE run_id = ? AND turn_number = ?"
             )
             assert call_args[0][1] == (run_id, turn_number)
 
@@ -225,6 +225,6 @@ class TestSQLiteGeneratedFeedAdapterReadFeedsForTurn:
             call_args = mock_conn.execute.call_args
             assert (
                 call_args[0][0]
-                == "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?"
+                == "SELECT * FROM turn_generated_feeds WHERE run_id = ? AND turn_number = ?"
             )
             assert call_args[0][1] == (run_id, turn_number)

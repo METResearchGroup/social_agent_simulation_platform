@@ -35,7 +35,7 @@ class SQLiteFollowAdapter(FollowDatabaseAdapter):
             target_id = validate_canonical_agent_id(g.follow.target_agent_id)
             conn.execute(
                 """
-                INSERT INTO follows (
+                INSERT INTO turn_follows (
                     follow_id, run_id, turn_number, agent_id, target_agent_id,
                     created_at, explanation, model_used, generation_metadata_json,
                     generation_created_at
@@ -64,7 +64,7 @@ class SQLiteFollowAdapter(FollowDatabaseAdapter):
             """
             SELECT follow_id, run_id, turn_number, agent_id, target_agent_id, created_at,
                    explanation, model_used, generation_metadata_json, generation_created_at
-            FROM follows
+            FROM turn_follows
             WHERE run_id = ? AND turn_number = ?
             ORDER BY agent_id, target_agent_id, follow_id
             """,

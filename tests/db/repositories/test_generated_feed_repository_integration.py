@@ -237,7 +237,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             repo.get_generated_feed("", "run_123", 1)
 
     def test_get_post_ids_for_run_rejects_handle_before_db(self, generated_feed_repo):
-        """Handle-shaped ``agent_id`` must not query ``generated_feeds``."""
+        """Handle-shaped ``agent_id`` must not query ``turn_generated_feeds``."""
         repo = generated_feed_repo
         with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
             repo.get_post_ids_for_run("test.bsky.social", "run_123")
@@ -262,7 +262,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         conn = sqlite3.connect(temp_db)
         try:
             conn.execute(
-                "UPDATE generated_feeds SET agent_handle = ? WHERE agent_id = ? AND run_id = ?",
+                "UPDATE turn_generated_feeds SET agent_handle = ? WHERE agent_id = ? AND run_id = ?",
                 ("stale.bsky.social", aid, "run_123"),
             )
             conn.commit()
