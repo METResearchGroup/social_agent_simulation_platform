@@ -1,6 +1,8 @@
 ---
 name: Turn tables refactor proposal v2
 overview: Update the March 19 turn-table refactor plan to reflect the now-complete agent_id migration stack, preserve current canonical ID and post-author contracts, and define a staged hard-cutover from legacy turn-event tables to a fully turn-scoped schema centered on turns and turn_posts.
+description: Normative v2 umbrella for the turn-table hard cutover—turns parent, turn_* tables, atomic writes, and post-ID contracts after the completed agent-ID migration.
+tags: [strategy, architecture, turns, schema, simulation]
 ---
 
 # Turn Tables Refactor Proposal V2
@@ -20,6 +22,23 @@ This is a revision of the original [March 19 turn-table proposal](../2026-03-19_
 The core change in v2 is that the turn-table refactor can no longer be planned as a mostly mechanical naming cleanup that preserves handle-shaped action semantics. That assumption was reasonable on March 19, but it is stale now. The merged agent-ID epic completed the identity migration all the way through storage, runtime generation, repository boundaries, query hydration, API payloads, UI consumption, and milestone verification. The turn-table plan must therefore treat canonical `agent_id`, `target_agent_id`, and `author_agent_id` as fixed architectural inputs and must not reopen those decisions.
 
 The other major v2 change is that the proposal now treats the transactional boundary as first-class work. Today, `generated_feeds` is still written before `SimulationPersistenceService.write_turn(...)`, which means a failed turn can leave feed rows behind without corresponding `turn_metadata`, metrics, or actions. The refactor should use this schema-cutover to fix that boundary and make every per-turn artifact a child of a canonical `turns` row persisted atomically.
+
+## Frozen contract (v2 milestone)
+
+This subsection locks meaning for downstream implementation slices. Rationale and sequencing live in [Architectural Calls To Freeze](#architectural-calls-to-freeze); architecture overviews live in [`docs/architecture/agents-turns-runs-data-model.md`](../docs/architecture/agents-turns-runs-data-model.md), [`docs/architecture/seed-state-run-snapshot-turn-events.md`](../docs/architecture/seed-state-run-snapshot-turn-events.md), and optionally [`docs/architecture/turn-feed-post-id-contract.md`](../docs/architecture/turn-feed-post-id-contract.md).
+
+- **Canonical IDs:** `agent_id`, `target_agent_id`, and `author_agent_id` stay **immutable** for this epic on new persistence paths—no handle-shaped keys, consistent with the completed agent-ID migration.
+- **Parent row:** `turns` replaces `turn_metadata` as the **canonical parent**; every per-turn history table references `turns(run_id, turn_number)`.
+- **Renames (hard cutover):** `generated_feeds` → `turn_generated_feeds`; `likes` / `comments` / `follows` → `turn_likes` / `turn_comments` / `turn_follows`.
+- **Atomic turns:** Turn persistence is a **single transaction** for the `turns` row, `turn_metrics`, feeds, actions, and `turn_posts` when present—no partial turn commits.
+- **Feed-visible post IDs:** `turn_generated_feeds.post_ids`, `turn_likes.post_id`, and `turn_comments.post_id` share one feed-visible ID namespace; application code distinguishes **`run_post_id`** vs **`turn_post_id`** (no polymorphic FK). See [turn-feed-post-id-contract.md](../docs/architecture/turn-feed-post-id-contract.md).
+- **`turn_posts` v1:** Columns as listed under [`turn_posts`](#turn_posts) in this document, including mandatory **`author_agent_id`**.
+- **Product decision — `TurnAction.POST` / authored-post generation:** **Deferred** to a later implementation slice (after the feed-visible post-ID contract, mixed resolver, and atomic turn write path are implemented). This docs milestone does **not** commit runtime simulation to emit `TurnAction.POST` or to persist authored posts during turns.
+
+### Non-goals implied by deferring POST generation
+
+- No obligation to ship agent-authored post generation in the same change as bare `turn_posts` schema (see **Non-goals for `turn_posts` v1** later in this document).
+- Later POST work must not re-open canonical ID rules or the shared feed-visible namespace rules above.
 
 ## What Changed Since March 19
 
