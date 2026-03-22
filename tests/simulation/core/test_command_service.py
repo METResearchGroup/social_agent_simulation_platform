@@ -48,6 +48,10 @@ from tests.factories import (
     UserAgentProfileMetadataFactory,
 )
 
+_AGENT1 = canonical_agent_id("agent1.bsky.social")
+_AGENT2 = canonical_agent_id("agent2.bsky.social")
+_AGENT3 = canonical_agent_id("agent3.bsky.social")
+
 
 @pytest.fixture
 def mock_agent_factory():
@@ -86,7 +90,7 @@ def command_service(
 ):
     seed_agent_records = [
         AgentRecordFactory.create(
-            agent_id=f"did:plc:agent{i}",
+            agent_id=canonical_agent_id(f"agent{i}.bsky.social"),
             handle=f"agent{i}.bsky.social",
             display_name=f"Agent {i}",
             created_at="2026-03-13T00:00:00Z",
@@ -314,14 +318,14 @@ class TestSimulationCommandServiceExecuteRun:
         ].list_edges_for_follower_agent_ids.return_value = [
             AgentFollowEdge(
                 agent_follow_edge_id="edge_internal",
-                follower_agent_id="did:plc:agent1",
-                target_agent_id="did:plc:agent2",
+                follower_agent_id=_AGENT1,
+                target_agent_id=_AGENT2,
                 created_at="2026-03-17T00:00:00Z",
             ),
             AgentFollowEdge(
                 agent_follow_edge_id="edge_external",
-                follower_agent_id="did:plc:agent1",
-                target_agent_id="did:plc:agent3",
+                follower_agent_id=_AGENT1,
+                target_agent_id=_AGENT3,
                 created_at="2026-03-17T00:00:00Z",
             ),
         ]
@@ -337,7 +341,7 @@ class TestSimulationCommandServiceExecuteRun:
         mock_repos[
             "agent_follow_edge_repo"
         ].list_edges_for_follower_agent_ids.assert_called_once_with(
-            ["did:plc:agent1", "did:plc:agent2"],
+            [_AGENT1, _AGENT2],
             conn=mock_transaction_provider.mock_conn,
         )
         mock_repos["run_agent_repo"].write_run_agents.assert_called_once_with(
@@ -358,7 +362,7 @@ class TestSimulationCommandServiceExecuteRun:
         assert [
             (snapshot.follower_agent_id, snapshot.target_agent_id)
             for snapshot in follow_snapshots
-        ] == [("did:plc:agent1", "did:plc:agent2")]
+        ] == [(_AGENT1, _AGENT2)]
         assert all(
             snapshot.created_at == sample_run.created_at
             for snapshot in follow_snapshots
@@ -385,14 +389,14 @@ class TestSimulationCommandServiceExecuteRun:
 
         seed_agents = [
             AgentRecordFactory.create(
-                agent_id="did:plc:agent1",
+                agent_id=_AGENT1,
                 handle="agent1.bsky.social",
                 display_name="Agent One",
                 created_at="2026-03-13T00:00:00Z",
                 updated_at="2026-03-13T00:00:00Z",
             ),
             AgentRecordFactory.create(
-                agent_id="did:plc:agent2",
+                agent_id=_AGENT2,
                 handle="agent2.bsky.social",
                 display_name="Agent Two",
                 created_at="2026-03-13T00:00:01Z",
@@ -405,14 +409,14 @@ class TestSimulationCommandServiceExecuteRun:
         }
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.side_effect = None
         mock_repos["agent_bio_repo"].get_latest_bios_by_agent_ids.return_value = {
-            "did:plc:agent1": AgentBioFactory.create(
-                agent_id="did:plc:agent1",
+            _AGENT1: AgentBioFactory.create(
+                agent_id=_AGENT1,
                 persona_bio="Persona one",
                 created_at="2026-03-13T00:00:00Z",
                 updated_at="2026-03-13T00:00:00Z",
             ),
-            "did:plc:agent2": AgentBioFactory.create(
-                agent_id="did:plc:agent2",
+            _AGENT2: AgentBioFactory.create(
+                agent_id=_AGENT2,
                 persona_bio="Persona two",
                 created_at="2026-03-13T00:00:01Z",
                 updated_at="2026-03-13T00:00:01Z",
@@ -424,16 +428,16 @@ class TestSimulationCommandServiceExecuteRun:
         mock_repos[
             "user_agent_profile_metadata_repo"
         ].get_metadata_by_agent_ids.return_value = {
-            "did:plc:agent1": UserAgentProfileMetadataFactory.create(
-                agent_id="did:plc:agent1",
+            _AGENT1: UserAgentProfileMetadataFactory.create(
+                agent_id=_AGENT1,
                 followers_count=10,
                 follows_count=11,
                 posts_count=12,
                 created_at="2026-03-13T00:00:00Z",
                 updated_at="2026-03-13T00:00:00Z",
             ),
-            "did:plc:agent2": UserAgentProfileMetadataFactory.create(
-                agent_id="did:plc:agent2",
+            _AGENT2: UserAgentProfileMetadataFactory.create(
+                agent_id=_AGENT2,
                 followers_count=20,
                 follows_count=21,
                 posts_count=22,
@@ -456,8 +460,8 @@ class TestSimulationCommandServiceExecuteRun:
         snapshots = call_args[0][1]
         assert [snapshot.selection_order for snapshot in snapshots] == [0, 1]
         assert [snapshot.agent_id for snapshot in snapshots] == [
-            "did:plc:agent1",
-            "did:plc:agent2",
+            _AGENT1,
+            _AGENT2,
         ]
         assert [snapshot.handle_at_start for snapshot in snapshots] == [
             "agent1.bsky.social",

@@ -13,6 +13,7 @@ from db.repositories.interfaces import (
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
 from feeds.algorithms.interfaces import FeedAlgorithmResult
 from feeds.feed_generator import _generate_feed, generate_feeds
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import Post, PostSource
 from tests.factories import AgentFactory, PostFactory, RunPostSnapshotFactory
@@ -34,7 +35,7 @@ def mock_run_post_repo(sample_posts):
             run_post_id=p.post_id,
             run_id="run_123",
             agent_post_id=f"ap_{p.post_id}",
-            author_agent_id="did:plc:author",
+            author_agent_id=canonical_agent_id("feed_mock_author"),
             author_handle_at_start=p.author_handle,
             author_display_name_at_start=p.author_display_name,
             body_text_at_start=p.text,

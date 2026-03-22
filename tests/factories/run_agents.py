@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lib.agent_id import canonical_agent_id
 from simulation.core.models.run_agents import RunAgentSnapshot
 from tests.factories.base import BaseFactory
 from tests.factories.context import get_faker
@@ -29,7 +30,9 @@ class RunAgentSnapshotFactory(BaseFactory[RunAgentSnapshot]):
         )
         return RunAgentSnapshot(
             run_id=run_id if run_id is not None else "run_123",
-            agent_id=agent_id if agent_id is not None else f"did:plc:{fake.uuid4()}",
+            agent_id=agent_id
+            if agent_id is not None
+            else canonical_agent_id(fake.uuid4()),
             selection_order=selection_order,
             handle_at_start=handle,
             display_name_at_start=(
