@@ -11,24 +11,19 @@ import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.encoders import jsonable_encoder
-from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from db.adapters.sqlite.sqlite import get_db_path, initialize_database
 from lib.env_utils import is_local_mode, parse_bool_env
 from lib.rate_limiting import limiter, rate_limit_exceeded_handler
 from lib.request_logging import log_request_start
-from lib.security_headers import SecurityHeadersMiddleware
+from lib.security_headers import _hsts_enabled
 from simulation.api.context import build_app_context
-from simulation.api.dependencies.auth import (
-    UnauthorizedError,
-    disallow_auth_bypass_in_production,
-)
+from simulation.api.dependencies.auth import disallow_auth_bypass_in_production
+from simulation.api.exception_handlers import EXCEPTION_HANDLERS
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.local_dev.local_mode import disallow_local_mode_in_production
 from simulation.local_dev.seed_loader import seed_local_db_if_needed
@@ -76,6 +71,60 @@ async def lifespan(app: FastAPI):
     yield
 
 
+class SecurityHeadersMiddleware:
+    """Pure ASGI middleware that adds security headers to every HTTP response."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_headers(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["X-Content-Type-Options"] = "nosniff"
+                headers["X-Frame-Options"] = "DENY"
+                if _hsts_enabled():
+                    headers["Strict-Transport-Security"] = (
+                        "max-age=31536000; includeSubDomains"
+                    )
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
+class RequestIdMiddleware:
+    """Pure ASGI middleware that assigns a request ID and logs request start."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope)
+        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        request.state.request_id = request_id
+        log_request_start(
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+        )
+
+        async def send_with_request_id(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["X-Request-ID"] = request_id
+            await send(message)
+
+        await self.app(scope, receive, send_with_request_id)
+
+
 app = FastAPI(
     title="Agent Simulation Platform API",
     lifespan=lifespan,
@@ -84,40 +133,9 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # type: ignore[reportArgumentType]
 
+for exc_class, handler_func in EXCEPTION_HANDLERS.items():
+    app.add_exception_handler(exc_class, handler_func)  # type: ignore[reportArgumentType]
 
-def _unauthorized_handler(request: Request, exc: UnauthorizedError) -> JSONResponse:
-    """Return 401 with standard error shape for auth failures."""
-    return JSONResponse(
-        status_code=401,
-        content={
-            "error": {
-                "code": "UNAUTHORIZED",
-                "message": exc.message,
-                "detail": None,
-            }
-        },
-    )
-
-
-app.add_exception_handler(UnauthorizedError, _unauthorized_handler)  # type: ignore[reportArgumentType]
-
-
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    """Assigns request_id and logs request start in structured format."""
-
-    async def dispatch(self, request: Request, call_next):
-        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
-        request.state.request_id = request_id
-        log_request_start(
-            request_id=request_id,
-            method=request.method,
-            path=request.url.path,
-        )
-        return await call_next(request)
-
-
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RequestIdMiddleware)
 _allowed_origins_raw: str = os.environ.get("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
 _allowed_origins: list[str] = [
     origin.strip() for origin in _allowed_origins_raw.split(",") if origin.strip()
@@ -128,24 +146,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestIdMiddleware)
 app.include_router(simulation_router, prefix="/v1")
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
-    """Return 422 with stable error shape matching other API errors."""
-    return JSONResponse(
-        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error": {
-                "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
-                "detail": jsonable_encoder(exc.errors()),
-            }
-        },
-    )
 
 
 @app.get("/health")
