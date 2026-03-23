@@ -1,10 +1,11 @@
 """Tests for every exception handler registered in simulation/api/exception_handlers.py.
 
-Uses a minimal crash-test FastAPI app with one endpoint per exception type,
-so tests are isolated from business logic and run fast.
+Mounts crash-test endpoints directly onto the real production app so that
+SecurityHeadersMiddleware, RequestIdMiddleware, and EXCEPTION_HANDLERS are all
+exercised exactly as they run in production.
 """
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
 from simulation.api.dependencies.auth import UnauthorizedError
@@ -20,15 +21,11 @@ from simulation.api.errors import (
     ApiTargetAgentNotFoundError,
     ApiValidationError,
 )
-from simulation.api.exception_handlers import EXCEPTION_HANDLERS
+from simulation.api.main import app
 
 # ---------------------------------------------------------------------------
-# Crash-test app: one endpoint per exception type
+# Crash-test router: one endpoint per exception type, mounted on the real app
 # ---------------------------------------------------------------------------
-
-_app = FastAPI()
-for _exc_class, _handler in EXCEPTION_HANDLERS.items():
-    _app.add_exception_handler(_exc_class, _handler)  # type: ignore[arg-type]
 
 _router = APIRouter()
 
@@ -100,9 +97,9 @@ async def trigger_internal_error():
     raise RuntimeError("unexpected crash")
 
 
-_app.include_router(_router)
+app.include_router(_router, prefix="/test-errors")
 
-client = TestClient(_app, raise_server_exceptions=False)
+client = TestClient(app, raise_server_exceptions=False)
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -111,14 +108,17 @@ client = TestClient(_app, raise_server_exceptions=False)
 
 class TestRunHandlers:
     def test_run_not_found_is_404(self):
-        response = client.get("/trigger/run-not-found")
+        response = client.get("/test-errors/trigger/run-not-found")
         assert response.status_code == 404
         error = response.json()["error"]
         assert error["code"] == "RUN_NOT_FOUND"
         assert error["detail"] == "run-abc"
+        # Verify both middlewares are in the response path for non-500 errors
+        assert "x-content-type-options" in response.headers
+        assert "x-request-id" in response.headers
 
     def test_run_creation_failed_is_500(self):
-        response = client.get("/trigger/run-creation-failed")
+        response = client.get("/test-errors/trigger/run-creation-failed")
         assert response.status_code == 500
         error = response.json()["error"]
         assert error["code"] == "RUN_CREATION_FAILED"
@@ -127,42 +127,42 @@ class TestRunHandlers:
 
 class TestAgentHandlers:
     def test_handle_already_exists_is_409(self):
-        response = client.get("/trigger/handle-already-exists")
+        response = client.get("/test-errors/trigger/handle-already-exists")
         assert response.status_code == 409
         error = response.json()["error"]
         assert error["code"] == "HANDLE_ALREADY_EXISTS"
         assert error["detail"] == "alice"
 
     def test_agent_not_found_is_404(self):
-        response = client.get("/trigger/agent-not-found")
+        response = client.get("/test-errors/trigger/agent-not-found")
         assert response.status_code == 404
         error = response.json()["error"]
         assert error["code"] == "AGENT_NOT_FOUND"
         assert error["detail"] == "alice"
 
     def test_target_agent_not_found_is_404(self):
-        response = client.get("/trigger/target-agent-not-found")
+        response = client.get("/test-errors/trigger/target-agent-not-found")
         assert response.status_code == 404
         error = response.json()["error"]
         assert error["code"] == "TARGET_AGENT_NOT_FOUND"
         assert error["detail"] == "bob"
 
     def test_follow_edge_already_exists_is_409(self):
-        response = client.get("/trigger/follow-edge-already-exists")
+        response = client.get("/test-errors/trigger/follow-edge-already-exists")
         assert response.status_code == 409
         error = response.json()["error"]
         assert error["code"] == "FOLLOW_EDGE_ALREADY_EXISTS"
         assert error["detail"] == "alice->bob"
 
     def test_follow_edge_not_found_is_404(self):
-        response = client.get("/trigger/follow-edge-not-found")
+        response = client.get("/test-errors/trigger/follow-edge-not-found")
         assert response.status_code == 404
         error = response.json()["error"]
         assert error["code"] == "FOLLOW_EDGE_NOT_FOUND"
         assert error["detail"] == "alice->bob"
 
     def test_self_follow_not_allowed_is_422(self):
-        response = client.get("/trigger/self-follow-not-allowed")
+        response = client.get("/test-errors/trigger/self-follow-not-allowed")
         assert response.status_code == 422
         error = response.json()["error"]
         assert error["code"] == "SELF_FOLLOW_NOT_ALLOWED"
@@ -171,7 +171,7 @@ class TestAgentHandlers:
 
 class TestAuthHandler:
     def test_unauthorized_is_401(self):
-        response = client.get("/trigger/unauthorized")
+        response = client.get("/test-errors/trigger/unauthorized")
         assert response.status_code == 401
         error = response.json()["error"]
         assert error["code"] == "UNAUTHORIZED"
@@ -180,14 +180,14 @@ class TestAuthHandler:
 
 class TestValueErrorHandlers:
     def test_generic_value_error_is_422(self):
-        response = client.get("/trigger/value-error")
+        response = client.get("/test-errors/trigger/value-error")
         assert response.status_code == 422
         error = response.json()["error"]
         assert error["code"] == "VALIDATION_ERROR"
         assert "generic value error" in error["message"]
 
     def test_api_validation_error_is_422(self):
-        response = client.get("/trigger/api-validation-error")
+        response = client.get("/test-errors/trigger/api-validation-error")
         assert response.status_code == 422
         error = response.json()["error"]
         assert error["code"] == "VALIDATION_ERROR"
@@ -195,7 +195,7 @@ class TestValueErrorHandlers:
 
     def test_api_invalid_input_is_400_not_422(self):
         """ApiInvalidInputError must hit the isinstance branch and return 400, not 422."""
-        response = client.get("/trigger/api-invalid-input")
+        response = client.get("/test-errors/trigger/api-invalid-input")
         assert response.status_code == 400
         error = response.json()["error"]
         assert error["code"] == "INVALID_INPUT"
@@ -204,7 +204,7 @@ class TestValueErrorHandlers:
 
 class TestGlobalHandler:
     def test_unexpected_exception_is_500(self):
-        response = client.get("/trigger/internal-error")
+        response = client.get("/test-errors/trigger/internal-error")
         assert response.status_code == 500
         error = response.json()["error"]
         assert error["code"] == "INTERNAL_ERROR"
