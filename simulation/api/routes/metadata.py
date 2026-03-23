@@ -1,7 +1,6 @@
 """Metadata API routes (feed algorithms, metrics, default config)."""
 
 import asyncio
-import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
@@ -9,15 +8,12 @@ from fastapi.responses import Response
 from lib.decorators import timed
 from lib.request_logging import log_route_completion_decorator
 from simulation.api.constants import DEFAULT_SIMULATION_CONFIG
-from simulation.api.routes._helpers import error_response
 from simulation.api.schemas.simulation import (
     DefaultConfigSchema,
     FeedAlgorithmSchema,
     MetricSchema,
 )
 from simulation.api.services.metadata_service import list_feed_algorithms, list_metrics
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -77,48 +73,21 @@ async def get_simulation_config_default(
 async def _execute_get_metrics(
     request: Request,
 ) -> list[MetricSchema] | Response:
-    """Fetch metrics and convert unexpected failures to HTTP responses."""
-    try:
-        return await asyncio.to_thread(list_metrics)
-    except Exception:
-        logger.exception("Unexpected error while listing metrics")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    """Fetch metrics."""
+    return await asyncio.to_thread(list_metrics)
 
 
 @timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_feed_algorithms(
     request: Request,
 ) -> list[FeedAlgorithmSchema] | Response:
-    """Fetch feed algorithms and convert unexpected failures to HTTP responses."""
-    try:
-        return await asyncio.to_thread(list_feed_algorithms)
-    except Exception:
-        logger.exception("Unexpected error while listing feed algorithms")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    """Fetch feed algorithms."""
+    return await asyncio.to_thread(list_feed_algorithms)
 
 
 @timed(attach_attr="duration_ms", log_level=None)
 async def _execute_get_default_config(
     request: Request,
 ) -> DefaultConfigSchema | Response:
-    """Fetch default config and convert unexpected failures to HTTP responses."""
-    try:
-        return DEFAULT_SIMULATION_CONFIG
-    except Exception:
-        logger.exception("Unexpected error while fetching default config")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    """Fetch default config."""
+    return DEFAULT_SIMULATION_CONFIG
