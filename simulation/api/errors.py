@@ -56,3 +56,15 @@ class ApiRunCreationFailedError(Exception):
     def __init__(self, message: str):
         super().__init__(message)
         self.message = message
+
+
+class ApiValidationError(ValueError):
+    """Raised for 422 Unprocessable Entity errors."""
+
+    pass
+
+
+class ApiInvalidInputError(ValueError):
+    """Raised for 400 Bad Request errors."""
+
+    pass
