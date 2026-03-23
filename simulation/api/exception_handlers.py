@@ -25,8 +25,10 @@ from simulation.api.routes._helpers import error_response
 logger = logging.getLogger(__name__)
 
 
-def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.exception(f"500 Internal Server Error: {request.method} {request.url.path}")
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception(
+        "500 Internal Server Error: %s %s", request.method, request.url.path
+    )
     return error_response(
         status_code=500,
         code="INTERNAL_ERROR",
