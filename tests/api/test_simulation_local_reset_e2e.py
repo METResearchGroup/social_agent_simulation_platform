@@ -13,7 +13,9 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+from datetime import datetime
 
 import pytest
 
@@ -59,6 +61,26 @@ def _get_json(url: str) -> object:
     with urllib.request.urlopen(req, timeout=30) as resp:
         assert resp.status == 200
         return json.loads(resp.read().decode())
+
+
+def _path_segment(value: str) -> str:
+    """Encode a single path segment (e.g. agent handle with @)."""
+    return urllib.parse.quote(value, safe="")
+
+
+def _assert_iso8601_timestamp(value: object, *, label: str) -> None:
+    """API timestamps must parse like ``new Date(s)`` in the browser (avoids UI \"Invalid Date\")."""
+    assert isinstance(value, str), f"{label}: expected str, got {type(value).__name__}"
+    text = value.strip()
+    assert text, f"{label}: empty timestamp"
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        datetime.fromisoformat(text)
+    except ValueError as e:
+        raise AssertionError(
+            f"{label}: not ISO-8601 parseable (UI shows Invalid Date): {value!r}"
+        ) from e
 
 
 @pytest.mark.e2e
@@ -112,6 +134,7 @@ class TestLocalResetE2E:
         try:
             _wait_for_health(base_url)
 
+            # Registry / form defaults (lists or non-empty config fields).
             metrics = _get_json(f"{base_url}/v1/simulations/metrics")
             assert isinstance(metrics, list)
             assert len(metrics) >= 1
@@ -120,19 +143,114 @@ class TestLocalResetE2E:
             assert isinstance(feeds, list)
             assert len(feeds) >= 1
 
+            default_cfg = _get_json(f"{base_url}/v1/simulations/config/default")
+            assert isinstance(default_cfg, dict)
+            assert int(default_cfg["num_agents"]) >= 1
+            assert int(default_cfg["num_turns"]) >= 1
+            assert isinstance(default_cfg["metric_keys"], list)
+            assert len(default_cfg["metric_keys"]) >= 1
+
+            # View agents: non-empty list and fields the UI maps (see ui/lib/api/simulation.ts mapAgent).
+            agents = _get_json(f"{base_url}/v1/simulations/agents")
+            assert isinstance(agents, list)
+            assert len(agents) >= 1
+            for i, agent in enumerate(agents):
+                assert isinstance(agent, dict)
+                assert str(agent.get("handle", "")).strip(), (
+                    f"agents[{i}].handle missing (View agents would show empty)"
+                )
+                for key in ("name", "bio", "generated_bio"):
+                    assert key in agent, f"agents[{i}] missing {key!r}"
+                for key in ("followers", "following", "posts_count"):
+                    assert isinstance(agent.get(key), int), (
+                        f"agents[{i}].{key} must be int for UI counts"
+                    )
+                    assert int(agent[key]) >= 0
+
+            follows_nonzero = False
+            for agent in agents:
+                handle = str(agent["handle"])
+                follows = _get_json(
+                    f"{base_url}/v1/simulations/agents/{_path_segment(handle)}/follows"
+                )
+                assert isinstance(follows, dict)
+                assert "total" in follows
+                assert "items" in follows
+                total = int(follows["total"])
+                items = follows["items"]
+                assert isinstance(items, list)
+                if total >= 1 and len(items) >= 1:
+                    follows_nonzero = True
+                    break
+            assert follows_nonzero, (
+                "expected at least one agent with seed follow edges (check fixtures)"
+            )
+
+            # Global post catalog from seeded feed_posts.
+            posts = _get_json(f"{base_url}/v1/simulations/posts")
+            assert isinstance(posts, list)
+            assert len(posts) >= 1
+
             runs = _get_json(f"{base_url}/v1/simulations/runs")
             assert isinstance(runs, list)
             assert len(runs) >= 1
-            run_id = runs[0]["run_id"]
-            assert isinstance(run_id, str)
 
-            detail = _get_json(f"{base_url}/v1/simulations/runs/{run_id}")
+            # Run list: created_at must parse in the browser (prod showed \"Invalid Date\" otherwise).
+            for i, run in enumerate(runs):
+                assert isinstance(run, dict)
+                _assert_iso8601_timestamp(
+                    run.get("created_at"), label=f"runs[{i}].created_at"
+                )
+                assert run.get("status") in ("completed", "running", "failed")
+                assert int(run.get("total_turns", -1)) >= 0
+
+            completed = next(
+                (r for r in runs if r.get("status") == "completed"),
+                None,
+            )
+            assert completed is not None, (
+                "seed must include at least one completed run for turn/UI parity checks"
+            )
+            run_id = str(completed["run_id"])
+            assert int(completed["total_turns"]) >= 1
+
+            detail = _get_json(
+                f"{base_url}/v1/simulations/runs/{_path_segment(run_id)}"
+            )
             assert isinstance(detail, dict)
             assert detail.get("run_id") == run_id
+            assert detail.get("status") == "completed"
+            _assert_iso8601_timestamp(
+                detail.get("created_at"), label="detail.created_at"
+            )
+            _assert_iso8601_timestamp(
+                detail.get("started_at"), label="detail.started_at"
+            )
+            if detail.get("completed_at") is not None:
+                _assert_iso8601_timestamp(
+                    detail["completed_at"], label="detail.completed_at"
+                )
 
-            turns = _get_json(f"{base_url}/v1/simulations/runs/{run_id}/turns")
+            turn_rows = detail.get("turns")
+            assert isinstance(turn_rows, list)
+            assert len(turn_rows) >= 1
+            assert len(turn_rows) == int(completed["total_turns"]), (
+                "run summary total_turns should match detail.turns length for completed seed run"
+            )
+            for j, row in enumerate(turn_rows):
+                assert isinstance(row, dict)
+                _assert_iso8601_timestamp(
+                    row.get("created_at"), label=f"detail.turns[{j}].created_at"
+                )
+
+            turns = _get_json(
+                f"{base_url}/v1/simulations/runs/{_path_segment(run_id)}/turns"
+            )
             assert isinstance(turns, dict)
             assert len(turns) >= 1
+            assert len(turns) == int(completed["total_turns"]), (
+                "GET .../turns key count should match completed total_turns"
+            )
         finally:
             proc.terminate()
             try:
