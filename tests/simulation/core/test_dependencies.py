@@ -23,10 +23,12 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
 from db.repositories.run_repository import RunRepository
+from db.repositories.turn_post_repository import SQLiteTurnPostRepository
 from db.services.simulation_persistence_service import SimulationPersistenceService
 from simulation.core.engine import SimulationEngine
 from simulation.core.factories import (
@@ -214,6 +216,7 @@ class TestCreateEngine:
         )
         assert isinstance(engine.run_agent_repo, RunAgentRepository)
         assert isinstance(engine.run_follow_edge_repo, RunFollowEdgeRepository)
+        assert isinstance(engine.turn_post_repo, SQLiteTurnPostRepository)
         assert callable(engine.agent_factory)
         assert isinstance(engine.query_service, SimulationQueryService)
         assert isinstance(engine.command_service, SimulationCommandService)
@@ -225,10 +228,12 @@ class TestServiceBuilders:
     def test_create_query_service(self):
         run_agent_repo_mock = Mock(spec=RunAgentRepository)
         run_follow_edge_repo_mock = Mock(spec=RunFollowEdgeRepository)
+        turn_post_repo_mock = Mock(spec=TurnPostRepository)
         service = create_query_service(
             run_repo=Mock(spec=RunRepository),
             metrics_repo=Mock(spec=MetricsRepository),
             run_post_repo=Mock(spec=RunPostRepository),
+            turn_post_repo=turn_post_repo_mock,
             run_post_like_repo=Mock(spec=RunPostLikeRepository),
             run_post_comment_repo=Mock(spec=RunPostCommentRepository),
             generated_feed_repo=Mock(spec=GeneratedFeedRepository),
@@ -239,6 +244,7 @@ class TestServiceBuilders:
             run_agent_repo=run_agent_repo_mock,
         )
         assert isinstance(service, SimulationQueryService)
+        assert service.turn_post_repo is turn_post_repo_mock
         assert service.run_agent_repo is run_agent_repo_mock
         assert service.run_follow_edge_repo is run_follow_edge_repo_mock
 

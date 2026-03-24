@@ -37,6 +37,7 @@ from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
@@ -356,6 +357,28 @@ class RunPostRepository(ABC):
             List of RunPostSnapshot in the same order as post_ids, skipping missing.
             If ``post_ids`` is empty (after materializing the iterable), returns an
             empty list. Callers need not guard before invoking.
+        """
+        raise NotImplementedError
+
+
+class TurnPostRepository(ABC):
+    """Abstract repository for turn-authored post rows in ``turn_posts``."""
+
+    @abstractmethod
+    def read_turn_posts_by_ids(
+        self, run_id: str, post_ids: Iterable[str]
+    ) -> list[TurnPostSnapshot]:
+        """Read turn post snapshots by ``turn_post_id`` for a run.
+
+        Resolution for feed-visible IDs: callers typically load ``run_posts``
+        first; remaining IDs may be ``turn_post_id`` values. Lookup is scoped by
+        ``run_id`` and keyed by ``turn_post_id`` (``run_posts`` wins if the same
+        string exists in both stores—avoid relying on collisions).
+
+        Returns:
+            List of TurnPostSnapshot in the same order as ``post_ids``, omitting
+            missing IDs. If ``post_ids`` is empty after materializing the iterable,
+            returns an empty list.
         """
         raise NotImplementedError
 

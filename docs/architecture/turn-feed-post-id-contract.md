@@ -24,6 +24,13 @@ There is **no** polymorphic foreign key from those columns to mixed tables. Inst
 
 Readers (feed hydration, action display, replay) implement **one resolver** that accepts feed-visible IDs and loads from `run_posts`, `turn_posts`, or both as needed. Mixed `run_posts` + `turn_posts` hydration is required for the system to interpret feeds and actions once `turn_posts` exists; see the strategy proposal’s milestones on mixed post resolution.
 
+### Resolution algorithm (application layer)
+
+- **Lookup order:** For each feed-visible ID, resolve against `run_posts` first (run-scoped snapshot). Any ID not found there is then resolved against `turn_posts` scoped by the same `run_id` (keyed by `turn_post_id`).
+- **Collisions:** If the same string appeared in both tables (unlikely if ID generation is disjoint), the **run** row wins; the turn row is not consulted for that ID.
+- **Missing IDs:** If an ID exists in neither table, it is omitted from hydrated post lists (no error). Feed ordering is preserved; slots with missing posts are skipped.
+- **Engagement counts:** Like/reply counts on hydrated `Post` objects come from run-scoped `run_post_likes` / `run_post_comments` for `run_post_id` rows only. Turn-authored posts use zero counts until turn-scoped engagement storage exists.
+
 ## Non-goals
 
 - Persisting authored posts during turns (`TurnAction.POST` **generation**) is **deferred** to a later implementation slice; this contract defines IDs and resolution only.

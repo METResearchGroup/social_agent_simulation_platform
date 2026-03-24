@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 from lib.validation_utils import validate_non_empty_string, validate_nonnegative_value
 from simulation.core.models.run_posts import RunPostSnapshot
+from simulation.core.models.turn_posts import TurnPostSnapshot
 
 
 class PostSource(str, Enum):
@@ -165,5 +166,30 @@ def run_post_snapshot_to_post(
         like_count=like_count,
         quote_count=0,
         reply_count=reply_count,
+        repost_count=0,
+    )
+
+
+def turn_post_snapshot_to_post(snapshot: TurnPostSnapshot) -> Post:
+    """Map TurnPostSnapshot to Post for feed-visible ``turn_post_id`` IDs.
+
+    Uses ``post_id=turn_post_id`` and ``uri=seed_state:{turn_post_id}`` so
+    turn feed post_ids hydrate consistently with run-scoped seed posts.
+    Turn-scoped engagement is not stored on run_post_* tables; like/reply
+    counts are zero until turn-scoped engagement exists.
+    """
+    return Post(
+        post_id=snapshot.turn_post_id,
+        source=PostSource.SEED_STATE,
+        uri=f"seed_state:{snapshot.turn_post_id}",
+        author_agent_id=snapshot.author_agent_id,
+        author_handle=snapshot.author_handle_at_time,
+        author_display_name=snapshot.author_display_name_at_time,
+        text=snapshot.body_text,
+        created_at=snapshot.created_at,
+        bookmark_count=0,
+        like_count=0,
+        quote_count=0,
+        reply_count=0,
         repost_count=0,
     )

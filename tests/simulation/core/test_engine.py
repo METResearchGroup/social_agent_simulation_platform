@@ -53,6 +53,7 @@ def engine(
         run_agent_repo=deps["run_agent_repo"],
         run_follow_edge_repo=deps["run_follow_edge_repo"],
         run_post_repo=deps["run_post_repo"],
+        turn_post_repo=deps["turn_post_repo"],
         run_post_like_repo=deps["run_post_like_repo"],
         run_post_comment_repo=deps["run_post_comment_repo"],
         agent_factory=agent_factory,
@@ -84,6 +85,7 @@ class TestSimulationEngineCompatibility:
         assert engine.run_agent_repo is deps["run_agent_repo"]
         assert engine.run_follow_edge_repo is deps["run_follow_edge_repo"]
         assert engine.run_post_repo is deps["run_post_repo"]
+        assert engine.turn_post_repo is deps["turn_post_repo"]
         assert engine.run_post_like_repo is deps["run_post_like_repo"]
         assert engine.run_post_comment_repo is deps["run_post_comment_repo"]
         assert engine.agent_factory is agent_factory
