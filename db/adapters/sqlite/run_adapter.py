@@ -8,6 +8,7 @@ import sqlite3
 from db.adapters.base import RunDatabaseAdapter
 from db.adapters.sqlite.schema_utils import required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
+from db.adapters.sqlite.turn_parent import TURN_PARENT_PLACEHOLDER_CREATED_AT
 from db.schema import runs
 from lib.validation_decorators import validate_inputs
 from simulation.core.metrics.defaults import get_default_metric_keys
@@ -28,7 +29,7 @@ def _validate_turn_metadata_row(row: sqlite3.Row) -> None:
     available_columns = set(row.keys())
     for col in TURN_METADATA_REQUIRED_COLS:
         if col not in available_columns:
-            raise KeyError(f"Missing required column '{col}' in turn_metadata row")
+            raise KeyError(f"Missing required column '{col}' in turns row")
     for col in TURN_METADATA_REQUIRED_COLS:
         if row[col] is None:
             raise ValueError(f"Turn metadata has NULL fields: {col}={row[col]}")
@@ -40,14 +41,14 @@ def _parse_total_actions_from_row(row: sqlite3.Row) -> dict[TurnAction, int]:
         total_actions_dict = json.loads(row["total_actions"])
     except json.JSONDecodeError as e:
         raise ValueError(
-            f"Could not parse total_actions as JSON for turn_metadata: {e}"
+            f"Could not parse total_actions as JSON for turns row: {e}"
         ) from e
     try:
         return {TurnAction(k): v for k, v in total_actions_dict.items()}
     except (ValueError, KeyError) as e:
         valid_keys = [action.value for action in TurnAction]
         raise ValueError(
-            f"Invalid action type in total_actions for turn_metadata: {e}. "
+            f"Invalid action type in total_actions for turns row: {e}. "
             f"Expected keys: {valid_keys}, got: {list(total_actions_dict.keys())}"
         ) from e
 
@@ -229,7 +230,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             KeyError: If required columns are missing from the database row
         """
         row = conn.execute(
-            "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?",
+            "SELECT * FROM turns WHERE run_id = ? AND turn_number = ?",
             (run_id, turn_number),
         ).fetchone()
 
@@ -272,7 +273,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             KeyError: If required columns are missing from a database row
         """
         rows = conn.execute(
-            "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC",
+            "SELECT * FROM turns WHERE run_id = ? ORDER BY turn_number ASC",
             (run_id,),
         ).fetchall()
 
@@ -306,7 +307,8 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     ) -> None:
         """Write turn metadata to SQLite.
 
-        Writes to the `turn_metadata` table. Uses INSERT.
+        Writes to the ``turns`` table. Inserts a new row, or replaces a placeholder
+        row created by ``ensure_turn_parent_stub_for_feed_write``.
 
         Args:
             turn_metadata: TurnMetadata model to write
@@ -322,7 +324,10 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             conn=conn,
         )
 
-        if existing_turn_metadata is not None:
+        if (
+            existing_turn_metadata is not None
+            and existing_turn_metadata.created_at != TURN_PARENT_PLACEHOLDER_CREATED_AT
+        ):
             raise DuplicateTurnMetadataError(
                 turn_metadata.run_id, turn_metadata.turn_number
             )
@@ -331,9 +336,31 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
             {k.value: v for k, v in turn_metadata.total_actions.items()}
         )
 
+        if (
+            existing_turn_metadata is not None
+            and existing_turn_metadata.created_at == TURN_PARENT_PLACEHOLDER_CREATED_AT
+        ):
+            conn.execute(
+                """
+                UPDATE turns
+                SET total_actions = ?, created_at = ?
+                WHERE run_id = ? AND turn_number = ?
+                """,
+                (
+                    total_actions_json,
+                    turn_metadata.created_at,
+                    turn_metadata.run_id,
+                    turn_metadata.turn_number,
+                ),
+            )
+            return
+
         try:
             conn.execute(
-                "INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at) VALUES (?, ?, ?, ?)",
+                """
+                INSERT INTO turns (run_id, turn_number, total_actions, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
                 (
                     turn_metadata.run_id,
                     turn_metadata.turn_number,

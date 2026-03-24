@@ -26,20 +26,6 @@ LEGACY_SEED_STATE_TABLES: frozenset[str] = frozenset(
     }
 )
 
-# TODO: Delete these legacy tables once migration renames/replaces them.
-LEGACY_TURN_EVENT_TABLES: frozenset[str] = frozenset(
-    {
-        # Legacy-named turn event tables (treated like `turn_*`).
-        "generated_feeds",
-        "likes",
-        "comments",
-        "follows",
-        # Already-prefixed turn-event tables.
-        "turn_metadata",
-        "turn_metrics",
-    }
-)
-
 
 @dataclass(frozen=True)
 class Violation:
@@ -122,7 +108,7 @@ def lint_metadata(metadata: sa.MetaData) -> list[Violation]:
             violations.extend(_lint_run_table(table))
             continue
 
-        if name.startswith("turn_") or name in LEGACY_TURN_EVENT_TABLES:
+        if name == "turns" or name.startswith("turn_"):
             violations.extend(_lint_turn_event_table(table))
             continue
 

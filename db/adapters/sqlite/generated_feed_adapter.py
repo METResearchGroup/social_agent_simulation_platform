@@ -6,7 +6,8 @@ import sqlite3
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
-from db.schema import generated_feeds
+from db.adapters.sqlite.turn_parent import ensure_turn_parent_stub_for_feed_write
+from db.schema import turn_generated_feeds
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.utils.validators import (
@@ -15,10 +16,10 @@ from simulation.core.utils.validators import (
     validate_turn_number,
 )
 
-GENERATED_FEED_COLUMNS = ordered_column_names(generated_feeds)
-GENERATED_FEED_REQUIRED_FIELDS = required_column_names(generated_feeds)
+GENERATED_FEED_COLUMNS = ordered_column_names(turn_generated_feeds)
+GENERATED_FEED_REQUIRED_FIELDS = required_column_names(turn_generated_feeds)
 _INSERT_GENERATED_FEED_SQL = (
-    f"INSERT OR REPLACE INTO generated_feeds ({', '.join(GENERATED_FEED_COLUMNS)}) "
+    f"INSERT OR REPLACE INTO turn_generated_feeds ({', '.join(GENERATED_FEED_COLUMNS)}) "
     f"VALUES ({', '.join('?' for _ in GENERATED_FEED_COLUMNS)})"
 )
 
@@ -63,6 +64,9 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.IntegrityError: If composite key violates constraints
             sqlite3.OperationalError: If database operation fails
         """
+        ensure_turn_parent_stub_for_feed_write(
+            conn, run_id=feed.run_id, turn_number=feed.turn_number
+        )
         row_values = tuple(
             json.dumps(feed.post_ids) if col == "post_ids" else getattr(feed, col)
             for col in GENERATED_FEED_COLUMNS
@@ -103,7 +107,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             KeyError: If required columns are missing from the database row
         """
         row = conn.execute(
-            "SELECT * FROM generated_feeds WHERE agent_id = ? AND run_id = ? AND turn_number = ?",
+            "SELECT * FROM turn_generated_feeds WHERE agent_id = ? AND run_id = ? AND turn_number = ?",
             (agent_id, run_id, turn_number),
         ).fetchone()
 
@@ -129,7 +133,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         ).fetchone()
         if r2 is None:
             raise ValueError(
-                f"generated_feeds row missing agent_handle and agent {row['agent_id']!r} not found"
+                f"turn_generated_feeds row missing agent_handle and agent {row['agent_id']!r} not found"
             )
         return str(r2[0])
 
@@ -171,7 +175,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
             KeyError: If required columns are missing from any database row
         """
-        rows = conn.execute("SELECT * FROM generated_feeds").fetchall()
+        rows = conn.execute("SELECT * FROM turn_generated_feeds").fetchall()
         feeds = []
         for row in rows:
             self._validate_generated_feed_row(
@@ -207,7 +211,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
         rows = conn.execute(
             """
             SELECT post_ids
-            FROM generated_feeds
+            FROM turn_generated_feeds
             WHERE agent_id = ? AND run_id = ?
         """,
             (agent_id, run_id),
@@ -236,7 +240,7 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.OperationalError: If database operation fails
         """
         rows = conn.execute(
-            "SELECT * FROM generated_feeds WHERE run_id = ? AND turn_number = ?",
+            "SELECT * FROM turn_generated_feeds WHERE run_id = ? AND turn_number = ?",
             (run_id, turn_number),
         ).fetchall()
 

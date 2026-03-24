@@ -13,7 +13,7 @@ from simulation.core.models.feeds import GeneratedFeed
 
 
 def ensure_agent_row_for_generated_feed(feed: GeneratedFeed) -> None:
-    """Insert an agent row so ``generated_feeds.agent_id`` FK writes succeed in tests."""
+    """Insert an agent row so ``turn_generated_feeds.agent_id`` FK writes succeed in tests."""
     handle = feed.agent_handle.strip()
     with get_connection() as conn:
         conn.execute(

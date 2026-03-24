@@ -77,19 +77,6 @@ erDiagram
     INTEGER follows_count
     INTEGER posts_count
   }
-  comments {
-    TEXT comment_id PK
-    TEXT run_id FK
-    INTEGER turn_number
-    TEXT agent_id FK
-    TEXT post_id
-    TEXT text
-    TEXT created_at
-    TEXT explanation
-    TEXT model_used
-    TEXT generation_metadata_json
-    TEXT generation_created_at
-  }
   feed_posts {
     TEXT post_id PK
     TEXT source
@@ -104,39 +91,6 @@ erDiagram
     INTEGER repost_count
     TEXT created_at
     TEXT author_agent_id FK
-  }
-  follows {
-    TEXT follow_id PK
-    TEXT run_id FK
-    INTEGER turn_number
-    TEXT agent_id FK
-    TEXT target_agent_id FK
-    TEXT created_at
-    TEXT explanation
-    TEXT model_used
-    TEXT generation_metadata_json
-    TEXT generation_created_at
-  }
-  generated_feeds {
-    TEXT feed_id
-    TEXT run_id PK, FK
-    INTEGER turn_number PK
-    TEXT agent_id PK, FK
-    TEXT agent_handle
-    TEXT post_ids
-    TEXT created_at
-  }
-  likes {
-    TEXT like_id PK
-    TEXT run_id FK
-    INTEGER turn_number
-    TEXT agent_id FK
-    TEXT post_id
-    TEXT created_at
-    TEXT explanation
-    TEXT model_used
-    TEXT generation_metadata_json
-    TEXT generation_created_at
   }
   run_agents {
     TEXT run_id PK, FK
@@ -207,16 +161,76 @@ erDiagram
     TEXT metric_keys
     TEXT app_user_id
   }
-  turn_metadata {
-    TEXT run_id PK, FK
-    INTEGER turn_number PK
-    TEXT total_actions
+  turn_comments {
+    TEXT comment_id PK
+    TEXT run_id FK
+    INTEGER turn_number FK
+    TEXT agent_id FK
+    TEXT post_id
+    TEXT text
     TEXT created_at
+    TEXT explanation
+    TEXT model_used
+    TEXT generation_metadata_json
+    TEXT generation_created_at
+  }
+  turn_follows {
+    TEXT follow_id PK
+    TEXT run_id FK
+    INTEGER turn_number FK
+    TEXT agent_id FK
+    TEXT target_agent_id FK
+    TEXT created_at
+    TEXT explanation
+    TEXT model_used
+    TEXT generation_metadata_json
+    TEXT generation_created_at
+  }
+  turn_generated_feeds {
+    TEXT feed_id
+    TEXT run_id PK, FK
+    INTEGER turn_number PK, FK
+    TEXT agent_id PK, FK
+    TEXT agent_handle
+    TEXT post_ids
+    TEXT created_at
+  }
+  turn_likes {
+    TEXT like_id PK
+    TEXT run_id FK
+    INTEGER turn_number FK
+    TEXT agent_id FK
+    TEXT post_id
+    TEXT created_at
+    TEXT explanation
+    TEXT model_used
+    TEXT generation_metadata_json
+    TEXT generation_created_at
   }
   turn_metrics {
     TEXT run_id PK, FK
-    INTEGER turn_number PK
+    INTEGER turn_number PK, FK
     TEXT metrics
+    TEXT created_at
+  }
+  turn_posts {
+    TEXT turn_post_id PK
+    TEXT run_id FK
+    INTEGER turn_number FK
+    TEXT author_agent_id FK
+    TEXT author_handle_at_time
+    TEXT author_display_name_at_time
+    TEXT body_text
+    TEXT created_at
+    TEXT explanation
+    TEXT model_used
+    TEXT generation_metadata_json
+    TEXT generation_created_at
+  }
+  turns {
+    TEXT run_id PK, FK
+    INTEGER turn_number PK
+    TEXT total_actions
     TEXT created_at
   }
   user_agent_profile_metadata {
@@ -234,13 +248,13 @@ erDiagram
   agent ||--o{ agent_post_comments : "fk_agent_post_comments_author_agent_id (author_agent_id)"
   agent ||--o{ agent_post_likes : "fk_agent_post_likes_liker_agent_id (liker_agent_id)"
   agent ||--o{ agent_posts : "fk_agent_posts_agent_id (agent_id)"
-  agent ||--o{ comments : "fk_comments_agent_id (agent_id)"
   agent ||--o{ feed_posts : "fk_feed_posts_author_agent_id (author_agent_id)"
-  agent ||--o{ follows : "fk_follows_agent_id (agent_id)"
-  agent ||--o{ follows : "fk_follows_target_agent_id (target_agent_id)"
-  agent ||--o{ generated_feeds : "fk (agent_id)"
-  agent ||--o{ likes : "fk_likes_agent_id (agent_id)"
   agent ||--o{ run_agents : "fk_run_agents_agent_id (agent_id)"
+  agent ||--o{ turn_comments : "fk (agent_id)"
+  agent ||--o{ turn_follows : "fk (agent_id)"
+  agent ||--o{ turn_follows : "fk (target_agent_id)"
+  agent ||--o{ turn_generated_feeds : "fk (agent_id)"
+  agent ||--o{ turn_likes : "fk (agent_id)"
   agent ||--o{ user_agent_profile_metadata : "fk_user_agent_profile_metadata_agent_id (agent_id)"
   agent_posts ||--o{ agent_post_comments : "fk_agent_post_comments_agent_post_id (agent_post_id)"
   agent_posts ||--o{ agent_post_likes : "fk_agent_post_likes_agent_post_id (agent_post_id)"
@@ -249,21 +263,27 @@ erDiagram
   run_agents ||--o{ run_post_comments : "fk_run_post_comments_run_author (run_id, author_agent_id)"
   run_agents ||--o{ run_post_likes : "fk_run_post_likes_run_liker (run_id, liker_agent_id)"
   run_agents ||--o{ run_posts : "fk_run_posts_run_author (run_id, author_agent_id)"
+  run_agents ||--o{ turn_posts : "fk (run_id, author_agent_id)"
   run_posts ||--o{ run_post_comments : "fk_run_post_comments_run_post (run_id, run_post_id)"
   run_posts ||--o{ run_post_comments : "fk_run_post_comments_run_post_id (run_post_id)"
   run_posts ||--o{ run_post_likes : "fk_run_post_likes_run_post_id (run_post_id)"
-  runs ||--o{ comments : "fk_comments_run_id (run_id)"
-  runs ||--o{ follows : "fk_follows_run_id (run_id)"
-  runs ||--o{ generated_feeds : "fk (run_id)"
-  runs ||--o{ likes : "fk_likes_run_id (run_id)"
   runs ||--o{ run_agents : "fk_run_agents_run_id (run_id)"
   runs ||--o{ run_follow_edges : "fk_run_follow_edges_run_id (run_id)"
   runs ||--o{ run_metrics : "fk_run_metrics_run_id (run_id)"
   runs ||--o{ run_post_comments : "fk_run_post_comments_run_id (run_id)"
   runs ||--o{ run_post_likes : "fk_run_post_likes_run_id (run_id)"
   runs ||--o{ run_posts : "fk_run_posts_run_id (run_id)"
-  runs ||--o{ turn_metadata : "fk_turn_metadata_run_id (run_id)"
-  runs ||--o{ turn_metrics : "fk_turn_metrics_run_id (run_id)"
+  runs ||--o{ turn_comments : "fk (run_id)"
+  runs ||--o{ turn_follows : "fk (run_id)"
+  runs ||--o{ turn_generated_feeds : "fk (run_id)"
+  runs ||--o{ turn_likes : "fk (run_id)"
+  runs ||--o{ turns : "fk (run_id)"
+  turns ||--o{ turn_comments : "fk (run_id, turn_number)"
+  turns ||--o{ turn_follows : "fk (run_id, turn_number)"
+  turns ||--o{ turn_generated_feeds : "fk (run_id, turn_number)"
+  turns ||--o{ turn_likes : "fk (run_id, turn_number)"
+  turns ||--o{ turn_metrics : "fk (run_id, turn_number)"
+  turns ||--o{ turn_posts : "fk (run_id, turn_number)"
 ```
 
 This documentation is generated from a fresh SQLite database after applying Alembic migrations to `head`.
@@ -298,13 +318,13 @@ This documentation is generated from a fresh SQLite database after applying Alem
 - `agent_post_comments` `fk_agent_post_comments_author_agent_id`: `author_agent_id` → `agent_id`
 - `agent_post_likes` `fk_agent_post_likes_liker_agent_id`: `liker_agent_id` → `agent_id`
 - `agent_posts` `fk_agent_posts_agent_id`: `agent_id` → `agent_id`
-- `comments` `fk_comments_agent_id`: `agent_id` → `agent_id`
 - `feed_posts` `fk_feed_posts_author_agent_id`: `author_agent_id` → `agent_id`
-- `follows` `fk_follows_agent_id`: `agent_id` → `agent_id`
-- `follows` `fk_follows_target_agent_id`: `target_agent_id` → `agent_id`
-- `generated_feeds` `(unnamed)`: `agent_id` → `agent_id`
-- `likes` `fk_likes_agent_id`: `agent_id` → `agent_id`
 - `run_agents` `fk_run_agents_agent_id`: `agent_id` → `agent_id`
+- `turn_comments` `(unnamed)`: `agent_id` → `agent_id`
+- `turn_follows` `(unnamed)`: `agent_id` → `agent_id`
+- `turn_follows` `(unnamed)`: `target_agent_id` → `agent_id`
+- `turn_generated_feeds` `(unnamed)`: `agent_id` → `agent_id`
+- `turn_likes` `(unnamed)`: `agent_id` → `agent_id`
 - `user_agent_profile_metadata` `fk_user_agent_profile_metadata_agent_id`: `agent_id` → `agent_id`
 
 ## `agent_bios`
@@ -526,46 +546,6 @@ This documentation is generated from a fresh SQLite database after applying Alem
 - Name: (none)
 - Columns: `handle`
 
-## `comments`
-
-### Columns (`comments`)
-
-| name | type | nullable | default | pk |
-| --- | --- | --- | --- | --- |
-| `comment_id` | `TEXT` | no | `` | `1` |
-| `run_id` | `TEXT` | no | `` | `` |
-| `turn_number` | `INTEGER` | no | `` | `` |
-| `agent_id` | `TEXT` | no | `` | `` |
-| `post_id` | `TEXT` | no | `` | `` |
-| `text` | `TEXT` | no | `` | `` |
-| `created_at` | `TEXT` | no | `` | `` |
-| `explanation` | `TEXT` | yes | `` | `` |
-| `model_used` | `TEXT` | yes | `` | `` |
-| `generation_metadata_json` | `TEXT` | yes | `` | `` |
-| `generation_created_at` | `TEXT` | yes | `` | `` |
-
-### Primary key (`comments`)
-
-- Name: `pk_comments`
-- Columns: `comment_id`
-
-### Foreign keys (`comments`)
-
-- `fk_comments_agent_id`: `agent_id` → `agent(agent_id)`
-- `fk_comments_run_id`: `run_id` → `runs(run_id)`
-
-### Unique constraints (`comments`)
-
-- `uq_comments_run_turn_agent_post`: `run_id`, `turn_number`, `agent_id`, `post_id`
-
-### Indexes (`comments`)
-
-- `idx_comments_run_turn_agent`: `run_id`, `turn_number`, `agent_id`
-
-### Check constraints (`comments`)
-
-- `ck_comments_turn_number_gte_0`: `turn_number >= 0`
-
 ## `feed_posts`
 
 ### Columns (`feed_posts`)
@@ -599,109 +579,6 @@ This documentation is generated from a fresh SQLite database after applying Alem
 
 - `idx_feed_posts_author_agent_id`: `author_agent_id`
 - `idx_feed_posts_author_handle`: `author_handle`
-
-## `follows`
-
-### Columns (`follows`)
-
-| name | type | nullable | default | pk |
-| --- | --- | --- | --- | --- |
-| `follow_id` | `TEXT` | no | `` | `1` |
-| `run_id` | `TEXT` | no | `` | `` |
-| `turn_number` | `INTEGER` | no | `` | `` |
-| `agent_id` | `TEXT` | no | `` | `` |
-| `target_agent_id` | `TEXT` | no | `` | `` |
-| `created_at` | `TEXT` | no | `` | `` |
-| `explanation` | `TEXT` | yes | `` | `` |
-| `model_used` | `TEXT` | yes | `` | `` |
-| `generation_metadata_json` | `TEXT` | yes | `` | `` |
-| `generation_created_at` | `TEXT` | yes | `` | `` |
-
-### Primary key (`follows`)
-
-- Name: `pk_follows`
-- Columns: `follow_id`
-
-### Foreign keys (`follows`)
-
-- `fk_follows_agent_id`: `agent_id` → `agent(agent_id)`
-- `fk_follows_target_agent_id`: `target_agent_id` → `agent(agent_id)`
-- `fk_follows_run_id`: `run_id` → `runs(run_id)`
-
-### Unique constraints (`follows`)
-
-- `uq_follows_run_turn_agent_target`: `run_id`, `turn_number`, `agent_id`, `target_agent_id`
-
-### Indexes (`follows`)
-
-- `idx_follows_run_turn_agent`: `run_id`, `turn_number`, `agent_id`
-
-### Check constraints (`follows`)
-
-- `ck_follows_turn_number_gte_0`: `turn_number >= 0`
-
-## `generated_feeds`
-
-### Columns (`generated_feeds`)
-
-| name | type | nullable | default | pk |
-| --- | --- | --- | --- | --- |
-| `feed_id` | `TEXT` | no | `` | `` |
-| `run_id` | `TEXT` | no | `` | `2` |
-| `turn_number` | `INTEGER` | no | `` | `3` |
-| `agent_id` | `TEXT` | no | `` | `1` |
-| `agent_handle` | `TEXT` | yes | `` | `` |
-| `post_ids` | `TEXT` | no | `` | `` |
-| `created_at` | `TEXT` | no | `` | `` |
-
-### Primary key (`generated_feeds`)
-
-- Name: (none)
-- Columns: `agent_id`, `run_id`, `turn_number`
-
-### Foreign keys (`generated_feeds`)
-
-- `(unnamed)`: `agent_id` → `agent(agent_id)`
-- `(unnamed)`: `run_id` → `runs(run_id)`
-
-## `likes`
-
-### Columns (`likes`)
-
-| name | type | nullable | default | pk |
-| --- | --- | --- | --- | --- |
-| `like_id` | `TEXT` | no | `` | `1` |
-| `run_id` | `TEXT` | no | `` | `` |
-| `turn_number` | `INTEGER` | no | `` | `` |
-| `agent_id` | `TEXT` | no | `` | `` |
-| `post_id` | `TEXT` | no | `` | `` |
-| `created_at` | `TEXT` | no | `` | `` |
-| `explanation` | `TEXT` | yes | `` | `` |
-| `model_used` | `TEXT` | yes | `` | `` |
-| `generation_metadata_json` | `TEXT` | yes | `` | `` |
-| `generation_created_at` | `TEXT` | yes | `` | `` |
-
-### Primary key (`likes`)
-
-- Name: `pk_likes`
-- Columns: `like_id`
-
-### Foreign keys (`likes`)
-
-- `fk_likes_agent_id`: `agent_id` → `agent(agent_id)`
-- `fk_likes_run_id`: `run_id` → `runs(run_id)`
-
-### Unique constraints (`likes`)
-
-- `uq_likes_run_turn_agent_post`: `run_id`, `turn_number`, `agent_id`, `post_id`
-
-### Indexes (`likes`)
-
-- `idx_likes_run_turn_agent`: `run_id`, `turn_number`, `agent_id`
-
-### Check constraints (`likes`)
-
-- `ck_likes_turn_number_gte_0`: `turn_number >= 0`
 
 ## `run_agents`
 
@@ -745,6 +622,7 @@ This documentation is generated from a fresh SQLite database after applying Alem
 - `run_post_comments` `fk_run_post_comments_run_author`: `run_id`, `author_agent_id` → `run_id`, `agent_id`
 - `run_post_likes` `fk_run_post_likes_run_liker`: `run_id`, `liker_agent_id` → `run_id`, `agent_id`
 - `run_posts` `fk_run_posts_run_author`: `run_id`, `author_agent_id` → `run_id`, `agent_id`
+- `turn_posts` `(unnamed)`: `run_id`, `author_agent_id` → `run_id`, `agent_id`
 
 ## `run_follow_edges`
 
@@ -946,46 +824,165 @@ This documentation is generated from a fresh SQLite database after applying Alem
 
 ### Referenced by (`runs`)
 
-- `comments` `fk_comments_run_id`: `run_id` → `run_id`
-- `follows` `fk_follows_run_id`: `run_id` → `run_id`
-- `generated_feeds` `(unnamed)`: `run_id` → `run_id`
-- `likes` `fk_likes_run_id`: `run_id` → `run_id`
 - `run_agents` `fk_run_agents_run_id`: `run_id` → `run_id`
 - `run_follow_edges` `fk_run_follow_edges_run_id`: `run_id` → `run_id`
 - `run_metrics` `fk_run_metrics_run_id`: `run_id` → `run_id`
 - `run_post_comments` `fk_run_post_comments_run_id`: `run_id` → `run_id`
 - `run_post_likes` `fk_run_post_likes_run_id`: `run_id` → `run_id`
 - `run_posts` `fk_run_posts_run_id`: `run_id` → `run_id`
-- `turn_metadata` `fk_turn_metadata_run_id`: `run_id` → `run_id`
-- `turn_metrics` `fk_turn_metrics_run_id`: `run_id` → `run_id`
+- `turn_comments` `(unnamed)`: `run_id` → `run_id`
+- `turn_follows` `(unnamed)`: `run_id` → `run_id`
+- `turn_generated_feeds` `(unnamed)`: `run_id` → `run_id`
+- `turn_likes` `(unnamed)`: `run_id` → `run_id`
+- `turns` `(unnamed)`: `run_id` → `run_id`
 
-## `turn_metadata`
+## `turn_comments`
 
-### Columns (`turn_metadata`)
+### Columns (`turn_comments`)
 
 | name | type | nullable | default | pk |
 | --- | --- | --- | --- | --- |
-| `run_id` | `TEXT` | no | `` | `1` |
-| `turn_number` | `INTEGER` | no | `` | `2` |
-| `total_actions` | `TEXT` | no | `` | `` |
+| `comment_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `turn_number` | `INTEGER` | no | `` | `` |
+| `agent_id` | `TEXT` | no | `` | `` |
+| `post_id` | `TEXT` | no | `` | `` |
+| `text` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+| `explanation` | `TEXT` | yes | `` | `` |
+| `model_used` | `TEXT` | yes | `` | `` |
+| `generation_metadata_json` | `TEXT` | yes | `` | `` |
+| `generation_created_at` | `TEXT` | yes | `` | `` |
+
+### Primary key (`turn_comments`)
+
+- Name: (none)
+- Columns: `comment_id`
+
+### Foreign keys (`turn_comments`)
+
+- `(unnamed)`: `agent_id` → `agent(agent_id)`
+- `(unnamed)`: `run_id` → `runs(run_id)`
+- `(unnamed)`: `run_id`, `turn_number` → `turns(run_id, turn_number)`
+
+### Unique constraints (`turn_comments`)
+
+- `uq_turn_comments_run_turn_agent_post`: `run_id`, `turn_number`, `agent_id`, `post_id`
+
+### Indexes (`turn_comments`)
+
+- `idx_turn_comments_run_turn_agent`: `run_id`, `turn_number`, `agent_id`
+
+### Check constraints (`turn_comments`)
+
+- `(unnamed)`: `turn_number >= 0`
+
+## `turn_follows`
+
+### Columns (`turn_follows`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `follow_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `turn_number` | `INTEGER` | no | `` | `` |
+| `agent_id` | `TEXT` | no | `` | `` |
+| `target_agent_id` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+| `explanation` | `TEXT` | yes | `` | `` |
+| `model_used` | `TEXT` | yes | `` | `` |
+| `generation_metadata_json` | `TEXT` | yes | `` | `` |
+| `generation_created_at` | `TEXT` | yes | `` | `` |
+
+### Primary key (`turn_follows`)
+
+- Name: (none)
+- Columns: `follow_id`
+
+### Foreign keys (`turn_follows`)
+
+- `(unnamed)`: `agent_id` → `agent(agent_id)`
+- `(unnamed)`: `target_agent_id` → `agent(agent_id)`
+- `(unnamed)`: `run_id` → `runs(run_id)`
+- `(unnamed)`: `run_id`, `turn_number` → `turns(run_id, turn_number)`
+
+### Unique constraints (`turn_follows`)
+
+- `uq_turn_follows_run_turn_agent_target`: `run_id`, `turn_number`, `agent_id`, `target_agent_id`
+
+### Indexes (`turn_follows`)
+
+- `idx_turn_follows_run_turn_agent`: `run_id`, `turn_number`, `agent_id`
+
+### Check constraints (`turn_follows`)
+
+- `(unnamed)`: `turn_number >= 0`
+- `ck_turn_follows_no_self_follow`: `agent_id != target_agent_id`
+
+## `turn_generated_feeds`
+
+### Columns (`turn_generated_feeds`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `feed_id` | `TEXT` | no | `` | `` |
+| `run_id` | `TEXT` | no | `` | `2` |
+| `turn_number` | `INTEGER` | no | `` | `3` |
+| `agent_id` | `TEXT` | no | `` | `1` |
+| `agent_handle` | `TEXT` | yes | `` | `` |
+| `post_ids` | `TEXT` | no | `` | `` |
 | `created_at` | `TEXT` | no | `` | `` |
 
-### Primary key (`turn_metadata`)
+### Primary key (`turn_generated_feeds`)
 
-- Name: `pk_turn_metadata`
-- Columns: `run_id`, `turn_number`
+- Name: (none)
+- Columns: `agent_id`, `run_id`, `turn_number`
 
-### Foreign keys (`turn_metadata`)
+### Foreign keys (`turn_generated_feeds`)
 
-- `fk_turn_metadata_run_id`: `run_id` → `runs(run_id)`
+- `(unnamed)`: `agent_id` → `agent(agent_id)`
+- `(unnamed)`: `run_id` → `runs(run_id)`
+- `(unnamed)`: `run_id`, `turn_number` → `turns(run_id, turn_number)`
 
-### Indexes (`turn_metadata`)
+## `turn_likes`
 
-- `idx_turn_metadata_run_id`: `run_id`
+### Columns (`turn_likes`)
 
-### Check constraints (`turn_metadata`)
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `like_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `turn_number` | `INTEGER` | no | `` | `` |
+| `agent_id` | `TEXT` | no | `` | `` |
+| `post_id` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+| `explanation` | `TEXT` | yes | `` | `` |
+| `model_used` | `TEXT` | yes | `` | `` |
+| `generation_metadata_json` | `TEXT` | yes | `` | `` |
+| `generation_created_at` | `TEXT` | yes | `` | `` |
 
-- `ck_turn_metadata_turn_number_gte_0`: `turn_number >= 0`
+### Primary key (`turn_likes`)
+
+- Name: (none)
+- Columns: `like_id`
+
+### Foreign keys (`turn_likes`)
+
+- `(unnamed)`: `agent_id` → `agent(agent_id)`
+- `(unnamed)`: `run_id` → `runs(run_id)`
+- `(unnamed)`: `run_id`, `turn_number` → `turns(run_id, turn_number)`
+
+### Unique constraints (`turn_likes`)
+
+- `uq_turn_likes_run_turn_agent_post`: `run_id`, `turn_number`, `agent_id`, `post_id`
+
+### Indexes (`turn_likes`)
+
+- `idx_turn_likes_run_turn_agent`: `run_id`, `turn_number`, `agent_id`
+
+### Check constraints (`turn_likes`)
+
+- `(unnamed)`: `turn_number >= 0`
 
 ## `turn_metrics`
 
@@ -1000,12 +997,12 @@ This documentation is generated from a fresh SQLite database after applying Alem
 
 ### Primary key (`turn_metrics`)
 
-- Name: `pk_turn_metrics`
+- Name: (none)
 - Columns: `run_id`, `turn_number`
 
 ### Foreign keys (`turn_metrics`)
 
-- `fk_turn_metrics_run_id`: `run_id` → `runs(run_id)`
+- `(unnamed)`: `run_id`, `turn_number` → `turns(run_id, turn_number)`
 
 ### Indexes (`turn_metrics`)
 
@@ -1013,7 +1010,81 @@ This documentation is generated from a fresh SQLite database after applying Alem
 
 ### Check constraints (`turn_metrics`)
 
-- `ck_turn_metrics_turn_number_gte_0`: `turn_number >= 0`
+- `(unnamed)`: `turn_number >= 0`
+
+## `turn_posts`
+
+### Columns (`turn_posts`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `turn_post_id` | `TEXT` | no | `` | `1` |
+| `run_id` | `TEXT` | no | `` | `` |
+| `turn_number` | `INTEGER` | no | `` | `` |
+| `author_agent_id` | `TEXT` | no | `` | `` |
+| `author_handle_at_time` | `TEXT` | no | `` | `` |
+| `author_display_name_at_time` | `TEXT` | no | `` | `` |
+| `body_text` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+| `explanation` | `TEXT` | yes | `` | `` |
+| `model_used` | `TEXT` | yes | `` | `` |
+| `generation_metadata_json` | `TEXT` | yes | `` | `` |
+| `generation_created_at` | `TEXT` | yes | `` | `` |
+
+### Primary key (`turn_posts`)
+
+- Name: (none)
+- Columns: `turn_post_id`
+
+### Foreign keys (`turn_posts`)
+
+- `(unnamed)`: `run_id`, `author_agent_id` → `run_agents(run_id, agent_id)`
+- `(unnamed)`: `run_id`, `turn_number` → `turns(run_id, turn_number)`
+
+### Indexes (`turn_posts`)
+
+- `idx_turn_posts_run_turn_author`: `run_id`, `turn_number`, `author_agent_id`
+
+### Check constraints (`turn_posts`)
+
+- `(unnamed)`: `turn_number >= 0`
+
+## `turns`
+
+### Columns (`turns`)
+
+| name | type | nullable | default | pk |
+| --- | --- | --- | --- | --- |
+| `run_id` | `TEXT` | no | `` | `1` |
+| `turn_number` | `INTEGER` | no | `` | `2` |
+| `total_actions` | `TEXT` | no | `` | `` |
+| `created_at` | `TEXT` | no | `` | `` |
+
+### Primary key (`turns`)
+
+- Name: (none)
+- Columns: `run_id`, `turn_number`
+
+### Foreign keys (`turns`)
+
+- `(unnamed)`: `run_id` → `runs(run_id)`
+
+### Indexes (`turns`)
+
+- `idx_turns_run_id`: `run_id`
+
+### Check constraints (`turns`)
+
+- `(unnamed)`: `turn_number >= 0`
+
+### Referenced by (`turns`)
+
+- `turn_comments` `(unnamed)`: `run_id`, `turn_number` → `run_id`, `turn_number`
+- `turn_follows` `(unnamed)`: `run_id`, `turn_number` → `run_id`, `turn_number`
+- `turn_generated_feeds` `(unnamed)`: `run_id`, `turn_number` → `run_id`, `turn_number`
+- `turn_likes` `(unnamed)`: `run_id`, `turn_number` → `run_id`, `turn_number`
+- `turn_metrics` `(unnamed)`: `run_id`, `turn_number` → `run_id`, `turn_number`
+- `turn_posts` `(unnamed)`: `run_id`, `turn_number` → `run_id`, `turn_number`
 
 ## `user_agent_profile_metadata`
 

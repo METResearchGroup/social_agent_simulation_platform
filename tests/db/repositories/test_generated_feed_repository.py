@@ -142,7 +142,7 @@ class TestSQLiteGeneratedFeedRepositoryCreateOrUpdateGeneratedFeed:
 
         mock_adapter = Mock(spec=GeneratedFeedDatabaseAdapter)
         db_error = sqlite3.IntegrityError(
-            "UNIQUE constraint failed: generated_feeds.agent_handle, run_id, turn_number"
+            "UNIQUE constraint failed: turn_generated_feeds.agent_id, run_id, turn_number"
         )
         mock_adapter.write_generated_feed.side_effect = db_error
         repo = SQLiteGeneratedFeedRepository(

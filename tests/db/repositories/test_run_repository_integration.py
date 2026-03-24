@@ -558,7 +558,7 @@ class TestTurnMetadataIntegration:
                 )
                 conn.execute(
                     """
-                    INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at)
+                    INSERT INTO turns (run_id, turn_number, total_actions, created_at)
                     VALUES (?, ?, ?, ?)
                     """,
                     (
@@ -606,7 +606,7 @@ class TestTurnMetadataIntegration:
         with get_connection() as conn:
             conn.execute(
                 """
-                INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at)
+                INSERT INTO turns (run_id, turn_number, total_actions, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
                 (run.run_id, turn_number, total_actions_json, "2024_01_01-12:00:00"),
@@ -656,7 +656,7 @@ class TestTurnMetadataIntegration:
             )
             conn.execute(
                 """
-                INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at)
+                INSERT INTO turns (run_id, turn_number, total_actions, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
                 (run1.run_id, 0, total_actions_json_1, "2024_01_01-12:00:00"),
@@ -673,7 +673,7 @@ class TestTurnMetadataIntegration:
             )
             conn.execute(
                 """
-                INSERT INTO turn_metadata (run_id, turn_number, total_actions, created_at)
+                INSERT INTO turns (run_id, turn_number, total_actions, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
                 (run2.run_id, 0, total_actions_json_2, "2024_01_01-12:00:00"),
