@@ -1,21 +1,15 @@
 import time
+from typing import cast
 
 from transformers import logging as transformers_logging
 
 from ml_tooling.emotion.classifier import EmotionModel
 from ml_tooling.emotion.models import EmotionLabel
+from ml_tooling.verification.helpers import track_init_time
 
 transformers_logging.set_verbosity_error()
 
 EMOTIONS = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
-
-
-def track_init_time():
-    time.perf_counter()
-    emotion_model = EmotionModel()
-    emotion_model.extract_emotions("")
-
-    return emotion_model
 
 
 def print_emotion_table(label: EmotionLabel, case_name: str) -> None:
@@ -79,7 +73,7 @@ def run_model_track_time(emotion_model: EmotionModel) -> None:
 
 
 if __name__ == "__main__":
-    emotion_model = track_init_time()
+    emotion_model: EmotionModel = cast(EmotionModel, track_init_time(EmotionModel))
 
     verify_diff_cases(emotion_model)
 

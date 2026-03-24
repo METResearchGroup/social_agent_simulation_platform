@@ -1,21 +1,14 @@
 import time
+from typing import cast
 
 from transformers import logging as transformers_logging
 
 from ml_tooling.polarity.classifier import PolarityModel
 from ml_tooling.polarity.constants import POLARITIES
 from ml_tooling.polarity.models import PolarityLabel
+from ml_tooling.verification.helpers import track_init_time
 
 transformers_logging.set_verbosity_error()
-
-
-def track_init_time():
-    start = time.perf_counter()
-    polarity_model = PolarityModel()
-    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")  # noqa: T201
-    polarity_model.extract_polarity("")
-
-    return polarity_model
 
 
 def print_polarity_table(label: PolarityLabel, case_name: str) -> None:
@@ -99,7 +92,7 @@ def run_model_track_time(polarity_model: PolarityModel) -> None:
 
 
 if __name__ == "__main__":
-    polarity_model = track_init_time()
+    polarity_model: PolarityModel = cast(PolarityModel, track_init_time(PolarityModel))
     print("\n")  # noqa: T201
 
     verify_diff_cases(polarity_model)

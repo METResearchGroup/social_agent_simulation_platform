@@ -1,19 +1,12 @@
 import time
+from typing import cast
 
 from transformers import logging as transformers_logging
 
 from ml_tooling.ner.classifier import NERModel
+from ml_tooling.verification.helpers import track_init_time
 
 transformers_logging.set_verbosity_error()
-
-
-def track_init_time():
-    start = time.perf_counter()
-    ner_model = NERModel()
-    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")  # noqa: T201
-    ner_model.extract_entities("")
-
-    return ner_model
 
 
 def timed_extract(ner_model, text, label):
@@ -54,7 +47,7 @@ def run_same_prompt(ner_model, iters):
 
 
 def run_model_track_time(ner_model):
-    counts = [1, 10, 1000, 10000]
+    counts = [1, 10, 100, 1000, 10000]
     results = [(n, run_same_prompt(ner_model, n)) for n in counts]
 
     col1, col2, col3 = "iters", "total (s)", "iters/sec"
@@ -72,7 +65,7 @@ def run_model_track_time(ner_model):
 
 
 if __name__ == "__main__":
-    ner_model = track_init_time()
+    ner_model: NERModel = cast(NERModel, track_init_time(NERModel))
     print("\n\n")  # noqa: T201
 
     verify_diff_cases(ner_model)
