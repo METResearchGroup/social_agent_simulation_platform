@@ -46,6 +46,25 @@ Notes:
 - **Supabase auth:** Set `SUPABASE_JWT_SECRET` from the Supabase dashboard (JWT secret). If your project issues **asymmetric** user access tokens (for example **RS256**), also set `SUPABASE_URL` to your project base URL (the same host as the UI’s `NEXT_PUBLIC_SUPABASE_URL`, e.g. `https://<project-ref>.supabase.co`) so the API can verify tokens via `/.well-known/jwks.json`.
 - The Docker build uses `uv sync --frozen` only when `uv.lock` exists; otherwise it falls back to `uv sync --no-dev`.
 
+### Demo reset on deploy (optional)
+
+For a deterministic demo database, you can enable an **opt-in** bootstrap that treats each **new Railway deployment** as a fresh SQLite lifecycle: delete the DB file (and SQLite `-wal`/`-shm` sidecars), run Alembic to head, seed from `simulation/local_dev/seed_fixtures/`, then start the API. **Ordinary restarts** of the same deployment do **not** wipe data.
+
+- **`RESET_DEMO_DB_ON_DEPLOY`:** set to `1` (or `true` / `yes`) to enable. When unset or false, the container behaves as before (bootstrap is a no-op).
+- **`RAILWAY_DEPLOYMENT_ID`:** Railway sets this automatically. The bootstrap compares it to a marker file on the volume; if the id is unchanged, reset is skipped.
+- **Marker file:** `SIM_DB_PATH`’s parent directory plus `/.last_railway_deploy_id` (same volume as the DB). Example: `/data/db.sqlite` → `/data/.last_railway_deploy_id`.
+- **`LOCAL`:** if `LOCAL` is truthy, demo reset **never** runs (hard guard), so local workflows stay unchanged.
+
+Example:
+
+```bash
+railway variables --set "RESET_DEMO_DB_ON_DEPLOY=1"
+```
+
+**Caveat:** when enabled, each **new** deploy id (new deploy) replaces the SQLite file and reseeds—treat the DB as ephemeral across deployments.
+
+The container `CMD` runs `uv run python -m simulation.bootstrap.railway` before `uvicorn`; see `Dockerfile`.
+
 ## Deploy With Railway CLI
 
 From repo root:
@@ -54,10 +73,10 @@ From repo root:
 railway up
 ```
 
-The runtime command is configured in `Dockerfile` (`CMD`):
+The runtime command is configured in `Dockerfile` (`CMD`): it runs the optional demo bootstrap, then `uvicorn`:
 
 ```bash
-uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-*}"
+uv run python -m simulation.bootstrap.railway && uv run uvicorn simulation.api.main:app --host 0.0.0.0 --port ${PORT:-8000} --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-*}"
 ```
 
 **Proxy headers (FASTAPI-PROXY-001):** Set `FORWARDED_ALLOW_IPS=*` in Railway variables. The container is only reachable through Railway's proxy, so trusting forwarded headers from all connections is safe. This ensures `X-Forwarded-For` and other proxy headers are applied for rate limiting and client IP detection. See [plan Security section](../plans/2026-02-19_rate_limiting_post_paths_847291/plan.md#security-proxy-trust-fastapi-proxy-001).
