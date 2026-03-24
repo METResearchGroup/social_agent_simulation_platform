@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
 )
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
 from feeds.interfaces import FeedGenerationResult, FeedGenerator
@@ -25,11 +26,13 @@ class FeedGeneratorAdapter(FeedGenerator):
         run_post_repo: RunPostRepository,
         run_post_like_repo: RunPostLikeRepository,
         run_post_comment_repo: RunPostCommentRepository,
+        turn_post_repo: TurnPostRepository,
     ) -> None:
         self._generated_feed_repo = generated_feed_repo
         self._run_post_repo = run_post_repo
         self._run_post_like_repo = run_post_like_repo
         self._run_post_comment_repo = run_post_comment_repo
+        self._turn_post_repo = turn_post_repo
 
     def generate_feeds(
         self,
@@ -48,5 +51,6 @@ class FeedGeneratorAdapter(FeedGenerator):
             run_post_repo=self._run_post_repo,
             run_post_like_repo=self._run_post_like_repo,
             run_post_comment_repo=self._run_post_comment_repo,
+            turn_post_repo=self._turn_post_repo,
             feed_algorithm_config=feed_algorithm_config,
         )

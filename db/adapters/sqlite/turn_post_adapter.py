@@ -1,4 +1,4 @@
-"""SQLite read path for turn-authored posts."""
+"""SQLite read/write path for turn-authored posts."""
 
 import sqlite3
 from collections.abc import Iterable
@@ -60,3 +60,75 @@ class SQLiteTurnPostAdapter(TurnPostDatabaseAdapter):
                 self._validate_turn_post_row(row)
                 result.append(self._row_to_turn_post_snapshot(row))
         return result
+
+    def list_turn_posts_for_run_before_turn(
+        self, run_id: str, before_turn_number: int, *, conn: sqlite3.Connection
+    ) -> list[TurnPostSnapshot]:
+        rows = conn.execute(
+            """
+            SELECT * FROM turn_posts
+            WHERE run_id = ? AND turn_number < ?
+            ORDER BY turn_number, turn_post_id
+            """,
+            (run_id, before_turn_number),
+        ).fetchall()
+        result: list[TurnPostSnapshot] = []
+        for r in rows:
+            self._validate_turn_post_row(r)
+            result.append(self._row_to_turn_post_snapshot(r))
+        return result
+
+    def list_turn_posts_for_run_at_turn(
+        self, run_id: str, turn_number: int, *, conn: sqlite3.Connection
+    ) -> list[TurnPostSnapshot]:
+        rows = conn.execute(
+            """
+            SELECT * FROM turn_posts
+            WHERE run_id = ? AND turn_number = ?
+            ORDER BY turn_post_id
+            """,
+            (run_id, turn_number),
+        ).fetchall()
+        result: list[TurnPostSnapshot] = []
+        for r in rows:
+            self._validate_turn_post_row(r)
+            result.append(self._row_to_turn_post_snapshot(r))
+        return result
+
+    def write_turn_posts(
+        self,
+        run_id: str,
+        turn_number: int,
+        rows: Iterable[TurnPostSnapshot],
+        *,
+        conn: sqlite3.Connection,
+    ) -> None:
+        for snap in rows:
+            if snap.run_id != run_id or snap.turn_number != turn_number:
+                raise ValueError(
+                    "TurnPostSnapshot run_id/turn_number must match write_turn_posts"
+                )
+            conn.execute(
+                """
+                INSERT INTO turn_posts (
+                    turn_post_id, run_id, turn_number, author_agent_id,
+                    author_handle_at_time, author_display_name_at_time,
+                    body_text, created_at, explanation, model_used,
+                    generation_metadata_json, generation_created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    snap.turn_post_id,
+                    snap.run_id,
+                    snap.turn_number,
+                    snap.author_agent_id,
+                    snap.author_handle_at_time,
+                    snap.author_display_name_at_time,
+                    snap.body_text,
+                    snap.created_at,
+                    snap.explanation,
+                    snap.model_used,
+                    snap.generation_metadata_json,
+                    snap.generation_created_at,
+                ),
+            )

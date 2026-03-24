@@ -265,6 +265,7 @@ def create_engine(
         like_repo=like_repo,
         comment_repo=comment_repo,
         follow_repo=follow_repo,
+        turn_post_repo=turn_post_repo,
     )
     command_repos = CommandServiceRepos(
         agent=AgentRepos(
@@ -285,7 +286,10 @@ def create_engine(
             run_post_like_repo=run_post_like_repo,
             run_post_comment_repo=run_post_comment_repo,
         ),
-        turn=TurnRepos(generated_feed_repo=generated_feed_repo),
+        turn=TurnRepos(
+            generated_feed_repo=generated_feed_repo,
+            turn_post_repo=turn_post_repo,
+        ),
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         transaction_provider=transaction_provider,

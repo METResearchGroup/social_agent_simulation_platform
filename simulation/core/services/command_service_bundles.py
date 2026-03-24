@@ -26,6 +26,7 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from feeds.interfaces import FeedGenerator
@@ -81,6 +82,7 @@ class TurnRepos:
     """
 
     generated_feed_repo: GeneratedFeedRepository
+    turn_post_repo: TurnPostRepository
 
 
 @dataclass(frozen=True, slots=True)

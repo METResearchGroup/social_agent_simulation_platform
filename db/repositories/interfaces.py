@@ -382,6 +382,39 @@ class TurnPostRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def list_turn_posts_for_run_before_turn(
+        self, run_id: str, before_turn_number: int
+    ) -> list[TurnPostSnapshot]:
+        """List turn posts with ``turn_number`` strictly less than ``before_turn_number``.
+
+        Ordered by ``turn_number``, then ``turn_post_id``. Used so feed candidates
+        for turn ``N`` exclude posts authored in turn ``N`` (not persisted yet
+        when the feed runs) but include prior turns.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_posts_for_run_at_turn(
+        self, run_id: str, turn_number: int
+    ) -> list[TurnPostSnapshot]:
+        """List turn posts authored exactly on ``turn_number`` for ``run_id``.
+
+        Ordered by ``turn_post_id`` ascending (``ORDER BY turn_post_id``).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_turn_posts(
+        self,
+        run_id: str,
+        turn_number: int,
+        rows: list[TurnPostSnapshot],
+        conn: object | None = None,
+    ) -> None:
+        """Insert turn-authored post rows (call within a transaction)."""
+        raise NotImplementedError
+
 
 class AgentPostLikeRepository(ABC):
     """Abstract repository for editable seed-state like facts."""

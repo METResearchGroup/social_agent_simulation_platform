@@ -55,3 +55,4 @@ class TurnAction(str, Enum):
     LIKE = "like"
     COMMENT = "comment"
     FOLLOW = "follow"
+    POST = "post"

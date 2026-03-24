@@ -31,9 +31,15 @@ Readers (feed hydration, action display, replay) implement **one resolver** that
 - **Missing IDs:** If an ID exists in neither table, it is omitted from hydrated post lists (no error). Feed ordering is preserved; slots with missing posts are skipped.
 - **Engagement counts:** Like/reply counts on hydrated `Post` objects come from run-scoped `run_post_likes` / `run_post_comments` for `run_post_id` rows only. Turn-authored posts use zero counts until turn-scoped engagement storage exists.
 
+## Turn-authored posts: generation and feed visibility
+
+- **`TurnAction.POST`** is emitted during turn simulation; snapshots persist to **`turn_posts`** in the same atomic `write_turn` transaction as other turn artifacts.
+- **Feed candidate rule:** For feed generation at turn **N**, eligible `turn_posts` rows are those with **`turn_number` < N** (same-turn posts are not candidates—they are not inserted until after feed generation for that turn). Thus a post authored in turn **T** can appear in **`turn_generated_feeds`** starting turn **T+1**, never in turn **T**’s feed.
+- **Per-author cap:** At most **`MAX_AUTHORED_POSTS_PER_TURN`** (5) persisted posts per `(run_id, turn_number, author_agent_id)` per turn; enforced in generation/validation before persistence.
+
 ## Non-goals
 
-- Persisting authored posts during turns (`TurnAction.POST` **generation**) is **deferred** to a later implementation slice; this contract defines IDs and resolution only.
+- Aggregate like/reply **counts** on hydrated `Post` cards for `turn_post_id` from `turn_likes` / `turn_comments` (beyond storing those actions) — optional follow-up.
 
 ## Related docs
 

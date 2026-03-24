@@ -4,10 +4,12 @@ from collections import Counter
 from collections.abc import Callable
 
 from simulation.core.action_history.interfaces import ActionHistoryStore
+from simulation.core.agent_actions import MAX_AUTHORED_POSTS_PER_TURN
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.turn_posts import TurnPostSnapshot
 
 # Type alias for duplicate validator: (validator, run_id, turn_number, agent_handle, identifiers) -> None
 _DuplicateValidator = Callable[
@@ -145,6 +147,31 @@ _HISTORY_DISPATCH: dict[TurnAction, _HistoryValidator] = {
 
 class AgentActionRulesValidator:
     """Strict validator for generated agent action rules."""
+
+    def validate_turn_posts(
+        self,
+        *,
+        run_id: str,
+        turn_number: int,
+        posts: list[TurnPostSnapshot],
+    ) -> None:
+        """Enforce per-author caps and duplicate ``turn_post_id`` within a turn."""
+        if not posts:
+            return
+        duplicate_ids = self._find_duplicates([p.turn_post_id for p in posts])
+        if duplicate_ids:
+            raise ValueError(
+                f"Duplicate turn_post_id values in run {run_id}, turn {turn_number}: "
+                f"{duplicate_ids}"
+            )
+        counts = Counter(p.author_agent_id for p in posts)
+        for author_id, count in counts.items():
+            if count > MAX_AUTHORED_POSTS_PER_TURN:
+                raise ValueError(
+                    f"Author {author_id} exceeded MAX_AUTHORED_POSTS_PER_TURN "
+                    f"({MAX_AUTHORED_POSTS_PER_TURN}) in run {run_id}, turn {turn_number}: "
+                    f"{count} posts"
+                )
 
     def validate(
         self,

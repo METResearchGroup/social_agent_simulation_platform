@@ -1,6 +1,8 @@
-"""Integration tests for turn post read repository."""
+"""Integration tests for turn post repository."""
 
 from lib.agent_id import canonical_agent_id
+from lib.timestamp_utils import get_current_timestamp
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from tests.factories import (
     AgentRecordFactory,
     RunAgentSnapshotFactory,
@@ -201,3 +203,84 @@ class TestSQLiteTurnPostRepositoryIntegration:
             )
             == []
         )
+
+    def test_write_and_list_before_turn_and_at_turn(
+        self,
+        run_repo,
+        run_agent_repo,
+        turn_post_repo,
+        agent_repo,
+    ):
+        run = run_repo.create_run(
+            RunConfigFactory.create(
+                num_agents=1,
+                num_turns=2,
+                feed_algorithm="chronological",
+            )
+        )
+        agent_id = canonical_agent_id("writer.bsky.social")
+        _seed_agent(agent_repo, agent_id=agent_id, handle="writer.bsky.social")
+        run_agent_repo.write_run_agents(
+            run.run_id,
+            [
+                RunAgentSnapshotFactory.create(
+                    run_id=run.run_id,
+                    agent_id=agent_id,
+                    selection_order=0,
+                    handle_at_start="writer.bsky.social",
+                )
+            ],
+        )
+        for turn_number in (0, 1):
+            run_repo.write_turn_metadata(
+                TurnMetadataFactory.create(
+                    run_id=run.run_id,
+                    turn_number=turn_number,
+                    total_actions={},
+                    created_at=run.created_at,
+                )
+            )
+
+        ts = get_current_timestamp()
+        snap0 = TurnPostSnapshot(
+            turn_post_id="tp_t0",
+            run_id=run.run_id,
+            turn_number=0,
+            author_agent_id=agent_id,
+            author_handle_at_time="writer.bsky.social",
+            author_display_name_at_time="Writer",
+            body_text="t0",
+            created_at=ts,
+            explanation="e",
+            model_used=None,
+            generation_metadata_json=None,
+            generation_created_at=ts,
+        )
+        snap1 = TurnPostSnapshot(
+            turn_post_id="tp_t1",
+            run_id=run.run_id,
+            turn_number=1,
+            author_agent_id=agent_id,
+            author_handle_at_time="writer.bsky.social",
+            author_display_name_at_time="Writer",
+            body_text="t1",
+            created_at=ts,
+            explanation="e",
+            model_used=None,
+            generation_metadata_json=None,
+            generation_created_at=ts,
+        )
+        turn_post_repo.write_turn_posts(run.run_id, 0, [snap0])
+        turn_post_repo.write_turn_posts(run.run_id, 1, [snap1])
+
+        assert turn_post_repo.list_turn_posts_for_run_at_turn(run.run_id, 0) == [snap0]
+        assert turn_post_repo.list_turn_posts_for_run_at_turn(run.run_id, 1) == [snap1]
+
+        before_0 = turn_post_repo.list_turn_posts_for_run_before_turn(run.run_id, 0)
+        assert before_0 == []
+
+        before_1 = turn_post_repo.list_turn_posts_for_run_before_turn(run.run_id, 1)
+        assert [s.turn_post_id for s in before_1] == ["tp_t0"]
+
+        before_2 = turn_post_repo.list_turn_posts_for_run_before_turn(run.run_id, 2)
+        assert [s.turn_post_id for s in before_2] == ["tp_t0", "tp_t1"]

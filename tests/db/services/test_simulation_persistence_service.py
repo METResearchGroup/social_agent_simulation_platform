@@ -1,5 +1,6 @@
 """Tests for SimulationPersistenceService."""
 
+import json
 from contextlib import contextmanager
 from unittest.mock import Mock
 
@@ -13,6 +14,7 @@ from db.services.simulation_persistence_service import (
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.persisted_actions import PersistedFollow
 from simulation.core.models.runs import RunStatus
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from tests.factories import (
     GeneratedCommentFactory,
     GeneratedFeedFactory,
@@ -69,6 +71,11 @@ def mock_generated_feed_repo():
 
 
 @pytest.fixture
+def mock_turn_post_repo():
+    return Mock()
+
+
+@pytest.fixture
 def sample_turn_metadata():
     return TurnMetadataFactory.create(
         run_id="run_1",
@@ -77,6 +84,7 @@ def sample_turn_metadata():
             TurnAction.LIKE: 1,
             TurnAction.COMMENT: 0,
             TurnAction.FOLLOW: 0,
+            TurnAction.POST: 0,
         },
         created_at="2026-01-01T00:00:00",
     )
@@ -111,6 +119,7 @@ class TestCreateSimulationPersistenceService:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
     ):
         service = create_simulation_persistence_service(
             run_repo=mock_run_repo,
@@ -120,6 +129,7 @@ class TestCreateSimulationPersistenceService:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         assert isinstance(service, SimulationPersistenceService)
 
@@ -134,6 +144,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -146,6 +157,7 @@ class TestSimulationPersistenceServiceWriteTurn:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         service.write_turn(
             turn_metadata=sample_turn_metadata,
@@ -168,6 +180,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -179,6 +192,7 @@ class TestSimulationPersistenceServiceWriteTurn:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         service.write_turn(
             turn_metadata=sample_turn_metadata,
@@ -200,6 +214,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -216,6 +231,7 @@ class TestSimulationPersistenceServiceWriteTurn:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         with pytest.raises(DuplicateTurnMetadataError):
             service.write_turn(
@@ -233,6 +249,7 @@ class TestSimulationPersistenceServiceWriteTurn:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_turn_metadata,
         sample_turn_metrics,
     ):
@@ -245,6 +262,7 @@ class TestSimulationPersistenceServiceWriteTurn:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         with pytest.raises(RuntimeError):
             service.write_turn(
@@ -264,6 +282,7 @@ class TestSimulationPersistenceServiceWriteRun:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_run_metrics,
     ):
         """When write_run is called, write_run_metrics and update_run_status are invoked in one transaction."""
@@ -275,6 +294,7 @@ class TestSimulationPersistenceServiceWriteRun:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
@@ -298,6 +318,7 @@ class TestSimulationPersistenceServiceWriteRun:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_run_metrics,
     ):
         service = SimulationPersistenceService(
@@ -308,6 +329,7 @@ class TestSimulationPersistenceServiceWriteRun:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
         mock_metrics_repo.write_run_metrics.assert_called_once()
@@ -328,6 +350,7 @@ class TestSimulationPersistenceServiceWriteRun:
         mock_like_repo,
         mock_comment_repo,
         mock_follow_repo,
+        mock_turn_post_repo,
         sample_run_metrics,
     ):
         mock_metrics_repo.write_run_metrics.side_effect = RuntimeError("db error")
@@ -339,6 +362,7 @@ class TestSimulationPersistenceServiceWriteRun:
             like_repo=mock_like_repo,
             comment_repo=mock_comment_repo,
             follow_repo=mock_follow_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
         with pytest.raises(RuntimeError):
             service.write_run(run_id="run_1", run_metrics=sample_run_metrics)
@@ -354,6 +378,7 @@ class TestSimulationPersistenceServiceAtomicity:
         like_repo,
         comment_repo,
         follow_repo,
+        turn_post_repo,
     ):
         from db.adapters.sqlite.sqlite import SqliteTransactionProvider, get_connection
         from lib.agent_id import canonical_agent_id
@@ -389,6 +414,7 @@ class TestSimulationPersistenceServiceAtomicity:
                 TurnAction.LIKE: 1,
                 TurnAction.COMMENT: 1,
                 TurnAction.FOLLOW: 1,
+                TurnAction.POST: 0,
             },
             created_at="2026-01-01T00:00:00",
         )
@@ -417,6 +443,20 @@ class TestSimulationPersistenceServiceAtomicity:
             agent_id=agent_id,
             target_agent_id=canonical_agent_id("atomic-target.bsky.social"),
         )
+        turn_post = TurnPostSnapshot(
+            turn_post_id="tp_atomic_rollback",
+            run_id=run.run_id,
+            turn_number=0,
+            author_agent_id=agent_id,
+            author_handle_at_time="atomic-test-agent.bsky.social",
+            author_display_name_at_time="Atomic",
+            body_text="atomic turn post",
+            created_at="2026-01-01T00:00:00",
+            explanation="test",
+            model_used=None,
+            generation_metadata_json=json.dumps({"policy": "test"}),
+            generation_created_at="2026-01-01T00:00:00",
+        )
 
         class FailingFollowRepo(FollowRepository):
             def write_follows(self, *args, **kwargs) -> None:
@@ -435,6 +475,7 @@ class TestSimulationPersistenceServiceAtomicity:
             like_repo=like_repo,
             comment_repo=comment_repo,
             follow_repo=FailingFollowRepo(),
+            turn_post_repo=turn_post_repo,
         )
 
         with pytest.raises(RuntimeError, match="forced follow write failure"):
@@ -445,6 +486,7 @@ class TestSimulationPersistenceServiceAtomicity:
                 likes=[like],
                 comments=[comment],
                 follows=[follow],
+                turn_posts=[turn_post],
             )
 
         assert run_repo.get_turn_metadata(run.run_id, 0) is None
@@ -453,3 +495,4 @@ class TestSimulationPersistenceServiceAtomicity:
         assert like_repo.read_likes_by_run_turn(run.run_id, 0) == []
         assert comment_repo.read_comments_by_run_turn(run.run_id, 0) == []
         assert follow_repo.read_follows_by_run_turn(run.run_id, 0) == []
+        assert turn_post_repo.list_turn_posts_for_run_at_turn(run.run_id, 0) == []

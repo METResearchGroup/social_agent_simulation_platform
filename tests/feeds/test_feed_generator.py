@@ -9,6 +9,7 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
 )
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
 from feeds.algorithms.interfaces import FeedAlgorithmResult
@@ -67,6 +68,13 @@ def mock_run_post_comment_repo():
     mock.count_comments_by_run_post_ids.side_effect = lambda run_id, run_post_ids: {
         pid: 0 for pid in run_post_ids
     }
+    return mock
+
+
+@pytest.fixture
+def mock_turn_post_repo():
+    mock = Mock(spec=TurnPostRepository)
+    mock.read_turn_posts_by_ids.return_value = []
     return mock
 
 
@@ -278,6 +286,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -303,6 +312,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -331,6 +341,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -353,6 +364,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -369,6 +381,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ) -> None:
@@ -389,6 +402,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         hydrated = result.hydrated_feeds_by_agent[sample_agent.handle]
@@ -406,6 +420,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -441,6 +456,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -462,6 +478,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -485,6 +502,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -503,6 +521,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -525,6 +544,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -543,6 +563,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -565,6 +586,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -584,6 +606,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
     ):
         """Test that generate_feeds handles empty agent list."""
         # Arrange
@@ -603,6 +626,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -619,6 +643,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
     ):
         """Test that generate_feeds handles empty candidate posts."""
@@ -641,6 +666,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -658,6 +684,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -680,6 +707,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -697,6 +725,7 @@ class TestGenerateFeeds:
         sample_agent,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
     ):
         """When run_post_repo is provided, hydration uses run_posts not feed_posts."""
         run_id = "run_123"
@@ -730,6 +759,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         mock_run_post_repo.read_run_posts_by_ids.assert_called_once()

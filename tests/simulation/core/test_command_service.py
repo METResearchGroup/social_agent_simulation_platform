@@ -172,7 +172,10 @@ def command_service(
             run_post_like_repo=mock_repos["run_post_like_repo"],
             run_post_comment_repo=mock_repos["run_post_comment_repo"],
         ),
-        turn=TurnRepos(generated_feed_repo=mock_repos["generated_feed_repo"]),
+        turn=TurnRepos(
+            generated_feed_repo=mock_repos["generated_feed_repo"],
+            turn_post_repo=mock_repos["turn_post_repo"],
+        ),
         profile_repo=mock_repos["profile_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         transaction_provider=mock_transaction_provider,
@@ -737,6 +740,10 @@ class TestSimulationCommandServiceExecuteRun:
                 "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
             ),
+            patch(
+                "simulation.core.services.command_service.generate_posts",
+                Mock(return_value=[]),
+            ),
         ):
             action_history_store = Mock()
             result = command_service._simulate_turn(
@@ -850,6 +857,10 @@ class TestSimulationCommandServiceExecuteRun:
                 "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
             ),
+            patch(
+                "simulation.core.services.command_service.generate_posts",
+                Mock(return_value=[]),
+            ),
         ):
             action_history_store = Mock()
             result = command_service._simulate_turn(
@@ -865,6 +876,7 @@ class TestSimulationCommandServiceExecuteRun:
             TurnAction.LIKE: 0,
             TurnAction.COMMENT: 0,
             TurnAction.FOLLOW: 0,
+            TurnAction.POST: 0,
         }
         assert result.total_actions == expected_total_actions
         mock_generate_likes.assert_called_once_with(
@@ -935,14 +947,18 @@ class TestSimulationCommandServiceExecuteRun:
         mock_repos["run_repo"].get_run.return_value = sample_run
 
         action_history_store = InMemoryActionHistoryStore()
-        result = command_service._simulate_turn(
-            run=sample_run,
-            turn_number=0,
-            agents=[agent],
-            feed_algorithm="chronological",
-            action_history_store=action_history_store,
-            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
-        )
+        with patch(
+            "simulation.core.services.command_service.generate_posts",
+            Mock(return_value=[]),
+        ):
+            result = command_service._simulate_turn(
+                run=sample_run,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+                action_history_store=action_history_store,
+                turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
+            )
 
         expected_min_likes = 1
         assert result.total_actions[TurnAction.LIKE] >= expected_min_likes
@@ -959,6 +975,7 @@ class TestSimulationCommandServiceActionPersistence:
         like_repo,
         comment_repo,
         follow_repo,
+        turn_post_repo,
     ):
         """Execute one turn with real persistence; assert likes/comments/follows are persisted."""
         from db.adapters.sqlite.sqlite import SqliteTransactionProvider
@@ -978,6 +995,7 @@ class TestSimulationCommandServiceActionPersistence:
             like_repo=like_repo,
             comment_repo=comment_repo,
             follow_repo=follow_repo,
+            turn_post_repo=turn_post_repo,
         )
         with transaction_provider.run_transaction() as conn:
             for handle in ("agent1.bsky.social", "user2.bsky.social"):
@@ -1104,7 +1122,10 @@ class TestSimulationCommandServiceActionPersistence:
                 run_post_like_repo=Mock(),
                 run_post_comment_repo=Mock(),
             ),
-            turn=TurnRepos(generated_feed_repo=generated_feed_repo),
+            turn=TurnRepos(
+                generated_feed_repo=generated_feed_repo,
+                turn_post_repo=turn_post_repo,
+            ),
             profile_repo=Mock(),
             feed_post_repo=Mock(),
             transaction_provider=transaction_provider,
@@ -1135,6 +1156,10 @@ class TestSimulationCommandServiceActionPersistence:
             patch(
                 "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
+            ),
+            patch(
+                "simulation.core.services.command_service.generate_posts",
+                Mock(return_value=[]),
             ),
         ):
             command_service._simulate_turn(
