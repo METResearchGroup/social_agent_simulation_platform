@@ -43,6 +43,7 @@ Notes:
 
 - `SIM_DB_PATH` is read by the app at runtime and is the recommended SQLite path override for Railway.
 - If you use a different mount path, set `SIM_DB_PATH` accordingly.
+- **Supabase auth:** Set `SUPABASE_JWT_SECRET` from the Supabase dashboard (JWT secret). If your project issues **asymmetric** user access tokens (for example **RS256**), also set `SUPABASE_URL` to your project base URL (the same host as the UI’s `NEXT_PUBLIC_SUPABASE_URL`, e.g. `https://<project-ref>.supabase.co`) so the API can verify tokens via `/.well-known/jwks.json`.
 - The Docker build uses `uv sync --frozen` only when `uv.lock` exists; otherwise it falls back to `uv sync --no-dev`.
 
 ## Deploy With Railway CLI

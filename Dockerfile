@@ -5,7 +5,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+# litellm is installed from git (pyproject.toml); uv needs git during sync.
+# Pin matches Debian bookworm (python:3.12-slim); bump when the base image moves.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git=1:2.39.5-0+deb12u3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /usr/sbin/nologin appuser \
     && pip install --no-cache-dir 'uv==0.10.3'
 
 COPY . /app

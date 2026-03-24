@@ -22,6 +22,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "sqlalchemy>=2.0.45",
     "ruff>=0.14.14",
+    "cryptography>=45.0.7",
 ]
 
 [project.optional-dependencies]
