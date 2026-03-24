@@ -31,7 +31,7 @@ from simulation.api.dependencies.auth import (
 )
 from simulation.api.routes.simulation import router as simulation_router
 from simulation.local_dev.local_mode import disallow_local_mode_in_production
-from simulation.local_dev.seed_loader import seed_local_db_if_needed
+from simulation.local_dev.seed_loader import seed_database_from_fixtures_if_needed
 
 DEFAULT_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
@@ -55,7 +55,7 @@ def _ensure_local_seed_data() -> None:
     """When in local mode, ensure seed data is loaded in the dummy DB."""
     db_path = get_db_path()
     logger.info("LOCAL=true: ensuring seed data in dummy DB at %s", db_path)
-    seed_local_db_if_needed(db_path=db_path)
+    seed_database_from_fixtures_if_needed(db_path=db_path)
 
 
 @asynccontextmanager

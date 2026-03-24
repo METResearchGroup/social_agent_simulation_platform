@@ -10,6 +10,7 @@ from simulation.api.main import app
 from simulation.local_dev.seed_loader import (
     FIXTURES_DIR,
     _fixtures_digest,
+    seed_database_from_fixtures_if_needed,
     seed_local_db_if_needed,
 )
 
@@ -135,7 +136,54 @@ class TestLocalModeSeed:
         assert agent_post_likes_count_after == agent_post_likes_count_before
         assert agent_post_comments_count_after == agent_post_comments_count_before
 
-        assert any("Local seed already applied" in r.message for r in caplog.records)
+        assert any("Seed already applied" in r.message for r in caplog.records)
+
+    def test_seed_database_from_fixtures_if_needed__idempotent_without_local_env(
+        self, temp_db, monkeypatch, caplog
+    ) -> None:
+        """New entry point works without LOCAL=true (non-local callers)."""
+        monkeypatch.delenv("LOCAL", raising=False)
+        caplog.clear()
+        caplog.set_level("INFO")
+
+        seed_database_from_fixtures_if_needed(
+            db_path=temp_db, fixtures_dir=FIXTURES_DIR
+        )
+
+        alice_agent_id = canonical_agent_id("agent_0240dc0d4a4c7e73")
+        conn = sqlite3.connect(temp_db)
+        try:
+            row = conn.execute(
+                "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
+            ).fetchone()
+            assert row is not None
+            assert row[0] == _fixtures_digest(FIXTURES_DIR)
+            runs_count = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+            assert runs_count > 0
+            alice_posts_count = conn.execute(
+                "SELECT COUNT(*) FROM agent_posts WHERE agent_id = ?",
+                (alice_agent_id,),
+            ).fetchone()[0]
+            assert alice_posts_count > 0
+        finally:
+            conn.close()
+
+        seed_database_from_fixtures_if_needed(
+            db_path=temp_db, fixtures_dir=FIXTURES_DIR
+        )
+
+        conn = sqlite3.connect(temp_db)
+        try:
+            digest_after = conn.execute(
+                "SELECT value FROM local_seed_meta WHERE key = 'fixtures_sha256'"
+            ).fetchone()[0]
+            runs_after = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+        finally:
+            conn.close()
+
+        assert digest_after == _fixtures_digest(FIXTURES_DIR)
+        assert runs_after == runs_count
+        assert any("Seed already applied" in r.message for r in caplog.records)
 
     def test_api_endpoints__db_backed_with_seeded_db(
         self, temp_db, monkeypatch

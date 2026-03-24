@@ -1,11 +1,17 @@
-"""Local-dev seed data loader.
+"""Seed data loader for JSON fixtures under `simulation/local_dev/seed_fixtures/`.
 
-Loads deterministic JSON fixtures into a SQLite database for LOCAL=true workflows.
+This module is the **canonical** code path for loading those fixtures into a SQLite
+database: local dev (`LOCAL=true`) and future non-local bootstrap (e.g. deploy) must
+use the same entry point—there is no second fixture root.
+
+`seed_database_from_fixtures_if_needed` is the public API (`db_path` + optional
+`fixtures_dir`). `seed_local_db_if_needed` is a stable alias with the same
+signature.
 
 Seed policy:
 - Seed once: if the DB has a matching fixtures digest, do nothing.
 - If the DB is already seeded with a different digest, do not overwrite; log a warning
-  and instruct the developer to reset via LOCAL_RESET_DB=1.
+  and instruct the developer to reset via LOCAL_RESET_DB=1 (local workflow).
 """
 
 from __future__ import annotations
@@ -253,10 +259,13 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     )
 
 
-def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) -> None:
-    """Seed the database at db_path from fixtures_dir if not already seeded.
+def seed_database_from_fixtures_if_needed(
+    *, db_path: str, fixtures_dir: Path = FIXTURES_DIR
+) -> None:
+    """Seed the database at ``db_path`` from ``fixtures_dir`` if not already seeded.
 
-    This function assumes Alembic migrations have already been applied to db_path.
+    Does not require ``LOCAL=true``; callers supply an explicit ``db_path``. This
+    function assumes Alembic migrations have already been applied to ``db_path``.
     """
     fixtures_dir = fixtures_dir.resolve()
     digest = _fixtures_digest(fixtures_dir)
@@ -269,13 +278,14 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
         _ensure_seed_meta(conn)
         existing = _get_seed_meta(conn, "fixtures_sha256")
         if existing == digest:
-            logger.info("Local seed already applied (fixtures_sha256=%s).", digest)
+            logger.info("Seed already applied (fixtures_sha256=%s).", digest)
             return
         if existing is not None and existing != digest:
             logger.warning(
-                "Local DB already seeded with different fixtures. "
+                "Database already seeded with different fixtures (db_path=%s). "
                 "existing_fixtures_sha256=%s current_fixtures_sha256=%s. "
                 "Refusing to overwrite; run with LOCAL_RESET_DB=1 to reset.",
+                db_path,
                 existing,
                 digest,
             )
@@ -532,9 +542,17 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
             raise
 
         logger.info(
-            "Seeded local DB from fixtures. db_path=%s fixtures_sha256=%s",
+            "Seeded database from fixtures. db_path=%s fixtures_sha256=%s",
             db_path,
             digest,
         )
     finally:
         conn.close()
+
+
+def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) -> None:
+    """Alias for :func:`seed_database_from_fixtures_if_needed` (same behavior).
+
+    Prefer importing :func:`seed_database_from_fixtures_if_needed` for new code.
+    """
+    seed_database_from_fixtures_if_needed(db_path=db_path, fixtures_dir=fixtures_dir)
