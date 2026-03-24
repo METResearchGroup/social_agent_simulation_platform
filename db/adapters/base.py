@@ -334,7 +334,7 @@ class RunPostDatabaseAdapter(ABC):
 
 
 class TurnPostDatabaseAdapter(ABC):
-    """Abstract interface for turn-authored post rows (read path)."""
+    """Abstract interface for turn-authored post rows."""
 
     @abstractmethod
     def read_turn_posts_by_ids(
@@ -346,6 +346,32 @@ class TurnPostDatabaseAdapter(ABC):
         If ``post_ids`` is empty (after materializing the iterable), returns an
         empty list.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_posts_for_run_before_turn(
+        self, run_id: str, before_turn_number: int, *, conn: object
+    ) -> list[TurnPostSnapshot]:
+        """Rows with ``turn_number`` < ``before_turn_number``, ordered."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_posts_for_run_at_turn(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> list[TurnPostSnapshot]:
+        """Rows for a single ``turn_number``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_turn_posts(
+        self,
+        run_id: str,
+        turn_number: int,
+        rows: Iterable[TurnPostSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert ``turn_posts`` rows."""
         raise NotImplementedError
 
 

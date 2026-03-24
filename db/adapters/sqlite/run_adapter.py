@@ -44,7 +44,10 @@ def _parse_total_actions_from_row(row: sqlite3.Row) -> dict[TurnAction, int]:
             f"Could not parse total_actions as JSON for turns row: {e}"
         ) from e
     try:
-        return {TurnAction(k): v for k, v in total_actions_dict.items()}
+        merged: dict[TurnAction, int] = {action: 0 for action in TurnAction}
+        for k, v in total_actions_dict.items():
+            merged[TurnAction(k)] = int(v)
+        return merged
     except (ValueError, KeyError) as e:
         valid_keys = [action.value for action in TurnAction]
         raise ValueError(

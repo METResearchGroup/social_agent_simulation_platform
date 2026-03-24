@@ -53,6 +53,8 @@ def mock_repos():
 
     turn_post_repo = Mock(spec=TurnPostRepository)
     turn_post_repo.read_turn_posts_by_ids.return_value = []
+    turn_post_repo.list_turn_posts_for_run_before_turn.return_value = []
+    turn_post_repo.list_turn_posts_for_run_at_turn.return_value = []
 
     agent_post_repo = Mock(spec=AgentPostRepository)
     agent_post_repo.list_posts_for_agent_ids.return_value = []

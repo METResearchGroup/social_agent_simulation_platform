@@ -271,7 +271,10 @@ class TestServiceBuilders:
                 run_post_like_repo=Mock(spec=RunPostLikeRepository),
                 run_post_comment_repo=Mock(spec=RunPostCommentRepository),
             ),
-            turn=TurnRepos(generated_feed_repo=Mock(spec=GeneratedFeedRepository)),
+            turn=TurnRepos(
+                generated_feed_repo=Mock(spec=GeneratedFeedRepository),
+                turn_post_repo=Mock(spec=TurnPostRepository),
+            ),
             profile_repo=Mock(spec=ProfileRepository),
             feed_post_repo=Mock(spec=FeedPostRepository),
             transaction_provider=Mock(),

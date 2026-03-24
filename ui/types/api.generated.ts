@@ -609,7 +609,7 @@ export interface components {
          * @description Action types for a simulation turn.
          * @enum {string}
          */
-        TurnAction: "like" | "comment" | "follow";
+        TurnAction: "like" | "comment" | "follow" | "post";
         /**
          * TurnActionsItem
          * @description One turn summary with aggregate action counts.

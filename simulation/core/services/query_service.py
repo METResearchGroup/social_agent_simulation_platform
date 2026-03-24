@@ -21,6 +21,7 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.generated.post import GeneratedPost
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
@@ -35,6 +36,7 @@ from simulation.core.utils.turn_data_hydration import (
     persisted_comment_to_generated,
     persisted_follow_to_generated,
     persisted_like_to_generated,
+    turn_post_snapshot_to_generated,
 )
 from simulation.core.utils.validators import validate_run_id, validate_turn_number
 
@@ -145,8 +147,17 @@ class SimulationQueryService:
         like_rows = self.like_repo.read_likes_by_run_turn(run_id, turn_number)
         comment_rows = self.comment_repo.read_comments_by_run_turn(run_id, turn_number)
         follow_rows = self.follow_repo.read_follows_by_run_turn(run_id, turn_number)
+        turn_post_rows = self.turn_post_repo.list_turn_posts_for_run_at_turn(
+            run_id, turn_number
+        )
 
-        if not feeds and not like_rows and not comment_rows and not follow_rows:
+        if (
+            not feeds
+            and not like_rows
+            and not comment_rows
+            and not follow_rows
+            and not turn_post_rows
+        ):
             return None
 
         post_ids_set: set[str] = set()
@@ -156,6 +167,8 @@ class SimulationQueryService:
             post_ids_set.add(row.post_id)
         for row in comment_rows:
             post_ids_set.add(row.post_id)
+        for tp in turn_post_rows:
+            post_ids_set.add(tp.turn_post_id)
 
         post_ids_list = list(post_ids_set)
         post_id_to_post = hydrate_feed_visible_posts_for_run(
@@ -179,7 +192,8 @@ class SimulationQueryService:
             feed_records[agent_key] = feed
 
         actions_by_agent: dict[
-            str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
+            str,
+            list[GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost],
         ] = defaultdict(list)
         for row in like_rows:
             actions_by_agent[row.agent_id].append(persisted_like_to_generated(row))
@@ -187,9 +201,13 @@ class SimulationQueryService:
             actions_by_agent[row.agent_id].append(persisted_comment_to_generated(row))
         for row in follow_rows:
             actions_by_agent[row.agent_id].append(persisted_follow_to_generated(row))
+        for tp in turn_post_rows:
+            actions_by_agent[tp.author_agent_id].append(
+                turn_post_snapshot_to_generated(tp)
+            )
 
         def _action_sort_key(
-            a: GeneratedLike | GeneratedComment | GeneratedFollow,
+            a: GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost,
         ) -> tuple[str, str]:
             if isinstance(a, GeneratedLike):
                 return (a.like.post_id, a.like.like_id)
@@ -197,9 +215,11 @@ class SimulationQueryService:
                 return (a.comment.post_id, a.comment.comment_id)
             if isinstance(a, GeneratedFollow):
                 return (a.follow.target_agent_id, a.follow.follow_id)
+            if isinstance(a, GeneratedPost):
+                return (a.snapshot.created_at, a.snapshot.turn_post_id)
             raise TypeError(
                 f"_action_sort_key only supports GeneratedLike, GeneratedComment, "
-                f"GeneratedFollow; got unsupported action type {type(a)!r}"
+                f"GeneratedFollow, GeneratedPost; got unsupported action type {type(a)!r}"
             )
 
         actions_dict: dict[str, list] = {

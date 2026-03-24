@@ -10,6 +10,7 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.generated.post import GeneratedPost
 from simulation.core.models.posts import Post
 
 
@@ -79,7 +80,10 @@ class TurnData(BaseModel):
     agents: list[Any]  # SimulationAgent — Any avoids importing agents module here
     feeds: dict[str, list[Post]]
     feed_records: dict[str, GeneratedFeed]
-    actions: dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]]
+    actions: dict[
+        str,
+        list[GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost],
+    ]
 
     @field_validator("turn_number")
     @classmethod

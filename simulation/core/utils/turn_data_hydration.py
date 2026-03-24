@@ -7,11 +7,13 @@ from simulation.core.models.generated.base import GenerationMetadata
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.generated.post import GeneratedPost
 from simulation.core.models.persisted_actions import (
     PersistedComment,
     PersistedFollow,
     PersistedLike,
 )
+from simulation.core.models.turn_posts import TurnPostSnapshot
 
 DEFAULT_ACTION_EXPLANATION: str = "No explanation provided."
 
@@ -83,4 +85,22 @@ def persisted_follow_to_generated(row: PersistedFollow) -> GeneratedFollow:
         ),
         explanation=normalize_action_explanation(row.explanation),
         metadata=build_metadata(row),
+    )
+
+
+def turn_post_snapshot_to_generated(snapshot: TurnPostSnapshot) -> GeneratedPost:
+    """Build ``GeneratedPost`` from a persisted ``turn_posts`` row."""
+    meta_dict = (
+        json.loads(snapshot.generation_metadata_json)
+        if snapshot.generation_metadata_json
+        else None
+    )
+    return GeneratedPost(
+        snapshot=snapshot,
+        explanation=normalize_action_explanation(snapshot.explanation),
+        metadata=GenerationMetadata(
+            model_used=snapshot.model_used,
+            generation_metadata=meta_dict,
+            created_at=snapshot.generation_created_at or snapshot.created_at,
+        ),
     )

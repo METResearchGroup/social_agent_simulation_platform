@@ -13,6 +13,7 @@ from simulation.core.agent_actions import (
     generate_comments,
     generate_follows,
     generate_likes,
+    generate_posts,
 )
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
@@ -30,6 +31,7 @@ from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
 from simulation.core.services.command_service_bundles import (
@@ -443,6 +445,18 @@ class SimulationCommandService:
             total_actions[TurnAction.COMMENT] += len(comments)
             total_actions[TurnAction.FOLLOW] += len(follows)
 
+        turn_post_snapshots: list[TurnPostSnapshot] = generate_posts(
+            agents=agents,
+            run_id=run_id,
+            turn_number=turn_number,
+        )
+        self.agent_action_rules_validator.validate_turn_posts(
+            run_id=run_id,
+            turn_number=turn_number,
+            posts=turn_post_snapshots,
+        )
+        total_actions[TurnAction.POST] = len(turn_post_snapshots)
+
         created_at: str = get_current_timestamp()
 
         turn_metadata = TurnMetadata(
@@ -471,6 +485,7 @@ class SimulationCommandService:
             likes=turn_likes,
             comments=turn_comments,
             follows=turn_follows,
+            turn_posts=turn_post_snapshots,
         )
 
         return TurnResult(
