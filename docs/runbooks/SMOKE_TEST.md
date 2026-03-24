@@ -63,6 +63,20 @@ SIMULATION_API_URL=<APP_URL> uv run pytest -m smoke tests/api/test_simulation_sm
 
 If `SIMULATION_API_URL` is not set, the smoke tests are **skipped** (they only run when explicitly pointed at a live server).
 
+## Local reset E2E (CI)
+
+The **`CI E2E (local reset)`** GitHub Actions workflow (`.github/workflows/ci-e2e.yml`) runs `tests/api/test_simulation_local_reset_e2e.py`: it uses a **temporary** `SIM_DB_PATH`, deletes any existing SQLite cluster, runs `initialize_database()` and `seed_database_from_fixtures_if_needed`, starts **uvicorn** in a subprocess with `DISABLE_AUTH=1`, and asserts HTTP **200** plus non-empty lists on `/health`, `/v1/simulations/metrics`, `/v1/simulations/feed-algorithms`, `/v1/simulations/runs`, and run detail + turns for the first listed run.
+
+**When it runs:** on pull requests that touch relevant paths (`simulation/**`, `db/**`, `tests/api/**`, `simulation/local_dev/seed_fixtures/**`, `simulation/bootstrap/**`, `Dockerfile`, `.github/workflows/**`); on every push to `main`/`master`; on `workflow_dispatch`; weekly on a schedule. It does **not** run in pre-commit.
+
+**Local run (when working on bootstrap, fixtures, or this test):**
+
+```bash
+PYTHONPATH=. uv run pytest tests/api/test_simulation_local_reset_e2e.py -q
+```
+
+In the default GitHub Actions **test** matrix, this module is **skipped**; the dedicated workflow sets `RUN_LOCAL_RESET_E2E=1` so the test runs there.
+
 ## What the suite checks
 
 - `GET /health` — anonymous; expects `{"status": "ok"}`.
@@ -74,3 +88,4 @@ If `SIMULATION_API_URL` is not set, the smoke tests are **skipped** (they only r
 - [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) — coordinated same-ref release and post-deploy checks
 - [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md) — API deploy and verification with cURL
 - [UI_DEPLOYMENT.md](./UI_DEPLOYMENT.md) — Vercel UI and `NEXT_PUBLIC_SIMULATION_API_URL`
+- [UPDATE_SEED_DATA.md](./UPDATE_SEED_DATA.md) — reset and re-seed the local dummy DB (`LOCAL=true` + `LOCAL_RESET_DB=1`)
