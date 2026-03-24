@@ -5,8 +5,9 @@ contract documented in:
 - docs/RULES.md (Persistence scopes)
 - docs/architecture/seed-state-run-snapshot-turn-events.md
 
-It is intentionally narrow: it validates only table naming + the presence or
-absence of `run_id`/`turn_number` columns for new tables.
+It is intentionally narrow: it validates table naming + the presence or
+absence of `run_id`/`turn_number` columns for new tables, and rejects a fixed set
+of legacy turn-event **table** names (SCHEMA-4).
 """
 
 from __future__ import annotations
@@ -23,6 +24,18 @@ LEGACY_SEED_STATE_TABLES: frozenset[str] = frozenset(
         "agent",
         "agent_persona_bios",
         "user_agent_profile_metadata",
+    }
+)
+
+# Pre-cutover turn-event table names. These must not reappear in db/schema.py;
+# steady state is `turns` plus the `turn_*` family (see architecture docs).
+LEGACY_TURN_EVENT_TABLE_NAMES: frozenset[str] = frozenset(
+    {
+        "turn_metadata",
+        "generated_feeds",
+        "likes",
+        "comments",
+        "follows",
     }
 )
 
@@ -99,6 +112,20 @@ def lint_metadata(metadata: sa.MetaData) -> list[Violation]:
     violations: list[Violation] = []
     for table in metadata.tables.values():
         name = table.name
+
+        if name in LEGACY_TURN_EVENT_TABLE_NAMES:
+            violations.append(
+                Violation(
+                    rule="SCHEMA-4",
+                    table_name=name,
+                    message=(
+                        "legacy turn-event table names are not an acceptable steady state; "
+                        "use `turns` and the `turn_*` family (e.g. turn_generated_feeds, "
+                        "turn_likes, turn_comments, turn_follows)."
+                    ),
+                )
+            )
+            continue
 
         if name.startswith("agent_") or name in LEGACY_SEED_STATE_TABLES:
             violations.extend(_lint_agent_table(table))

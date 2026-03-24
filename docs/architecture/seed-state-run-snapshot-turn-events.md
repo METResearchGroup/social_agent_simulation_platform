@@ -1,5 +1,5 @@
 ---
-description: Persistence scopes for seed state, run snapshots, and turn events—naming, lifecycle, and target turn-table parent model versus current schema.
+description: Persistence scopes for seed state, run snapshots, and turn events—naming, lifecycle, and the steady-state `turns` parent with `turn_*` history tables.
 tags: [architecture, data-model, simulation, turns, runs]
 ---
 
@@ -7,7 +7,9 @@ tags: [architecture, data-model, simulation, turns, runs]
 
 This document defines the **persistence scopes** used by the simulation platform. It exists to prevent a recurring failure mode: mixing editable “current state” data with immutable run history in one table family.
 
-**Turn-table v2:** Target table names and the `turns` parent story are frozen in [strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md](../../strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md). Post-ID rules (`run_post_id` vs `turn_post_id`) are summarized in [turn-feed-post-id-contract.md](turn-feed-post-id-contract.md). **`TurnAction.POST` / authored-post generation is deferred** to a later slice.
+**Steady state (current schema):** Per-turn history is stored under **`turns`** as the canonical parent row and **`turn_*`** tables for append-only outputs (`turn_generated_feeds`, `turn_likes`, `turn_comments`, `turn_follows`, `turn_metrics`, `turn_posts`). Post-ID rules (`run_post_id` vs `turn_post_id`) are summarized in [turn-feed-post-id-contract.md](turn-feed-post-id-contract.md). **`TurnAction.POST`** persists **`turn_posts`** in the same turn write as other artifacts; feed visibility for those posts starts in **the next turn** (strictly later `turn_number`).
+
+Design history and the v2 migration narrative remain in [strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md](../../strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md) for before/after context only.
 
 ## Canonical scopes
 
@@ -34,26 +36,19 @@ A run snapshot is the frozen copy of the relevant seed state captured **at run c
 
 Turn events are immutable per-turn outputs produced during a run. They represent “what happened during this run” and should never be edited to represent baseline state.
 
-- **Naming (target steady state):** per-turn tables use the `turn_*` prefix (`turn_generated_feeds`, `turn_likes`, `turn_comments`, `turn_follows`, `turn_metrics`, `turn_posts`). The canonical parent row is **`turns(run_id, turn_number)`** (replacing today’s `turn_metadata` convention).
-- **Lifecycle**: append-only; writes are run-scoped; rows include non-null `run_id` and non-null `turn_number`; target model parents all of these on `turns` via composite FK.
-- **Legacy-named turn-event tables (current `db/schema.py`, pre-cutover)**:
-  - `generated_feeds` → target `turn_generated_feeds`
-  - `likes` → target `turn_likes`
-  - `comments` → target `turn_comments`
-  - `follows` → target `turn_follows`
-  - `turn_metadata` → target `turns` (parent)
-  - `turn_metrics` → remains `turn_metrics`, but gains direct parentage on `turns` in the target model
+- **Naming (steady state):** per-turn tables use the `turn_*` prefix. The canonical parent is **`turns(run_id, turn_number)`**; child tables include `turn_generated_feeds`, `turn_likes`, `turn_comments`, `turn_follows`, `turn_metrics`, and `turn_posts`.
+- **Lifecycle**: append-only; writes are run-scoped; rows include non-null `run_id` and non-null `turn_number` where required; child tables reference `turns` via composite foreign keys.
+
+**Historical naming (migrations / old docs only):** Before the cutover, some concepts used different table names (`turn_metadata`, `generated_feeds`, bare `likes`, `comments`, `follows`). Those names are **not** acceptable for new schema at HEAD; they may appear in migration files or archived planning as historical record.
 
 ## How the current schema maps to scopes
-
-This document describes intended semantics. The **target** rename/parent story is the v2 hard cutover in [strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md](../../strategy_planning/2026-03-22_v2_refactor_turn_tables/proposal.md). The current table set in `db/schema.py` still uses legacy names in several places; scopes are unchanged—only naming and FK parentage move toward `turns` + `turn_*`.
 
 - **Run identity and run-level summaries**:
   - `runs` (run identity/config/status)
   - `run_metrics` (run-level derived outputs)
-- **Turn events (current names; see target list above)**:
-  - `turn_metadata`, `turn_metrics`
-  - `generated_feeds`, `likes`, `comments`, `follows`
+- **Turn history (steady-state names in `db/schema.py`)**:
+  - `turns` (parent row per `(run_id, turn_number)`)
+  - `turn_metrics`, `turn_generated_feeds`, `turn_likes`, `turn_comments`, `turn_follows`, `turn_posts`
 - **Seed state**:
   - `agent`, `agent_persona_bios`, `user_agent_profile_metadata`
 - **Out-of-scope / supporting tables** (not governed by the `agent_*`/`run_*`/`turn_*` convention):
@@ -63,8 +58,8 @@ This document describes intended semantics. The **target** rename/parent story i
 ## Core contract rules
 
 1. **Do not mix lifecycles inside one table.** If it should exist with no run, it is seed state. If it has `turn_number`, it is a turn event. If it must remain stable for history after edits, it must be snapshotted into `run_*` at run creation time.
-2. **Historical reads must not consult live seed state for behaviorally relevant values.** History pages and run replays should be backed by `run_*` and turn-event tables.
-3. **Do not overload event tables to store seed state.** The existing `likes/comments/follows` are turn events; they are not a place to store initialized “baseline” relationships.
+2. **Historical reads must not consult live seed state for behaviorally relevant values.** History pages and run replays should be backed by `run_*` and `turn_*` tables.
+3. **Do not overload event tables to store seed state.** `turn_likes`, `turn_comments`, and `turn_follows` are turn events; they are not a place to store initialized “baseline” relationships.
 
 ## Explicit bans (reviewer-fast-fail)
 

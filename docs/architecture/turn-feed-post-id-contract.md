@@ -20,9 +20,9 @@ There is **no** polymorphic foreign key from those columns to mixed tables. Inst
 ## Resolution: `run_post_id` vs `turn_post_id`
 
 - **`run_post_id`:** Identifies a post that comes from the **run-start snapshot** (`run_posts` and the frozen baseline copied at run creation). These IDs point at immutable run-scoped post rows.
-- **`turn_post_id`:** Identifies a post **authored during a turn** and stored in **`turn_posts`** once that table exists. Same conceptual ID shape as other feed-visible IDs, but resolved against `turn_posts` rather than `run_posts`.
+- **`turn_post_id`:** Identifies a post **authored during a turn** and stored in **`turn_posts`**. Same conceptual ID shape as other feed-visible IDs, but resolved against `turn_posts` rather than `run_posts`.
 
-Readers (feed hydration, action display, replay) implement **one resolver** that accepts feed-visible IDs and loads from `run_posts`, `turn_posts`, or both as needed. Mixed `run_posts` + `turn_posts` hydration is required for the system to interpret feeds and actions once `turn_posts` exists; see the strategy proposal’s milestones on mixed post resolution.
+Readers (feed hydration, action display, replay) implement **one resolver** that accepts feed-visible IDs and loads from `run_posts`, `turn_posts`, or both as needed. Mixed `run_posts` + `turn_posts` hydration is required for the system to interpret feeds and actions; see the strategy proposal’s milestones on mixed post resolution.
 
 ### Resolution algorithm (application layer)
 
@@ -44,4 +44,4 @@ Readers (feed hydration, action display, replay) implement **one resolver** that
 ## Related docs
 
 - [agents-turns-runs-data-model.md](agents-turns-runs-data-model.md) — `Agent*`, `Run*`, and `Turn*` taxonomy
-- [seed-state-run-snapshot-turn-events.md](seed-state-run-snapshot-turn-events.md) — scope boundaries and legacy vs target table names
+- [seed-state-run-snapshot-turn-events.md](seed-state-run-snapshot-turn-events.md) — scope boundaries and steady-state `turn_*` tables
