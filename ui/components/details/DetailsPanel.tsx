@@ -82,6 +82,7 @@ export default function DetailsPanel() {
 
   return (
     <TurnDetailContent
+      runId={selectedRun.runId}
       currentTurn={currentTurn}
       currentRunConfig={currentRunConfig}
       runAgents={runAgents}
@@ -120,6 +121,7 @@ function getPostIdsFromTurn(turn: Turn): string[] {
 }
 
 interface TurnDetailContentProps {
+  runId: string;
   currentTurn: Turn;
   currentRunConfig: RunConfig | null;
   runAgents: Agent[];
@@ -129,6 +131,7 @@ interface TurnDetailContentProps {
 }
 
 function TurnDetailContent({
+  runId,
   currentTurn,
   currentRunConfig,
   runAgents,
@@ -170,7 +173,7 @@ function TurnDetailContent({
   useEffect(() => {
     setAgentsPageIndex(0);
     setExpandedAgentByHandle({});
-  }, [currentTurn.turnNumber]);
+  }, [runId, currentTurn.turnNumber]);
 
   useEffect(() => {
     if (agentsPageIndex !== clampedAgentPage) {
@@ -277,6 +280,7 @@ function TurnDetailContent({
               : [];
             const agentActions = actionsByHandle[handleKey] ?? [];
             const isExpanded = expandedAgentByHandle[agent.handle] === true;
+            const agentDetailPanelId = `agent-detail-${normalizeHandle(agent.handle)}`;
 
             return (
               <div
@@ -285,6 +289,8 @@ function TurnDetailContent({
               >
                 <button
                   type="button"
+                  aria-expanded={isExpanded}
+                  aria-controls={agentDetailPanelId}
                   onClick={() => toggleAgentExpanded(agent.handle)}
                   className="w-full text-left flex items-center justify-between gap-2 p-3 hover:bg-beige-100 transition-colors"
                 >
@@ -300,16 +306,21 @@ function TurnDetailContent({
                     {isExpanded ? '▼' : '▶'}
                   </span>
                 </button>
-                {isExpanded && (
-                  <div className="px-3 pb-3 border-t border-beige-200">
+                <div
+                  id={agentDetailPanelId}
+                  role="region"
+                  hidden={!isExpanded}
+                  className="px-3 pb-3 border-t border-beige-200"
+                >
+                  {isExpanded && (
                     <AgentDetail
                       agent={agent}
                       feed={feedPosts}
                       actions={agentActions}
                       postsById={postsById}
                     />
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
