@@ -10,6 +10,9 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { getTurnsErrorMessage } from '@/lib/error-messages';
 import { Agent, AgentAction, ApiError, Feed, Post, RunConfig, Turn } from '@/types';
 
+/** Client-side pagination for turn participating agents (no API change). */
+const TURN_DETAIL_AGENTS_PAGE_SIZE = 5;
+
 export default function DetailsPanel() {
   const {
     selectedRun,
@@ -141,6 +144,10 @@ function TurnDetailContent({
     () => buildActionsByHandle(currentTurn),
     [currentTurn],
   );
+  const participatingAgents: Agent[] = useMemo(
+    () => getParticipatingAgents(currentTurn, runAgents),
+    [currentTurn, runAgents],
+  );
   const postIds: string[] = useMemo(
     () => getPostIdsFromTurn(currentTurn),
     [currentTurn],
@@ -149,6 +156,27 @@ function TurnDetailContent({
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<Error | null>(null);
   const requestIdRef = useRef(0);
+  const [agentsPageIndex, setAgentsPageIndex] = useState(0);
+  const [expandedAgentByHandle, setExpandedAgentByHandle] = useState<
+    Record<string, boolean>
+  >({});
+
+  const totalAgentPages = Math.max(
+    1,
+    Math.ceil(participatingAgents.length / TURN_DETAIL_AGENTS_PAGE_SIZE),
+  );
+  const clampedAgentPage = Math.min(agentsPageIndex, totalAgentPages - 1);
+
+  useEffect(() => {
+    setAgentsPageIndex(0);
+    setExpandedAgentByHandle({});
+  }, [currentTurn.turnNumber]);
+
+  useEffect(() => {
+    if (agentsPageIndex !== clampedAgentPage) {
+      setAgentsPageIndex(clampedAgentPage);
+    }
+  }, [agentsPageIndex, clampedAgentPage]);
 
   const loadPosts = useCallback(async () => {
     if (postIds.length === 0) {
@@ -209,23 +237,37 @@ function TurnDetailContent({
     );
   }
 
-  const participatingAgents: Agent[] = getParticipatingAgents(
-    currentTurn,
-    runAgents,
+  const pageStart = clampedAgentPage * TURN_DETAIL_AGENTS_PAGE_SIZE;
+  const pageEnd = Math.min(
+    pageStart + TURN_DETAIL_AGENTS_PAGE_SIZE,
+    participatingAgents.length,
   );
+  const pagedAgents = participatingAgents.slice(
+    pageStart,
+    pageStart + TURN_DETAIL_AGENTS_PAGE_SIZE,
+  );
+  const showAgentPagination =
+    participatingAgents.length > TURN_DETAIL_AGENTS_PAGE_SIZE;
+
+  const toggleAgentExpanded = (handle: string) => {
+    setExpandedAgentByHandle((prev) => ({
+      ...prev,
+      [handle]: !prev[handle],
+    }));
+  };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <RunParametersBlock
         config={currentRunConfig}
         runDetailsLoading={runDetailsLoading}
         runDetailsError={runDetailsError}
         onRetryRunDetails={onRetryRunDetails}
       />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col">
         <h3 className="text-lg font-medium text-beige-900 mb-4">Agents</h3>
-        <div className="space-y-4">
-          {participatingAgents.map((agent) => {
+        <div className="space-y-4 flex-1 min-h-0">
+          {pagedAgents.map((agent) => {
             const handleKey = normalizeHandle(agent.handle);
             const feed = feedsByHandle[handleKey];
             const feedPosts: Post[] = feed
@@ -234,22 +276,80 @@ function TurnDetailContent({
                   .filter((post): post is Post => post !== undefined)
               : [];
             const agentActions = actionsByHandle[handleKey] ?? [];
+            const isExpanded = expandedAgentByHandle[agent.handle] === true;
 
             return (
-              <div key={agent.handle} className="border border-beige-300 rounded-lg p-3">
-                <div className="font-medium text-beige-900 mb-2">
-                  Agent {agent.name}
-                </div>
-                <AgentDetail
-                  agent={agent}
-                  feed={feedPosts}
-                  actions={agentActions}
-                  postsById={postsById}
-                />
+              <div
+                key={agent.handle}
+                className="border border-beige-300 rounded-lg overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleAgentExpanded(agent.handle)}
+                  className="w-full text-left flex items-center justify-between gap-2 p-3 hover:bg-beige-100 transition-colors"
+                >
+                  <div className="flex flex-col items-start min-w-0 flex-1">
+                    <span className="text-sm font-medium text-beige-900">
+                      {agent.name}
+                    </span>
+                    <span className="text-xs text-beige-600">
+                      @{normalizeHandle(agent.handle)}
+                    </span>
+                  </div>
+                  <span className="text-beige-600 shrink-0" aria-hidden>
+                    {isExpanded ? '▼' : '▶'}
+                  </span>
+                </button>
+                {isExpanded && (
+                  <div className="px-3 pb-3 border-t border-beige-200">
+                    <AgentDetail
+                      agent={agent}
+                      feed={feedPosts}
+                      actions={agentActions}
+                      postsById={postsById}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+        {showAgentPagination && (
+          <div className="mt-4 pt-4 border-t border-beige-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0">
+            <div className="text-sm text-beige-700">
+              Page {clampedAgentPage + 1} of {totalAgentPages}
+              <span className="text-beige-500">
+                {' '}
+                · Showing {pageStart + 1}–{pageEnd} of{' '}
+                {participatingAgents.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={clampedAgentPage === 0}
+                onClick={() =>
+                  setAgentsPageIndex((p) => Math.max(0, p - 1))
+                }
+                className="px-3 py-1.5 text-sm font-medium rounded border border-beige-300 text-beige-800 hover:bg-beige-100 disabled:opacity-40 disabled:pointer-events-none"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                disabled={clampedAgentPage >= totalAgentPages - 1}
+                onClick={() =>
+                  setAgentsPageIndex((p) =>
+                    Math.min(totalAgentPages - 1, p + 1),
+                  )
+                }
+                className="px-3 py-1.5 text-sm font-medium rounded border border-beige-300 text-beige-800 hover:bg-beige-100 disabled:opacity-40 disabled:pointer-events-none"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
