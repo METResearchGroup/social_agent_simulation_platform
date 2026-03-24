@@ -77,3 +77,24 @@ class TestLintSchemaConventions:
 
         expected_result = True
         assert any(v.rule == "SCHEMA-3" for v in violations) is expected_result
+
+    def test_rejects_legacy_turn_event_table_names(self):
+        """Steady state must not reintroduce pre-cutover turn-event table names."""
+        from scripts import lint_schema_conventions
+
+        for legacy_name in sorted(
+            lint_schema_conventions.LEGACY_TURN_EVENT_TABLE_NAMES
+        ):
+            md = sa.MetaData()
+            sa.Table(
+                legacy_name,
+                md,
+                sa.Column("run_id", sa.Text(), nullable=False),
+                sa.Column("turn_number", sa.Integer(), nullable=False),
+            )
+
+            violations = lint_schema_conventions.lint_metadata(md)
+
+            assert any(
+                v.rule == "SCHEMA-4" and v.table_name == legacy_name for v in violations
+            )
