@@ -1,5 +1,6 @@
 """Tests for SimulationPersistenceService."""
 
+import json
 from contextlib import contextmanager
 from unittest.mock import Mock
 
@@ -13,6 +14,7 @@ from db.services.simulation_persistence_service import (
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.persisted_actions import PersistedFollow
 from simulation.core.models.runs import RunStatus
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from tests.factories import (
     GeneratedCommentFactory,
     GeneratedFeedFactory,
@@ -441,6 +443,20 @@ class TestSimulationPersistenceServiceAtomicity:
             agent_id=agent_id,
             target_agent_id=canonical_agent_id("atomic-target.bsky.social"),
         )
+        turn_post = TurnPostSnapshot(
+            turn_post_id="tp_atomic_rollback",
+            run_id=run.run_id,
+            turn_number=0,
+            author_agent_id=agent_id,
+            author_handle_at_time="atomic-test-agent.bsky.social",
+            author_display_name_at_time="Atomic",
+            body_text="atomic turn post",
+            created_at="2026-01-01T00:00:00",
+            explanation="test",
+            model_used=None,
+            generation_metadata_json=json.dumps({"policy": "test"}),
+            generation_created_at="2026-01-01T00:00:00",
+        )
 
         class FailingFollowRepo(FollowRepository):
             def write_follows(self, *args, **kwargs) -> None:
@@ -470,6 +486,7 @@ class TestSimulationPersistenceServiceAtomicity:
                 likes=[like],
                 comments=[comment],
                 follows=[follow],
+                turn_posts=[turn_post],
             )
 
         assert run_repo.get_turn_metadata(run.run_id, 0) is None
@@ -478,3 +495,4 @@ class TestSimulationPersistenceServiceAtomicity:
         assert like_repo.read_likes_by_run_turn(run.run_id, 0) == []
         assert comment_repo.read_comments_by_run_turn(run.run_id, 0) == []
         assert follow_repo.read_follows_by_run_turn(run.run_id, 0) == []
+        assert turn_post_repo.list_turn_posts_for_run_at_turn(run.run_id, 0) == []

@@ -45,7 +45,18 @@ def generate_feeds(
         turn_number: The turn number for this simulation.
         generated_feed_repo: Repository for writing generated feeds.
         feed_algorithm: Algorithm name to use (must be registered in feeds.algorithms).
-        run_post_repo: Load candidates and hydrate from run_posts.
+        run_post_repo: Load run-start post snapshots and like/comment counts for
+            seed-state candidates.
+        run_post_like_repo: Like counts keyed by ``run_post_id`` for run snapshot posts.
+        run_post_comment_repo: Reply counts keyed by ``run_post_id`` for run snapshot posts.
+        turn_post_repo: Load prior-turn authored posts (``turn_posts`` with
+            ``turn_number`` < ``turn_number``) for candidate hydration alongside
+            ``run_posts``.
+        feed_algorithm_config: Optional algorithm-specific configuration.
+
+    Candidate loading merges ``run_posts`` and eligible ``turn_posts`` (see
+    ``load_candidate_posts``): run snapshot posts come first, then turn-authored
+    posts; ``run_posts`` wins if the same id exists in both stores.
 
     Returns:
         Dictionary mapping agent handles to lists of hydrated Post objects.

@@ -398,7 +398,10 @@ class TurnPostRepository(ABC):
     def list_turn_posts_for_run_at_turn(
         self, run_id: str, turn_number: int
     ) -> list[TurnPostSnapshot]:
-        """List turn posts authored exactly on ``turn_number`` for ``run_id``."""
+        """List turn posts authored exactly on ``turn_number`` for ``run_id``.
+
+        Ordered by ``turn_post_id`` ascending (``ORDER BY turn_post_id``).
+        """
         raise NotImplementedError
 
     @abstractmethod

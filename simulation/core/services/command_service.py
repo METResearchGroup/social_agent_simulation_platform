@@ -445,10 +445,13 @@ class SimulationCommandService:
             total_actions[TurnAction.COMMENT] += len(comments)
             total_actions[TurnAction.FOLLOW] += len(follows)
 
+        created_at: str = get_current_timestamp()
+
         turn_post_snapshots: list[TurnPostSnapshot] = generate_posts(
             agents=agents,
             run_id=run_id,
             turn_number=turn_number,
+            sim_timestamp=created_at,
         )
         self.agent_action_rules_validator.validate_turn_posts(
             run_id=run_id,
@@ -456,8 +459,6 @@ class SimulationCommandService:
             posts=turn_post_snapshots,
         )
         total_actions[TurnAction.POST] = len(turn_post_snapshots)
-
-        created_at: str = get_current_timestamp()
 
         turn_metadata = TurnMetadata(
             run_id=run_id,

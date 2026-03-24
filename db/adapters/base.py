@@ -359,7 +359,7 @@ class TurnPostDatabaseAdapter(ABC):
     def list_turn_posts_for_run_at_turn(
         self, run_id: str, turn_number: int, *, conn: object
     ) -> list[TurnPostSnapshot]:
-        """Rows for a single ``turn_number``."""
+        """Rows for a single ``turn_number``, ordered by ``turn_post_id`` ascending."""
         raise NotImplementedError
 
     @abstractmethod

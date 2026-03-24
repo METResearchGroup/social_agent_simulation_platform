@@ -85,6 +85,7 @@ def generate_posts(
     agents: list[SimulationAgent],
     run_id: str,
     turn_number: int,
+    sim_timestamp: str,
 ) -> list[TurnPostSnapshot]:
     """Generate turn-authored post snapshots (capped per author)."""
     return generate_turn_post_snapshots(
@@ -92,4 +93,5 @@ def generate_posts(
         run_id=run_id,
         turn_number=turn_number,
         max_per_author=MAX_AUTHORED_POSTS_PER_TURN,
+        sim_timestamp=sim_timestamp,
     )

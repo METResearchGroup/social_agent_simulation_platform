@@ -72,7 +72,11 @@ class SQLiteTurnPostAdapter(TurnPostDatabaseAdapter):
             """,
             (run_id, before_turn_number),
         ).fetchall()
-        return [self._row_to_turn_post_snapshot(r) for r in rows]
+        result: list[TurnPostSnapshot] = []
+        for r in rows:
+            self._validate_turn_post_row(r)
+            result.append(self._row_to_turn_post_snapshot(r))
+        return result
 
     def list_turn_posts_for_run_at_turn(
         self, run_id: str, turn_number: int, *, conn: sqlite3.Connection
@@ -85,7 +89,11 @@ class SQLiteTurnPostAdapter(TurnPostDatabaseAdapter):
             """,
             (run_id, turn_number),
         ).fetchall()
-        return [self._row_to_turn_post_snapshot(r) for r in rows]
+        result: list[TurnPostSnapshot] = []
+        for r in rows:
+            self._validate_turn_post_row(r)
+            result.append(self._row_to_turn_post_snapshot(r))
+        return result
 
     def write_turn_posts(
         self,
