@@ -71,6 +71,11 @@ async def lifespan(app: FastAPI):
 
     if is_local_mode():
         await asyncio.to_thread(_ensure_local_seed_data)
+    else:
+        logger.info(
+            "Non-local API startup: fixture seed not applied in uvicorn lifespan "
+            "(use LOCAL=true for the dummy dev DB, or Railway demo bootstrap before uvicorn)."
+        )
 
     app.state.deps = await asyncio.to_thread(build_app_context)
     yield
