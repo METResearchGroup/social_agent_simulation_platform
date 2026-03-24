@@ -11,7 +11,7 @@ from simulation.core.models.persisted_actions import PersistedComment
 
 
 class SQLiteCommentRepository(CommentRepository):
-    """SQLite implementation of CommentRepository."""
+    """SQLite implementation of CommentRepository (``turn_comments``)."""
 
     def __init__(
         self,
@@ -29,6 +29,7 @@ class SQLiteCommentRepository(CommentRepository):
         comments: Iterable[GeneratedComment],
         conn: object | None = None,
     ) -> None:
+        """Persist generated comments for one turn (runtime history, not seed state)."""
         if conn is not None:
             self._db_adapter.write_comments(run_id, turn_number, comments, conn=conn)
         else:

@@ -1,9 +1,9 @@
 """Helpers for the canonical ``turns`` parent row.
 
-``generate_feeds`` persists ``turn_generated_feeds`` before ``write_turn`` inserts the
-final ``turns`` row. A placeholder ``turns`` row (see ``TURN_PARENT_PLACEHOLDER_CREATED_AT``)
-satisfies composite foreign keys until ``SQLiteRunAdapter.write_turn_metadata`` replaces
-it with real turn metadata in the same transaction order as before.
+Some persistence paths insert a placeholder ``turns`` row so child rows in
+``turn_generated_feeds`` (and related ``turn_*`` action tables) satisfy foreign
+keys. ``SQLiteRunAdapter.write_turn_metadata`` replaces that stub or inserts the
+final row as part of the per-turn write flow.
 """
 
 from __future__ import annotations

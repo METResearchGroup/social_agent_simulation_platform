@@ -11,7 +11,7 @@ from simulation.core.models.persisted_actions import PersistedLike
 
 
 class SQLiteLikeRepository(LikeRepository):
-    """SQLite implementation of LikeRepository."""
+    """SQLite implementation of LikeRepository (``turn_likes``)."""
 
     def __init__(
         self,
@@ -29,6 +29,7 @@ class SQLiteLikeRepository(LikeRepository):
         likes: Iterable[GeneratedLike],
         conn: object | None = None,
     ) -> None:
+        """Persist generated likes for one turn (runtime history, not seed state)."""
         if conn is not None:
             self._db_adapter.write_likes(run_id, turn_number, likes, conn=conn)
         else:

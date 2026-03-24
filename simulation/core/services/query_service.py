@@ -36,7 +36,13 @@ from simulation.core.utils.validators import validate_run_id, validate_turn_numb
 
 
 class SimulationQueryService:
-    """Query service for retrieving simulation run and turn data."""
+    """Query service for retrieving simulation run and turn data.
+
+    Turn-scoped feeds and actions are loaded via repositories backed by
+    ``turn_generated_feeds`` and ``turn_likes`` / ``turn_comments`` /
+    ``turn_follows``. Post bodies for feed cards are resolved from ``run_posts``
+    snapshots; ``turn_posts`` is not used on this read path yet.
+    """
 
     def __init__(
         self,
@@ -113,9 +119,12 @@ class SimulationQueryService:
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
-        """Returns full turn data with feeds and posts.
+        """Return full turn data: feeds, hydrated posts, and actions.
 
-        ``feeds`` and ``actions`` maps are keyed by canonical ``agent_id`` only.
+        ``feeds``, ``feed_records``, and ``actions`` are keyed by canonical
+        ``agent_id`` only. Feeds and actions are read from the generated-feed
+        and action repositories (turn-scoped tables). Post text and metadata
+        come from ``run_post_repo`` for IDs referenced in feeds.
         """
         run = self.run_repo.get_run(run_id)
         if run is None:

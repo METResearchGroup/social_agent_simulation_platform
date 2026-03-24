@@ -1,6 +1,7 @@
 """Persisted action row models for run-scoped likes, comments, follows.
 
-These are pure data shapes used when reading/writing action tables.
+These are pure data shapes for rows in ``turn_likes``, ``turn_comments``, and
+``turn_follows`` (runtime simulation history, not immutable seed snapshots).
 No imports from db, feeds, or ai.
 """
 
@@ -10,7 +11,7 @@ from lib.validation_utils import validate_nonnegative_value
 
 
 class PersistedLike(BaseModel):
-    """Row shape for a persisted like action."""
+    """Row shape for a persisted like action (``turn_likes``)."""
 
     like_id: str
     run_id: str
@@ -30,7 +31,7 @@ class PersistedLike(BaseModel):
 
 
 class PersistedComment(BaseModel):
-    """Row shape for a persisted comment action."""
+    """Row shape for a persisted comment action (``turn_comments``)."""
 
     comment_id: str
     run_id: str
@@ -51,7 +52,7 @@ class PersistedComment(BaseModel):
 
 
 class PersistedFollow(BaseModel):
-    """Row shape for a persisted follow action."""
+    """Row shape for a persisted follow action (``turn_follows``)."""
 
     follow_id: str
     run_id: str

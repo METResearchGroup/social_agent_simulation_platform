@@ -47,7 +47,12 @@ def list_runs(*, engine: SimulationEngine) -> list[RunListItem]:
 def get_turns_for_run(
     *, run_id: str, engine: SimulationEngine
 ) -> dict[str, TurnSchema]:
-    """Build TurnSchema payloads from persisted turn metadata via ``get_turn_data``."""
+    """Build TurnSchema payloads from persisted turn metadata via ``get_turn_data``.
+
+    Turn list order comes from ``turns``-backed metadata; per-turn feeds and
+    actions match ``SimulationQueryService.get_turn_data`` (same repository
+    contracts as the core query service).
+    """
     validated_run_id = validate_run_id(run_id)
     run = engine.get_run(validated_run_id)
     if run is None:

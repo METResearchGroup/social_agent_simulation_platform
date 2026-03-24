@@ -15,7 +15,8 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
     """SQLite implementation of GeneratedFeedRepository.
 
     Uses dependency injection to accept a database adapter,
-    decoupling it from concrete implementations.
+    decoupling it from concrete implementations. Reads and writes map to
+    ``turn_generated_feeds``.
     """
 
     def __init__(

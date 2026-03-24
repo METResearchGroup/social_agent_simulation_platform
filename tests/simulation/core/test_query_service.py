@@ -1,4 +1,9 @@
-"""Tests for simulation.core.services.query_service module."""
+"""Tests for simulation.core.services.query_service module.
+
+Mocks stand in for repositories that, at runtime, read ``turn_generated_feeds``
+and ``turn_likes`` / ``turn_comments`` / ``turn_follows``; post hydration still
+uses ``run_posts`` snapshots via ``run_post_repo``.
+"""
 
 from unittest.mock import Mock
 

@@ -233,6 +233,9 @@ class RunRepository(ABC):
     def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
         """Get turn metadata for a specific run and turn.
 
+        Rows are stored in the ``turns`` table. Method names are historical; the
+        contract is one metadata row per (run_id, turn_number) in ``turns``.
+
         Args:
             run_id: The ID of the run
             turn_number: The turn number (0-indexed)
@@ -248,6 +251,8 @@ class RunRepository(ABC):
     @abstractmethod
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
         """List all turn metadata for a run in turn order.
+
+        Backed by the ``turns`` table, ordered by ``turn_number``.
 
         Args:
             run_id: The ID of the run
@@ -268,6 +273,8 @@ class RunRepository(ABC):
         conn: object | None = None,
     ) -> None:
         """Write turn metadata to the database.
+
+        Persists to the ``turns`` table (insert or replace placeholder stub rows).
 
         Args:
             turn_metadata: TurnMetadata model to write
@@ -343,7 +350,7 @@ class RunPostRepository(ABC):
 
         Args:
             run_id: The run to scope the lookup.
-            post_ids: Iterable of run_post_ids (from generated_feeds.post_ids).
+            post_ids: Iterable of run_post_ids (from ``turn_generated_feeds.post_ids``).
 
         Returns:
             List of RunPostSnapshot in the same order as post_ids, skipping missing.
@@ -750,7 +757,11 @@ class FeedPostRepository(ABC):
 
 
 class GeneratedFeedRepository(ABC):
-    """Abstract base class defining the interface for generated feed repositories."""
+    """Abstract interface for per-turn generated feeds.
+
+    Runtime persistence is the ``turn_generated_feeds`` table (one logical feed
+    per agent/run/turn composite key).
+    """
 
     @abstractmethod
     def write_generated_feed(
@@ -871,7 +882,7 @@ class GeneratedBioRepository(ABC):
 
 
 class LikeRepository(ABC):
-    """Abstract interface for persisted like actions (run-scoped)."""
+    """Abstract interface for persisted like actions (run-scoped, ``turn_likes``)."""
 
     @abstractmethod
     def write_likes(
@@ -893,7 +904,7 @@ class LikeRepository(ABC):
 
 
 class CommentRepository(ABC):
-    """Abstract interface for persisted comment actions (run-scoped)."""
+    """Abstract interface for persisted comment actions (run-scoped, ``turn_comments``)."""
 
     @abstractmethod
     def write_comments(
@@ -915,7 +926,7 @@ class CommentRepository(ABC):
 
 
 class FollowRepository(ABC):
-    """Abstract interface for persisted follow actions (run-scoped)."""
+    """Abstract interface for persisted follow actions (run-scoped, ``turn_follows``)."""
 
     @abstractmethod
     def write_follows(
