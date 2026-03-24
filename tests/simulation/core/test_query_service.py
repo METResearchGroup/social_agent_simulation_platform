@@ -1,8 +1,8 @@
 """Tests for simulation.core.services.query_service module.
 
 Mocks stand in for repositories that, at runtime, read ``turn_generated_feeds``
-and ``turn_likes`` / ``turn_comments`` / ``turn_follows``; post hydration still
-uses ``run_posts`` snapshots via ``run_post_repo``.
+and ``turn_likes`` / ``turn_comments`` / ``turn_follows``; post hydration uses
+``run_posts`` and ``turn_posts`` via ``run_post_repo`` and ``turn_post_repo``.
 """
 
 from unittest.mock import Mock
@@ -22,6 +22,7 @@ from tests.factories import (
     RunConfigFactory,
     RunPostSnapshotFactory,
     TurnMetadataFactory,
+    TurnPostSnapshotFactory,
 )
 
 SAMPLE_RUN_OVERRIDES = {"total_turns": 10, "total_agents": 5}
@@ -33,6 +34,7 @@ def query_service(mock_repos):
         run_repo=mock_repos["run_repo"],
         metrics_repo=mock_repos["metrics_repo"],
         run_post_repo=mock_repos["run_post_repo"],
+        turn_post_repo=mock_repos["turn_post_repo"],
         run_post_like_repo=mock_repos["run_post_like_repo"],
         run_post_comment_repo=mock_repos["run_post_comment_repo"],
         generated_feed_repo=mock_repos["generated_feed_repo"],
@@ -238,6 +240,82 @@ class TestSimulationQueryServiceGetTurnData:
         assert posts_agent2[0].post_id == "rp_3"
         assert posts_agent2[0].text == "Post 3"
 
+    def test_get_turn_data_hydrates_mixed_run_and_turn_post_ids(
+        self, query_service, mock_repos, sample_run
+    ):
+        agent_id = canonical_agent_id("agent1.bsky.social")
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed_mix",
+            run_id=sample_run.run_id,
+            turn_number=0,
+            agent_id=agent_id,
+            agent_handle="agent1.bsky.social",
+            post_ids=["rp_1", "tp_1"],
+            created_at="2024_01_01-12:00:00",
+        )
+        run_snap = RunPostSnapshotFactory.create(
+            run_post_id="rp_1",
+            run_id=sample_run.run_id,
+            author_handle_at_start="h1.bsky.social",
+            body_text_at_start="From run_posts",
+            author_agent_id=agent_id,
+        )
+        turn_snap = TurnPostSnapshotFactory.create(
+            turn_post_id="tp_1",
+            run_id=sample_run.run_id,
+            turn_number=0,
+            author_agent_id=agent_id,
+            body_text="From turn_posts",
+        )
+        mock_repos["run_repo"].get_run.return_value = sample_run
+        mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [feed]
+        mock_repos["run_post_repo"].read_run_posts_by_ids.return_value = [run_snap]
+        mock_repos["turn_post_repo"].read_turn_posts_by_ids.return_value = [turn_snap]
+
+        result = query_service.get_turn_data(sample_run.run_id, 0)
+
+        assert result is not None
+        posts = result.feeds[agent_id]
+        assert [p.post_id for p in posts] == ["rp_1", "tp_1"]
+        assert posts[0].text == "From run_posts"
+        assert posts[1].text == "From turn_posts"
+        mock_repos["turn_post_repo"].read_turn_posts_by_ids.assert_called_once_with(
+            sample_run.run_id, ["tp_1"]
+        )
+
+    def test_get_turn_data_skips_missing_post_ids_preserves_feed_order(
+        self, query_service, mock_repos, sample_run
+    ):
+        agent_id = canonical_agent_id("agent1.bsky.social")
+        feed = GeneratedFeedFactory.create(
+            feed_id="feed_missing",
+            run_id=sample_run.run_id,
+            turn_number=0,
+            agent_id=agent_id,
+            post_ids=["rp_ok", "missing_id", "tp_ok"],
+            created_at="2024_01_01-12:00:00",
+        )
+        run_snap = RunPostSnapshotFactory.create(
+            run_post_id="rp_ok",
+            run_id=sample_run.run_id,
+            author_agent_id=agent_id,
+        )
+        turn_snap = TurnPostSnapshotFactory.create(
+            turn_post_id="tp_ok",
+            run_id=sample_run.run_id,
+            author_agent_id=agent_id,
+        )
+        mock_repos["run_repo"].get_run.return_value = sample_run
+        mock_repos["generated_feed_repo"].read_feeds_for_turn.return_value = [feed]
+        mock_repos["run_post_repo"].read_run_posts_by_ids.return_value = [run_snap]
+        mock_repos["turn_post_repo"].read_turn_posts_by_ids.return_value = [turn_snap]
+
+        result = query_service.get_turn_data(sample_run.run_id, 0)
+
+        assert result is not None
+        posts = result.feeds[agent_id]
+        assert [p.post_id for p in posts] == ["rp_ok", "tp_ok"]
+
     def test_raises_run_not_found(self, query_service, mock_repos):
         mock_repos["run_repo"].get_run.return_value = None
         with pytest.raises(RunNotFoundError):
@@ -284,6 +362,7 @@ class TestSimulationQueryServiceGetTurnData:
             run_repo=mock_repos["run_repo"],
             metrics_repo=mock_repos["metrics_repo"],
             run_post_repo=mock_repos["run_post_repo"],
+            turn_post_repo=mock_repos["turn_post_repo"],
             run_post_like_repo=mock_repos["run_post_like_repo"],
             run_post_comment_repo=mock_repos["run_post_comment_repo"],
             generated_feed_repo=mock_repos["generated_feed_repo"],
@@ -459,6 +538,7 @@ class TestSimulationQueryServiceRunPostIsolation:
             run_repo=run_repo,
             metrics_repo=metrics_repo,
             run_post_repo=run_post_repo,
+            turn_post_repo=mock_repos["turn_post_repo"],
             run_post_like_repo=mock_repos["run_post_like_repo"],
             run_post_comment_repo=mock_repos["run_post_comment_repo"],
             generated_feed_repo=generated_feed_repo,

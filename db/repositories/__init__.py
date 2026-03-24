@@ -45,6 +45,7 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import (
@@ -68,6 +69,10 @@ from db.repositories.run_post_repository import (
     create_sqlite_run_post_repository,
 )
 from db.repositories.run_repository import SQLiteRunRepository, create_sqlite_repository
+from db.repositories.turn_post_repository import (
+    SQLiteTurnPostRepository,
+    create_sqlite_turn_post_repository,
+)
 from db.repositories.user_agent_profile_metadata_repository import (
     SQLiteUserAgentProfileMetadataRepository,
     create_sqlite_user_agent_profile_metadata_repository,
@@ -110,6 +115,9 @@ __all__ = [
     "RunPostRepository",
     "SQLiteRunPostRepository",
     "create_sqlite_run_post_repository",
+    "TurnPostRepository",
+    "SQLiteTurnPostRepository",
+    "create_sqlite_turn_post_repository",
     "RunPostLikeRepository",
     "SQLiteRunPostLikeRepository",
     "create_sqlite_run_post_like_repository",

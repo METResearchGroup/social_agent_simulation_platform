@@ -35,6 +35,7 @@ from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
@@ -326,6 +327,22 @@ class RunPostDatabaseAdapter(ABC):
         """Read run-post snapshots by run_post_ids for a run.
 
         Returns list preserving order of post_ids, skipping missing.
+        If ``post_ids`` is empty (after materializing the iterable), returns an
+        empty list.
+        """
+        raise NotImplementedError
+
+
+class TurnPostDatabaseAdapter(ABC):
+    """Abstract interface for turn-authored post rows (read path)."""
+
+    @abstractmethod
+    def read_turn_posts_by_ids(
+        self, run_id: str, post_ids: Iterable[str], *, conn: object
+    ) -> list[TurnPostSnapshot]:
+        """Read ``turn_posts`` rows by ``turn_post_id`` for a run.
+
+        Returns list preserving order of ``post_ids``, skipping missing.
         If ``post_ids`` is empty (after materializing the iterable), returns an
         empty list.
         """

@@ -12,6 +12,7 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
 )
 from simulation.core.services.query_service import SimulationQueryService
 
@@ -21,6 +22,7 @@ def create_query_service(
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
     run_post_repo: RunPostRepository,
+    turn_post_repo: TurnPostRepository,
     run_post_like_repo: RunPostLikeRepository,
     run_post_comment_repo: RunPostCommentRepository,
     generated_feed_repo: GeneratedFeedRepository,
@@ -35,6 +37,7 @@ def create_query_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
         run_post_repo=run_post_repo,
+        turn_post_repo=turn_post_repo,
         run_post_like_repo=run_post_like_repo,
         run_post_comment_repo=run_post_comment_repo,
         generated_feed_repo=generated_feed_repo,

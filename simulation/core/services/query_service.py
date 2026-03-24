@@ -14,6 +14,7 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
 )
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
@@ -21,12 +22,15 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post, run_post_snapshot_to_post
+from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.utils.exceptions import RunNotFoundError
+from simulation.core.utils.feed_visible_post_hydration import (
+    hydrate_feed_visible_posts_for_run,
+)
 from simulation.core.utils.turn_data_hydration import (
     persisted_comment_to_generated,
     persisted_follow_to_generated,
@@ -40,8 +44,10 @@ class SimulationQueryService:
 
     Turn-scoped feeds and actions are loaded via repositories backed by
     ``turn_generated_feeds`` and ``turn_likes`` / ``turn_comments`` /
-    ``turn_follows``. Post bodies for feed cards are resolved from ``run_posts``
-    snapshots; ``turn_posts`` is not used on this read path yet.
+    ``turn_follows``. ``get_turn_data`` hydrates feed-card post bodies and
+    action ``post_id`` targets via ``hydrate_feed_visible_posts_for_run``,
+    which loads ``run_posts`` first, then ``turn_post_repo`` (``turn_posts``)
+    for IDs not found in the run snapshot.
     """
 
     def __init__(
@@ -49,6 +55,7 @@ class SimulationQueryService:
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
         run_post_repo: RunPostRepository,
+        turn_post_repo: TurnPostRepository,
         run_post_like_repo: RunPostLikeRepository,
         run_post_comment_repo: RunPostCommentRepository,
         generated_feed_repo: GeneratedFeedRepository,
@@ -61,6 +68,7 @@ class SimulationQueryService:
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
         self.run_post_repo = run_post_repo
+        self.turn_post_repo = turn_post_repo
         self.run_post_like_repo = run_post_like_repo
         self.run_post_comment_repo = run_post_comment_repo
         self.generated_feed_repo = generated_feed_repo
@@ -124,7 +132,8 @@ class SimulationQueryService:
         ``feeds``, ``feed_records``, and ``actions`` are keyed by canonical
         ``agent_id`` only. Feeds and actions are read from the generated-feed
         and action repositories (turn-scoped tables). Post text and metadata
-        come from ``run_post_repo`` for IDs referenced in feeds.
+        hydrate from ``run_posts`` first, then ``turn_posts``, for the union of
+        feed ``post_ids`` and like/comment ``post_id`` values.
         """
         run = self.run_repo.get_run(run_id)
         if run is None:
@@ -143,25 +152,20 @@ class SimulationQueryService:
         post_ids_set: set[str] = set()
         for feed in feeds:
             post_ids_set.update(feed.post_ids)
+        for row in like_rows:
+            post_ids_set.add(row.post_id)
+        for row in comment_rows:
+            post_ids_set.add(row.post_id)
 
         post_ids_list = list(post_ids_set)
-        run_post_snapshots = self.run_post_repo.read_run_posts_by_ids(
-            run_id, post_ids_list
+        post_id_to_post = hydrate_feed_visible_posts_for_run(
+            run_id,
+            post_ids_list,
+            run_post_repo=self.run_post_repo,
+            turn_post_repo=self.turn_post_repo,
+            run_post_like_repo=self.run_post_like_repo,
+            run_post_comment_repo=self.run_post_comment_repo,
         )
-        like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
-            run_id, post_ids_list
-        )
-        reply_counts = self.run_post_comment_repo.count_comments_by_run_post_ids(
-            run_id, post_ids_list
-        )
-        post_id_to_post = {
-            snap.run_post_id: run_post_snapshot_to_post(
-                snap,
-                like_count=like_counts.get(snap.run_post_id, 0),
-                reply_count=reply_counts.get(snap.run_post_id, 0),
-            )
-            for snap in run_post_snapshots
-        }
 
         feeds_dict: dict[str, list[Post]] = {}
         feed_records: dict[str, GeneratedFeed] = {}
