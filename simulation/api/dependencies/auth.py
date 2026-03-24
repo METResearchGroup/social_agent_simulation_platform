@@ -6,7 +6,7 @@ import os
 import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jwt import PyJWKClient, PyJWTError
+from jwt import PyJWKClient, PyJWKClientConnectionError, PyJWTError
 
 from lib.env_utils import is_local_mode, is_production_env, parse_bool_env
 
@@ -15,6 +15,18 @@ ENV_SUPABASE_URL: str = "SUPABASE_URL"
 ENV_DISABLE_AUTH: str = "DISABLE_AUTH"
 JWT_AUDIENCE: str = "authenticated"
 JWT_ALGORITHMS_HS256: list[str] = ["HS256"]
+
+# Asymmetric algs permitted for JWKS verification (do not trust unverified header beyond this set).
+_JWKS_ALLOWED_ALGORITHMS: frozenset[str] = frozenset(
+    {
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
+        "ES512",
+    }
+)
 
 # Mock payload when DISABLE_AUTH is set (local dev only)
 _DEV_MOCK_PAYLOAD: dict = {"sub": "dev-user-id", "email": "dev@local"}
@@ -81,6 +93,9 @@ def _decode_supabase_access_token(token: str) -> dict:
             algorithms=JWT_ALGORITHMS_HS256,
         )
 
+    if alg not in _JWKS_ALLOWED_ALGORITHMS:
+        raise UnauthorizedError("Invalid or expired token")
+
     supabase_url = _get_supabase_url()
     if not supabase_url:
         raise UnauthorizedError(
@@ -93,7 +108,9 @@ def _decode_supabase_access_token(token: str) -> dict:
     try:
         jwks_client = _jwks_client_for(jwks_url)
         signing_key = jwks_client.get_signing_key_from_jwt(token)
-    except Exception:
+    except PyJWKClientConnectionError:
+        raise
+    except PyJWTError:
         raise UnauthorizedError("Invalid or expired token") from None
 
     try:
@@ -139,5 +156,7 @@ def require_auth(
         raise UnauthorizedError("Missing or invalid Authorization header")
     try:
         return _decode_supabase_access_token(token.strip())
+    except PyJWKClientConnectionError:
+        raise
     except PyJWTError:
         raise UnauthorizedError("Invalid or expired token") from None
