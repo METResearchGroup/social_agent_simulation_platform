@@ -144,7 +144,7 @@ class TestSimulationSmoke:
                 data = json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
             body = e.read().decode(errors="replace")
-            if e.code in (401, 403):
+            if e.code in (401, 403, 404):
                 pytest.fail(
                     f"POST /v1/simulations/run: HTTP {e.code}. "
                     f"Set {SIMULATION_API_BEARER_TOKEN_ENV} for deployed checks, or run the API "
@@ -166,10 +166,10 @@ class TestSimulationSmoke:
         )
         assert isinstance(data, list)
         assert len(data) >= 1
-        first = data[0]
-        assert isinstance(first, dict)
-        for key in ("key", "display_name", "description", "scope", "author"):
-            assert key in first, f"MetricSchema missing {key!r}"
+        for item in data:
+            assert isinstance(item, dict)
+            for key in ("key", "display_name", "description", "scope", "author"):
+                assert key in item, f"MetricSchema missing {key!r}"
 
     @pytest.mark.smoke
     @pytest.mark.skipif(
@@ -184,7 +184,7 @@ class TestSimulationSmoke:
         )
         assert isinstance(data, list)
         assert len(data) >= 1
-        first = data[0]
-        assert isinstance(first, dict)
-        for key in ("id", "display_name", "description"):
-            assert key in first, f"FeedAlgorithmSchema missing {key!r}"
+        for item in data:
+            assert isinstance(item, dict)
+            for key in ("id", "display_name", "description"):
+                assert key in item, f"FeedAlgorithmSchema missing {key!r}"
