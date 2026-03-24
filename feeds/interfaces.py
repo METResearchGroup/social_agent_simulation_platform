@@ -2,11 +2,25 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 from pydantic import JsonValue
 
 from simulation.core.models.agents import SimulationAgent
+from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import Post
+
+
+@dataclass(frozen=True, slots=True)
+class FeedGenerationResult:
+    """Turn feed artifacts produced before persistence.
+
+    - ``generated_feeds_by_agent`` is used for turn persistence.
+    - ``hydrated_feeds_by_agent`` is used for downstream action generation.
+    """
+
+    generated_feeds_by_agent: dict[str, GeneratedFeed]
+    hydrated_feeds_by_agent: dict[str, list[Post]]
 
 
 class FeedGenerator(ABC):
@@ -20,6 +34,6 @@ class FeedGenerator(ABC):
         turn_number: int,
         feed_algorithm: str,
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-    ) -> dict[str, list[Post]]:
-        """Generate feeds for all agents; returns mapping of agent handle to hydrated feed posts."""
+    ) -> FeedGenerationResult:
+        """Generate feed artifacts for all agents without persistence side effects."""
         ...

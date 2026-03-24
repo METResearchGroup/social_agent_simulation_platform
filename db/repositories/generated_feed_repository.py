@@ -33,7 +33,9 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
         self._db_adapter = db_adapter
         self._transaction_provider = transaction_provider
 
-    def write_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
+    def write_generated_feed(
+        self, feed: GeneratedFeed, conn: object | None = None
+    ) -> GeneratedFeed:
         """Write a generated feed to SQLite (insert or replace by composite key).
 
         Args:
@@ -56,6 +58,9 @@ class SQLiteGeneratedFeedRepository(GeneratedFeedRepository):
             agent_id and run_id are validated by Pydantic field validators.
         """
         # Validation is handled by Pydantic model (GeneratedFeed, validate_run_id)
+        if conn is not None:
+            self._db_adapter.write_generated_feed(feed, conn=conn)
+            return feed
         with self._transaction_provider.run_transaction() as c:
             self._db_adapter.write_generated_feed(feed, conn=c)
         return feed

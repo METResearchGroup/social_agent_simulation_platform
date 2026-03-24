@@ -6,7 +6,6 @@ import sqlite3
 from db.adapters.base import GeneratedFeedDatabaseAdapter
 from db.adapters.sqlite.schema_utils import ordered_column_names, required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
-from db.adapters.sqlite.turn_parent import ensure_turn_parent_stub_for_feed_write
 from db.schema import turn_generated_feeds
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
@@ -64,9 +63,6 @@ class SQLiteGeneratedFeedAdapter(GeneratedFeedDatabaseAdapter):
             sqlite3.IntegrityError: If composite key violates constraints
             sqlite3.OperationalError: If database operation fails
         """
-        ensure_turn_parent_stub_for_feed_write(
-            conn, run_id=feed.run_id, turn_number=feed.turn_number
-        )
         row_values = tuple(
             json.dumps(feed.post_ids) if col == "post_ids" else getattr(feed, col)
             for col in GENERATED_FEED_COLUMNS
