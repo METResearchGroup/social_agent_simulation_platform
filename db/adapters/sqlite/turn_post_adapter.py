@@ -7,9 +7,7 @@ from db.adapters.base import TurnPostDatabaseAdapter
 from db.adapters.sqlite.schema_utils import required_column_names
 from db.adapters.sqlite.sqlite import validate_required_fields
 from db.schema import turn_posts as turn_posts_table
-from lib.validation_decorators import validate_inputs
 from simulation.core.models.turn_posts import TurnPostSnapshot
-from simulation.core.utils.validators import validate_run_id
 
 TURN_POST_REQUIRED_FIELDS = required_column_names(turn_posts_table)
 
@@ -41,7 +39,6 @@ class SQLiteTurnPostAdapter(TurnPostDatabaseAdapter):
             generation_created_at=row["generation_created_at"],
         )
 
-    @validate_inputs((validate_run_id, "run_id"))
     def read_turn_posts_by_ids(
         self,
         run_id: str,

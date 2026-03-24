@@ -44,8 +44,10 @@ class SimulationQueryService:
 
     Turn-scoped feeds and actions are loaded via repositories backed by
     ``turn_generated_feeds`` and ``turn_likes`` / ``turn_comments`` /
-    ``turn_follows``. Post bodies for feed cards are resolved from ``run_posts``
-    snapshots; ``turn_posts`` is not used on this read path yet.
+    ``turn_follows``. ``get_turn_data`` hydrates feed-card post bodies and
+    action ``post_id`` targets via ``hydrate_feed_visible_posts_for_run``,
+    which loads ``run_posts`` first, then ``turn_post_repo`` (``turn_posts``)
+    for IDs not found in the run snapshot.
     """
 
     def __init__(

@@ -120,3 +120,84 @@ class TestSQLiteTurnPostRepositoryIntegration:
         assert result[0].body_text == "beta body"
         assert result[1].turn_post_id == "tp_alpha"
         assert result[1].body_text == "alpha body"
+
+    def test_get_by_post_ids_empty_input_returns_empty(
+        self,
+        run_repo,
+        run_agent_repo,
+        turn_post_repo,
+        agent_repo,
+    ):
+        run = run_repo.create_run(
+            RunConfigFactory.create(
+                num_agents=1,
+                num_turns=1,
+                feed_algorithm="chronological",
+            )
+        )
+        agent_id = canonical_agent_id("author2.bsky.social")
+        _seed_agent(agent_repo, agent_id=agent_id, handle="author2.bsky.social")
+        run_agent_repo.write_run_agents(
+            run.run_id,
+            [
+                RunAgentSnapshotFactory.create(
+                    run_id=run.run_id,
+                    agent_id=agent_id,
+                    selection_order=0,
+                    handle_at_start="author2.bsky.social",
+                )
+            ],
+        )
+        run_repo.write_turn_metadata(
+            TurnMetadataFactory.create(
+                run_id=run.run_id,
+                turn_number=0,
+                total_actions={},
+                created_at=run.created_at,
+            )
+        )
+
+        assert turn_post_repo.read_turn_posts_by_ids(run.run_id, []) == []
+
+    def test_get_by_post_ids_all_missing_returns_empty(
+        self,
+        run_repo,
+        run_agent_repo,
+        turn_post_repo,
+        agent_repo,
+    ):
+        run = run_repo.create_run(
+            RunConfigFactory.create(
+                num_agents=1,
+                num_turns=1,
+                feed_algorithm="chronological",
+            )
+        )
+        agent_id = canonical_agent_id("author3.bsky.social")
+        _seed_agent(agent_repo, agent_id=agent_id, handle="author3.bsky.social")
+        run_agent_repo.write_run_agents(
+            run.run_id,
+            [
+                RunAgentSnapshotFactory.create(
+                    run_id=run.run_id,
+                    agent_id=agent_id,
+                    selection_order=0,
+                    handle_at_start="author3.bsky.social",
+                )
+            ],
+        )
+        run_repo.write_turn_metadata(
+            TurnMetadataFactory.create(
+                run_id=run.run_id,
+                turn_number=0,
+                total_actions={},
+                created_at=run.created_at,
+            )
+        )
+
+        assert (
+            turn_post_repo.read_turn_posts_by_ids(
+                run.run_id, ["tp_no_such_1", "tp_no_such_2"]
+            )
+            == []
+        )
