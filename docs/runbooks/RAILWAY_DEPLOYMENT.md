@@ -131,6 +131,12 @@ SIMULATION_API_URL=<APP_URL> SIMULATION_API_BEARER_TOKEN=<TOKEN> uv run pytest -
 
 For local smoke against an API with `DISABLE_AUTH=1`, `SIMULATION_API_BEARER_TOKEN` may be omitted. See [SMOKE_TEST.md](./SMOKE_TEST.md).
 
+## CI: local reset E2E
+
+GitHub Actions runs an end-to-end check (disposable SQLite → Alembic → fixture seed → subprocess `uvicorn` → HTTP assertions) in the **`CI E2E (local reset)`** workflow. It is **path-gated** on pull requests (see `.github/workflows/ci-e2e.yml`) and also runs on pushes to `main`/`master`, on `workflow_dispatch`, and on a weekly schedule. It is **not** part of pre-commit. See [SMOKE_TEST.md](./SMOKE_TEST.md#local-reset-e2e-ci).
+
+API startup logs include the resolved SQLite path, Alembic revision after migrate, and whether fixture seed ran in the uvicorn lifespan (local vs non-local).
+
 ## Operational Notes
 
 - Keep worker count conservative with SQLite to reduce lock contention.

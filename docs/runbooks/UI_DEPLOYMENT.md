@@ -38,7 +38,7 @@ The CLI prints a deployment URL.
 
 ## Deploy to production
 
-Deploy from the **same git ref** as the API for that release (see [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)). From `ui/`:
+Deploy from the **same git ref** (same commit SHA or tag) as the API for that release (see [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)). Confirm the backend for that ref passed checks including the **local reset E2E** workflow when applicable ([SMOKE_TEST.md](./SMOKE_TEST.md#local-reset-e2e-ci)). From `ui/`:
 
 ```bash
 vercel deploy --prod --yes

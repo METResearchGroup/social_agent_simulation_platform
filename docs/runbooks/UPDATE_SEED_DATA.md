@@ -72,6 +72,8 @@ This deletes `db/dev_dummy_data_db.sqlite`, re-runs migrations, then re-seeds fr
    curl -s http://localhost:8000/v1/simulations/runs | jq 'length'
    ```
 
+   For **human exploration**, this path wipes and reseeds only `db/dev_dummy_data_db.sqlite`. Automated CI uses a separate disposable DB and does not touch your dev file; see [SMOKE_TEST.md](./SMOKE_TEST.md#local-reset-e2e-ci).
+
 3. Start UI:
 
    ```bash

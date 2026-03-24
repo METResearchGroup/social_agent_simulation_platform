@@ -204,6 +204,7 @@ def initialize_database() -> None:
     from alembic.config import Config
 
     db_path: str = get_db_path()
+    logger.info("Initializing SQLite database at %s", db_path)
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
