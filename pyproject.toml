@@ -9,7 +9,7 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.32.0",
     "pyyaml>=6.0",
-    "litellm @ git+https://github.com/BerriAI/litellm.git",
+    "litellm==1.81.15",
     "tenacity>=8.2.3",
     "atproto>=0.0.63",
     "dotenv>=0.9.9",
