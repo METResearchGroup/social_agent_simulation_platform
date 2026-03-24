@@ -7,7 +7,7 @@ source-of-truth for migrations.
 Important:
 - Keep this schema aligned with what migrations produce at HEAD.
 - The initial migration in this repo intentionally omits the
-  `generated_feeds.run_id -> runs.run_id` foreign key; a later migration adds it.
+  `turn_generated_feeds.run_id -> runs.run_id` foreign key; a later migration adds it.
 """
 
 from __future__ import annotations
@@ -64,18 +64,16 @@ runs = sa.Table(
     ),
 )
 
-turn_metadata = sa.Table(
-    "turn_metadata",
+turns = sa.Table(
+    "turns",
     metadata,
     sa.Column("run_id", sa.Text(), nullable=False),
     sa.Column("turn_number", sa.Integer(), nullable=False),
     sa.Column("total_actions", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
-    sa.ForeignKeyConstraint(
-        ["run_id"], ["runs.run_id"], name="fk_turn_metadata_run_id"
-    ),
-    sa.CheckConstraint("turn_number >= 0", name="ck_turn_metadata_turn_number_gte_0"),
-    sa.PrimaryKeyConstraint("run_id", "turn_number", name="pk_turn_metadata"),
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_turns_run_id"),
+    sa.CheckConstraint("turn_number >= 0", name="ck_turns_turn_number_gte_0"),
+    sa.PrimaryKeyConstraint("run_id", "turn_number", name="pk_turns"),
 )
 
 turn_metrics = sa.Table(
@@ -85,7 +83,11 @@ turn_metrics = sa.Table(
     sa.Column("turn_number", sa.Integer(), nullable=False),
     sa.Column("metrics", sa.Text(), nullable=False),
     sa.Column("created_at", sa.Text(), nullable=False),
-    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_turn_metrics_run_id"),
+    sa.ForeignKeyConstraint(
+        ["run_id", "turn_number"],
+        ["turns.run_id", "turns.turn_number"],
+        name="fk_turn_metrics_turn_parent",
+    ),
     sa.CheckConstraint("turn_number >= 0", name="ck_turn_metrics_turn_number_gte_0"),
     sa.PrimaryKeyConstraint("run_id", "turn_number", name="pk_turn_metrics"),
 )
@@ -271,8 +273,8 @@ run_follow_edges = sa.Table(
     ),
 )
 
-generated_feeds = sa.Table(
-    "generated_feeds",
+turn_generated_feeds = sa.Table(
+    "turn_generated_feeds",
     metadata,
     sa.Column("feed_id", sa.Text(), nullable=False),
     sa.Column("run_id", sa.Text(), nullable=False),
@@ -284,15 +286,20 @@ generated_feeds = sa.Table(
     sa.ForeignKeyConstraint(
         ["run_id"],
         ["runs.run_id"],
-        name="fk_generated_feeds_run_id",
+        name="fk_turn_generated_feeds_run_id",
     ),
     sa.ForeignKeyConstraint(
         ["agent_id"],
         ["agent.agent_id"],
-        name="fk_generated_feeds_agent_id",
+        name="fk_turn_generated_feeds_agent_id",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "turn_number"],
+        ["turns.run_id", "turns.turn_number"],
+        name="fk_turn_generated_feeds_turn_parent",
     ),
     sa.PrimaryKeyConstraint(
-        "agent_id", "run_id", "turn_number", name="pk_generated_feeds"
+        "agent_id", "run_id", "turn_number", name="pk_turn_generated_feeds"
     ),
 )
 
@@ -499,10 +506,10 @@ agent_post_comments = sa.Table(
 )
 
 
-# --- Run-scoped action tables (likes, comments, follows) ---
+# --- Run-scoped turn action tables (turn_likes, turn_comments, turn_follows) ---
 
-likes = sa.Table(
-    "likes",
+turn_likes = sa.Table(
+    "turn_likes",
     metadata,
     sa.Column("like_id", sa.Text(), primary_key=True),
     sa.Column("run_id", sa.Text(), nullable=False),
@@ -514,23 +521,27 @@ likes = sa.Table(
     sa.Column("model_used", sa.Text(), nullable=True),
     sa.Column("generation_metadata_json", sa.Text(), nullable=True),
     sa.Column("generation_created_at", sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_likes_run_id"),
-    sa.ForeignKeyConstraint(["agent_id"], ["agent.agent_id"], name="fk_likes_agent_id"),
-    sa.CheckConstraint("turn_number >= 0", name="ck_likes_turn_number_gte_0"),
-    # Within a single run+turn, an agent can like a given post at most once.
-    # The domain validator tries to prevent duplicates, but this is the persistence
-    # backstop that guarantees we never store duplicate likes for the same target.
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_turn_likes_run_id"),
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_turn_likes_agent_id"
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "turn_number"],
+        ["turns.run_id", "turns.turn_number"],
+        name="fk_turn_likes_turn_parent",
+    ),
+    sa.CheckConstraint("turn_number >= 0", name="ck_turn_likes_turn_number_gte_0"),
     sa.UniqueConstraint(
         "run_id",
         "turn_number",
         "agent_id",
         "post_id",
-        name="uq_likes_run_turn_agent_post",
+        name="uq_turn_likes_run_turn_agent_post",
     ),
 )
 
-comments = sa.Table(
-    "comments",
+turn_comments = sa.Table(
+    "turn_comments",
     metadata,
     sa.Column("comment_id", sa.Text(), primary_key=True),
     sa.Column("run_id", sa.Text(), nullable=False),
@@ -543,25 +554,29 @@ comments = sa.Table(
     sa.Column("model_used", sa.Text(), nullable=True),
     sa.Column("generation_metadata_json", sa.Text(), nullable=True),
     sa.Column("generation_created_at", sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_comments_run_id"),
     sa.ForeignKeyConstraint(
-        ["agent_id"], ["agent.agent_id"], name="fk_comments_agent_id"
+        ["run_id"], ["runs.run_id"], name="fk_turn_comments_run_id"
     ),
-    sa.CheckConstraint("turn_number >= 0", name="ck_comments_turn_number_gte_0"),
-    # Within a single run+turn, an agent can comment on a given post at most once.
-    # This matches the current action rules validator (duplicates rejected) and ensures the
-    # DB cannot accumulate duplicate per-target comments for the same turn.
+    sa.ForeignKeyConstraint(
+        ["agent_id"], ["agent.agent_id"], name="fk_turn_comments_agent_id"
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "turn_number"],
+        ["turns.run_id", "turns.turn_number"],
+        name="fk_turn_comments_turn_parent",
+    ),
+    sa.CheckConstraint("turn_number >= 0", name="ck_turn_comments_turn_number_gte_0"),
     sa.UniqueConstraint(
         "run_id",
         "turn_number",
         "agent_id",
         "post_id",
-        name="uq_comments_run_turn_agent_post",
+        name="uq_turn_comments_run_turn_agent_post",
     ),
 )
 
-follows = sa.Table(
-    "follows",
+turn_follows = sa.Table(
+    "turn_follows",
     metadata,
     sa.Column("follow_id", sa.Text(), primary_key=True),
     sa.Column("run_id", sa.Text(), nullable=False),
@@ -573,26 +588,61 @@ follows = sa.Table(
     sa.Column("model_used", sa.Text(), nullable=True),
     sa.Column("generation_metadata_json", sa.Text(), nullable=True),
     sa.Column("generation_created_at", sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_follows_run_id"),
+    sa.ForeignKeyConstraint(["run_id"], ["runs.run_id"], name="fk_turn_follows_run_id"),
     sa.ForeignKeyConstraint(
-        ["agent_id"], ["agent.agent_id"], name="fk_follows_agent_id"
+        ["agent_id"], ["agent.agent_id"], name="fk_turn_follows_agent_id"
     ),
     sa.ForeignKeyConstraint(
         ["target_agent_id"],
         ["agent.agent_id"],
-        name="fk_follows_target_agent_id",
+        name="fk_turn_follows_target_agent_id",
     ),
-    sa.CheckConstraint("turn_number >= 0", name="ck_follows_turn_number_gte_0"),
-    # Within a single run+turn, an agent can follow a given user at most once.
-    # This prevents duplicate follow actions for the same target and keeps persistence aligned with
-    # the validator/history checks that treat "followed" as a boolean relationship.
+    sa.ForeignKeyConstraint(
+        ["run_id", "turn_number"],
+        ["turns.run_id", "turns.turn_number"],
+        name="fk_turn_follows_turn_parent",
+    ),
+    sa.CheckConstraint("turn_number >= 0", name="ck_turn_follows_turn_number_gte_0"),
+    sa.CheckConstraint(
+        "agent_id != target_agent_id",
+        name="ck_turn_follows_no_self_follow",
+    ),
     sa.UniqueConstraint(
         "run_id",
         "turn_number",
         "agent_id",
         "target_agent_id",
-        name="uq_follows_run_turn_agent_target",
+        name="uq_turn_follows_run_turn_agent_target",
     ),
+)
+
+turn_posts = sa.Table(
+    "turn_posts",
+    metadata,
+    sa.Column("turn_post_id", sa.Text(), nullable=False),
+    sa.Column("run_id", sa.Text(), nullable=False),
+    sa.Column("turn_number", sa.Integer(), nullable=False),
+    sa.Column("author_agent_id", sa.Text(), nullable=False),
+    sa.Column("author_handle_at_time", sa.Text(), nullable=False),
+    sa.Column("author_display_name_at_time", sa.Text(), nullable=False),
+    sa.Column("body_text", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.Text(), nullable=False),
+    sa.Column("explanation", sa.Text(), nullable=True),
+    sa.Column("model_used", sa.Text(), nullable=True),
+    sa.Column("generation_metadata_json", sa.Text(), nullable=True),
+    sa.Column("generation_created_at", sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(
+        ["run_id", "turn_number"],
+        ["turns.run_id", "turns.turn_number"],
+        name="fk_turn_posts_turn_parent",
+    ),
+    sa.ForeignKeyConstraint(
+        ["run_id", "author_agent_id"],
+        ["run_agents.run_id", "run_agents.agent_id"],
+        name="fk_turn_posts_run_author",
+    ),
+    sa.CheckConstraint("turn_number >= 0", name="ck_turn_posts_turn_number_gte_0"),
+    sa.PrimaryKeyConstraint("turn_post_id", name="pk_turn_posts"),
 )
 
 
@@ -603,7 +653,7 @@ sa.Index("idx_runs_created_at", runs.c.created_at.desc())
 sa.Index("idx_runs_app_user_id", runs.c.app_user_id)
 sa.Index("idx_feed_posts_author_handle", feed_posts.c.author_handle)
 sa.Index("idx_feed_posts_author_agent_id", feed_posts.c.author_agent_id)
-sa.Index("idx_turn_metadata_run_id", turn_metadata.c.run_id)
+sa.Index("idx_turns_run_id", turns.c.run_id)
 sa.Index("idx_turn_metrics_run_id", turn_metrics.c.run_id)
 sa.Index("idx_run_agents_run_id", run_agents.c.run_id)
 sa.Index(
@@ -676,20 +726,26 @@ sa.Index(
     agent_post_comments.c.published_at,
 )
 sa.Index(
-    "idx_likes_run_turn_agent",
-    likes.c.run_id,
-    likes.c.turn_number,
-    likes.c.agent_id,
+    "idx_turn_likes_run_turn_agent",
+    turn_likes.c.run_id,
+    turn_likes.c.turn_number,
+    turn_likes.c.agent_id,
 )
 sa.Index(
-    "idx_comments_run_turn_agent",
-    comments.c.run_id,
-    comments.c.turn_number,
-    comments.c.agent_id,
+    "idx_turn_comments_run_turn_agent",
+    turn_comments.c.run_id,
+    turn_comments.c.turn_number,
+    turn_comments.c.agent_id,
 )
 sa.Index(
-    "idx_follows_run_turn_agent",
-    follows.c.run_id,
-    follows.c.turn_number,
-    follows.c.agent_id,
+    "idx_turn_follows_run_turn_agent",
+    turn_follows.c.run_id,
+    turn_follows.c.turn_number,
+    turn_follows.c.agent_id,
+)
+sa.Index(
+    "idx_turn_posts_run_turn_author",
+    turn_posts.c.run_id,
+    turn_posts.c.turn_number,
+    turn_posts.c.author_agent_id,
 )

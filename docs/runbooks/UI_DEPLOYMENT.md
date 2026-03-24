@@ -38,11 +38,20 @@ The CLI prints a deployment URL.
 
 ## Deploy to production
 
-From `ui/`:
+Deploy from the **same git ref** (same commit SHA or tag) as the API for that release (see [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)). Confirm the backend for that ref passed checks including the **local reset E2E** workflow when applicable ([SMOKE_TEST.md](./SMOKE_TEST.md#local-reset-e2e-ci)). From `ui/`:
 
 ```bash
 vercel deploy --prod --yes
 ```
+
+## Production API URL (`NEXT_PUBLIC_SIMULATION_API_URL`)
+
+The browser must call the same backend contract the UI was built against.
+
+- In the Vercel project, set **`NEXT_PUBLIC_SIMULATION_API_URL`** to the **canonical production API base** the app should use (including `/v1` if your client expects it under that path—the value must match how `ui/lib/api/simulation.ts` joins paths; typically the full API root the UI uses, e.g. `https://<your-railway-service>.up.railway.app/v1`).
+- After deploy, confirm it points at the Railway production service you verified, not a stale preview or wrong project.
+
+Wrong or outdated values are a common cause of missing-route errors in the browser (for example metadata endpoints returning 404 while the UI assumes they exist).
 
 ## Verify the deployment
 
@@ -63,6 +72,10 @@ curl -sS -o /dev/null -w "%{http_code}\n" <ALIAS_URL>
 ```
 
 Expected: HTTP `200`.
+
+### API contract and smoke tests
+
+After production deploy, validate that the live API behind `NEXT_PUBLIC_SIMULATION_API_URL` exposes the expected routes. Use the same checks as the Railway runbook and the automated suite in [SMOKE_TEST.md](./SMOKE_TEST.md) (`SIMULATION_API_URL` + `SIMULATION_API_BEARER_TOKEN` for `/v1` routes).
 
 ### Check runtime logs
 

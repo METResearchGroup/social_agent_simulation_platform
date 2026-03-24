@@ -5,8 +5,9 @@ contract documented in:
 - docs/RULES.md (Persistence scopes)
 - docs/architecture/seed-state-run-snapshot-turn-events.md
 
-It is intentionally narrow: it validates only table naming + the presence or
-absence of `run_id`/`turn_number` columns for new tables.
+It is intentionally narrow: it validates table naming + the presence or
+absence of `run_id`/`turn_number` columns for new tables, and rejects a fixed set
+of legacy turn-event **table** names (SCHEMA-4).
 """
 
 from __future__ import annotations
@@ -26,17 +27,15 @@ LEGACY_SEED_STATE_TABLES: frozenset[str] = frozenset(
     }
 )
 
-# TODO: Delete these legacy tables once migration renames/replaces them.
-LEGACY_TURN_EVENT_TABLES: frozenset[str] = frozenset(
+# Pre-cutover turn-event table names. These must not reappear in db/schema.py;
+# steady state is `turns` plus the `turn_*` family (see architecture docs).
+LEGACY_TURN_EVENT_TABLE_NAMES: frozenset[str] = frozenset(
     {
-        # Legacy-named turn event tables (treated like `turn_*`).
+        "turn_metadata",
         "generated_feeds",
         "likes",
         "comments",
         "follows",
-        # Already-prefixed turn-event tables.
-        "turn_metadata",
-        "turn_metrics",
     }
 )
 
@@ -114,6 +113,20 @@ def lint_metadata(metadata: sa.MetaData) -> list[Violation]:
     for table in metadata.tables.values():
         name = table.name
 
+        if name in LEGACY_TURN_EVENT_TABLE_NAMES:
+            violations.append(
+                Violation(
+                    rule="SCHEMA-4",
+                    table_name=name,
+                    message=(
+                        "legacy turn-event table names are not an acceptable steady state; "
+                        "use `turns` and the `turn_*` family (e.g. turn_generated_feeds, "
+                        "turn_likes, turn_comments, turn_follows)."
+                    ),
+                )
+            )
+            continue
+
         if name.startswith("agent_") or name in LEGACY_SEED_STATE_TABLES:
             violations.extend(_lint_agent_table(table))
             continue
@@ -122,7 +135,7 @@ def lint_metadata(metadata: sa.MetaData) -> list[Violation]:
             violations.extend(_lint_run_table(table))
             continue
 
-        if name.startswith("turn_") or name in LEGACY_TURN_EVENT_TABLES:
+        if name == "turns" or name.startswith("turn_"):
             violations.extend(_lint_turn_event_table(table))
             continue
 

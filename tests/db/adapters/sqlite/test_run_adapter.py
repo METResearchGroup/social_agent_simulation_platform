@@ -285,9 +285,8 @@ class TestSQLiteRunAdapterReadTurnMetadata:
             # Assert
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
-            assert (
-                "SELECT * FROM turn_metadata WHERE run_id = ? AND turn_number = ?"
-                in str(call_args[0][0])
+            assert "SELECT * FROM turns WHERE run_id = ? AND turn_number = ?" in str(
+                call_args[0][0]
             )
             assert call_args[0][1] == (run_id, turn_number)
 
@@ -389,7 +388,7 @@ class TestSQLiteRunAdapterReadTurnMetadataForRun:
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
             assert (
-                "SELECT * FROM turn_metadata WHERE run_id = ? ORDER BY turn_number ASC"
+                "SELECT * FROM turns WHERE run_id = ? ORDER BY turn_number ASC"
                 in str(call_args[0][0])
             )
             assert call_args[0][1] == (run_id,)
@@ -432,7 +431,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             # Verify INSERT was executed (conn provided, no commit)
             mock_conn.execute.assert_called_once()
             call_args = mock_conn.execute.call_args
-            assert "INSERT INTO turn_metadata" in str(call_args[0][0])
+            assert "INSERT INTO turns" in str(call_args[0][0])
             # Verify parameters
             params = call_args[0][1]
             assert params[0] == run_id
@@ -588,7 +587,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
             call_args = mock_conn.execute.call_args
             # Verify SQL statement
             sql = str(call_args[0][0])
-            assert "INSERT INTO turn_metadata" in sql
+            assert "INSERT INTO turns" in sql
             assert "run_id" in sql
             assert "turn_number" in sql
             assert "total_actions" in sql
@@ -629,7 +628,7 @@ class TestSQLiteRunAdapterWriteTurnMetadata:
 
         # Simulate PRIMARY KEY constraint violation (duplicate insert)
         integrity_error = sqlite3.IntegrityError(
-            "UNIQUE constraint failed: turn_metadata.run_id, turn_metadata.turn_number"
+            "UNIQUE constraint failed: turns.run_id, turns.turn_number"
         )
         with mock_db_connection() as (mock_conn, mock_cursor):
             mock_conn.execute.side_effect = integrity_error

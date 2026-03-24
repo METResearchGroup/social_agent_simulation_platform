@@ -27,7 +27,8 @@ from simulation.core.utils.validators import (
 class SQLiteRunRepository(RunRepository):
     """SQLite implementation of RunRepository.
 
-    Uses dependency injection to accept a database adapter.
+    Uses dependency injection to accept a database adapter. Turn metadata
+    accessors read and write the ``turns`` table via the run adapter.
     """
 
     # Valid state transitions for run status
@@ -180,7 +181,7 @@ class SQLiteRunRepository(RunRepository):
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def get_turn_metadata(self, run_id: str, turn_number: int) -> TurnMetadata | None:
-        """Get turn metadata for a specific run and turn.
+        """Get turn metadata for a specific run and turn (``turns`` table).
 
         Args:
             run_id: The ID of the run
@@ -200,7 +201,7 @@ class SQLiteRunRepository(RunRepository):
 
     @validate_inputs((validate_run_id, "run_id"))
     def list_turn_metadata(self, run_id: str) -> list[TurnMetadata]:
-        """List all turn metadata for a run in turn order.
+        """List all turn metadata for a run in turn order (``turns`` rows).
 
         Args:
             run_id: The ID of the run
@@ -223,7 +224,7 @@ class SQLiteRunRepository(RunRepository):
         turn_metadata: TurnMetadata,
         conn: object | None = None,
     ) -> None:
-        """Write turn metadata to the database.
+        """Write turn metadata to the database (``turns`` table).
 
         Args:
             turn_metadata: TurnMetadata model to write

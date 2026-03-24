@@ -13,6 +13,7 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from simulation.core.action_history import (
@@ -25,13 +26,17 @@ from simulation.core.metrics.defaults import (
 from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post, run_post_snapshot_to_post
+from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.services.command_service import SimulationCommandService
 from simulation.core.services.query_service import SimulationQueryService
+from simulation.core.utils.feed_visible_post_hydration import (
+    hydrate_feed_visible_posts_for_run,
+    ordered_posts_from_hydration,
+)
 
 
 def _get_turn_keys(run_config: RunConfig) -> list[str]:
@@ -62,6 +67,7 @@ class SimulationEngine:
         run_agent_repo: RunAgentRepository,
         run_follow_edge_repo: RunFollowEdgeRepository,
         run_post_repo: RunPostRepository,
+        turn_post_repo: TurnPostRepository,
         run_post_like_repo: RunPostLikeRepository,
         run_post_comment_repo: RunPostCommentRepository,
         agent_factory: Callable[[int], list[SimulationAgent]],
@@ -74,6 +80,7 @@ class SimulationEngine:
         self.profile_repo = profile_repo
         self.feed_post_repo = feed_post_repo
         self.run_post_repo = run_post_repo
+        self.turn_post_repo = turn_post_repo
         self.generated_feed_repo = generated_feed_repo
         self.agent_repo = agent_repo
         self.agent_bio_repo = agent_bio_repo
@@ -134,23 +141,17 @@ class SimulationEngine:
         return self.feed_post_repo.read_feed_posts_by_ids(post_ids)
 
     def read_posts_for_run(self, run_id: str, post_ids: Iterable[str]) -> list[Post]:
-        """Resolve run_post_ids to Post objects from run_posts."""
+        """Resolve feed-visible post IDs to :class:`Post` via run + turn stores."""
         post_ids_list = list(post_ids)
-        snapshots = self.run_post_repo.read_run_posts_by_ids(run_id, post_ids_list)
-        like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
-            run_id, post_ids_list
+        mapping = hydrate_feed_visible_posts_for_run(
+            run_id,
+            post_ids_list,
+            run_post_repo=self.run_post_repo,
+            turn_post_repo=self.turn_post_repo,
+            run_post_like_repo=self.run_post_like_repo,
+            run_post_comment_repo=self.run_post_comment_repo,
         )
-        reply_counts = self.run_post_comment_repo.count_comments_by_run_post_ids(
-            run_id, post_ids_list
-        )
-        return [
-            run_post_snapshot_to_post(
-                s,
-                like_count=like_counts.get(s.run_post_id, 0),
-                reply_count=reply_counts.get(s.run_post_id, 0),
-            )
-            for s in snapshots
-        ]
+        return ordered_posts_from_hydration(post_ids_list, mapping)
 
     def update_run_status(self, run: Run, status: RunStatus) -> None:
         self.command_service.update_run_status(run, status)

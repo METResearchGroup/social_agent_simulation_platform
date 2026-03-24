@@ -750,7 +750,8 @@
         "enum": [
           "like",
           "comment",
-          "follow"
+          "follow",
+          "post"
         ],
         "title": "TurnAction",
         "type": "string"

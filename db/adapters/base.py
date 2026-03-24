@@ -35,6 +35,7 @@ from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
 
@@ -239,7 +240,7 @@ class RunDatabaseAdapter(ABC):
     ) -> None:
         """Write turn metadata to the database.
 
-        Writes to the `turn_metadata` table. Uses INSERT.
+        Writes to the ``turns`` table (insert or replace placeholder from feed writes).
 
         Args:
             turn_metadata: TurnMetadata model to write
@@ -329,6 +330,48 @@ class RunPostDatabaseAdapter(ABC):
         If ``post_ids`` is empty (after materializing the iterable), returns an
         empty list.
         """
+        raise NotImplementedError
+
+
+class TurnPostDatabaseAdapter(ABC):
+    """Abstract interface for turn-authored post rows."""
+
+    @abstractmethod
+    def read_turn_posts_by_ids(
+        self, run_id: str, post_ids: Iterable[str], *, conn: object
+    ) -> list[TurnPostSnapshot]:
+        """Read ``turn_posts`` rows by ``turn_post_id`` for a run.
+
+        Returns list preserving order of ``post_ids``, skipping missing.
+        If ``post_ids`` is empty (after materializing the iterable), returns an
+        empty list.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_posts_for_run_before_turn(
+        self, run_id: str, before_turn_number: int, *, conn: object
+    ) -> list[TurnPostSnapshot]:
+        """Rows with ``turn_number`` < ``before_turn_number``, ordered."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_turn_posts_for_run_at_turn(
+        self, run_id: str, turn_number: int, *, conn: object
+    ) -> list[TurnPostSnapshot]:
+        """Rows for a single ``turn_number``, ordered by ``turn_post_id`` ascending."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def write_turn_posts(
+        self,
+        run_id: str,
+        turn_number: int,
+        rows: Iterable[TurnPostSnapshot],
+        *,
+        conn: object,
+    ) -> None:
+        """Insert ``turn_posts`` rows."""
         raise NotImplementedError
 
 

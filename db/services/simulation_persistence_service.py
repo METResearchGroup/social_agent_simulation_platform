@@ -6,68 +6,82 @@ from db.adapters.base import TransactionProvider
 from db.repositories.interfaces import (
     CommentRepository,
     FollowRepository,
+    GeneratedFeedRepository,
     LikeRepository,
     MetricsRepository,
     RunRepository,
+    TurnPostRepository,
 )
+from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import RunStatus
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from simulation.core.models.turns import TurnMetadata
 
 
 def create_simulation_persistence_service(
     run_repo: RunRepository,
     metrics_repo: MetricsRepository,
+    generated_feed_repo: GeneratedFeedRepository,
     *,
     transaction_provider: TransactionProvider,
     like_repo: LikeRepository,
     comment_repo: CommentRepository,
     follow_repo: FollowRepository,
+    turn_post_repo: TurnPostRepository,
 ) -> SimulationPersistenceService:
     """Create a SimulationPersistenceService with the given repositories and transaction provider."""
     return SimulationPersistenceService(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
+        generated_feed_repo=generated_feed_repo,
         transaction_provider=transaction_provider,
         like_repo=like_repo,
         comment_repo=comment_repo,
         follow_repo=follow_repo,
+        turn_post_repo=turn_post_repo,
     )
 
 
 class SimulationPersistenceService:
-    """Persists turn data (metadata + metrics + actions in one transaction) and run completion."""
+    """Persists turn data (metadata + metrics + feeds + actions) atomically."""
 
     def __init__(
         self,
         *,
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
+        generated_feed_repo: GeneratedFeedRepository,
         transaction_provider: TransactionProvider,
         like_repo: LikeRepository,
         comment_repo: CommentRepository,
         follow_repo: FollowRepository,
+        turn_post_repo: TurnPostRepository,
     ):
         self._run_repo = run_repo
         self._metrics_repo = metrics_repo
+        self._generated_feed_repo = generated_feed_repo
         self._transaction_provider = transaction_provider
         self._like_repo = like_repo
         self._comment_repo = comment_repo
         self._follow_repo = follow_repo
+        self._turn_post_repo = turn_post_repo
 
     def write_turn(
         self,
         turn_metadata: TurnMetadata,
         turn_metrics: TurnMetrics,
+        generated_feeds: list[GeneratedFeed] | None = None,
         *,
         likes: list[GeneratedLike] | None = None,
         comments: list[GeneratedComment] | None = None,
         follows: list[GeneratedFollow] | None = None,
+        turn_posts: list[TurnPostSnapshot] | None = None,
     ) -> None:
-        """Persist one turn: metadata, metrics, and optional actions in a single transaction.
+        """Persist one turn in strict order inside one transaction.
 
         On any exception (duplicate, DB error, etc.) the transaction is rolled back;
         no partial turn is persisted.
@@ -77,6 +91,11 @@ class SimulationPersistenceService:
         with self._transaction_provider.run_transaction() as conn:
             self._run_repo.write_turn_metadata(turn_metadata, conn=conn)
             self._metrics_repo.write_turn_metrics(turn_metrics, conn=conn)
+            if generated_feeds:
+                for generated_feed in generated_feeds:
+                    self._generated_feed_repo.write_generated_feed(
+                        generated_feed, conn=conn
+                    )
             if likes:
                 self._like_repo.write_likes(run_id, turn_number, likes, conn=conn)
             if comments:
@@ -85,6 +104,10 @@ class SimulationPersistenceService:
                 )
             if follows:
                 self._follow_repo.write_follows(run_id, turn_number, follows, conn=conn)
+            if turn_posts:
+                self._turn_post_repo.write_turn_posts(
+                    run_id, turn_number, turn_posts, conn=conn
+                )
 
     def write_run(self, run_id: str, run_metrics: RunMetrics) -> None:
         """Persist run metrics and set run status to COMPLETED in a single transaction.

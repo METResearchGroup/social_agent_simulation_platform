@@ -25,6 +25,7 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.profile_repository import ProfileRepository
@@ -49,6 +50,11 @@ def mock_repos():
     run_post_repo.read_run_posts_by_ids.return_value = []
     run_post_repo.list_run_posts.return_value = []
     run_post_repo.write_run_posts.return_value = None
+
+    turn_post_repo = Mock(spec=TurnPostRepository)
+    turn_post_repo.read_turn_posts_by_ids.return_value = []
+    turn_post_repo.list_turn_posts_for_run_before_turn.return_value = []
+    turn_post_repo.list_turn_posts_for_run_at_turn.return_value = []
 
     agent_post_repo = Mock(spec=AgentPostRepository)
     agent_post_repo.list_posts_for_agent_ids.return_value = []
@@ -80,6 +86,7 @@ def mock_repos():
         "profile_repo": Mock(spec=ProfileRepository),
         "feed_post_repo": feed_post_repo,
         "run_post_repo": run_post_repo,
+        "turn_post_repo": turn_post_repo,
         "generated_feed_repo": Mock(spec=GeneratedFeedRepository),
         "agent_repo": Mock(spec=AgentRepository),
         "agent_bio_repo": Mock(spec=AgentBioRepository),

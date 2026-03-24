@@ -1,5 +1,6 @@
 """Shared fixtures and helpers for db.repository tests."""
 
+import json
 from contextlib import contextmanager
 from unittest.mock import Mock
 
@@ -8,12 +9,13 @@ import pytest
 from db.adapters.base import TransactionProvider
 from db.adapters.sqlite.sqlite import get_connection
 from lib.agent_id import canonical_agent_id
+from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.feeds import GeneratedFeed
 
 
 def ensure_agent_row_for_generated_feed(feed: GeneratedFeed) -> None:
-    """Insert an agent row so ``generated_feeds.agent_id`` FK writes succeed in tests."""
+    """Insert an agent row so ``turn_generated_feeds.agent_id`` FK writes succeed in tests."""
     handle = feed.agent_handle.strip()
     with get_connection() as conn:
         conn.execute(
@@ -23,6 +25,25 @@ def ensure_agent_row_for_generated_feed(feed: GeneratedFeed) -> None:
             ) VALUES (?, ?, 'test', ?, '2026-01-01', '2026-01-01')
             """,
             (feed.agent_id, handle, handle),
+        )
+        conn.commit()
+
+
+def ensure_turn_row_for_generated_feed(feed: GeneratedFeed) -> None:
+    """Insert a turns parent row so generated_feed composite FK writes succeed in tests."""
+    total_actions = {action.value: 0 for action in TurnAction}
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO turns (run_id, turn_number, total_actions, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                feed.run_id,
+                feed.turn_number,
+                json.dumps(total_actions),
+                "2024-01-01T00:00:00Z",
+            ),
         )
         conn.commit()
 

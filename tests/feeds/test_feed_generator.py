@@ -9,10 +9,12 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
 )
 from feeds.algorithms.implementations.chronological import ChronologicalFeedAlgorithm
 from feeds.algorithms.interfaces import FeedAlgorithmResult
 from feeds.feed_generator import _generate_feed, generate_feeds
+from feeds.interfaces import FeedGenerationResult
 from lib.agent_id import canonical_agent_id
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.posts import Post, PostSource
@@ -66,6 +68,13 @@ def mock_run_post_comment_repo():
     mock.count_comments_by_run_post_ids.side_effect = lambda run_id, run_post_ids: {
         pid: 0 for pid in run_post_ids
     }
+    return mock
+
+
+@pytest.fixture
+def mock_turn_post_repo():
+    mock = Mock(spec=TurnPostRepository)
+    mock.read_turn_posts_by_ids.return_value = []
     return mock
 
 
@@ -277,6 +286,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -302,16 +312,20 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        assert len(result) == 2
-        assert "agent1.bsky.social" in result
-        assert "agent2.bsky.social" in result
-        assert len(result["agent1.bsky.social"]) == len(sample_posts)
-        assert len(result["agent2.bsky.social"]) == len(sample_posts)
-        # Verify repositories were called
-        assert mock_generated_feed_repo.write_generated_feed.call_count == 2
+        assert isinstance(result, FeedGenerationResult)
+        hydrated = result.hydrated_feeds_by_agent
+        generated = result.generated_feeds_by_agent
+        assert len(hydrated) == 2
+        assert "agent1.bsky.social" in hydrated
+        assert "agent2.bsky.social" in hydrated
+        assert len(hydrated["agent1.bsky.social"]) == len(sample_posts)
+        assert len(hydrated["agent2.bsky.social"]) == len(sample_posts)
+        assert len(generated) == 2
+        mock_generated_feed_repo.write_generated_feed.assert_not_called()
         # Verify run_post_repo was used for hydration
         mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
         call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
@@ -327,6 +341,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -349,6 +364,7 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
@@ -365,6 +381,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ) -> None:
@@ -385,9 +402,10 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
-        hydrated = result[sample_agent.handle]
+        hydrated = result.hydrated_feeds_by_agent[sample_agent.handle]
         by_id = {p.post_id: p for p in hydrated}
         assert by_id[first_id].reply_count == 2
         assert sum(p.reply_count for p in hydrated) == 2
@@ -402,6 +420,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -437,11 +456,14 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        assert len(result[sample_agent.handle]) == 2
-        returned_uris = {post.uri for post in result[sample_agent.handle]}
+        assert len(result.hydrated_feeds_by_agent[sample_agent.handle]) == 2
+        returned_uris = {
+            post.uri for post in result.hydrated_feeds_by_agent[sample_agent.handle]
+        }
         expected_uris = {f"seed_state:{p.post_id}" for p in sample_posts[:2]}
         assert returned_uris == expected_uris
         assert mock_logger.warning.called
@@ -456,6 +478,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -479,10 +502,11 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        assert len(result[sample_agent.handle]) == 0
+        assert len(result.hydrated_feeds_by_agent[sample_agent.handle]) == 0
         assert mock_logger.warning.called
         warning_calls = mock_logger.warning.call_args_list
         assert len(warning_calls) > 0
@@ -490,17 +514,18 @@ class TestGenerateFeeds:
         assert "Missing" in warning_msg or "missing" in warning_msg.lower()
 
     @patch("feeds.feed_generator.load_candidate_posts")
-    def test_writes_feeds_to_database(
+    def test_returns_generated_feeds_without_db_side_effects(
         self,
         mock_load_candidate_posts,
         mock_generated_feed_repo,
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
-        """Test that generate_feeds writes feeds to the database."""
+        """Test that generate_feeds returns generated feeds and does not write them."""
         # Arrange
         agents = [sample_agent]
         run_id = "run_123"
@@ -510,7 +535,7 @@ class TestGenerateFeeds:
         mock_load_candidate_posts.return_value = sample_posts
 
         # Act
-        generate_feeds(
+        result = generate_feeds(
             agents=agents,
             run_id=run_id,
             turn_number=turn_number,
@@ -519,17 +544,16 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        # Verify write_generated_feed was called
-        mock_generated_feed_repo.write_generated_feed.assert_called_once()
-        # Verify the feed passed to the repository has correct values
-        call_args = mock_generated_feed_repo.write_generated_feed.call_args[0][0]
-        assert isinstance(call_args, GeneratedFeed)
-        assert call_args.run_id == run_id
-        assert call_args.turn_number == turn_number
-        assert call_args.agent_handle == sample_agent.handle
+        mock_generated_feed_repo.write_generated_feed.assert_not_called()
+        generated_feed = result.generated_feeds_by_agent[sample_agent.handle]
+        assert isinstance(generated_feed, GeneratedFeed)
+        assert generated_feed.run_id == run_id
+        assert generated_feed.turn_number == turn_number
+        assert generated_feed.agent_handle == sample_agent.handle
 
     @patch("feeds.feed_generator.load_candidate_posts")
     def test_returns_hydrated_feeds_dict(
@@ -539,6 +563,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -561,15 +586,17 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        assert isinstance(result, dict)
-        assert sample_agent.handle in result
-        assert isinstance(result[sample_agent.handle], list)
-        assert all(isinstance(post, Post) for post in result[sample_agent.handle])
+        assert isinstance(result, FeedGenerationResult)
+        hydrated = result.hydrated_feeds_by_agent
+        assert sample_agent.handle in hydrated
+        assert isinstance(hydrated[sample_agent.handle], list)
+        assert all(isinstance(post, Post) for post in hydrated[sample_agent.handle])
         # Verify posts are hydrated (have full post objects, not just URIs)
-        assert len(result[sample_agent.handle]) == len(sample_posts)
+        assert len(hydrated[sample_agent.handle]) == len(sample_posts)
 
     @patch("feeds.feed_generator.load_candidate_posts")
     def test_handles_empty_agent_list(
@@ -579,6 +606,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
     ):
         """Test that generate_feeds handles empty agent list."""
         # Arrange
@@ -598,10 +626,12 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        assert result == {}
+        assert result.hydrated_feeds_by_agent == {}
+        assert result.generated_feeds_by_agent == {}
         mock_load_candidate_posts.assert_not_called()
         mock_generated_feed_repo.write_generated_feed.assert_not_called()
 
@@ -613,6 +643,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
     ):
         """Test that generate_feeds handles empty candidate posts."""
@@ -635,14 +666,15 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
-        assert len(result) == 1
-        assert sample_agent.handle in result
-        assert result[sample_agent.handle] == []
-        # Should still write the feed (even if empty)
-        mock_generated_feed_repo.write_generated_feed.assert_called_once()
+        assert len(result.hydrated_feeds_by_agent) == 1
+        assert sample_agent.handle in result.hydrated_feeds_by_agent
+        assert result.hydrated_feeds_by_agent[sample_agent.handle] == []
+        assert sample_agent.handle in result.generated_feeds_by_agent
+        mock_generated_feed_repo.write_generated_feed.assert_not_called()
 
     @patch("feeds.feed_generator.load_candidate_posts")
     def test_registry_pattern_works_correctly(
@@ -652,6 +684,7 @@ class TestGenerateFeeds:
         mock_run_post_repo,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
         sample_agent,
         sample_posts,
     ):
@@ -674,14 +707,15 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         # Assert
         # Should succeed with known algorithm
-        assert len(result) == 1
-        assert sample_agent.handle in result
-        # Verify the feed was generated (registry worked)
-        mock_generated_feed_repo.write_generated_feed.assert_called_once()
+        assert len(result.hydrated_feeds_by_agent) == 1
+        assert sample_agent.handle in result.hydrated_feeds_by_agent
+        assert sample_agent.handle in result.generated_feeds_by_agent
+        mock_generated_feed_repo.write_generated_feed.assert_not_called()
 
     @patch("feeds.feed_generator.load_candidate_posts")
     def test_hydration_uses_run_posts_when_run_post_repo_provided(
@@ -691,6 +725,7 @@ class TestGenerateFeeds:
         sample_agent,
         mock_run_post_like_repo,
         mock_run_post_comment_repo,
+        mock_turn_post_repo,
     ):
         """When run_post_repo is provided, hydration uses run_posts not feed_posts."""
         run_id = "run_123"
@@ -724,13 +759,14 @@ class TestGenerateFeeds:
             run_post_repo=mock_run_post_repo,
             run_post_like_repo=mock_run_post_like_repo,
             run_post_comment_repo=mock_run_post_comment_repo,
+            turn_post_repo=mock_turn_post_repo,
         )
 
         mock_run_post_repo.read_run_posts_by_ids.assert_called_once()
         call_args = mock_run_post_repo.read_run_posts_by_ids.call_args
         assert call_args.args[0] == run_id
-        assert len(result[sample_agent.handle]) == 1
-        hydrated = result[sample_agent.handle][0]
+        assert len(result.hydrated_feeds_by_agent[sample_agent.handle]) == 1
+        hydrated = result.hydrated_feeds_by_agent[sample_agent.handle][0]
         assert hydrated.source == PostSource.SEED_STATE
         assert hydrated.post_id == "rp_aaa"
         assert hydrated.text == "Post from run_posts"

@@ -5,7 +5,7 @@ from unittest.mock import ANY, Mock, patch
 import pytest
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
-from feeds.interfaces import FeedGenerator
+from feeds.interfaces import FeedGenerationResult, FeedGenerator
 from lib.agent_id import canonical_agent_id
 from simulation.core.action_history import InMemoryActionHistoryStore
 from simulation.core.action_policy import (
@@ -38,6 +38,7 @@ from tests.factories import (
     CommentFactory,
     FollowFactory,
     GeneratedCommentFactory,
+    GeneratedFeedFactory,
     GeneratedFollowFactory,
     GeneratedLikeFactory,
     GenerationMetadataFactory,
@@ -70,7 +71,10 @@ def generate_feeds_stub(
     feed_algorithm_config=None,
 ):
     """Return an empty feed for each provided agent."""
-    return {a.handle: [] for a in agents}
+    return FeedGenerationResult(
+        generated_feeds_by_agent={},
+        hydrated_feeds_by_agent={a.handle: [] for a in agents},
+    )
 
 
 @pytest.fixture
@@ -168,7 +172,10 @@ def command_service(
             run_post_like_repo=mock_repos["run_post_like_repo"],
             run_post_comment_repo=mock_repos["run_post_comment_repo"],
         ),
-        turn=TurnRepos(generated_feed_repo=mock_repos["generated_feed_repo"]),
+        turn=TurnRepos(
+            generated_feed_repo=mock_repos["generated_feed_repo"],
+            turn_post_repo=mock_repos["turn_post_repo"],
+        ),
         profile_repo=mock_repos["profile_repo"],
         feed_post_repo=mock_repos["feed_post_repo"],
         transaction_provider=mock_transaction_provider,
@@ -526,10 +533,15 @@ class TestSimulationCommandServiceExecuteRun:
             repost_count=0,
             created_at="2026-03-17T00:00:00Z",
         )
-        command_service.feed_generator.generate_feeds.return_value = {
-            agent_one.handle: [feed_post],
-            agent_two.handle: [],
-        }
+        command_service.feed_generator.generate_feeds.return_value = (
+            FeedGenerationResult(
+                generated_feeds_by_agent={},
+                hydrated_feeds_by_agent={
+                    agent_one.handle: [feed_post],
+                    agent_two.handle: [],
+                },
+            )
+        )
         command_service.feed_generator.generate_feeds.side_effect = None
         command_service.action_history_store_factory = lambda: (
             InMemoryActionHistoryStore()
@@ -707,9 +719,12 @@ class TestSimulationCommandServiceExecuteRun:
             [canonical_post_id],
             [canonical_agent_id("user_1")],
         )
-        command_service.feed_generator.generate_feeds.return_value = {
-            agent.handle: [feed_post]
-        }
+        command_service.feed_generator.generate_feeds.return_value = (
+            FeedGenerationResult(
+                generated_feeds_by_agent={},
+                hydrated_feeds_by_agent={agent.handle: [feed_post]},
+            )
+        )
         command_service.feed_generator.generate_feeds.side_effect = None
 
         with (
@@ -724,6 +739,10 @@ class TestSimulationCommandServiceExecuteRun:
             patch(
                 "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
+            ),
+            patch(
+                "simulation.core.services.command_service.generate_posts",
+                Mock(return_value=[]),
             ),
         ):
             action_history_store = Mock()
@@ -817,9 +836,12 @@ class TestSimulationCommandServiceExecuteRun:
             [],
         )
         mock_repos["run_repo"].get_run.return_value = sample_run
-        command_service.feed_generator.generate_feeds.return_value = {
-            agent.handle: full_feed
-        }
+        command_service.feed_generator.generate_feeds.return_value = (
+            FeedGenerationResult(
+                generated_feeds_by_agent={},
+                hydrated_feeds_by_agent={agent.handle: full_feed},
+            )
+        )
         command_service.feed_generator.generate_feeds.side_effect = None
 
         with (
@@ -834,6 +856,10 @@ class TestSimulationCommandServiceExecuteRun:
             patch(
                 "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
+            ),
+            patch(
+                "simulation.core.services.command_service.generate_posts",
+                Mock(return_value=[]),
             ),
         ):
             action_history_store = Mock()
@@ -850,6 +876,7 @@ class TestSimulationCommandServiceExecuteRun:
             TurnAction.LIKE: 0,
             TurnAction.COMMENT: 0,
             TurnAction.FOLLOW: 0,
+            TurnAction.POST: 0,
         }
         assert result.total_actions == expected_total_actions
         mock_generate_likes.assert_called_once_with(
@@ -910,21 +937,28 @@ class TestSimulationCommandServiceExecuteRun:
         ]
 
         command_service.agent_action_feed_filter = HistoryAwareActionFeedFilter()
-        command_service.feed_generator.generate_feeds.return_value = {
-            agent.handle: feed_posts,
-        }
+        command_service.feed_generator.generate_feeds.return_value = (
+            FeedGenerationResult(
+                generated_feeds_by_agent={},
+                hydrated_feeds_by_agent={agent.handle: feed_posts},
+            )
+        )
         command_service.feed_generator.generate_feeds.side_effect = None
         mock_repos["run_repo"].get_run.return_value = sample_run
 
         action_history_store = InMemoryActionHistoryStore()
-        result = command_service._simulate_turn(
-            run=sample_run,
-            turn_number=0,
-            agents=[agent],
-            feed_algorithm="chronological",
-            action_history_store=action_history_store,
-            turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
-        )
+        with patch(
+            "simulation.core.services.command_service.generate_posts",
+            Mock(return_value=[]),
+        ):
+            result = command_service._simulate_turn(
+                run=sample_run,
+                turn_number=0,
+                agents=[agent],
+                feed_algorithm="chronological",
+                action_history_store=action_history_store,
+                turn_metric_keys=DEFAULT_TURN_METRIC_KEYS,
+            )
 
         expected_min_likes = 1
         assert result.total_actions[TurnAction.LIKE] >= expected_min_likes
@@ -937,9 +971,11 @@ class TestSimulationCommandServiceActionPersistence:
         self,
         run_repo,
         metrics_repo,
+        generated_feed_repo,
         like_repo,
         comment_repo,
         follow_repo,
+        turn_post_repo,
     ):
         """Execute one turn with real persistence; assert likes/comments/follows are persisted."""
         from db.adapters.sqlite.sqlite import SqliteTransactionProvider
@@ -954,10 +990,12 @@ class TestSimulationCommandServiceActionPersistence:
         simulation_persistence = create_simulation_persistence_service(
             run_repo=run_repo,
             metrics_repo=metrics_repo,
+            generated_feed_repo=generated_feed_repo,
             transaction_provider=transaction_provider,
             like_repo=like_repo,
             comment_repo=comment_repo,
             follow_repo=follow_repo,
+            turn_post_repo=turn_post_repo,
         )
         with transaction_provider.run_transaction() as conn:
             for handle in ("agent1.bsky.social", "user2.bsky.social"):
@@ -1041,9 +1079,23 @@ class TestSimulationCommandServiceActionPersistence:
             created_at="2026-02-24T12:00:00",
         )
         feed_generator = Mock(spec=FeedGenerator)
-        feed_generator.generate_feeds.side_effect = lambda **kwargs: {
-            a.handle: [feed_post] for a in kwargs["agents"]
-        }
+        feed_generator.generate_feeds.side_effect = lambda **kwargs: (
+            FeedGenerationResult(
+                generated_feeds_by_agent={
+                    a.handle: GeneratedFeedFactory.create(
+                        run_id=run_id,
+                        turn_number=kwargs["turn_number"],
+                        agent_handle=a.handle,
+                        post_ids=[feed_post.post_id],
+                        created_at="2026-02-24T12:00:00Z",
+                    )
+                    for a in kwargs["agents"]
+                },
+                hydrated_feeds_by_agent={
+                    a.handle: [feed_post] for a in kwargs["agents"]
+                },
+            )
+        )
         action_history_store_factory = create_default_action_history_store_factory()
         action_history_store = action_history_store_factory()
         agent_action_feed_filter = HistoryAwareActionFeedFilter()
@@ -1070,7 +1122,10 @@ class TestSimulationCommandServiceActionPersistence:
                 run_post_like_repo=Mock(),
                 run_post_comment_repo=Mock(),
             ),
-            turn=TurnRepos(generated_feed_repo=Mock()),
+            turn=TurnRepos(
+                generated_feed_repo=generated_feed_repo,
+                turn_post_repo=turn_post_repo,
+            ),
             profile_repo=Mock(),
             feed_post_repo=Mock(),
             transaction_provider=transaction_provider,
@@ -1101,6 +1156,10 @@ class TestSimulationCommandServiceActionPersistence:
             patch(
                 "simulation.core.services.command_service.generate_follows",
                 mock_generate_follows,
+            ),
+            patch(
+                "simulation.core.services.command_service.generate_posts",
+                Mock(return_value=[]),
             ),
         ):
             command_service._simulate_turn(

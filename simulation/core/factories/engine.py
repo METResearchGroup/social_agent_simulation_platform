@@ -43,6 +43,7 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
     UserAgentProfileMetadataRepository,
 )
 from db.repositories.like_repository import create_sqlite_like_repository
@@ -60,6 +61,7 @@ from db.repositories.run_post_like_repository import (
 )
 from db.repositories.run_post_repository import create_sqlite_run_post_repository
 from db.repositories.run_repository import create_sqlite_repository
+from db.repositories.turn_post_repository import create_sqlite_turn_post_repository
 from db.repositories.user_agent_profile_metadata_repository import (
     create_sqlite_user_agent_profile_metadata_repository,
 )
@@ -90,6 +92,7 @@ def create_engine(
     profile_repo: ProfileRepository | None = None,
     feed_post_repo: FeedPostRepository | None = None,
     run_post_repo: RunPostRepository | None = None,
+    turn_post_repo: TurnPostRepository | None = None,
     run_post_like_repo: RunPostLikeRepository | None = None,
     run_post_comment_repo: RunPostCommentRepository | None = None,
     generated_feed_repo: GeneratedFeedRepository | None = None,
@@ -160,6 +163,10 @@ def create_engine(
         )
     if run_post_repo is None:
         run_post_repo = create_sqlite_run_post_repository(
+            transaction_provider=transaction_provider
+        )
+    if turn_post_repo is None:
+        turn_post_repo = create_sqlite_turn_post_repository(
             transaction_provider=transaction_provider
         )
     if generated_feed_repo is None:
@@ -240,6 +247,7 @@ def create_engine(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
         run_post_repo=run_post_repo,
+        turn_post_repo=turn_post_repo,
         run_post_like_repo=run_post_like_repo,
         run_post_comment_repo=run_post_comment_repo,
         generated_feed_repo=generated_feed_repo,
@@ -252,10 +260,12 @@ def create_engine(
     simulation_persistence = create_simulation_persistence_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
+        generated_feed_repo=generated_feed_repo,
         transaction_provider=transaction_provider,
         like_repo=like_repo,
         comment_repo=comment_repo,
         follow_repo=follow_repo,
+        turn_post_repo=turn_post_repo,
     )
     command_repos = CommandServiceRepos(
         agent=AgentRepos(
@@ -276,7 +286,10 @@ def create_engine(
             run_post_like_repo=run_post_like_repo,
             run_post_comment_repo=run_post_comment_repo,
         ),
-        turn=TurnRepos(generated_feed_repo=generated_feed_repo),
+        turn=TurnRepos(
+            generated_feed_repo=generated_feed_repo,
+            turn_post_repo=turn_post_repo,
+        ),
         profile_repo=profile_repo,
         feed_post_repo=feed_post_repo,
         transaction_provider=transaction_provider,
@@ -300,6 +313,7 @@ def create_engine(
         run_agent_repo=run_agent_repo,
         run_follow_edge_repo=run_follow_edge_repo,
         run_post_repo=run_post_repo,
+        turn_post_repo=turn_post_repo,
         run_post_like_repo=run_post_like_repo,
         run_post_comment_repo=run_post_comment_repo,
         agent_factory=agent_factory,

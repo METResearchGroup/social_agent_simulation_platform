@@ -34,7 +34,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
             actor_id = validate_canonical_agent_id(g.comment.agent_id)
             conn.execute(
                 """
-                INSERT INTO comments (
+                INSERT INTO turn_comments (
                     comment_id, run_id, turn_number, agent_id, post_id, text,
                     created_at, explanation, model_used, generation_metadata_json,
                     generation_created_at
@@ -65,7 +65,7 @@ class SQLiteCommentAdapter(CommentDatabaseAdapter):
             SELECT comment_id, run_id, turn_number, agent_id, post_id, text,
                    created_at, explanation, model_used, generation_metadata_json,
                    generation_created_at
-            FROM comments
+            FROM turn_comments
             WHERE run_id = ? AND turn_number = ?
             ORDER BY agent_id, post_id, comment_id
             """,

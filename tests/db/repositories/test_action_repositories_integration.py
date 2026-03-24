@@ -5,11 +5,14 @@ Uses a real SQLite database. Requires a run to exist for FK (run_id).
 
 from __future__ import annotations
 
+import json
 import sqlite3
 
 import pytest
 
+from db.adapters.sqlite.turn_parent import TURN_PARENT_PLACEHOLDER_CREATED_AT
 from lib.agent_id import canonical_agent_id
+from simulation.core.models.actions import TurnAction
 from tests.factories import (
     CommentFactory,
     FollowFactory,
@@ -55,7 +58,28 @@ def _make_run(run_repo) -> str:
     return run.run_id
 
 
-_ALLOWED_ACTION_TABLES = frozenset({"likes", "comments", "follows"})
+def _seed_turn_parent_row(temp_db: str, run_id: str, turn_number: int) -> None:
+    """Ensure ``turns`` has a parent row so ``turn_*`` action FK checks pass."""
+    conn = sqlite3.connect(temp_db)
+    try:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO turns (run_id, turn_number, total_actions, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                run_id,
+                turn_number,
+                json.dumps({k.value: 0 for k in TurnAction}),
+                TURN_PARENT_PLACEHOLDER_CREATED_AT,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+_ALLOWED_ACTION_TABLES = frozenset({"turn_likes", "turn_comments", "turn_follows"})
 
 
 def _count_rows(temp_db: str, table: str) -> int:
@@ -72,11 +96,12 @@ class TestSQLiteLikeRepositoryIntegration:
     """Integration tests for LikeRepository."""
 
     def test_write_and_read_likes_by_run_turn(
-        self, seed_action_agents, run_repo, like_repo
+        self, seed_action_agents, temp_db, run_repo, like_repo
     ) -> None:
         """write_likes then read_likes_by_run_turn round-trips."""
         run_id = _make_run(run_repo)
         turn_number = 0
+        _seed_turn_parent_row(temp_db, run_id, turn_number)
 
         alice_id = canonical_agent_id("alice.bsky.social")
         likes = [
@@ -116,11 +141,12 @@ class TestSQLiteCommentRepositoryIntegration:
     """Integration tests for CommentRepository."""
 
     def test_write_and_read_comments_by_run_turn(
-        self, seed_action_agents, run_repo, comment_repo
+        self, seed_action_agents, temp_db, run_repo, comment_repo
     ) -> None:
         """write_comments then read_comments_by_run_turn round-trips."""
         run_id = _make_run(run_repo)
         turn_number = 0
+        _seed_turn_parent_row(temp_db, run_id, turn_number)
 
         bob_id = canonical_agent_id("bob.bsky.social")
         comments = [
@@ -156,11 +182,12 @@ class TestSQLiteFollowRepositoryIntegration:
     """Integration tests for FollowRepository."""
 
     def test_write_and_read_follows_by_run_turn(
-        self, seed_action_agents, run_repo, follow_repo
+        self, seed_action_agents, temp_db, run_repo, follow_repo
     ) -> None:
         """write_follows then read_follows_by_run_turn round-trips."""
         run_id = _make_run(run_repo)
         turn_number = 0
+        _seed_turn_parent_row(temp_db, run_id, turn_number)
 
         alice_id = canonical_agent_id("alice.bsky.social")
         charlie_id = canonical_agent_id("charlie.bsky.social")
@@ -198,7 +225,7 @@ class TestSQLiteActionRepositoriesCanonicalOnly:
         self, seed_action_agents, run_repo, like_repo, temp_db
     ) -> None:
         run_id = _make_run(run_repo)
-        before = _count_rows(temp_db, "likes")
+        before = _count_rows(temp_db, "turn_likes")
         bad = GeneratedLikeFactory.create(
             like=LikeFactory.create(
                 like_id="like_bad",
@@ -215,13 +242,13 @@ class TestSQLiteActionRepositoriesCanonicalOnly:
         )
         with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
             like_repo.write_likes(run_id, 0, [bad])
-        assert _count_rows(temp_db, "likes") == before
+        assert _count_rows(temp_db, "turn_likes") == before
 
     def test_write_comments_rejects_malformed_agent_id_without_persisting(
         self, seed_action_agents, run_repo, comment_repo, temp_db
     ) -> None:
         run_id = _make_run(run_repo)
-        before = _count_rows(temp_db, "comments")
+        before = _count_rows(temp_db, "turn_comments")
         bad = GeneratedCommentFactory.create(
             comment=CommentFactory.create(
                 comment_id="c_bad",
@@ -239,13 +266,13 @@ class TestSQLiteActionRepositoriesCanonicalOnly:
         )
         with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
             comment_repo.write_comments(run_id, 0, [bad])
-        assert _count_rows(temp_db, "comments") == before
+        assert _count_rows(temp_db, "turn_comments") == before
 
     def test_write_follows_rejects_handle_target_without_persisting(
         self, seed_action_agents, run_repo, follow_repo, temp_db
     ) -> None:
         run_id = _make_run(run_repo)
-        before = _count_rows(temp_db, "follows")
+        before = _count_rows(temp_db, "turn_follows")
         alice_id = canonical_agent_id("alice.bsky.social")
         bad = GeneratedFollowFactory.create(
             follow=FollowFactory.create(
@@ -263,4 +290,4 @@ class TestSQLiteActionRepositoriesCanonicalOnly:
         )
         with pytest.raises(ValueError, match="agent_id must be 16 lowercase hex chars"):
             follow_repo.write_follows(run_id, 0, [bad])
-        assert _count_rows(temp_db, "follows") == before
+        assert _count_rows(temp_db, "turn_follows") == before

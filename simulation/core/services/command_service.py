@@ -5,6 +5,7 @@ from uuid import uuid4
 from pydantic import JsonValue
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
+from feeds.interfaces import FeedGenerationResult
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore, record_action_targets
@@ -12,6 +13,7 @@ from simulation.core.agent_actions import (
     generate_comments,
     generate_follows,
     generate_likes,
+    generate_posts,
 )
 from simulation.core.metrics.collector import MetricsCollector
 from simulation.core.metrics.defaults import (
@@ -23,13 +25,13 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.run_post_comments import RunPostCommentSnapshot
 from simulation.core.models.run_post_likes import RunPostLikeSnapshot
 from simulation.core.models.run_posts import RunPostSnapshot
 from simulation.core.models.runs import Run, RunConfig, RunStatus
+from simulation.core.models.turn_posts import TurnPostSnapshot
 from simulation.core.models.turns import TurnMetadata, TurnResult
 from simulation.core.seed_state import hydrate_seed_state
 from simulation.core.services.command_service_bundles import (
@@ -340,15 +342,22 @@ class SimulationCommandService:
         """Simulate a single turn of the simulation."""
         run_id: str = run.run_id
 
-        agent_to_hydrated_feeds: dict[str, list[Post]] = (
-            self.feed_generator.generate_feeds(
-                agents=agents,
-                run_id=run_id,
-                turn_number=turn_number,
-                feed_algorithm=feed_algorithm,
-                feed_algorithm_config=feed_algorithm_config,
-            )
+        feed_generation_result = self.feed_generator.generate_feeds(
+            agents=agents,
+            run_id=run_id,
+            turn_number=turn_number,
+            feed_algorithm=feed_algorithm,
+            feed_algorithm_config=feed_algorithm_config,
         )
+        if isinstance(feed_generation_result, FeedGenerationResult):
+            agent_to_hydrated_feeds = feed_generation_result.hydrated_feeds_by_agent
+            generated_feeds = list(
+                feed_generation_result.generated_feeds_by_agent.values()
+            )
+        else:
+            # Backward-compatible test seam while callers migrate to FeedGenerationResult.
+            agent_to_hydrated_feeds = feed_generation_result
+            generated_feeds = []
 
         validate_agents_without_feeds(
             agent_handles=set(agent.handle for agent in agents),
@@ -438,6 +447,19 @@ class SimulationCommandService:
 
         created_at: str = get_current_timestamp()
 
+        turn_post_snapshots: list[TurnPostSnapshot] = generate_posts(
+            agents=agents,
+            run_id=run_id,
+            turn_number=turn_number,
+            sim_timestamp=created_at,
+        )
+        self.agent_action_rules_validator.validate_turn_posts(
+            run_id=run_id,
+            turn_number=turn_number,
+            posts=turn_post_snapshots,
+        )
+        total_actions[TurnAction.POST] = len(turn_post_snapshots)
+
         turn_metadata = TurnMetadata(
             run_id=run_id,
             turn_number=turn_number,
@@ -460,9 +482,11 @@ class SimulationCommandService:
         self.simulation_persistence.write_turn(
             turn_metadata=turn_metadata,
             turn_metrics=turn_metrics,
+            generated_feeds=generated_feeds,
             likes=turn_likes,
             comments=turn_comments,
             follows=turn_follows,
+            turn_posts=turn_post_snapshots,
         )
 
         return TurnResult(

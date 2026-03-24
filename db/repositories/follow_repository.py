@@ -11,7 +11,7 @@ from simulation.core.models.persisted_actions import PersistedFollow
 
 
 class SQLiteFollowRepository(FollowRepository):
-    """SQLite implementation of FollowRepository."""
+    """SQLite implementation of FollowRepository (``turn_follows``)."""
 
     def __init__(
         self,
@@ -29,6 +29,7 @@ class SQLiteFollowRepository(FollowRepository):
         follows: Iterable[GeneratedFollow],
         conn: object | None = None,
     ) -> None:
+        """Persist generated follows for one turn (runtime history, not seed state)."""
         if conn is not None:
             self._db_adapter.write_follows(run_id, turn_number, follows, conn=conn)
         else:

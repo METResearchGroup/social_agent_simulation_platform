@@ -10,6 +10,7 @@ from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.generated.post import GeneratedPost
 from simulation.core.models.posts import Post
 
 
@@ -38,9 +39,10 @@ class TurnResult(BaseModel):
 
 
 class TurnMetadata(BaseModel):
-    """Metadata for a simulation turn.
+    """Metadata for a simulation turn as stored in the ``turns`` table.
 
-    Contains basic information about a turn without the full data.
+    One row per (run_id, turn_number). Contains basic information about a turn
+    without feeds, actions, or metrics payloads.
     """
 
     run_id: str
@@ -68,7 +70,9 @@ class TurnData(BaseModel):
 
     ``feeds`` and ``actions`` map canonical ``agent_id`` strings to per-agent data.
     ``feed_records`` holds the persisted ``GeneratedFeed`` row for each agent that
-    had a feed on this turn (aligned with ``feeds`` keys). Display handles live on
+    had a feed on this turn (aligned with ``feeds`` keys); those rows come from
+    ``turn_generated_feeds`` at persistence time. Action lists are built from
+    persisted turn-scoped like/comment/follow rows. Display handles live on
     nested models, not in dict keys.
     """
 
@@ -76,7 +80,10 @@ class TurnData(BaseModel):
     agents: list[Any]  # SimulationAgent — Any avoids importing agents module here
     feeds: dict[str, list[Post]]
     feed_records: dict[str, GeneratedFeed]
-    actions: dict[str, list[GeneratedLike | GeneratedComment | GeneratedFollow]]
+    actions: dict[
+        str,
+        list[GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost],
+    ]
 
     @field_validator("turn_number")
     @classmethod

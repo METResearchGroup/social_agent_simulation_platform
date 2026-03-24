@@ -7,6 +7,22 @@ tags: [production, deployment, uvicorn, workers, timeouts]
 
 General production and deployment guidance for the simulation API.
 
+## Coordinated release (same ref on API and UI)
+
+UI and API must be deployed from **one chosen git ref** (tag, branch SHA, or release) so the frontend calls match the backend contract. Drift (for example a newer UI expecting metadata routes against an older API) causes hard-to-debug production failures.
+
+**Release checklist (same SHA / tag on both sides):**
+
+1. Note the exact git SHA (or tag) you are releasing; use it for both Railway and Vercel builds.
+2. Confirm CI is green on that ref, including the **local reset E2E** workflow when it applies (see [SMOKE_TEST.md](./SMOKE_TEST.md#local-reset-e2e-ci)).
+3. Deploy the **API** first (Railway). See [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md).
+4. Confirm the API base URL and contract (health + metadata routes). Use the commands in [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md#verify-deployment-with-railway-cli--http-checks) and [SMOKE_TEST.md](./SMOKE_TEST.md).
+5. Deploy the **UI** (Vercel) from the **same ref**. See [UI_DEPLOYMENT.md](./UI_DEPLOYMENT.md).
+6. In Vercel project settings, set `NEXT_PUBLIC_SIMULATION_API_URL` to the **canonical Railway production API URL** the UI should call (must match the API you just verified—often the stable `https://…up.railway.app` URL for the production service).
+7. Run post-deploy checks: smoke suite with `SIMULATION_API_BEARER_TOKEN` against production, then open the production UI and sanity-check a seeded run.
+
+Platform-specific details and copy-pastable checks live in the Railway and Vercel runbooks above.
+
 ## Run Command (no reload)
 
 ```bash

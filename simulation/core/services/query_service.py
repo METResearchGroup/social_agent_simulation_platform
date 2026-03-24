@@ -14,35 +14,50 @@ from db.repositories.interfaces import (
     RunPostLikeRepository,
     RunPostRepository,
     RunRepository,
+    TurnPostRepository,
 )
 from lib.validation_decorators import validate_inputs
 from simulation.core.models.feeds import GeneratedFeed
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.generated.post import GeneratedPost
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post, run_post_snapshot_to_post
+from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnData, TurnMetadata
 from simulation.core.utils.exceptions import RunNotFoundError
+from simulation.core.utils.feed_visible_post_hydration import (
+    hydrate_feed_visible_posts_for_run,
+)
 from simulation.core.utils.turn_data_hydration import (
     persisted_comment_to_generated,
     persisted_follow_to_generated,
     persisted_like_to_generated,
+    turn_post_snapshot_to_generated,
 )
 from simulation.core.utils.validators import validate_run_id, validate_turn_number
 
 
 class SimulationQueryService:
-    """Query service for retrieving simulation run and turn data."""
+    """Query service for retrieving simulation run and turn data.
+
+    Turn-scoped feeds and actions are loaded via repositories backed by
+    ``turn_generated_feeds`` and ``turn_likes`` / ``turn_comments`` /
+    ``turn_follows``. ``get_turn_data`` hydrates feed-card post bodies and
+    action ``post_id`` targets via ``hydrate_feed_visible_posts_for_run``,
+    which loads ``run_posts`` first, then ``turn_post_repo`` (``turn_posts``)
+    for IDs not found in the run snapshot.
+    """
 
     def __init__(
         self,
         run_repo: RunRepository,
         metrics_repo: MetricsRepository,
         run_post_repo: RunPostRepository,
+        turn_post_repo: TurnPostRepository,
         run_post_like_repo: RunPostLikeRepository,
         run_post_comment_repo: RunPostCommentRepository,
         generated_feed_repo: GeneratedFeedRepository,
@@ -55,6 +70,7 @@ class SimulationQueryService:
         self.run_repo = run_repo
         self.metrics_repo = metrics_repo
         self.run_post_repo = run_post_repo
+        self.turn_post_repo = turn_post_repo
         self.run_post_like_repo = run_post_like_repo
         self.run_post_comment_repo = run_post_comment_repo
         self.generated_feed_repo = generated_feed_repo
@@ -113,9 +129,13 @@ class SimulationQueryService:
 
     @validate_inputs((validate_run_id, "run_id"), (validate_turn_number, "turn_number"))
     def get_turn_data(self, run_id: str, turn_number: int) -> TurnData | None:
-        """Returns full turn data with feeds and posts.
+        """Return full turn data: feeds, hydrated posts, and actions.
 
-        ``feeds`` and ``actions`` maps are keyed by canonical ``agent_id`` only.
+        ``feeds``, ``feed_records``, and ``actions`` are keyed by canonical
+        ``agent_id`` only. Feeds and actions are read from the generated-feed
+        and action repositories (turn-scoped tables). Post text and metadata
+        hydrate from ``run_posts`` first, then ``turn_posts``, for the union of
+        feed ``post_ids`` and like/comment ``post_id`` values.
         """
         run = self.run_repo.get_run(run_id)
         if run is None:
@@ -127,32 +147,38 @@ class SimulationQueryService:
         like_rows = self.like_repo.read_likes_by_run_turn(run_id, turn_number)
         comment_rows = self.comment_repo.read_comments_by_run_turn(run_id, turn_number)
         follow_rows = self.follow_repo.read_follows_by_run_turn(run_id, turn_number)
+        turn_post_rows = self.turn_post_repo.list_turn_posts_for_run_at_turn(
+            run_id, turn_number
+        )
 
-        if not feeds and not like_rows and not comment_rows and not follow_rows:
+        if (
+            not feeds
+            and not like_rows
+            and not comment_rows
+            and not follow_rows
+            and not turn_post_rows
+        ):
             return None
 
         post_ids_set: set[str] = set()
         for feed in feeds:
             post_ids_set.update(feed.post_ids)
+        for row in like_rows:
+            post_ids_set.add(row.post_id)
+        for row in comment_rows:
+            post_ids_set.add(row.post_id)
+        for tp in turn_post_rows:
+            post_ids_set.add(tp.turn_post_id)
 
         post_ids_list = list(post_ids_set)
-        run_post_snapshots = self.run_post_repo.read_run_posts_by_ids(
-            run_id, post_ids_list
+        post_id_to_post = hydrate_feed_visible_posts_for_run(
+            run_id,
+            post_ids_list,
+            run_post_repo=self.run_post_repo,
+            turn_post_repo=self.turn_post_repo,
+            run_post_like_repo=self.run_post_like_repo,
+            run_post_comment_repo=self.run_post_comment_repo,
         )
-        like_counts = self.run_post_like_repo.count_likes_by_run_post_ids(
-            run_id, post_ids_list
-        )
-        reply_counts = self.run_post_comment_repo.count_comments_by_run_post_ids(
-            run_id, post_ids_list
-        )
-        post_id_to_post = {
-            snap.run_post_id: run_post_snapshot_to_post(
-                snap,
-                like_count=like_counts.get(snap.run_post_id, 0),
-                reply_count=reply_counts.get(snap.run_post_id, 0),
-            )
-            for snap in run_post_snapshots
-        }
 
         feeds_dict: dict[str, list[Post]] = {}
         feed_records: dict[str, GeneratedFeed] = {}
@@ -166,7 +192,8 @@ class SimulationQueryService:
             feed_records[agent_key] = feed
 
         actions_by_agent: dict[
-            str, list[GeneratedLike | GeneratedComment | GeneratedFollow]
+            str,
+            list[GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost],
         ] = defaultdict(list)
         for row in like_rows:
             actions_by_agent[row.agent_id].append(persisted_like_to_generated(row))
@@ -174,9 +201,13 @@ class SimulationQueryService:
             actions_by_agent[row.agent_id].append(persisted_comment_to_generated(row))
         for row in follow_rows:
             actions_by_agent[row.agent_id].append(persisted_follow_to_generated(row))
+        for tp in turn_post_rows:
+            actions_by_agent[tp.author_agent_id].append(
+                turn_post_snapshot_to_generated(tp)
+            )
 
         def _action_sort_key(
-            a: GeneratedLike | GeneratedComment | GeneratedFollow,
+            a: GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost,
         ) -> tuple[str, str]:
             if isinstance(a, GeneratedLike):
                 return (a.like.post_id, a.like.like_id)
@@ -184,9 +215,11 @@ class SimulationQueryService:
                 return (a.comment.post_id, a.comment.comment_id)
             if isinstance(a, GeneratedFollow):
                 return (a.follow.target_agent_id, a.follow.follow_id)
+            if isinstance(a, GeneratedPost):
+                return (a.snapshot.created_at, a.snapshot.turn_post_id)
             raise TypeError(
                 f"_action_sort_key only supports GeneratedLike, GeneratedComment, "
-                f"GeneratedFollow; got unsupported action type {type(a)!r}"
+                f"GeneratedFollow, GeneratedPost; got unsupported action type {type(a)!r}"
             )
 
         actions_dict: dict[str, list] = {

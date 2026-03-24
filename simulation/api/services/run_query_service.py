@@ -19,6 +19,7 @@ from simulation.core.models.actions import TurnAction
 from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
+from simulation.core.models.generated.post import GeneratedPost
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.posts import Post
 from simulation.core.models.runs import Run
@@ -47,7 +48,12 @@ def list_runs(*, engine: SimulationEngine) -> list[RunListItem]:
 def get_turns_for_run(
     *, run_id: str, engine: SimulationEngine
 ) -> dict[str, TurnSchema]:
-    """Build TurnSchema payloads from persisted turn metadata via ``get_turn_data``."""
+    """Build TurnSchema payloads from persisted turn metadata via ``get_turn_data``.
+
+    Turn list order comes from ``turns``-backed metadata; per-turn feeds and
+    actions match ``SimulationQueryService.get_turn_data`` (same repository
+    contracts as the core query service).
+    """
     validated_run_id = validate_run_id(run_id)
     run = engine.get_run(validated_run_id)
     if run is None:
@@ -81,7 +87,7 @@ def _resolve_agent_handle(agent_id: str, agent_id_to_handle: dict[str, str]) -> 
 
 
 def _generated_action_to_schema(
-    action: GeneratedLike | GeneratedComment | GeneratedFollow,
+    action: GeneratedLike | GeneratedComment | GeneratedFollow | GeneratedPost,
     *,
     agent_handle: str,
 ) -> AgentActionSchema:
@@ -114,6 +120,16 @@ def _generated_action_to_schema(
             target_agent_id=action.follow.target_agent_id,
             type=TurnAction.FOLLOW,
             created_at=action.follow.created_at,
+        )
+    if isinstance(action, GeneratedPost):
+        return AgentActionSchema(
+            action_id=action.snapshot.turn_post_id,
+            agent_id=action.snapshot.author_agent_id,
+            agent_handle=agent_handle,
+            post_id=action.snapshot.turn_post_id,
+            target_agent_id=None,
+            type=TurnAction.POST,
+            created_at=action.snapshot.created_at,
         )
     raise TypeError(
         f"Unsupported generated action type for API serialization: {type(action)!r}"

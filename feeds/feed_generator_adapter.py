@@ -9,11 +9,11 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
 )
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
-from feeds.interfaces import FeedGenerator
+from feeds.interfaces import FeedGenerationResult, FeedGenerator
 from simulation.core.models.agents import SimulationAgent
-from simulation.core.models.posts import Post
 
 
 class FeedGeneratorAdapter(FeedGenerator):
@@ -26,11 +26,13 @@ class FeedGeneratorAdapter(FeedGenerator):
         run_post_repo: RunPostRepository,
         run_post_like_repo: RunPostLikeRepository,
         run_post_comment_repo: RunPostCommentRepository,
+        turn_post_repo: TurnPostRepository,
     ) -> None:
         self._generated_feed_repo = generated_feed_repo
         self._run_post_repo = run_post_repo
         self._run_post_like_repo = run_post_like_repo
         self._run_post_comment_repo = run_post_comment_repo
+        self._turn_post_repo = turn_post_repo
 
     def generate_feeds(
         self,
@@ -39,7 +41,7 @@ class FeedGeneratorAdapter(FeedGenerator):
         turn_number: int,
         feed_algorithm: str,
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-    ) -> dict[str, list[Post]]:
+    ) -> FeedGenerationResult:
         return generate_feeds_impl(
             agents=agents,
             run_id=run_id,
@@ -49,5 +51,6 @@ class FeedGeneratorAdapter(FeedGenerator):
             run_post_repo=self._run_post_repo,
             run_post_like_repo=self._run_post_like_repo,
             run_post_comment_repo=self._run_post_comment_repo,
+            turn_post_repo=self._turn_post_repo,
             feed_algorithm_config=feed_algorithm_config,
         )

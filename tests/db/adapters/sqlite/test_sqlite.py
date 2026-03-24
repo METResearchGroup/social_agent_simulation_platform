@@ -124,9 +124,9 @@ class TestInitializeDatabase:
                 "bluesky_profiles",
                 "feed_posts",
                 "agent_bios",
-                "generated_feeds",
+                "turn_generated_feeds",
                 "runs",
-                "turn_metadata",
+                "turns",
                 "turn_metrics",
                 "run_metrics",
             ]
@@ -152,7 +152,7 @@ class TestInitializeDatabase:
                 "idx_runs_status",
                 "idx_runs_created_at",
                 "idx_feed_posts_author_handle",
-                "idx_turn_metadata_run_id",
+                "idx_turns_run_id",
                 "idx_turn_metrics_run_id",
             ]
 

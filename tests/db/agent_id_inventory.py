@@ -24,11 +24,11 @@ AGENT_KEY_COLUMNS: tuple[tuple[str, str], ...] = (
     ("run_post_comments", "author_agent_id"),
     ("run_follow_edges", "follower_agent_id"),
     ("run_follow_edges", "target_agent_id"),
-    ("likes", "agent_id"),
-    ("comments", "agent_id"),
-    ("follows", "agent_id"),
-    ("follows", "target_agent_id"),
-    ("generated_feeds", "agent_id"),
+    ("turn_likes", "agent_id"),
+    ("turn_comments", "agent_id"),
+    ("turn_follows", "agent_id"),
+    ("turn_follows", "target_agent_id"),
+    ("turn_generated_feeds", "agent_id"),
 )
 
 _UUID_HYPHENATED = re.compile(

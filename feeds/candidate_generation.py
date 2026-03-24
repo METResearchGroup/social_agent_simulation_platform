@@ -5,9 +5,14 @@ from db.repositories.interfaces import (
     RunPostCommentRepository,
     RunPostLikeRepository,
     RunPostRepository,
+    TurnPostRepository,
 )
 from simulation.core.models.agents import SimulationAgent
-from simulation.core.models.posts import Post, run_post_snapshot_to_post
+from simulation.core.models.posts import (
+    Post,
+    run_post_snapshot_to_post,
+    turn_post_snapshot_to_post,
+)
 
 
 def load_posts(
@@ -16,15 +21,21 @@ def load_posts(
     run_post_repo: RunPostRepository,
     run_post_like_repo: RunPostLikeRepository,
     run_post_comment_repo: RunPostCommentRepository,
+    turn_post_repo: TurnPostRepository,
+    before_turn_number: int,
 ) -> list[Post]:
-    """Load the posts for the feeds from run_posts (frozen run-start state)."""
+    """Load posts for feed candidates: run snapshot posts plus prior ``turn_posts``.
+
+    Includes ``turn_posts`` rows with ``turn_number`` < ``before_turn_number`` (so
+    turn ``N``'s feed does not include posts authored during turn ``N``).
+    """
     snapshots = run_post_repo.list_run_posts(run_id)
     run_post_ids = [s.run_post_id for s in snapshots]
     like_counts = run_post_like_repo.count_likes_by_run_post_ids(run_id, run_post_ids)
     reply_counts = run_post_comment_repo.count_comments_by_run_post_ids(
         run_id, run_post_ids
     )
-    return [
+    run_posts: list[Post] = [
         run_post_snapshot_to_post(
             s,
             like_count=like_counts.get(s.run_post_id, 0),
@@ -32,6 +43,11 @@ def load_posts(
         )
         for s in snapshots
     ]
+    turn_snaps = turn_post_repo.list_turn_posts_for_run_before_turn(
+        run_id, before_turn_number
+    )
+    turn_as_posts = [turn_post_snapshot_to_post(s) for s in turn_snaps]
+    return run_posts + turn_as_posts
 
 
 def load_seen_post_ids(
@@ -81,10 +97,12 @@ def load_candidate_posts(
     *,
     agent: SimulationAgent,
     run_id: str,
+    turn_number: int,
     generated_feed_repo: GeneratedFeedRepository,
     run_post_repo: RunPostRepository,
     run_post_like_repo: RunPostLikeRepository,
     run_post_comment_repo: RunPostCommentRepository,
+    turn_post_repo: TurnPostRepository,
 ) -> list[Post]:
     """Load the candidate posts for the feeds from run_posts.
 
@@ -97,6 +115,8 @@ def load_candidate_posts(
         run_post_repo=run_post_repo,
         run_post_like_repo=run_post_like_repo,
         run_post_comment_repo=run_post_comment_repo,
+        turn_post_repo=turn_post_repo,
+        before_turn_number=turn_number,
     )
     return filter_candidate_posts(
         candidate_posts=candidate_posts,
