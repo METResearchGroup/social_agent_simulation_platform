@@ -101,6 +101,10 @@ class SimulationEngine:
             run_config, created_by_app_user_id=created_by_app_user_id
         )
 
+    def delete_run(self, run_id: str) -> None:
+        """Remove a persisted run and all dependent rows."""
+        self.run_repo.delete_run(run_id)
+
     def get_run(self, run_id: str) -> Run | None:
         return self.query_service.get_run(run_id)
 

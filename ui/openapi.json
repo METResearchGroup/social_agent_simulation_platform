@@ -1525,6 +1525,45 @@
       }
     },
     "/v1/simulations/runs/{run_id}": {
+      "delete": {
+        "description": "Delete a persisted run and all dependent data.",
+        "operationId": "delete_simulation_run_route_v1_simulations_runs__run_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete simulation run",
+        "tags": [
+          "simulation"
+        ]
+      },
       "get": {
         "description": "Fetch run config and turn-by-turn action summary by run ID.",
         "operationId": "get_simulation_run_v1_simulations_runs__run_id__get",

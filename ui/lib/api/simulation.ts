@@ -357,6 +357,12 @@ export async function getTurnsForRun(runId: string): Promise<Record<string, Turn
   return turnsById;
 }
 
+export async function deleteRun(runId: string): Promise<void> {
+  await fetchDelete(
+    buildApiUrl(`/simulations/runs/${encodeURIComponent(runId)}`),
+  );
+}
+
 export async function getAgents(params?: {
   limit?: number;
   offset?: number;

@@ -52,6 +52,12 @@ class ApiRunNotFoundError(Exception):
         self.run_id = run_id
 
 
+class ApiRunForbiddenError(Exception):
+    def __init__(self, run_id: str):
+        super().__init__(run_id)
+        self.run_id = run_id
+
+
 class ApiRunCreationFailedError(Exception):
     def __init__(self, message: str):
         super().__init__(message)

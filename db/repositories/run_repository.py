@@ -1,9 +1,12 @@
 """SQLite implementation of run repositories."""
 
+import sqlite3
 import uuid
+from typing import cast
 
 from db.adapters.base import RunDatabaseAdapter, TransactionProvider
 from db.repositories.interfaces import RunRepository
+from db.services.run_deletion_sqlite import delete_run_and_dependents
 from lib.timestamp_utils import get_current_timestamp
 from lib.validation_decorators import validate_inputs
 from simulation.core.metrics.defaults import get_default_metric_keys
@@ -264,6 +267,14 @@ class SQLiteRunRepository(RunRepository):
         else:
             with self._transaction_provider.run_transaction() as c:
                 self._db_adapter.write_turn_metadata(turn_metadata, conn=c)
+
+    @validate_inputs((validate_run_id, "run_id"))
+    def delete_run(self, run_id: str) -> None:
+        """Delete a run and all FK-dependent rows in one transaction."""
+        with self._transaction_provider.run_transaction() as c:
+            deleted = delete_run_and_dependents(cast(sqlite3.Connection, c), run_id)
+        if deleted == 0:
+            raise RunNotFoundError(run_id)
 
 
 def create_sqlite_repository(

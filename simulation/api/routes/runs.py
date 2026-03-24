@@ -9,7 +9,11 @@ from fastapi.responses import Response
 from lib.decorators import timed
 from lib.rate_limiting import limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
-from simulation.api.errors import ApiRunCreationFailedError, ApiRunNotFoundError
+from simulation.api.errors import (
+    ApiRunCreationFailedError,
+    ApiRunForbiddenError,
+    ApiRunNotFoundError,
+)
 from simulation.api.routes._helpers import error_response
 from simulation.api.schemas.simulation import (
     RunDetailsResponse,
@@ -18,6 +22,7 @@ from simulation.api.schemas.simulation import (
     RunResponse,
     TurnSchema,
 )
+from simulation.api.services.run_delete_service import delete_simulation_run
 from simulation.api.services.run_execution_service import execute
 from simulation.api.services.run_query_service import (
     get_run_details,
@@ -33,6 +38,7 @@ RUN_ROUTE: str = "POST /v1/simulations/run"
 RUNS_ROUTE: str = "GET /v1/simulations/runs"
 RUN_DETAILS_ROUTE: str = "GET /v1/simulations/runs/{run_id}"
 RUN_TURNS_ROUTE: str = "GET /v1/simulations/runs/{run_id}/turns"
+RUN_DELETE_ROUTE: str = "DELETE /v1/simulations/runs/{run_id}"
 
 
 @router.get(
@@ -102,6 +108,22 @@ async def get_simulation_run_turns(
 ) -> dict[str, TurnSchema] | Response:
     """Return turn payload for a run from the database."""
     return await _execute_get_simulation_run_turns(request, run_id=run_id)
+
+
+@router.delete(
+    "/simulations/runs/{run_id}",
+    status_code=204,
+    summary="Delete simulation run",
+    description="Delete a persisted run and all dependent data.",
+)
+@log_route_completion_decorator(
+    route=RUN_DELETE_ROUTE,
+    success_type=type(None),
+    run_id_from=RunIdSource.PATH,
+)
+async def delete_simulation_run_route(request: Request, run_id: str) -> Response:
+    """Delete a run from storage."""
+    return await _execute_delete_simulation_run(request=request, run_id=run_id)
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -220,6 +242,57 @@ async def _execute_get_simulation_run_turns(
         )
     except Exception:
         logger.exception("Unexpected error while fetching run turns")
+        return error_response(
+            status_code=500,
+            code="INTERNAL_ERROR",
+            message="Internal server error",
+            detail=None,
+        )
+
+
+@timed(attach_attr="duration_ms", log_level=None)
+async def _execute_delete_simulation_run(
+    request: Request,
+    run_id: str,
+) -> Response:
+    """Delete a persisted run and map known failures to HTTP responses."""
+    engine = request.app.state.deps.engine
+    current_app_user = request.state.current_app_user
+    if current_app_user is None:
+        raise RuntimeError(
+            "current_app_user was not set on request.state, but is required for delete run."
+        )
+    try:
+        await asyncio.to_thread(
+            delete_simulation_run,
+            run_id=run_id,
+            engine=engine,
+            current_app_user_id=current_app_user.id,
+        )
+        return Response(status_code=204)
+    except ApiRunNotFoundError as e:
+        return error_response(
+            status_code=404,
+            code="RUN_NOT_FOUND",
+            message="Run not found",
+            detail=e.run_id,
+        )
+    except ApiRunForbiddenError as e:
+        return error_response(
+            status_code=403,
+            code="RUN_FORBIDDEN",
+            message="Not allowed to delete this run",
+            detail=e.run_id,
+        )
+    except ValueError as e:
+        return error_response(
+            status_code=400,
+            code="INVALID_RUN_ID",
+            message="Invalid run_id",
+            detail=str(e),
+        )
+    except Exception:
+        logger.exception("Unexpected error while deleting simulation run")
         return error_response(
             status_code=500,
             code="INTERNAL_ERROR",

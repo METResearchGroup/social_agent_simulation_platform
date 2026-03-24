@@ -18,6 +18,7 @@ interface RunDetailContextValue {
   onSelectTurn: (turn: number | 'summary') => void;
   onRetryTurns: () => void;
   onRetryRunDetails: () => void;
+  onDeleteRun: () => void | Promise<void>;
 }
 
 interface RunDetailProviderProps {
