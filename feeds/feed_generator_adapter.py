@@ -11,9 +11,8 @@ from db.repositories.interfaces import (
     RunPostRepository,
 )
 from feeds.feed_generator import generate_feeds as generate_feeds_impl
-from feeds.interfaces import FeedGenerator
+from feeds.interfaces import FeedGenerationResult, FeedGenerator
 from simulation.core.models.agents import SimulationAgent
-from simulation.core.models.posts import Post
 
 
 class FeedGeneratorAdapter(FeedGenerator):
@@ -39,7 +38,7 @@ class FeedGeneratorAdapter(FeedGenerator):
         turn_number: int,
         feed_algorithm: str,
         feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-    ) -> dict[str, list[Post]]:
+    ) -> FeedGenerationResult:
         return generate_feeds_impl(
             agents=agents,
             run_id=run_id,

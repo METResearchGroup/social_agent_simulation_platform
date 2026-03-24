@@ -6,7 +6,10 @@ from lib.agent_id import canonical_agent_id
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.runs import RunStatus
 from simulation.core.utils.exceptions import SimulationRunFailure
-from tests.db.repositories.conftest import ensure_agent_row_for_generated_feed
+from tests.db.repositories.conftest import (
+    ensure_agent_row_for_generated_feed,
+    ensure_turn_row_for_generated_feed,
+)
 from tests.factories import (
     EngineFactory,
     GeneratedFeedFactory,
@@ -362,6 +365,7 @@ class TestSimulationRun:
             created_at="2026-01-01T00:00:00.000Z",
         )
         ensure_agent_row_for_generated_feed(feed)
+        ensure_turn_row_for_generated_feed(feed)
         generated_feed_repo.write_generated_feed(feed)
 
         client, _ = simulation_client

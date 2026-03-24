@@ -252,6 +252,7 @@ def create_engine(
     simulation_persistence = create_simulation_persistence_service(
         run_repo=run_repo,
         metrics_repo=metrics_repo,
+        generated_feed_repo=generated_feed_repo,
         transaction_provider=transaction_provider,
         like_repo=like_repo,
         comment_repo=comment_repo,

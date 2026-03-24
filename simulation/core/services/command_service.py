@@ -5,6 +5,7 @@ from uuid import uuid4
 from pydantic import JsonValue
 
 from db.services.simulation_persistence_service import SimulationPersistenceService
+from feeds.interfaces import FeedGenerationResult
 from lib.decorators import timed
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.action_history import ActionHistoryStore, record_action_targets
@@ -23,7 +24,6 @@ from simulation.core.models.generated.comment import GeneratedComment
 from simulation.core.models.generated.follow import GeneratedFollow
 from simulation.core.models.generated.like import GeneratedLike
 from simulation.core.models.metrics import ComputedMetrics, RunMetrics, TurnMetrics
-from simulation.core.models.posts import Post
 from simulation.core.models.run_agents import RunAgentSnapshot
 from simulation.core.models.run_follow_edges import RunFollowEdgeSnapshot
 from simulation.core.models.run_post_comments import RunPostCommentSnapshot
@@ -340,15 +340,22 @@ class SimulationCommandService:
         """Simulate a single turn of the simulation."""
         run_id: str = run.run_id
 
-        agent_to_hydrated_feeds: dict[str, list[Post]] = (
-            self.feed_generator.generate_feeds(
-                agents=agents,
-                run_id=run_id,
-                turn_number=turn_number,
-                feed_algorithm=feed_algorithm,
-                feed_algorithm_config=feed_algorithm_config,
-            )
+        feed_generation_result = self.feed_generator.generate_feeds(
+            agents=agents,
+            run_id=run_id,
+            turn_number=turn_number,
+            feed_algorithm=feed_algorithm,
+            feed_algorithm_config=feed_algorithm_config,
         )
+        if isinstance(feed_generation_result, FeedGenerationResult):
+            agent_to_hydrated_feeds = feed_generation_result.hydrated_feeds_by_agent
+            generated_feeds = list(
+                feed_generation_result.generated_feeds_by_agent.values()
+            )
+        else:
+            # Backward-compatible test seam while callers migrate to FeedGenerationResult.
+            agent_to_hydrated_feeds = feed_generation_result
+            generated_feeds = []
 
         validate_agents_without_feeds(
             agent_handles=set(agent.handle for agent in agents),
@@ -460,6 +467,7 @@ class SimulationCommandService:
         self.simulation_persistence.write_turn(
             turn_metadata=turn_metadata,
             turn_metrics=turn_metrics,
+            generated_feeds=generated_feeds,
             likes=turn_likes,
             comments=turn_comments,
             follows=turn_follows,

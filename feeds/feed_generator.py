@@ -12,6 +12,7 @@ from db.repositories.interfaces import (
 from feeds.algorithms import FeedAlgorithmResult, get_feed_generator
 from feeds.candidate_generation import load_candidate_posts
 from feeds.constants import MAX_POSTS_PER_FEED
+from feeds.interfaces import FeedGenerationResult
 from lib.timestamp_utils import get_current_timestamp
 from simulation.core.models.agents import SimulationAgent
 from simulation.core.models.feeds import GeneratedFeed
@@ -30,7 +31,7 @@ def generate_feeds(
     run_post_like_repo: RunPostLikeRepository,
     run_post_comment_repo: RunPostCommentRepository,
     feed_algorithm_config: Mapping[str, JsonValue] | None = None,
-) -> dict[str, list[Post]]:
+) -> FeedGenerationResult:
     """Generate feeds for all the agents.
 
     Args:
@@ -47,7 +48,7 @@ def generate_feeds(
     Raises:
         ValueError: If feed_algorithm is not registered in feeds.algorithms.
     """
-    feeds = _generate_feeds(
+    generated_feeds_by_agent = _generate_feeds(
         agents=agents,
         run_id=run_id,
         turn_number=turn_number,
@@ -58,14 +59,17 @@ def generate_feeds(
         run_post_like_repo=run_post_like_repo,
         run_post_comment_repo=run_post_comment_repo,
     )
-    _write_generated_feeds(feeds=feeds, generated_feed_repo=generated_feed_repo)
-    return _hydrate_generated_feeds(
-        feeds=feeds,
+    hydrated_feeds_by_agent = _hydrate_generated_feeds(
+        feeds=generated_feeds_by_agent,
         run_id=run_id,
         turn_number=turn_number,
         run_post_repo=run_post_repo,
         run_post_like_repo=run_post_like_repo,
         run_post_comment_repo=run_post_comment_repo,
+    )
+    return FeedGenerationResult(
+        generated_feeds_by_agent=generated_feeds_by_agent,
+        hydrated_feeds_by_agent=hydrated_feeds_by_agent,
     )
 
 
@@ -96,15 +100,6 @@ def _generate_feeds(
         )
         feeds[agent.handle] = feed
     return feeds
-
-
-def _write_generated_feeds(
-    feeds: dict[str, GeneratedFeed],
-    generated_feed_repo: GeneratedFeedRepository,
-) -> None:
-    """Persist each generated feed via the repository."""
-    for feed in feeds.values():
-        generated_feed_repo.write_generated_feed(feed)
 
 
 def _load_hydrated_posts(

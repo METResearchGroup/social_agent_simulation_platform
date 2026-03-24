@@ -12,6 +12,7 @@ from lib.agent_id import canonical_agent_id
 from tests.db.repositories.conftest import (
     ensure_agent_row_for_generated_feed,
     ensure_run_exists,
+    ensure_turn_row_for_generated_feed,
 )
 from tests.factories import GeneratedFeedFactory
 
@@ -32,6 +33,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
         ensure_agent_row_for_generated_feed(feed)
+        ensure_turn_row_for_generated_feed(feed)
 
         # Create feed
         created_feed = repo.write_generated_feed(feed)
@@ -64,6 +66,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
         ensure_agent_row_for_generated_feed(initial_feed)
+        ensure_turn_row_for_generated_feed(initial_feed)
         repo.write_generated_feed(initial_feed)
 
         # Update the feed (same composite key, different feed_id and post_ids)
@@ -79,6 +82,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-02T00:00:00Z",
         )
         ensure_agent_row_for_generated_feed(updated_feed)
+        ensure_turn_row_for_generated_feed(updated_feed)
         repo.write_generated_feed(updated_feed)
 
         # Verify update
@@ -125,6 +129,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
 
         for feed in feeds:
             ensure_agent_row_for_generated_feed(feed)
+            ensure_turn_row_for_generated_feed(feed)
             repo.write_generated_feed(feed)
 
         # List all feeds
@@ -191,6 +196,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         )
         for f in (feed1, feed2, feed3):
             ensure_agent_row_for_generated_feed(f)
+            ensure_turn_row_for_generated_feed(f)
 
         repo.write_generated_feed(feed1)
         repo.write_generated_feed(feed2)
@@ -257,6 +263,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
         ensure_agent_row_for_generated_feed(feed)
+        ensure_turn_row_for_generated_feed(feed)
         repo.write_generated_feed(feed)
         aid = feed.agent_id
         conn = sqlite3.connect(temp_db)
@@ -290,6 +297,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
             created_at="2024-01-01T00:00:00Z",
         )
         ensure_agent_row_for_generated_feed(feed)
+        ensure_turn_row_for_generated_feed(feed)
 
         repo.write_generated_feed(feed)
         retrieved = repo.get_generated_feed(feed.agent_id, "run_123", 1)
@@ -340,6 +348,7 @@ class TestSQLiteGeneratedFeedRepositoryIntegration:
         )
         for f in (feed1, feed2, feed3, feed4):
             ensure_agent_row_for_generated_feed(f)
+            ensure_turn_row_for_generated_feed(f)
 
         repo.write_generated_feed(feed1)
         repo.write_generated_feed(feed2)

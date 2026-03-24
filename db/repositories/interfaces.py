@@ -753,11 +753,14 @@ class GeneratedFeedRepository(ABC):
     """Abstract base class defining the interface for generated feed repositories."""
 
     @abstractmethod
-    def write_generated_feed(self, feed: GeneratedFeed) -> GeneratedFeed:
+    def write_generated_feed(
+        self, feed: GeneratedFeed, conn: object | None = None
+    ) -> GeneratedFeed:
         """Write a generated feed (insert or replace by composite key).
 
         Args:
             feed: GeneratedFeed model to create or update
+            conn: Optional caller-owned transaction connection.
 
         Returns:
             The created or updated GeneratedFeed object
