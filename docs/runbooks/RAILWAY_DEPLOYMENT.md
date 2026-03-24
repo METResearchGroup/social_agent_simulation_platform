@@ -76,25 +76,40 @@ Get the service URL:
 railway domain
 ```
 
-Replace `<APP_URL>` with your output domain and verify endpoints:
+Replace `<APP_URL>` with your output domain and verify endpoints.
+
+**Public health:**
 
 ```bash
 curl -sS "<APP_URL>/health"
+```
+
+**Authenticated simulation routes** (use a valid bearer token; same requirement as the UI):
+
+```bash
 curl -sS -X POST "<APP_URL>/v1/simulations/run" \
+  -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"num_agents": 1, "num_turns": 1}'
+curl -sS -H "Authorization: Bearer <TOKEN>" "<APP_URL>/v1/simulations/metrics"
+curl -sS -H "Authorization: Bearer <TOKEN>" "<APP_URL>/v1/simulations/feed-algorithms"
 ```
 
 Expected behavior:
 
-- `GET /health` returns `{"status":"ok"}` with HTTP 200.
-- `POST /v1/simulations/run` returns HTTP 200 with `run_id`, `status`, `likes_per_turn`, and `total_likes` (status may be `failed` if no agent fixture data is loaded).
+- `GET /health` returns `{"status":"ok"}` with HTTP 200 (no auth).
+- `POST /v1/simulations/run` returns HTTP 200 with a `RunResponse`-shaped body: `run_id`, `created_at`, `status`, `num_agents`, `num_turns`, `turns` (list of turn summaries), optional `run_metrics`, and `error` when `status` is `failed`.
+- `GET /v1/simulations/metrics` and `GET /v1/simulations/feed-algorithms` return HTTP **200** with JSON arrays (metadata for the UI). A **404** on these paths usually means API/UI release skew or a wrong base URL.
 
 ## Run Smoke Tests Against Deployed URL
 
+With a bearer token (production-style):
+
 ```bash
-SIMULATION_API_URL=<APP_URL> uv run pytest -m smoke tests/api/test_simulation_smoke.py
+SIMULATION_API_URL=<APP_URL> SIMULATION_API_BEARER_TOKEN=<TOKEN> uv run pytest -m smoke tests/api/test_simulation_smoke.py
 ```
+
+For local smoke against an API with `DISABLE_AUTH=1`, `SIMULATION_API_BEARER_TOKEN` may be omitted. See [SMOKE_TEST.md](./SMOKE_TEST.md).
 
 ## Operational Notes
 
