@@ -27,6 +27,7 @@ export default function DetailsPanel() {
     runDetailsError,
     onRetryTurns,
     onRetryRunDetails,
+    onDeleteRun,
   } = useRunDetail();
 
   if (!selectedRun) {
@@ -68,6 +69,7 @@ export default function DetailsPanel() {
         run={selectedRun}
         agents={runAgents}
         completedTurns={completedTurnsCount}
+        onDeleteRun={onDeleteRun}
       />
     );
   }

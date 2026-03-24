@@ -7,9 +7,15 @@ interface RunSummaryProps {
   run: Run;
   agents: Agent[];
   completedTurns: number;
+  onDeleteRun: () => void | Promise<void>;
 }
 
-export default function RunSummary({ run, agents, completedTurns }: RunSummaryProps) {
+export default function RunSummary({
+  run,
+  agents,
+  completedTurns,
+  onDeleteRun,
+}: RunSummaryProps) {
   const [copiedRunId, setCopiedRunId] = useState<string | null>(null);
   const copied = copiedRunId === run.runId;
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,17 +50,37 @@ export default function RunSummary({ run, agents, completedTurns }: RunSummaryPr
                 `completedTurns: ${JSON.stringify(completedTurns)}`)
   }
 
+  const handleDeleteRunClick = (): void => {
+    if (
+      !window.confirm(
+        'Delete this run permanently? This cannot be undone.',
+      )
+    ) {
+      return;
+    }
+    void onDeleteRun();
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h2 className="text-xl font-semibold text-beige-900">Run Summary</h2>
-        <button
-          type="button"
-          className="text-accent hover:text-accent-hover"
-          onClick={handleExportRun}
-        >
-          {exportStatus ? 'Clicked!' : 'Export Run'}
-        </button>
+        <div className="flex items-center gap-4 shrink-0">
+          <button
+            type="button"
+            className="text-accent hover:text-accent-hover"
+            onClick={handleExportRun}
+          >
+            {exportStatus ? 'Clicked!' : 'Export Run'}
+          </button>
+          <button
+            type="button"
+            className="text-red-700 hover:text-red-900"
+            onClick={handleDeleteRunClick}
+          >
+            Delete run
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-beige-300 rounded-lg overflow-hidden">

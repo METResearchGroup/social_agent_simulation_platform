@@ -75,6 +75,7 @@ function AuthenticatedApp() {
     runDetailsLoading,
     runDetailsError,
     handleRetryRunDetails,
+    handleDeleteRun,
   } = useSimulationPageState();
 
   const handleCreateAgent = useCallback(
@@ -125,6 +126,7 @@ function AuthenticatedApp() {
               /* no-op when no run selected */
             },
       onRetryRunDetails: handleRetryRunDetails,
+      onDeleteRun: handleDeleteRun,
     }),
     [
       selectedRun,
@@ -142,6 +144,7 @@ function AuthenticatedApp() {
       handleSelectTurn,
       handleRetryTurns,
       handleRetryRunDetails,
+      handleDeleteRun,
     ],
   );
 

@@ -286,6 +286,16 @@ class RunRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_run(self, run_id: str) -> None:
+        """Delete a run and all dependent rows in a single transaction.
+
+        Raises:
+            ValueError: If ``run_id`` is invalid
+            RunNotFoundError: If no run exists for ``run_id``
+        """
+        raise NotImplementedError
+
 
 class RunAgentRepository(ABC):
     """Abstract repository for immutable run-start agent snapshots."""

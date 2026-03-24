@@ -1,7 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getAgents, getRunDetails, getRuns, getTurnsForRun, postRun } from '@/lib/api/simulation';
+import {
+  deleteRun,
+  getAgents,
+  getRunDetails,
+  getRuns,
+  getTurnsForRun,
+  postRun,
+} from '@/lib/api/simulation';
 import {
   getAvailableTurns,
   getCompletedTurnsCount,
@@ -71,6 +78,7 @@ interface UseSimulationPageStateResult {
   handleSelectRun: (runId: string) => void;
   handleSelectTurn: (turn: number | 'summary') => void;
   handleStartNewRun: () => void;
+  handleDeleteRun: () => Promise<void>;
   handleRetryRuns: () => void;
   handleRetryAgents: () => void;
   handleLoadMoreAgents: () => void;
@@ -480,6 +488,53 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     setSelectedTurn(null);
   };
 
+  const handleDeleteRun = useCallback(async (): Promise<void> => {
+    const runId: string | null = selectedRunId;
+    if (runId === null) {
+      return;
+    }
+    await deleteRun(runId);
+    clearRunDetailsAutoRetryState(runId);
+    setRuns((prev) => prev.filter((r) => r.runId !== runId));
+    setRunConfigs((prev) => {
+      const next = { ...prev };
+      delete next[runId];
+      return next;
+    });
+    setFallbackTurns((prev) => {
+      const next = { ...prev };
+      delete next[runId];
+      return next;
+    });
+    setTurnsLoadingByRunId((prev) => {
+      const next = { ...prev };
+      delete next[runId];
+      return next;
+    });
+    setTurnsErrorByRunId((prev) => {
+      const next = { ...prev };
+      delete next[runId];
+      return next;
+    });
+    setRunDetailsLoadingByRunId((prev) => {
+      const next = { ...prev };
+      delete next[runId];
+      return next;
+    });
+    setRunDetailsErrorByRunId((prev) => {
+      const next = { ...prev };
+      delete next[runId];
+      return next;
+    });
+    turnsFetchInFlightRef.current.delete(runId);
+    lastTurnsFetchAttemptAtMsRef.current.delete(runId);
+    loadedTurnsRunIdsRef.current.delete(runId);
+    turnsRequestIdRef.current.delete(runId);
+    runDetailsRequestIdRef.current.delete(runId);
+    setSelectedRunId(null);
+    setSelectedTurn(null);
+  }, [selectedRunId, clearRunDetailsAutoRetryState]);
+
   const handleRetryRuns = (): void => {
     setRunsError(null);
     setRetryRunsTrigger((t) => t + 1);
@@ -587,6 +642,7 @@ export function useSimulationPageState(): UseSimulationPageStateResult {
     handleSelectRun,
     handleSelectTurn,
     handleStartNewRun,
+    handleDeleteRun,
     handleRetryRuns,
     handleRetryAgents,
     handleLoadMoreAgents,
