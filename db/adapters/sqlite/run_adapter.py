@@ -56,8 +56,9 @@ def _parse_total_actions_from_row(row: sqlite3.Row) -> dict[TurnAction, int]:
 class SQLiteRunAdapter(RunDatabaseAdapter):
     """SQLite implementation of RunDatabaseAdapter.
 
-    This implementation raises SQLite-specific exceptions. See method docstrings
-    for details on specific exception types.
+    Turn metadata is read and written from the ``turns`` table (see
+    ``read_turn_metadata``, ``write_turn_metadata``). This implementation raises
+    SQLite-specific exceptions; see method docstrings for details.
     """
 
     def _row_to_run(self, row: sqlite3.Row) -> Run:
@@ -210,7 +211,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
         *,
         conn: sqlite3.Connection,
     ) -> TurnMetadata | None:
-        """Read turn metadata from SQLite.
+        """Read turn metadata from SQLite (``turns`` table).
 
         The total_actions field is stored as JSON with string keys (e.g., {"like": 5}).
         This method converts those string keys to TurnAction enum keys.
@@ -257,7 +258,7 @@ class SQLiteRunAdapter(RunDatabaseAdapter):
     def read_turn_metadata_for_run(
         self, run_id: str, *, conn: sqlite3.Connection
     ) -> list[TurnMetadata]:
-        """Read all turn metadata rows for a run from SQLite.
+        """Read all turn metadata rows for a run from SQLite (``turns``).
 
         Args:
             run_id: The ID of the run
