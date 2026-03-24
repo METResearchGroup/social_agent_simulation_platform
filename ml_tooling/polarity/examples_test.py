@@ -1,4 +1,3 @@
-import time
 from typing import cast
 
 from transformers import logging as transformers_logging
@@ -6,7 +5,7 @@ from transformers import logging as transformers_logging
 from ml_tooling.polarity.classifier import PolarityModel
 from ml_tooling.polarity.constants import POLARITIES
 from ml_tooling.polarity.models import PolarityLabel
-from ml_tooling.verification.helpers import track_init_time
+from ml_tooling.verification.helpers import run_same_prompt, track_init_time
 
 transformers_logging.set_verbosity_error()
 
@@ -64,18 +63,19 @@ def verify_diff_cases(polarity_model: PolarityModel) -> None:
         print_polarity_table(result, case_name)
 
 
-def run_same_prompt(polarity_model: PolarityModel, iters: int) -> float:
-    start = time.perf_counter()
-    for _ in range(iters):
-        polarity_model.extract_polarity(
-            "This is absolutely the most wonderful, joyful, and amazing day of my life!"
-        )
-    return time.perf_counter() - start
-
-
 def run_model_track_time(polarity_model: PolarityModel) -> None:
     counts = [1, 10, 100, 1000, 10000]
-    results = [(n, run_same_prompt(polarity_model, n)) for n in counts]
+    results = [
+        (
+            n,
+            run_same_prompt(
+                polarity_model.extract_polarity,
+                "This is absolutely the most wonderful, joyful, and amazing day of my life!",
+                n,
+            ),
+        )
+        for n in counts
+    ]
 
     col1, col2, col3 = "iters", "total (s)", "iters/sec"
     w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)

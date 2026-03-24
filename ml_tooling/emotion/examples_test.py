@@ -1,11 +1,10 @@
-import time
 from typing import cast
 
 from transformers import logging as transformers_logging
 
 from ml_tooling.emotion.classifier import EmotionModel
 from ml_tooling.emotion.models import EmotionLabel
-from ml_tooling.verification.helpers import track_init_time
+from ml_tooling.verification.helpers import run_same_prompt, track_init_time
 
 transformers_logging.set_verbosity_error()
 
@@ -51,18 +50,19 @@ def verify_diff_cases(emotion_model: EmotionModel) -> None:
         print_emotion_table(result, case_name)
 
 
-def run_same_prompt(emotion_model: EmotionModel, iters: int) -> float:
-    start = time.perf_counter()
-    for _ in range(iters):
-        emotion_model.extract_emotions(
-            "This is the best day of my life, I am so happy!"
-        )
-    return time.perf_counter() - start
-
-
 def run_model_track_time(emotion_model: EmotionModel) -> None:
     counts = [1, 10, 100, 1000, 10000]
-    results = [(n, run_same_prompt(emotion_model, n)) for n in counts]
+    results = [
+        (
+            n,
+            run_same_prompt(
+                emotion_model.extract_emotions,
+                "This is the best day of my life, I am so happy!",
+                n,
+            ),
+        )
+        for n in counts
+    ]
 
     col1, col2, col3 = "iters", "total (s)", "iters/sec"
     w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)
