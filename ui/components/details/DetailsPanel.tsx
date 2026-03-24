@@ -281,6 +281,7 @@ function TurnDetailContent({
             const agentActions = actionsByHandle[handleKey] ?? [];
             const isExpanded = expandedAgentByHandle[agent.handle] === true;
             const agentDetailPanelId = `agent-detail-${normalizeHandle(agent.handle)}`;
+            const agentDetailToggleId = `${agentDetailPanelId}-button`;
 
             return (
               <div
@@ -288,6 +289,7 @@ function TurnDetailContent({
                 className="border border-beige-300 rounded-lg overflow-hidden"
               >
                 <button
+                  id={agentDetailToggleId}
                   type="button"
                   aria-expanded={isExpanded}
                   aria-controls={agentDetailPanelId}
@@ -309,6 +311,7 @@ function TurnDetailContent({
                 <div
                   id={agentDetailPanelId}
                   role="region"
+                  aria-labelledby={agentDetailToggleId}
                   hidden={!isExpanded}
                   className="px-3 pb-3 border-t border-beige-200"
                 >
@@ -318,6 +321,7 @@ function TurnDetailContent({
                       feed={feedPosts}
                       actions={agentActions}
                       postsById={postsById}
+                      hideIdentityHeader
                     />
                   )}
                 </div>

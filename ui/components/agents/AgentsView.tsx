@@ -124,6 +124,7 @@ export default function AgentsView({
             feed={[]}
             actions={[]}
             postsById={{}}
+            hideIdentityHeader
           />
         </div>
       </div>
