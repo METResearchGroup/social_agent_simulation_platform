@@ -10,9 +10,11 @@ export default function RunDetailView() {
       <div className="shrink-0 p-2">
         <TurnsErrorBanner />
       </div>
-      <div className="flex-1 flex min-w-0">
+      <div className="flex-1 flex min-w-0 min-h-0">
         <TurnHistorySidebar />
-        <DetailsPanel />
+        <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+          <DetailsPanel />
+        </div>
       </div>
     </div>
   );

@@ -10,6 +10,8 @@ interface AgentDetailProps {
   feed: Post[];
   actions: AgentAction[];
   postsById: Record<string, Post>;
+  /** When true, omit the top name/handle block (parent already shows identity). */
+  hideIdentityHeader?: boolean;
 }
 
 interface ExpandedSectionsState {
@@ -24,6 +26,7 @@ export default function AgentDetail({
   feed,
   actions,
   postsById,
+  hideIdentityHeader = false,
 }: AgentDetailProps) {
   const [expandedSections, setExpandedSections] = useState<ExpandedSectionsState>({
     metadata: false,
@@ -37,8 +40,12 @@ export default function AgentDetail({
 
   return (
     <div className="bg-white border border-beige-300 rounded-lg p-4 space-y-3">
-      <div className="font-medium text-beige-900">{agent.name}</div>
-      <div className="text-sm text-beige-600">{agent.handle}</div>
+      {!hideIdentityHeader ? (
+        <>
+          <div className="font-medium text-beige-900">{agent.name}</div>
+          <div className="text-sm text-beige-600">{agent.handle}</div>
+        </>
+      ) : null}
 
       <CollapsibleSection
         title="Agent Metadata"
