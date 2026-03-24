@@ -515,10 +515,10 @@ def seed_local_db_if_needed(*, db_path: str, fixtures_dir: Path = FIXTURES_DIR) 
                     conn=conn,
                 )
 
-            for feed in fixtures.generated_feeds:
-                feed_adapter.write_generated_feed(feed, conn=conn)
             for tm in fixtures.turn_metadata:
                 run_adapter.write_turn_metadata(tm, conn=conn)
+            for feed in fixtures.generated_feeds:
+                feed_adapter.write_generated_feed(feed, conn=conn)
             for tm in fixtures.turn_metrics:
                 metrics_adapter.write_turn_metrics(tm, conn=conn)
             for rm in fixtures.run_metrics:

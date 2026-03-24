@@ -412,6 +412,22 @@ class TestSimulationQueryServiceRunPostIsolation:
         ]
         run_post_repo.write_run_posts(run_a.run_id, run_posts_a)
         run_post_repo.write_run_posts(run_b.run_id, run_posts_b)
+        run_repo.write_turn_metadata(
+            TurnMetadataFactory.create(
+                run_id=run_a.run_id,
+                turn_number=0,
+                total_actions={},
+                created_at=run_a.created_at,
+            )
+        )
+        run_repo.write_turn_metadata(
+            TurnMetadataFactory.create(
+                run_id=run_b.run_id,
+                turn_number=0,
+                total_actions={},
+                created_at=run_b.created_at,
+            )
+        )
 
         feed_a = GeneratedFeed(
             feed_id="f_a",
