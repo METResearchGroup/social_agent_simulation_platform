@@ -35,11 +35,21 @@ A turn is defined as "all agents have completed their intended actions". This im
 
 (todo)
 
-### What is the visibility model?
+### What is visible to each component of the system?
+
+#### What is visible to each agent?
 
 All agents take as input what is present at the start of the turn. If Agent A acts before Agent B and writes a post, Agent B doesn't see that possibly post until the next turn.
 
 The "social environment" (social network, existing posts, existing likes, etc.) for an agent is determined at the start of the turn. It is fixed at the start of a turn, across all agents (so, before any agent acts, we first fix the "social environment" made available to an agent).
+
+#### What is visible to the orchestrator?
+
+(todo)
+
+#### What is visible to each worker?
+
+Each worker thread will receive the context necessary to do its action, as a payload. It will then execute the runtime of the requested algorithm. (needs more details + examples).
 
 ### How are retries handled?
 
