@@ -44,3 +44,26 @@ class TestHealthEndpoint:
         with TestClient(app) as client:
             response = client.get("/health")
         assert response.json()["version"] == "sha-railway"
+
+    def test_version_prefers_git_commit_when_feature_extraction_missing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("FEATURE_EXTRACTION_VERSION", raising=False)
+        monkeypatch.delenv("RAILWAY_GIT_COMMIT_SHA", raising=False)
+        monkeypatch.setenv("GIT_COMMIT", "git-commit-only")
+        with TestClient(app) as client:
+            response = client.get("/health")
+        assert response.status_code == 200
+        assert response.json()["version"] == "git-commit-only"
+
+    def test_version_omitted_when_no_envs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("FEATURE_EXTRACTION_VERSION", raising=False)
+        monkeypatch.delenv("GIT_COMMIT", raising=False)
+        monkeypatch.delenv("RAILWAY_GIT_COMMIT_SHA", raising=False)
+        with TestClient(app) as client:
+            response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "version" not in data

@@ -11,7 +11,10 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser \
 COPY . /app
 
 # Health-only image: same lockfile as the main app, no simulation bootstrap / SQLite.
-RUN if [ -f uv.lock ]; then uv sync --frozen --no-dev; else uv sync --no-dev; fi
+RUN if [ -f uv.lock ]; then uv sync --frozen --no-dev; else uv sync --no-dev; fi \
+    && chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 
