@@ -9,16 +9,16 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.32.0",
     "pyyaml>=6.0",
-    "litellm==1.81.15",
+    "litellm==1.80.0",
     "tenacity>=8.2.3",
     "atproto>=0.0.63",
     "dotenv>=0.9.9",
     "langchain>=1.1.0",
     "langchain-openai>=1.1.0",
     "langfuse>=3.10.1",
-    "openai>=2.8.1",
+    "openai==1.109.1",
     "pyjwt>=2.8.0",
-    "pydantic>=2.12.4",
+    "pydantic==2.12.0",
     "slowapi>=0.1.9",
     "sqlalchemy>=2.0.45",
     "ruff>=0.14.14",
@@ -35,30 +35,34 @@ test = [
     "ruff>=0.1.0",
     "pyright>=1.1.0",
     "complexipy>=5.0.0",
-    "pre-commit>=4.0.0",
+    "pre-commit>=3.7.1",
     "import-linter>=2.0.0",
     "bandit>=1.9.4",
 ]
 
 ml-core = [
     "torch>=2.10.0",
-    "transformers>=5.3.0",
+    "transformers<5.0.0",
 ]
 
 ner = [
     "torch>=2.10.0",
-    "transformers>=5.3.0",
+    "transformers<5.0.0",
 ]
 
 emotion = [
     "torch>=2.10.0",
-    "transformers>=5.3.0",
+    "transformers<5.0.0",
 ]
 
 polarity = [
     "torch>=2.10.0",
-    "transformers>=5.3.0",
+    "transformers<5.0.0",
     "scipy>=1.15.3",
+]
+
+simulation = [
+    "camel-oasis>=0.2.5",
 ]
 
 [build-system]
@@ -177,7 +181,7 @@ exclude = [
     "**/node_modules",
     "**/.*",
 ]
-pythonVersion = "3.12"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
 reportMissingTypeStubs = false
 
