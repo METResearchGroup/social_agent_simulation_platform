@@ -81,6 +81,26 @@ uv run python -m simulation.bootstrap.railway && uv run uvicorn simulation.api.m
 
 **Proxy headers (FASTAPI-PROXY-001):** Set `FORWARDED_ALLOW_IPS=*` in Railway variables. The container is only reachable through Railway's proxy, so trusting forwarded headers from all connections is safe. This ensures `X-Forwarded-For` and other proxy headers are applied for rate limiting and client IP detection. See [plan Security section](../plans/2026-02-19_rate_limiting_post_paths_847291/plan.md#security-proxy-trust-fastapi-proxy-001).
 
+## Feature Extraction API (second Railway service)
+
+The simulation API uses the root [`Dockerfile`](../../Dockerfile) and [`railway.json`](../../railway.json). To run the **Feature Extraction** FastAPI app (`GET /health`, future extraction routes) as a **separate** Railway service without changing that contract:
+
+1. In Railway, **add a new service** from the same GitHub repo (or duplicate the service and repoint the Dockerfile).
+2. Set **Dockerfile path** to `Dockerfile.feature-extraction` (not the default `Dockerfile`).
+3. Set **health check path** to `/health` (same pattern as the simulation service).
+4. The container listens on **`0.0.0.0:$PORT`**; Railway sets `PORT` automatically.
+5. Optional: set `FEATURE_EXTRACTION_VERSION` and/or rely on `RAILWAY_GIT_COMMIT_SHA` for the optional `version` field in `GET /health` JSON.
+
+Local image check:
+
+```bash
+docker build -f Dockerfile.feature-extraction -t fe-api:local .
+docker run --rm -p 8010:8010 -e PORT=8010 fe-api:local
+curl -sS http://127.0.0.1:8010/health
+```
+
+After deploy, verify with `railway domain` (scoped to that service) and `curl -sS "<FE_APP_URL>/health"`.
+
 ## Verify Deployment With Railway CLI + HTTP Checks
 
 Check service status and logs:
