@@ -52,6 +52,22 @@ PYTHONPATH=. uv run uvicorn simulation.api.main:app --reload
 
 Then open `http://localhost:8000/health` for a health check. API docs are at `http://localhost:8000/docs`.
 
+## Updating seed metrics fixtures
+
+When you edit either `simulation/local_dev/seed_fixtures/runs.json` or
+`simulation/local_dev/seed_fixtures/turn_metadata.json`, regenerate committed
+metrics fixtures:
+
+```bash
+uv run python scripts/generate_seed_metrics_fixtures.py
+```
+
+Before opening a PR, validate there is no drift:
+
+```bash
+uv run python scripts/generate_seed_metrics_fixtures.py --check
+```
+
 ## See Also
 
 - [API_REFERENCE.md](./API_REFERENCE.md) — endpoint details, error codes, curl examples
