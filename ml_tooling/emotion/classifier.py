@@ -1,10 +1,16 @@
 import uuid
 from collections.abc import Callable
-from typing import Final, Literal, cast
+from typing import cast
 
 from transformers import pipeline
 
 from lib.timestamp_utils import get_current_timestamp
+from ml_tooling.emotion.constants import (
+    EMOTIONS_MODEL,
+    EMOTIONS_RETURN_TOP_K,
+    EMOTIONS_TASK,
+    EXPECTED_EMOTIONS,
+)
 from ml_tooling.emotion.models import EmotionLabel
 
 RawEmotions = dict[str, float]
@@ -13,20 +19,6 @@ EmotionsSingleResponse = list[RawEmotions]
 EmotionsResponse = EmotionsSingleResponse | EmotionsBatchResponse
 # NOTE: EmotionsCallable actually can only return an EmotionsBatchResponse with j-hartmann/emotion-english-distilroberta-base
 EmotionsCallable = Callable[[str | list[str]], EmotionsResponse]
-
-EMOTIONS_TASK: Final[Literal["text-classification"]] = "text-classification"
-EMOTIONS_MODEL: Final[str] = "j-hartmann/emotion-english-distilroberta-base"
-EMOTIONS_RETURN_TOP_K: Final = None
-EXPECTED_EMOTIONS: Final[list[str]] = [
-    "anger",
-    "disgust",
-    "fear",
-    "joy",
-    "neutral",
-    "sadness",
-    "surprise",
-]
-NUM_EMOTIONS: Final[int] = 7
 
 
 def build_default_emotion_pipeline() -> EmotionsCallable:

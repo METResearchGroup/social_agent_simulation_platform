@@ -3,6 +3,7 @@ from typing import cast
 from transformers import logging as transformers_logging
 
 from ml_tooling.emotion.classifier import EmotionModel
+from ml_tooling.emotion.constants import EXPECTED_EMOTIONS
 from ml_tooling.emotion.models import EmotionLabel
 from ml_tooling.verification.helpers import (
     print_table,
@@ -15,13 +16,8 @@ transformers_logging.set_verbosity_error()
 
 def print_emotion_table(label: EmotionLabel, case_name: str) -> None:
     col_values = [
-        ("anger", f"{label.anger_score:.4f}"),
-        ("disgust", f"{label.disgust_score:.4f}"),
-        ("fear", f"{label.fear_score:.4f}"),
-        ("joy", f"{label.joy_score:.4f}"),
-        ("neutral", f"{label.neutral_score:.4f}"),
-        ("sadness", f"{label.sadness_score:.4f}"),
-        ("surprise", f"{label.surprise_score:.4f}"),
+        (emotion, f"{getattr(label, f'{emotion}_score'):.4f}")
+        for emotion in EXPECTED_EMOTIONS
     ]
     print_table(case_name, label.text, ["emotion", "score"], col_values)
 
