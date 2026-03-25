@@ -4,7 +4,7 @@ import threading
 from typing import Any, TypeVar
 
 import litellm
-from litellm import ModelResponse, batch_completion
+from litellm import batch_completion
 from pydantic import BaseModel
 
 from ml_tooling.llm.config.model_registry import ModelConfigRegistry
@@ -121,7 +121,7 @@ class LLMService:
         provider: LLMProviderProtocol,
         response_format: type[BaseModel] | None = None,
         **kwargs,
-    ) -> ModelResponse:
+    ) -> Any:
         """
         Create a chat completion request using the specified provider.
 
@@ -159,14 +159,7 @@ class LLMService:
             # This decouples retry logic from provider-specific exception types
             raise standardize_litellm_exception(e) from e
 
-        # Coerce to ModelResponse for type safety
-        # LiteLLM can return either ModelResponse or a CustomStreamWrapper;
-        # our use case isn't stream-based. This is to satisfy pyright.
-        return (
-            result
-            if isinstance(result, ModelResponse)
-            else ModelResponse(**result.__dict__)  # type: ignore
-        )
+        return result
 
     def _batch_completion(
         self,
@@ -175,7 +168,7 @@ class LLMService:
         provider: LLMProviderProtocol,
         response_format: type[BaseModel] | None = None,
         **kwargs,
-    ) -> list[ModelResponse]:
+    ) -> list[Any]:
         """
         Create batch completion requests using the specified provider.
 
@@ -213,24 +206,13 @@ class LLMService:
         completion_kwargs["api_key"] = provider.api_key
 
         try:
-            results: list[ModelResponse] = batch_completion(**completion_kwargs)  # type: ignore
+            results: list[Any] = batch_completion(**completion_kwargs)  # type: ignore
         except Exception as e:
             # Standardize LiteLLM exceptions to internal exception types at the boundary
             # This decouples retry logic from provider-specific exception types
             raise standardize_litellm_exception(e) from e
 
-        # Coerce each result to ModelResponse for type safety
-        # LiteLLM batch_completion may return dict-like objects
-        coerced_results = []
-        for result in results:
-            coerced_result = (
-                result
-                if isinstance(result, ModelResponse)
-                else ModelResponse(**result.__dict__)  # type: ignore
-            )
-            coerced_results.append(coerced_result)
-
-        return coerced_results
+        return results
 
     @retry_llm_completion(max_retries=3, initial_delay=1.0, max_delay=60.0)
     def _complete_and_validate_structured(
@@ -372,7 +354,7 @@ class LLMService:
 
     def handle_completion_response(
         self,
-        response: ModelResponse,
+        response: Any,
         response_model: type[T],
     ) -> T:
         """Handles the completion response."""
@@ -385,7 +367,7 @@ class LLMService:
 
     def handle_batch_completion_responses(
         self,
-        responses: list[ModelResponse],
+        responses: list[Any],
         response_model: type[T],
     ) -> list[T]:
         """Handles batch completion responses.

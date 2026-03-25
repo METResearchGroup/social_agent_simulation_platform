@@ -76,19 +76,13 @@ class TestLLMService:
 
     @patch("ml_tooling.llm.llm_service.litellm.completion")
     def test__chat_completion_returns_model_response(self, mock_litellm_completion):
-        """_chat_completion should return a ModelResponse from litellm.completion."""
-        from litellm import Choices, Message, ModelResponse
+        """_chat_completion should return the response from litellm.completion."""
 
         service = LLMService()
         provider = _DummyProvider()
         messages = [{"role": "user", "content": "test prompt"}]
 
-        mock_response = ModelResponse(
-            id="test-id",
-            choices=[
-                Choices(message=Message(role="assistant", content="test response"))
-            ],
-        )
+        mock_response = {"id": "test-id", "choices": [{"message": {"content": "test"}}]}
         mock_litellm_completion.return_value = mock_response
 
         with patch.object(
@@ -98,8 +92,7 @@ class TestLLMService:
                 messages=messages, model="gpt-4o-mini", provider=provider
             )
 
-        assert isinstance(result, ModelResponse)
-        assert result.id == "test-id"
+        assert result["id"] == "test-id"
         mock_litellm_completion.assert_called_once()
 
     def test_structured_completion_returns_parsed_model(self):
