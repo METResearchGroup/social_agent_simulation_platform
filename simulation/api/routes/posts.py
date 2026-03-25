@@ -1,7 +1,6 @@
 """Simulation posts API routes."""
 
 import asyncio
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Request
@@ -9,11 +8,8 @@ from fastapi.responses import Response
 
 from lib.decorators import timed
 from lib.request_logging import log_route_completion_decorator
-from simulation.api.routes._helpers import error_response
 from simulation.api.schemas.simulation import PostSchema
 from simulation.api.services.run_query_service import get_posts_by_ids
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -44,17 +40,6 @@ async def _execute_get_simulation_posts(
     *,
     post_ids: list[str] | None = None,
 ) -> list[PostSchema] | Response:
-    """Fetch posts and convert unexpected failures to HTTP responses."""
-    try:
-        engine = request.app.state.deps.engine
-        return await asyncio.to_thread(
-            get_posts_by_ids, post_ids=post_ids, engine=engine
-        )
-    except Exception:
-        logger.exception("Unexpected error while listing simulation posts")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    """Fetch posts."""
+    engine = request.app.state.deps.engine
+    return await asyncio.to_thread(get_posts_by_ids, post_ids=post_ids, engine=engine)

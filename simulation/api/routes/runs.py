@@ -1,7 +1,6 @@
 """Simulation run API routes."""
 
 import asyncio
-import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
@@ -9,8 +8,6 @@ from fastapi.responses import Response
 from lib.decorators import timed
 from lib.rate_limiting import limiter
 from lib.request_logging import RunIdSource, log_route_completion_decorator
-from simulation.api.errors import ApiRunCreationFailedError, ApiRunNotFoundError
-from simulation.api.routes._helpers import error_response
 from simulation.api.schemas.simulation import (
     RunDetailsResponse,
     RunListItem,
@@ -24,8 +21,6 @@ from simulation.api.services.run_query_service import (
     get_turns_for_run,
     list_runs,
 )
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -108,18 +103,9 @@ async def get_simulation_run_turns(
 async def _execute_get_simulation_runs(
     request: Request,
 ) -> list[RunListItem] | Response:
-    """Fetch run summaries from the database and convert failures to HTTP responses."""
-    try:
-        engine = request.app.state.deps.engine
-        return await asyncio.to_thread(list_runs, engine=engine)
-    except Exception:
-        logger.exception("Unexpected error while listing simulation runs")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    """Fetch run summaries from the database."""
+    engine = request.app.state.deps.engine
+    return await asyncio.to_thread(list_runs, engine=engine)
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -134,29 +120,12 @@ async def _execute_simulation_run(
             "current_app_user was not set on request.state, but is required for simulation run creation."
         )
     created_by_app_user_id = current_app_user.id
-    try:
-        return await asyncio.to_thread(
-            execute,
-            request=body,
-            engine=engine,
-            created_by_app_user_id=created_by_app_user_id,
-        )
-    except ApiRunCreationFailedError as e:
-        logger.exception("Simulation run failed before run creation")
-        return error_response(
-            status_code=500,
-            code="RUN_CREATION_FAILED",
-            message=e.message,
-            detail=None,
-        )
-    except Exception:
-        logger.exception("Unexpected error during simulation run")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    return await asyncio.to_thread(
+        execute,
+        request=body,
+        engine=engine,
+        created_by_app_user_id=created_by_app_user_id,
+    )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -165,34 +134,11 @@ async def _execute_get_simulation_run(
 ) -> RunDetailsResponse | Response:
     """Fetch persisted run details and convert known failures to HTTP responses."""
     engine = request.app.state.deps.engine
-    try:
-        return await asyncio.to_thread(
-            get_run_details,
-            run_id=run_id,
-            engine=engine,
-        )
-    except ApiRunNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="RUN_NOT_FOUND",
-            message="Run not found",
-            detail=e.run_id,
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=400,
-            code="INVALID_RUN_ID",
-            message="Invalid run_id",
-            detail=str(e),
-        )
-    except Exception:
-        logger.exception("Unexpected error while fetching run details")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    return await asyncio.to_thread(
+        get_run_details,
+        run_id=run_id,
+        engine=engine,
+    )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -201,28 +147,5 @@ async def _execute_get_simulation_run_turns(
     run_id: str,
 ) -> dict[str, TurnSchema] | Response:
     """Fetch run turns and convert known failures to HTTP responses."""
-    try:
-        engine = request.app.state.deps.engine
-        return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
-    except ApiRunNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="RUN_NOT_FOUND",
-            message="Run not found",
-            detail=e.run_id,
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=400,
-            code="INVALID_RUN_ID",
-            message="Invalid run_id",
-            detail=str(e),
-        )
-    except Exception:
-        logger.exception("Unexpected error while fetching run turns")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    engine = request.app.state.deps.engine
+    return await asyncio.to_thread(get_turns_for_run, run_id=run_id, engine=engine)
