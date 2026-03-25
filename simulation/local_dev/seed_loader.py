@@ -40,9 +40,6 @@ from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
 from db.backfills.agent_posts import backfill_agent_posts_from_feed_posts
 from lib.agent_id import is_canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.metrics.derive_from_metadata import (
-    derive_turn_and_run_metrics_from_fixtures,
-)
 from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
@@ -55,6 +52,8 @@ from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+
+from .derive_from_metadata import derive_turn_and_run_metrics_from_fixtures
 
 logger = logging.getLogger(__name__)
 

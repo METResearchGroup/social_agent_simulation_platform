@@ -1,9 +1,9 @@
-"""Tests for simulation.core.metrics.derive_from_metadata."""
+"""Tests for simulation.local_dev.derive_from_metadata."""
 
-from simulation.core.metrics.derive_from_metadata import (
+from simulation.core.models.actions import TurnAction
+from simulation.local_dev.derive_from_metadata import (
     derive_turn_and_run_metrics_from_fixtures,
 )
-from simulation.core.models.actions import TurnAction
 from tests.factories import RunFactory, TurnMetadataFactory
 
 

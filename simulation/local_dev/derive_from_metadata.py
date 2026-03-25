@@ -1,7 +1,7 @@
 """Derive turn/run metrics from canonical `TurnMetadata` using the same registry as runtime.
 
-Used by the local seed loader so metric rows are never hand-maintained separately from
-`turn_metadata` fixtures.
+Used by :mod:`simulation.local_dev.seed_loader` so metric rows are never hand-maintained
+separately from ``turn_metadata`` fixtures.
 """
 
 from __future__ import annotations
