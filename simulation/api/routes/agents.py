@@ -1,7 +1,6 @@
 """Simulation agent API routes."""
 
 import asyncio
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Request
@@ -15,15 +14,6 @@ from simulation.api.constants import (
     DEFAULT_AGENT_LIST_OFFSET,
     MAX_AGENT_LIST_LIMIT,
 )
-from simulation.api.errors import (
-    ApiAgentFollowEdgeAlreadyExistsError,
-    ApiAgentFollowEdgeNotFoundError,
-    ApiAgentNotFoundError,
-    ApiHandleAlreadyExistsError,
-    ApiSelfFollowNotAllowedError,
-    ApiTargetAgentNotFoundError,
-)
-from simulation.api.routes._helpers import error_response
 from simulation.api.schemas.simulation import (
     AgentFollowEdgeSchema,
     AgentSchema,
@@ -38,8 +28,6 @@ from simulation.api.services.agent_follows_command_service import (
 )
 from simulation.api.services.agent_follows_query_service import list_agent_follows
 from simulation.api.services.agent_query_service import list_agents
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -217,38 +205,15 @@ async def _execute_post_simulation_agents(
     request: Request, *, body: CreateAgentRequest
 ) -> AgentSchema | Response:
     """Create agent and convert known failures to HTTP responses."""
-    try:
-        deps = request.app.state.deps
-        return await asyncio.to_thread(
-            create_agent,
-            body,
-            transaction_provider=deps.transaction_provider,
-            agent_repo=deps.agent_repo,
-            bio_repo=deps.agent_bio_repo,
-            metadata_repo=deps.agent_metadata_repo,
-        )
-    except ApiHandleAlreadyExistsError as e:
-        return error_response(
-            status_code=409,
-            code="HANDLE_ALREADY_EXISTS",
-            message="Agent with this handle already exists",
-            detail=e.handle,
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=422,
-            code="VALIDATION_ERROR",
-            message=str(e),
-            detail=None,
-        )
-    except Exception:
-        logger.exception("Unexpected error while creating agent")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    deps = request.app.state.deps
+    return await asyncio.to_thread(
+        create_agent,
+        body,
+        transaction_provider=deps.transaction_provider,
+        agent_repo=deps.agent_repo,
+        bio_repo=deps.agent_bio_repo,
+        metadata_repo=deps.agent_metadata_repo,
+    )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -260,25 +225,16 @@ async def _execute_get_simulation_agents(
     offset: int,
 ) -> list[AgentSchema] | Response:
     """Fetch agent list from DB and convert unexpected failures to HTTP responses."""
-    try:
-        deps = request.app.state.deps
-        return await asyncio.to_thread(
-            list_agents,
-            agent_repo=deps.agent_repo,
-            bio_repo=deps.agent_bio_repo,
-            metadata_repo=deps.agent_metadata_repo,
-            q=q,
-            limit=limit,
-            offset=offset,
-        )
-    except Exception:
-        logger.exception("Unexpected error while listing simulation agents")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    deps = request.app.state.deps
+    return await asyncio.to_thread(
+        list_agents,
+        agent_repo=deps.agent_repo,
+        bio_repo=deps.agent_bio_repo,
+        metadata_repo=deps.agent_metadata_repo,
+        q=q,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -290,38 +246,15 @@ async def _execute_get_simulation_agent_follows(
     offset: int,
 ) -> ListAgentFollowsResponse | Response:
     """Fetch seed-state follow edges and convert known failures to HTTP responses."""
-    try:
-        deps = request.app.state.deps
-        return await asyncio.to_thread(
-            list_agent_follows,
-            handle,
-            agent_repo=deps.agent_repo,
-            agent_follow_edge_repo=deps.agent_follow_edge_repo,
-            limit=limit,
-            offset=offset,
-        )
-    except ApiAgentNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="AGENT_NOT_FOUND",
-            message="Agent not found",
-            detail=e.handle,
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=422,
-            code="VALIDATION_ERROR",
-            message=str(e),
-            detail=None,
-        )
-    except Exception:
-        logger.exception("Unexpected error while listing simulation agent follows")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    deps = request.app.state.deps
+    return await asyncio.to_thread(
+        list_agent_follows,
+        handle,
+        agent_repo=deps.agent_repo,
+        agent_follow_edge_repo=deps.agent_follow_edge_repo,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -332,60 +265,16 @@ async def _execute_post_simulation_agent_follows(
     body: CreateAgentFollowRequest,
 ) -> AgentFollowEdgeSchema | Response:
     """Create seed-state follow edge and convert known failures to HTTP responses."""
-    try:
-        deps = request.app.state.deps
-        return await asyncio.to_thread(
-            create_agent_follow,
-            handle,
-            body,
-            transaction_provider=deps.transaction_provider,
-            agent_repo=deps.agent_repo,
-            agent_follow_edge_repo=deps.agent_follow_edge_repo,
-            metadata_repo=deps.agent_metadata_repo,
-        )
-    except ApiAgentNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="AGENT_NOT_FOUND",
-            message="Agent not found",
-            detail=e.handle,
-        )
-    except ApiTargetAgentNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="TARGET_AGENT_NOT_FOUND",
-            message="Target agent not found",
-            detail=e.handle,
-        )
-    except ApiAgentFollowEdgeAlreadyExistsError as e:
-        return error_response(
-            status_code=409,
-            code="FOLLOW_EDGE_ALREADY_EXISTS",
-            message="Follow edge already exists",
-            detail=f"{e.follower_handle}->{e.target_handle}",
-        )
-    except ApiSelfFollowNotAllowedError as e:
-        return error_response(
-            status_code=422,
-            code="SELF_FOLLOW_NOT_ALLOWED",
-            message="Agent cannot follow itself",
-            detail=e.handle,
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=422,
-            code="VALIDATION_ERROR",
-            message=str(e),
-            detail=None,
-        )
-    except Exception:
-        logger.exception("Unexpected error while creating simulation agent follow edge")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    deps = request.app.state.deps
+    return await asyncio.to_thread(
+        create_agent_follow,
+        handle,
+        body,
+        transaction_provider=deps.transaction_provider,
+        agent_repo=deps.agent_repo,
+        agent_follow_edge_repo=deps.agent_follow_edge_repo,
+        metadata_repo=deps.agent_metadata_repo,
+    )
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -396,54 +285,17 @@ async def _execute_delete_simulation_agent_follow(
     target_handle: str,
 ) -> Response:
     """Delete seed-state follow edge and convert known failures to HTTP responses."""
-    try:
-        deps = request.app.state.deps
-        await asyncio.to_thread(
-            delete_agent_follow,
-            handle,
-            target_handle,
-            transaction_provider=deps.transaction_provider,
-            agent_repo=deps.agent_repo,
-            agent_follow_edge_repo=deps.agent_follow_edge_repo,
-            metadata_repo=deps.agent_metadata_repo,
-        )
-        return Response(status_code=204)
-    except ApiAgentNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="AGENT_NOT_FOUND",
-            message="Agent not found",
-            detail=e.handle,
-        )
-    except ApiTargetAgentNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="TARGET_AGENT_NOT_FOUND",
-            message="Target agent not found",
-            detail=e.handle,
-        )
-    except ApiAgentFollowEdgeNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="FOLLOW_EDGE_NOT_FOUND",
-            message="Follow edge not found",
-            detail=f"{e.follower_handle}->{e.target_handle}",
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=422,
-            code="VALIDATION_ERROR",
-            message=str(e),
-            detail=None,
-        )
-    except Exception:
-        logger.exception("Unexpected error while deleting simulation agent follow edge")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    deps = request.app.state.deps
+    await asyncio.to_thread(
+        delete_agent_follow,
+        handle,
+        target_handle,
+        transaction_provider=deps.transaction_provider,
+        agent_repo=deps.agent_repo,
+        agent_follow_edge_repo=deps.agent_follow_edge_repo,
+        metadata_repo=deps.agent_metadata_repo,
+    )
+    return Response(status_code=204)
 
 
 @timed(attach_attr="duration_ms", log_level=None)
@@ -451,37 +303,14 @@ async def _execute_delete_simulation_agent(
     request: Request, *, handle: str
 ) -> Response:
     """Delete agent and convert known failures to HTTP responses."""
-    try:
-        deps = request.app.state.deps
-        await asyncio.to_thread(
-            delete_agent,
-            handle,
-            transaction_provider=deps.transaction_provider,
-            agent_repo=deps.agent_repo,
-            bio_repo=deps.agent_bio_repo,
-            agent_follow_edge_repo=deps.agent_follow_edge_repo,
-            metadata_repo=deps.agent_metadata_repo,
-        )
-        return Response(status_code=204)
-    except ApiAgentNotFoundError as e:
-        return error_response(
-            status_code=404,
-            code="AGENT_NOT_FOUND",
-            message="Agent not found",
-            detail=e.handle,
-        )
-    except ValueError as e:
-        return error_response(
-            status_code=422,
-            code="VALIDATION_ERROR",
-            message=str(e),
-            detail=None,
-        )
-    except Exception:
-        logger.exception("Unexpected error while deleting agent")
-        return error_response(
-            status_code=500,
-            code="INTERNAL_ERROR",
-            message="Internal server error",
-            detail=None,
-        )
+    deps = request.app.state.deps
+    await asyncio.to_thread(
+        delete_agent,
+        handle,
+        transaction_provider=deps.transaction_provider,
+        agent_repo=deps.agent_repo,
+        bio_repo=deps.agent_bio_repo,
+        agent_follow_edge_repo=deps.agent_follow_edge_repo,
+        metadata_repo=deps.agent_metadata_repo,
+    )
+    return Response(status_code=204)
