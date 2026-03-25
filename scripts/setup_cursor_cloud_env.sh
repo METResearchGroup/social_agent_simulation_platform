@@ -4,4 +4,4 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-uv sync --frozen --extra test --extra ner
+uv sync --frozen --extra test --extra ner --extra simulation

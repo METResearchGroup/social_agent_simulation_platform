@@ -62,7 +62,7 @@ polarity = [
 ]
 
 simulation = [
-    "camel-oasis>=0.2.5; python_version < '3.12'",
+    "camel-oasis>=0.2.5",
 ]
 
 [build-system]
