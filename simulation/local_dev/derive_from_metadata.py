@@ -7,7 +7,6 @@ separately from ``turn_metadata`` fixtures.
 from __future__ import annotations
 
 from collections import defaultdict
-from unittest.mock import Mock
 
 from db.repositories.interfaces import MetricsRepository, RunRepository
 from simulation.core.metrics.collector import MetricsCollector
@@ -19,6 +18,50 @@ from simulation.core.metrics.interfaces import MetricDeps
 from simulation.core.models.metrics import RunMetrics, TurnMetrics
 from simulation.core.models.runs import Run, RunConfig, RunStatus
 from simulation.core.models.turns import TurnMetadata
+
+
+def _unexpected_metrics_repo_call(method: str) -> RuntimeError:
+    return RuntimeError(
+        f"metrics_repo.{method} must not be called during seed metric derivation "
+        "(builtin metrics use run_repo only)"
+    )
+
+
+class _SeedDerivationMetricsRepositoryStub(MetricsRepository):
+    """Explicit stub: builtin turn/run metrics here never read or write persisted metrics."""
+
+    def write_turn_metrics(
+        self,
+        turn_metrics: TurnMetrics,
+        conn: object | None = None,
+    ) -> None:
+        _ = (turn_metrics, conn)
+        raise _unexpected_metrics_repo_call("write_turn_metrics")
+
+    def get_turn_metrics(self, run_id: str, turn_number: int) -> TurnMetrics | None:
+        _ = (run_id, turn_number)
+        raise _unexpected_metrics_repo_call("get_turn_metrics")
+
+    def list_turn_metrics(self, run_id: str) -> list[TurnMetrics]:
+        _ = run_id
+        raise _unexpected_metrics_repo_call("list_turn_metrics")
+
+    def write_run_metrics(
+        self,
+        run_metrics: RunMetrics,
+        conn: object | None = None,
+    ) -> None:
+        _ = (run_metrics, conn)
+        raise _unexpected_metrics_repo_call("write_run_metrics")
+
+    def get_run_metrics(self, run_id: str) -> RunMetrics | None:
+        _ = run_id
+        raise _unexpected_metrics_repo_call("get_run_metrics")
+
+
+_METRICS_REPO_FOR_SEED_DERIVATION: MetricsRepository = (
+    _SeedDerivationMetricsRepositoryStub()
+)
 
 
 class _FixtureRunRepository(RunRepository):
@@ -86,7 +129,7 @@ def derive_turn_and_run_metrics_from_fixtures(
     run_repo = _FixtureRunRepository(runs=runs_by_id, turn_metadata_by_run=dict(by_run))
     deps = MetricDeps(
         run_repo=run_repo,
-        metrics_repo=Mock(spec=MetricsRepository),
+        metrics_repo=_METRICS_REPO_FOR_SEED_DERIVATION,
         sql_executor=None,
         pending_turn_metadata=None,
     )

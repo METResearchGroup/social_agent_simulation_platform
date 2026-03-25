@@ -52,8 +52,9 @@ from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
-
-from .derive_from_metadata import derive_turn_and_run_metrics_from_fixtures
+from simulation.local_dev.derive_from_metadata import (
+    derive_turn_and_run_metrics_from_fixtures,
+)
 
 logger = logging.getLogger(__name__)
 
