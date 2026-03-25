@@ -4,34 +4,26 @@ from transformers import logging as transformers_logging
 
 from ml_tooling.emotion.classifier import EmotionModel
 from ml_tooling.emotion.models import EmotionLabel
-from ml_tooling.verification.helpers import run_same_prompt, track_init_time
+from ml_tooling.verification.helpers import (
+    print_table,
+    run_model_track_time,
+    track_init_time,
+)
 
 transformers_logging.set_verbosity_error()
 
-EMOTIONS = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
-
 
 def print_emotion_table(label: EmotionLabel, case_name: str) -> None:
-    col_text = "text"
-    col_emotion = "emotion"
-    col_score = "score"
-    wrap_width = 40
-    w_text = max(len(col_text), wrap_width)
-    w_emotion = max(len(col_emotion), max(len(e) for e in EMOTIONS))
-    w_score = max(len(col_score), 8)
-
-    f"+{'-' * (w_text + 2)}+{'-' * (w_emotion + 2)}+{'-' * (w_score + 2)}+"
-
-    # wrap text into lines of wrap_width
-    text = label.text
-    text_lines = [text[i : i + wrap_width] for i in range(0, len(text), wrap_width)]
-
-    for i, _emotion in enumerate(EMOTIONS):
-        text_lines[i] if i < len(text_lines) else ""
-
-    # print any remaining text lines with empty emotion/score columns
-    for _text_line in text_lines[len(EMOTIONS) :]:
-        pass
+    col_values = [
+        ("anger", f"{label.anger_score:.4f}"),
+        ("disgust", f"{label.disgust_score:.4f}"),
+        ("fear", f"{label.fear_score:.4f}"),
+        ("joy", f"{label.joy_score:.4f}"),
+        ("neutral", f"{label.neutral_score:.4f}"),
+        ("sadness", f"{label.sadness_score:.4f}"),
+        ("surprise", f"{label.surprise_score:.4f}"),
+    ]
+    print_table(case_name, label.text, ["emotion", "score"], col_values)
 
 
 def verify_diff_cases(emotion_model: EmotionModel) -> None:
@@ -50,31 +42,12 @@ def verify_diff_cases(emotion_model: EmotionModel) -> None:
         print_emotion_table(result, case_name)
 
 
-def run_model_track_time(emotion_model: EmotionModel) -> None:
-    counts = [1, 10, 100, 1000, 10000]
-    results = [
-        (
-            n,
-            run_same_prompt(
-                emotion_model.extract_emotions,
-                "This is the best day of my life, I am so happy!",
-                n,
-            ),
-        )
-        for n in counts
-    ]
-
-    col1, col2, col3 = "iters", "total (s)", "iters/sec"
-    w1, w2, w3 = max(len(col1), 6), max(len(col2), 10), max(len(col3), 10)
-    f"+{'-' * (w1 + 2)}+{'-' * (w2 + 2)}+{'-' * (w3 + 2)}+"
-
-    for n, elapsed in results:
-        n / elapsed if elapsed > 0 else float("inf")
-
-
 if __name__ == "__main__":
     emotion_model: EmotionModel = cast(EmotionModel, track_init_time(EmotionModel))
 
     verify_diff_cases(emotion_model)
 
-    run_model_track_time(emotion_model)
+    run_model_track_time(
+        emotion_model.extract_emotions,
+        "This is the best day of my life, I am so happy!",
+    )

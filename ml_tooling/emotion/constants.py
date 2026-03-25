@@ -1,0 +1,1 @@
+EMOTIONS = ["anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"]
