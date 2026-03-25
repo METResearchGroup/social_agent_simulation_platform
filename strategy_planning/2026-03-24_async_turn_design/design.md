@@ -27,11 +27,30 @@ flowchart LR
 
 ## Design choices
 
-### When is a turn defined as complete?
+### Turn semantics
+
+#### What happens in a turn (high-level)?
+
+1. The snapshot of the current `SocialEnvironment` is derived for each agent.
+2. Agents decide their actions.
+3. Workers compute effects (e.g., they write the posts).
+4. Orchestrator reconciles (e.g., makes sure that there are no merge conflicts).
+5. State manager commits.
+6. UI is updated with the results for the turn.
+
+#### When is a turn defined as complete?
 
 A turn is defined as "all agents have completed their intended actions". This implies that the agents have each (1) submitted their actions to the worker queues, (2) the actions have been completed, (3) the actions have been persisted to DB, and (4) the actions are available as completed in the UI.
 
-### What are the inputs to a turn?
+#### What is the smallest artifact to persist to deterministically explain a completed turn?
+
+For a V1, probably the easiest to ship is the final DB rows - a turn isn't completed unless we've checked that all interactions have been persisted in the DB.
+
+If a DB commit succeeds but UI update is delayed, the turn is still marked as completed.
+
+If all actions execute but one non-critical telemetry write fails, the turn is still completed.
+
+#### What are the inputs to a turn?
 
 (todo)
 
