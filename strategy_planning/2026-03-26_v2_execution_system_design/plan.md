@@ -531,7 +531,15 @@ This is OK and we just retry the persistence manager. This should be managed at 
 
 ##### What if one bad temp file blocks the whole persistence pass?
 
-(todo)
+If one bad temp file blocks the persistence pass, we can skip it.
+
+For reads, we can have two approaches:
+
+- Read all the files in a temp output path all at once (via `pandas`). This assumes that they're all supposed to be read together (i.e., they're from the same set of jobs). This can be specified in the temp output (e.g., for `turn_likes`, the temp path can be something like `<base path>/temp/run_id={run_id}/turn_id={turn_id}/record=turn_likes/`), so that all records in a given temp path are assumed to belong together. We can then have strong schema validation on the outputs. We have Pydantic models for each output type, so we can validate schemas on-read. We can also explore validation via Parquet (e.g., collect all temp files, write to parquet, then read).
+- If that fails, we can read each one individually, and then delete files that fail to be read. This is assuming a transient file error (e.g., corrupted file) rather than systemic error (e.g., incorrect syntax) that is casuing reads to fail (i.e., it's a one-off bad file). We are OK with our simulations being lossy on rare occassions. For example, if the record was "Agent A wanted to like this post", we're OK if it's lossy 0.001% of the time (or a lossiness of that scale), and one source of lossiness is "temp file wasn't able to be read for some reason". We should also have logging for how often this happens, to verify if it is indeed transient. We can tentatively say that an error rate of 0.01% (1/10,000) is the reporting threshold for something like this, as this should remain a transient error.
+  - Errors that we're OK with: network errors, retryable errors (errors resolved if we, say, rerun the persistence pass).
+  - Errors that we're NOT OK with, at all: corrupted files. We can set a threshold of 0.01% (1/10,000)
+  - Errors that we'll have to monitor: Pydantic model shape validation: the individual tasks should check the model output shape and verify it against a Pydantic model. To verify shape, we also, on read, enforce a specific Pydantic model output (we can do something like `.model_validate()` on read). This should always pass, since we do validate schemas on write. However, we want to monitor this. Let's log whenever this breaks, as downstream users of the data will assume a specific contract shape and we want to validate that before persisting to storage. Model validation should be handled on write, but we verify it on reads as well so that we can guarantee data formats for downstream callers.
 
 ## LLM Platform
 
