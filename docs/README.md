@@ -18,6 +18,7 @@ Quick lookup table of contents for project documentation.
 | [runbooks/CURSOR_CLOUD_ENV_SETUP.md](runbooks/CURSOR_CLOUD_ENV_SETUP.md) | Configure Cursor Cloud startup for repo-wide quality gates |
 | [runbooks/CREATE_NEW_PYTHON_TESTS.md](runbooks/CREATE_NEW_PYTHON_TESTS.md) | Add new Python tests (pytest) using factories + Hypothesis |
 | [runbooks/HOW_TO_CREATE_NEW_METRIC.md](runbooks/HOW_TO_CREATE_NEW_METRIC.md) | Add a new metric to the simulation |
+| [runbooks/setup-oasis.md](runbooks/setup-oasis.md) | Set up local CAMEL + OASIS and Pyright import resolution |
 
 ## Other docs
 
