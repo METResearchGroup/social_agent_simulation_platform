@@ -134,6 +134,8 @@ We calculate the run-based metrics, if any, using the same primitives for metric
 
 The sources of data can vary based on the metrics used.
 
+See the `What is the "generate metrics" DAG?` section to review the actual implementation.
+
 ##### Task 2: Update run status
 
 We then mark the run as "completed":
@@ -148,6 +150,147 @@ class Run:
 
 ## What is a turn?
 
+A turn is a single discrete timestep in the simulation, where the agents perform actions and the state of the platform changes.
+
+### What is the high-level flow of a turn?
+
+A turn generally takes the following steps:
+
+1. Get the inputs to a turn.
+2. Run the feed algorithms to get the feeds per user.
+3. Execute the "run agent actions" DAG.
+4. Execute the "generate metrics" DAG.
+
+#### 1. Get the inputs to a turn
+
+Inputs here are:
+
+- (list inputs)
+
+Completion here looks like:
+
+- (list conditions for completion)
+
+#### 2. Run the feed algorithms to get the feeds per user
+
+Inputs here are:
+
+- (list inputs)
+
+Completion here looks like:
+
+- (list conditions for completion)
+
+#### 3. Execute the "run agent actions" DAG
+
+Inputs here are:
+
+- (list inputs)
+
+Completion here looks like:
+
+- (list conditions for completion)
+
+See the `What is the "run agent actions" DAG?` section for more information.
+
+#### 4. Execute the "generate metrics" DAG
+
+Inputs here are:
+
+- (list inputs)
+
+Completion here looks like:
+
+- (list conditions for completion)
+
+See the `What is the "generate metrics" DAG?` section for more information.
+
+### What is the "run agent actions" DAG?
+
+Our "run agent actions" DAG has three components:
+
+1. Create the jobs.
+2. Execute the jobs (and write results to temp storage).
+3. Persist the results to permanent storage.
+
+Concretely, it would be executed as something like this:
+
+```python
+class RunAgentActionsPlatform:
+    def __init__(self, num_turns: int):
+        self.task_platform = TaskPlatform()
+        self.num_turns: int = num_turns
+
+    def execute(self):
+        """Performs single turn.
+
+        Additional things to add:
+        - For each of these steps, probably want logging + metadata tracked.
+        - Also probably want to add task details/metadata for each task.
+        """
+        tasks = self._create_tasks()
+        self.task_platform.submit_tasks(tasks)
+        self.task_platform.persist_results()
+
+    def _create_tasks(self) -> list:
+        """Creates the tasks to execute.
+        
+        Has two parts:
+        1. Defining the custom state needed for creating the tasks.
+        2. Creating the tasks.
+        """
+        task_params = {} # extra steps, definiing how we perform tasks here
+        tasks = self.task_platform.create_tasks(task_params)
+        return tasks
+```
+
+### What is the "generate metrics" DAG?
+
+Our "generate metrics" DAG has three components:
+
+1. Create the metrics tasks.
+2. Execute the tasks (and write results to temp storage).
+3. Persist the results to permanent storage.
+
+```python
+class GenerateMetricsPlatform:
+    def __init__(self, num_turns: int):
+        self.task_platform = TaskPlatform()
+
+    def execute(self):
+        """Performs single turn.
+
+        Additional things to add:
+        - For each of these steps, probably want logging + metadata tracked.
+        - Also probably want to add task details/metadata for each task.
+        """
+        tasks = self._create_tasks()
+        self.task_platform.submit_tasks(tasks)
+        self.task_platform.persist_results()
+
+    def _create_tasks(self) -> list:
+        """Creates the tasks to execute.
+        
+        Has two parts:
+        1. Defining the custom state needed for creating the tasks.
+        2. Creating the tasks.
+
+        Of note: can probably use the same base `GenerateMetricsPlatform`
+        and define child classes, `TurnGenerateMetricsPlatform` and
+        `RunGenerateMetricsPlatform`, if needed, and the only thing that
+        would change is what tasks are created.
+        """
+        task_params = {} # extra steps, definiing how we perform tasks here
+        tasks = self.task_platform.create_tasks(task_params)
+        return tasks
+```
+
+### What is a "task"?
+
+(more info)
+
+Se the "Task Execution Platform" below for more details on how the tasks are actually run.
+
 ### What tables are in a turn?
 
 The turn-specific tables:
@@ -157,6 +300,10 @@ class TurnPost:
     """Posts written during a turn.
     
     PK: (post_id, run_id, turn_id)
+    FK:
+    - run_id is a foreign key to the Run table (run_id).
+    - (run_id, turn_id) together form a foreign key to the Turn table (composite key).
+    - generation_id (if not None) is a foreign key to the Generation table (generation_id).
     """
     run_id: str
     turn_id: str
@@ -165,6 +312,20 @@ class TurnPost:
     text: str
     generation_id: str | None # the ID of the generation that resulted in this post, if any.
 
+class TurnLike:
+    """Like records during a turn.
+    
+    FK:
+    - run_id is a foreign key to the Run table (run_id).
+    - (run_id, turn_id) together form a foreign key to the Turn table (composite key).
+    - (post_id, run_id, turn_id) is a post that must exist (an agent can only like a post that already exists, and the PK for posts is (post_id, run_id, turn_id)).
+    - generation_id (if not None) is a foreign key to the Generation table (generation_id).
+    """
+    run_id: str
+    turn_id: str
+    like_id: str
+    post_id: str # ID of the user who wrote the post
+    generation_id: str | None # the ID of the generation that resulted in this post, if any.
 
 class TurnComment(TurnPost):
     """Comment written during a turn."""
@@ -183,25 +344,32 @@ class TurnFollow:
     generation_id: str | None # the ID of the generation that resulted in any change in follows/followers this turn, if any.
 ```
 
-## Task Execution Platform
+## Job Execution Platform
 
-We have a generic task platform that does all task execution. The model would be something like:
+We have a generic job platform that does all job execution. The model would be something like:
 
 ```python
-class TaskCreationPlatform:
-    def __init__(self):
-        pass
+class JobExecutionEngine:
+    """Manages how different jobs are scheduled in parallel, using
+    a semaphore model. Creates tasks given the different jobs.
+    
+    We intentionally create all tasks upfront, as opposed to doing it in batches.
 
-    async def create_tasks(self):
-        pass
+    With large scales, this may be memory-intensive and we may want to move
+    to a queue-based or event-driven model, but we're nowhere near there yet.
 
-class TaskExecutionEngine:
-    """Manages how different tasks are scheduled in parallel, using
-    a semaphore model."""
-    def __init__(self):
-        self.tasks = []
+    This simple "create all tasks upfront" is the simplest abstraction we
+    can have for now.
+    """
+    def __init__(self, max_concurrent: int):
+        self._tasks = []
+        self._semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def submit_tasks(self):
+    async def submit_jobs(
+        self,
+        jobs: Iterable[tuple[Callable[..., Awaitable[Any]], dict[str, Any]]]
+
+    ):
         """Submits tasks for execution. Awaits until all tasks are done.
 
         "Done" can happen in two ways:
@@ -211,11 +379,54 @@ class TaskExecutionEngine:
             to deadletter queue) or (2) fails on timeouts (also can push to
             deadletter queue).
         """
-        pass
+        for coro_func, kwargs in jobs:
+            self._submit_job(coro_func, kwargs)
+
+        return await self.wait()
+
+    async def _run_with_limit(
+        self,
+        coro_func: Callable[..., Awaitable[Any]],
+        **kwargs: Any,
+    ) -> Any:
+        """Run a task (bounded by the semaphore concurrency limit).
+        
+        TODO: will also likely want retry logic as well. Probably
+        can just re-append to tasks queue if retry is needed.
+        """
+        async with self._semaphore:
+            # assumed that each coroutine function will manage persisting
+            # its own results to permanent storage. We want to leave that
+            # work to the coro_func rather than checking here if it exists.
+            # A coro_func should have (1) unit of work and (2) writing to
+            # temp output (or deadletter, if needed).
+            return await coro_func(**kwargs)
+
+    def _submit_job(
+        self,
+        coro_func: Callable[..., Awaitable[Any]],
+        kwargs: dict[str, Any],
+    ) -> asyncio.Task[Any]:
+        """Submit a task to the execution engine."""
+        task = asyncio.create_task(self._run_with_limit(coro_func, **kwargs))
+        self._tasks.append(task)
+        return task
 
 
-class TaskOutputPersistenceManager:
-    """Manages how task outputs are persisted to permanent storage"""
+    async def wait(self) -> list[Any]:
+        if not self._tasks:
+            return []
+
+        results = await asyncio.gather(*self._tasks, return_exceptions=False)
+        self._tasks.clear()
+        return results
+
+    def done(self) -> bool:
+        return all(task.done() for task in self._tasks)
+
+
+class JobOutputPersistenceManager:
+    """Manages how job outputs are persisted to permanent storage"""
     def __init__(self):
         pass
 
@@ -223,27 +434,70 @@ class TaskOutputPersistenceManager:
         pass
 
 
-class TaskPlatform:
+class JobPlatform:
+    """Platform for executing a series of jobs."""
     def __init__(self):
-        self.task_creation_platform = TaskCreationPlatform()
-        self.task_execution_engine =
+        self.job_execution_engine = JobExecutionEngine()
+        self.job_output_persistence_manager = JobOutputPersistenceManager()
 
-    async def create_tasks(self):
-        self.task_creation_platform.create_tasks()
-
-    async def submit_tasks(self):
-        pass
+    async def submit_jobs(self, jobs):
+        await self.job_execution_engine.submit_jobs(jobs)
 
     def persist_results(self):
         pass
 
 # how these are called in the DAG
-
-task_platform = TaskPlatform()
-tasks = await task_platform.create_tasks()
-await task_platform.submit_tasks(tasks) # need to see, does this need to be async?
-task_platform.persist_results()
+job_platform = JobPlatform()
+jobs = [] # each caller is required to create jobs themselves.
+await job_platform.submit_jobs(jobs)
+job_platform.persist_results()
 ```
+
+### Design considerations
+
+#### Tracking jobs
+
+We track a job through job metadata:
+
+```python
+class JobMetadata:
+    pass
+```
+
+#### When is a job finished?
+
+A job is considered finished when (1) a job finishes, (2) it is persisted to temp output, and (3) returns a success message to the caller. A job would stall out if it finished but didn't write to temp output. We would have timeouts for a given job and if it doesn't return a success message.
+
+#### Choosing write model (temp -> permanent storage)
+
+Right now, we intentionally choose an architecture where we write the job outputs to a temp output storage and then have the persistence manager pick up the temp files and write to permanent storage. This was chosen for the following reasons:
+
+- Crash tolerance: if the job finishes but the writer fails, then we can retry. We'll probably want to build towards making jobs "resumable" or "retryable", especially as we scale up and don't want to merely lose work.
+- Decouples engine from persistence manager: this means that both can be run on seperate processes/servers. Also means that they can be run on different schedules.
+- Max memory requirements are lowered: as the tasks complete, we don't have to accumulate the results in memory. This keeps the execution engine relatively lightweight, as opposed to the model where we have to accumulate all the results in memory and then passing it to the persistence manager. An intermediate approach, of accumulating a batch of results, then passing that batch to the persistence manager, requires extra work to manage batches, which is complicated for a V1. We want *all tasks* to be run, and then *all tasks* to be persisted.
+- Natural audit trail. Temp files give you inspectable artifacts for debugging.
+
+Some tradeoffs though in doing this:
+
+- More I/O: we write to temp storage and then we read the temp storage output and then write to permanent storage. We could just pass the results from memory to the persistence manager directly.
+- Slower end-to-end latency than direct return for small jobs.
+- Possible need for deduplication: on retry, we'd have to make sure that we don't duplicate work that's in the temp storage. Can ameliorate by "flushing" the temp path, if it exists, before running the engine.
+
+Alternatives considered:
+
+- Direct in-memory transfer
+- Batching: requires batching semantics, which incorporate more complications.
+- Keeping both in-memory and temp output: probably the most complicated of the two, as there's a lot of edge casing to be considered (e.g., how can you tell that the in-memory one is incomplete and thus you need the temp output?). Also creates two possible sources of truth, which causes its own problems.
+
+#### Known failure modes
+
+##### What if the process dies halfway through writing the temp file?
+
+If the process dies halfway through writing the temp file, then we count that as incomplete and the job will timeout (and thus be counted as failed).
+
+##### What if persistence writes to DB successfully but crashes before deleting the temp file?
+
+Before writes to the DB, we first load the row from the DB and check for the record of job_id and check for its presence. We don't write records whose `job_id`.
 
 ## LLM Platform
 
@@ -265,3 +519,11 @@ class Generation:
     response: str # the actual model's response
     created_at: str # timestamp
 ```
+
+#### Linking generations to their Turn records
+
+We intentionally add `generation_id` to each of the relevant tables (e.g., `turn_posts`), to create a relationship between the record and the LLM generation that motivated it. We expect most records to have the `generation_id` populated in practice, so we add it directly as a column. The alternative is to keep the ID only in the `Generation` table and create a FK linking it to the correct table + ID. But this requires additional logic to map the table + ID to the correct table AND it also requires an O(n) lookup each time we want to, say, know what LLM generation led to a given result. This is a search pattern we'll likely often want (I can envision a feature where we can "inspect" the LLM call that led to a given generation), so we don't want this to be an O(n) lookup. Reverse lookup (find all records a generation “caused”) is possible, though less common. Adding a table/tag ref to `Generation` is really only justifiable if you expect frequent reverse lookups or complex many-to-1/1-to-many mappings. Doing it here adds schema and integrity overhead and creates more room for error. For example, you'd have to validate that the table name + PK actually exists in the records table, whereas if for some reason we have a generation whose `generation_id` doesn't exist in a Turn* record, this is OK, and we just disregard/cleanup that record.
+
+## Orchestration
+
+We'll deploy the application as a DAG using Prefect in Railway.
