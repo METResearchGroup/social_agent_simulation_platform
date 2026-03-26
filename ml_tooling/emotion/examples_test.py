@@ -6,9 +6,9 @@ from ml_tooling.emotion.classifier import EmotionModel
 from ml_tooling.emotion.constants import EXPECTED_EMOTIONS
 from ml_tooling.emotion.models import EmotionLabel
 from ml_tooling.verification.helpers import (
+    init_model,
     print_table,
     run_model_track_time,
-    track_init_time,
 )
 
 transformers_logging.set_verbosity_error()
@@ -39,7 +39,7 @@ def verify_diff_cases(emotion_model: EmotionModel) -> None:
 
 
 if __name__ == "__main__":
-    emotion_model: EmotionModel = cast(EmotionModel, track_init_time(EmotionModel))
+    emotion_model: EmotionModel = cast(EmotionModel, init_model(EmotionModel))
 
     verify_diff_cases(emotion_model)
 

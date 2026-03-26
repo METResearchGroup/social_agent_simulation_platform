@@ -1,15 +1,9 @@
 import time
 from collections.abc import Callable
+from functools import wraps
 from typing import TypeVar
 
 T = TypeVar("T")
-
-
-def track_init_time(model_class: type[T]) -> T:
-    start = time.perf_counter()
-    model = model_class()
-    print(f"[init] ({time.perf_counter() - start:.4f}s)\n\n")  # noqa: T201
-    return model
 
 
 def run_same_prompt(inference_func: Callable, prompt: str, iters: int) -> float:
@@ -35,6 +29,28 @@ def run_model_track_time(inference_func: Callable, prompt: str) -> None:
         throughput = n / elapsed if elapsed > 0 else float("inf")
         print(f"| {n:<{w1}} | {elapsed:<{w2}.4f} | {throughput:<{w3}.2f} |")  # noqa: T201
     print(sep)  # noqa: T201
+
+
+def track_runtime(should_print: bool):
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            result = function(*args, **kwargs)
+            elapsed: float = time.perf_counter() - start
+            if should_print:
+                print(f"[{function.__name__}] ({elapsed:.4f}s)\n\n")  # noqa: T201
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+@track_runtime(should_print=True)
+def init_model(model_class: type[T]) -> T:
+    return model_class()
 
 
 def print_table(
