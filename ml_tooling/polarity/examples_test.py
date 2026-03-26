@@ -5,9 +5,9 @@ from transformers import logging as transformers_logging
 from ml_tooling.polarity.classifier import PolarityModel
 from ml_tooling.polarity.models import PolarityLabel
 from ml_tooling.verification.helpers import (
+    evaluate_model_performance,
     init_model,
     print_table,
-    run_model_track_time,
 )
 
 transformers_logging.set_verbosity_error()
@@ -40,13 +40,15 @@ def verify_diff_cases(polarity_model: PolarityModel) -> None:
 
 
 if __name__ == "__main__":
-    polarity_model: PolarityModel = cast(PolarityModel, init_model(PolarityModel))
     print("\n")  # noqa: T201
+
+    polarity_model: PolarityModel = cast(PolarityModel, init_model(PolarityModel))
 
     verify_diff_cases(polarity_model)
-    print("\n")  # noqa: T201
 
-    run_model_track_time(
+    evaluate_model_performance(
         polarity_model.extract_polarity,
         "This is absolutely the most wonderful, joyful, and amazing day of my life!",
     )
+
+    print("\n")  # noqa: T201

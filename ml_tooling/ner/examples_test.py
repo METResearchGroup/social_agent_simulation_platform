@@ -5,9 +5,9 @@ from transformers import logging as transformers_logging
 from ml_tooling.ner.classifier import NERModel
 from ml_tooling.ner.models import EntitySpan
 from ml_tooling.verification.helpers import (
+    evaluate_model_performance,
     init_model,
     print_table,
-    run_model_track_time,
 )
 
 transformers_logging.set_verbosity_error()
@@ -35,12 +35,13 @@ def verify_diff_cases(ner_model: NERModel) -> None:
 
 
 if __name__ == "__main__":
+    print("\n")  # noqa: T201
     ner_model: NERModel = cast(NERModel, init_model(NERModel))
-    print("\n\n")  # noqa: T201
 
     verify_diff_cases(ner_model)
-    print("\n\n")  # noqa: T201
 
-    run_model_track_time(
+    evaluate_model_performance(
         ner_model.extract_entities, "My name is Wolfgang and I live in Berlin"
     )
+
+    print("\n")  # noqa: T201
