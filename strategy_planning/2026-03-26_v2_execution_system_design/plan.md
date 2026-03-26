@@ -453,15 +453,21 @@ await job_platform.submit_jobs(jobs)
 job_platform.persist_results()
 ```
 
+The platform is intended to be used within the context of a DAG, rather than directly called.
+
 ### Design considerations
 
 #### Tracking jobs
 
 We track a job through job metadata:
 
+(TODO: write fields)
+
 ```python
 class JobMetadata:
-    pass
+    job_id: str # PK
+    job_metadata: Optional[str] # Optional. The job execution platform should be independent of any specific use case. However, we can have metadata like `{"run_id": <id>, "turn_id": <turn>}` for our own tracking.
+    status: str # probably an enum, with values pending/running/temp_written/persisted/failed
 ```
 
 #### When is a job finished?
@@ -489,6 +495,24 @@ Alternatives considered:
 - Batching: requires batching semantics, which incorporate more complications.
 - Keeping both in-memory and temp output: probably the most complicated of the two, as there's a lot of edge casing to be considered (e.g., how can you tell that the in-memory one is incomplete and thus you need the temp output?). Also creates two possible sources of truth, which causes its own problems.
 
+#### Single-node model
+
+We plan on using a single-node model for the application. We want to keep the current V1 implementation as lightweight on the infra requirements as possible.
+
+(tradeoffs).
+
+#### Multi-threaded engine, single-threaded writer
+
+We want to use a multi-threaded engine, but a single-threaded writer.
+
+We will use a multi-threaded engine capped by a semaphore. We'll do some load testing to see what our semaphore count should be. Since the application is heavily LLM-driven, we expect the application to be I/O bound but relatively light on memory requirements. We'll probably be rate-limited client-side by any LLM provider limitations on parallelism (e.g., past ad-hoc experimentations found that ~40 parallel task submissions to OpenAI's API, while using `gpt-5-nano`, was the max for performance; above that and we saw rate limit caps), so this will likely be what determines the semaphore cap.
+
+We will use a single-threaded writer model. We don't expect our writes to be computationally expensive and we would rather writes take slightly longer if it guarantees correctness and idempotency semantics. This avoids race conditions from multiple writers (see the `What if persistence writes to DB successfully but crashes before deleting the temp file?` discussion).
+
+#### What is the unit of idempotency?
+
+(TODO)
+
 #### Known failure modes
 
 ##### What if the process dies halfway through writing the temp file?
@@ -497,7 +521,17 @@ If the process dies halfway through writing the temp file, then we count that as
 
 ##### What if persistence writes to DB successfully but crashes before deleting the temp file?
 
-Before writes to the DB, we first load the row from the DB and check for the record of job_id and check for its presence. We don't write records whose `job_id`.
+Before writes to the DB, we first load records from the DB with `job_id` values equal to the ones we're attempting to write. We don't write records whose `job_id` already exists in the DB.
+
+This model assumes a single-threaded DB writer model; otherwise if we have two DB writers that attempt to grab a temp output, we can have a TOCTOU race condition, where they both check if the temp output exists yet in the DB, see that it doesn't, and then they both try to write.
+
+##### What if the persistence manager processes half the temp files and then dies?
+
+This is OK and we just retry the persistence manager. This should be managed at the orchestrator level, which can do heartbeat checks on the persistence manager process to verify completion. The persistence manager process will either return a success message, crash and return an error message, or timeout, and all of these modes can be managed at the orchestration level.
+
+##### What if one bad temp file blocks the whole persistence pass?
+
+(todo)
 
 ## LLM Platform
 
@@ -526,4 +560,32 @@ We intentionally add `generation_id` to each of the relevant tables (e.g., `turn
 
 ## Orchestration
 
-We'll deploy the application as a DAG using Prefect in Railway.
+We'll run the application as a series of DAGs using Prefect in Railway.
+
+## Connecting to the API
+
+(TODO: still WIP)
+
+Proposed model:
+
+- Press "submit" or similar button in the UI.
+- DAG is run.
+- Get results
+- Update the frontend.
+
+The user can manually trigger each turn (would be easier to orchestrate than "leave it and forget" for runs, plus it would give more immediate results to the user.)
+
+Should get the DAG working first in Prefect and prove that that can even work. Let's get the task execution and the Prefect orchestration logic working first, I think, and do it on a small dummy example pipeline. Then we can come back and implement the data models and whatnot.
+
+- TODO: figure out a simple pipeline experimental implementation that I can do. A basic dummy one.
+
+Request model would be something like:
+
+The best fit here is:
+
+- POST /jobs creates a Prefect flow run and returns immediately with a job_id / flow_run_id
+- the UI switches to pending
+- the UI either polls GET /jobs/{id} every few seconds, or subscribes to a live update channel
+- when the run reaches a terminal Prefect state, the UI fetches the final result.
+
+Polling is the easiest implementation here. Connecting websockets would be a bit heavier and would require more setup (e.g., managing the connection lifecycle, reconnect handling, etc).
