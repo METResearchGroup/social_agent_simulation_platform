@@ -10,7 +10,7 @@ A run is a single unit of full end-to-end execution.
 
 The inputs to a run are:
 
-- A .csv file of data to use in the run.
+- A `Dataset` (see below).
 - Basic configuration:
   - Choice of algorithm.
 
@@ -56,7 +56,7 @@ The UI would be something like a "add a new dataset" tab. The users would add a 
 
 On starting a new run, they toggle a dropdown menu that selects one of the datasets that they have. They can only choose a previously submitted dataset. If the users have not submitted a datset, we prompt them to go to the "add a new dataset" tab to add a dataset.
 
-The table structure would be something like:
+#### Tables
 
 ```python
 class Dataset:
@@ -76,9 +76,13 @@ class DatasetMetadata:
 
 For now, these datasets should be immutable and insert-only (no upsert).
 
+#### API routes
+
 For the API routes, we would have a write and a read route.
 
-Then, during a run, we would reference the dataset, so we would have something like:
+#### Usage
+
+During a run, we would reference the dataset, so we would have something like:
 
 ```python
 class Run:
@@ -95,36 +99,89 @@ The high-level flow of a run is:
 
 Here, we (1) collect the inputs from the user, and (2) write the run record in the DB.
 
-Completion here is we've:
-
-1. written the run record in the DB, stating that we've started the run.
-2. Saved the inputs to a normalized format in the DB. We save this as the turn=0 data for the given run.
-
 Tables:
 
 ```python
 class Run:
-    run_progress: str # some enum
-    timestamp: str # using standardized timestamp utils
-
-class RunAgents:
-    """For a given run, all the agents who participated in the run at
-    any point.
-
-    This is added only at the start of a run.
-    """
     run_id: str
-    user_id: str
-    user_handle (str): handle of the user.
-    username (str): username of the user.
-    bio (Optional[str]): the bio of the user.
-    follow_ids (Optional[list[str]]): IDs of the users who they follow.
-    follower_ids (Optional[list[str]]): IDs of the users who follow them.
+    dataset_id: str
+    run_progress: str # some enum, probably "started" in the beginning
+    timestamp: str # using standardized timestamp utils
 ```
 
-#### 2. Transform the inputs to a run
+The `Run` record can be upserted, and we expect it to be upserted. This is how we track and update run status.
+
+We then read the dataset and write records for turn=0.
+
+Related tables for the start of a run:
+
+- `turn_follows`: we add the user's follows/followers.
+
+Out-of-scope:
+
+- `turn_likes`: currently out-of-scope for the start (we currently don't accept likes from users at the start).
+- `turn_posts`/`turn_comments`: currently out-of-scope for the start (we currently don't accept posts from users at the start).
+
+#### 2. Trigger the turns
+
+#### 3. Do the run completion module
+
+Once the turns are done, we want to do the remainder of the tasks needed to mark a run as completed.
+
+##### Task 1: Calculate run-based metrics (if any)
+
+We calculate the run-based metrics, if any, using the same primitives for metrics calculation used in the turn-based logic.
+
+The sources of data can vary based on the metrics used.
+
+##### Task 2: Update run status
+
+We then mark the run as "completed":
+
+```python
+class Run:
+    run_id: str
+    dataset_id: str
+    run_progress: str = "completed" # some enum, probably "started" in the beginning
+    timestamp: str # using standardized timestamp utils
+```
 
 ## What is a turn?
+
+### What tables are in a turn?
+
+The turn-specific tables:
+
+```python
+class TurnPost:
+    """Posts written during a turn.
+    
+    PK: (post_id, run_id, turn_id)
+    """
+    run_id: str
+    turn_id: str
+    post_id: str
+    user_id: str # ID of the user who wrote the post.
+    text: str
+    generation_id: str | None # the ID of the generation that resulted in this post, if any.
+
+
+class TurnComment(TurnPost):
+    """Comment written during a turn."""
+    super().__init__()
+    parent_post_id: str # ID of the post commented on.
+    parent_post_user_id: str # ID of the user who posted the comment.
+
+class TurnFollow:
+    """Table representing follow information. Each row corresponds to a single user. We intentionally choose to make each row unique on user_id rather than some combination of (user_id, follow_id/follower_id) for deduplication's sake and to reduce the number of write ops.
+    """
+    run_id: str
+    turn_id: str
+    user_id (str): ID of the user # PK
+    follow_ids (Optional[list[str]]): IDs of the users who they follow.
+    follower_ids (Optional[list[str]]): IDs of the users who follow them.
+    generation_id: str | None # the ID of the generation that resulted in any change in follows/followers this turn, if any.
+```
 
 ## Task Execution Platform
 
@@ -186,4 +243,25 @@ task_platform = TaskPlatform()
 tasks = await task_platform.create_tasks()
 await task_platform.submit_tasks(tasks) # need to see, does this need to be async?
 task_platform.persist_results()
+```
+
+## LLM Platform
+
+### How do we manage LLM generations?
+
+We separate the telemetry and tables for the LLM generations and decouple those from the turn tables.
+
+```python
+class Generation:
+    """LLM-based generations.
+    
+    PK: generation_id.
+    """
+    generation_id: str
+    prompt: str
+    model_name: str
+    model_configs: dict
+    model_response_object: object # the Pydantic model used for the response
+    response: str # the actual model's response
+    created_at: str # timestamp
 ```
