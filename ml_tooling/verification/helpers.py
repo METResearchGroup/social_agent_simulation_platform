@@ -1,8 +1,10 @@
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
+P = ParamSpec("P")
+R = TypeVar("R")
 T = TypeVar("T")
 
 
@@ -106,16 +108,17 @@ def print_table(
     _print_table_footer(config)
 
 
-def track_runtime(should_print: bool):
-    def decorator(function):
+def track_runtime(should_print: bool) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorator(function: Callable[P, R]) -> Callable[P, R]:
         @wraps(function)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             start = time.perf_counter()
-            result = function(*args, **kwargs)
-            elapsed: float = time.perf_counter() - start
-            if should_print:
-                print(f"[{function.__name__}] ({elapsed:.4f}s)\n")  # noqa: T201
-            return result
+            try:
+                return function(*args, **kwargs)
+            finally:
+                elapsed: float = time.perf_counter() - start
+                if should_print:
+                    print(f"[{function.__name__}] ({elapsed:.4f}s)\n")  # noqa: T201
 
         return wrapper
 
