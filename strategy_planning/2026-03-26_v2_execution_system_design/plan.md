@@ -494,6 +494,32 @@ The temp path will be created at the start of a run (creating the `<temp output 
 
 A job is considered finished when (1) a job finishes, (2) it is persisted to temp output, and (3) returns a success message to the caller. A job would stall out if it finished but didn't write to temp output. We would have timeouts for a given job and if it doesn't return a success message.
 
+#### How are each of the individual components run?
+
+Both the execution and the writer will run as separate processes. This will be orchestrated in the DAG.
+
+The Prefect DAG would look something like this:
+
+```python
+from prefect import flow, task
+@task
+def run_jobs():
+    # Submit jobs and write temp outputs
+    pass
+@task
+def persist_results():
+    # Read temp outputs and persist to DB
+    pass
+
+
+@flow
+def execution_flow():
+    run_jobs()
+    persist_results()
+
+execution_flow()
+```
+
 #### How do we transition between the job execution and the persistence manager
 
 (TODO): how do we trigger the persistence manager?
