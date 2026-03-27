@@ -470,6 +470,26 @@ class JobMetadata:
     status: str # probably an enum, with values pending/running/temp_written/persisted/failed
 ```
 
+#### How are temporary outputs managed?
+
+The temporary outputs will have the following format:
+
+```python
+class TemporaryJobOutput:
+    job_id: str # PK
+    run_id: str
+    turn_id: str
+    record_type: str
+    created_at: str # timestamp, from lib/timestamp_utils.py
+    record: str # JSON-dumped output of the job.
+```
+
+These will be written in JSON format. The intended format is `<temp output root path>/temp/run_id={run_id}/turn_id={turn_id}/record_type={record type}/job_id={job_id}_{6 digit hash}.json`.
+
+Record type is defined by the caller (e.g., a job that determines what posts an agent will like will have `record_type=turn_likes`). We add a 6-digit hash to the JSON file to manage idempotency concerns for running duplicate jobs. We allow the possibility of a job being run by the execution engine multiple times; we manage idempotency at the persistence layer, preventing duplicate records, keyed by `job_id`, to be written to DB.
+
+The temp path will be created at the start of a run (creating the `<temp output root path>/temp/run_id={run_id}` path) and be deleted at the end of a run as part of teardown.
+
 #### When is a job finished?
 
 A job is considered finished when (1) a job finishes, (2) it is persisted to temp output, and (3) returns a success message to the caller. A job would stall out if it finished but didn't write to temp output. We would have timeouts for a given job and if it doesn't return a success message.
@@ -487,7 +507,7 @@ Some tradeoffs though in doing this:
 
 - More I/O: we write to temp storage and then we read the temp storage output and then write to permanent storage. We could just pass the results from memory to the persistence manager directly.
 - Slower end-to-end latency than direct return for small jobs.
-- Possible need for deduplication: on retry, we'd have to make sure that we don't duplicate work that's in the temp storage. Can ameliorate by "flushing" the temp path, if it exists, before running the engine.
+- Possible need for deduplication: on retry, we'd have to make sure that we don't duplicate work that's in the temp storage. Can ameliorate by "flushing" the temp path, if it exists, before running the engine (see the `How are temporary outputs managed?` section).
 
 Alternatives considered:
 
@@ -499,8 +519,6 @@ Alternatives considered:
 
 We plan on using a single-node model for the application. We want to keep the current V1 implementation as lightweight on the infra requirements as possible.
 
-(tradeoffs).
-
 #### Multi-threaded engine, single-threaded writer
 
 We want to use a multi-threaded engine, but a single-threaded writer.
@@ -511,7 +529,41 @@ We will use a single-threaded writer model. We don't expect our writes to be com
 
 #### What is the unit of idempotency?
 
-(TODO)
+The unit of idempotency that we choose here is the job. We choose this for a v1 as it doesn't require complex tracking and coordination; a job either succeeds (completes its run and is persisted to DB) or fails completely. Jobs are also not costly to rerun, and we're also OK with occassionally lossy jobs. For example, for a given run/turn, we may have a job that is "determine what posts this agent wants to write", and we're OK if that fails occassionally (we'll just interpret it to mean "the agent didn't want to write anything").
+
+##### At what layer do we guarantee “at most once visible effect”? At what point in the system's architecture do we ensure that any job or operation's effect (e.g., a record written to permanent storage) is made visible only once, so that retries, failures, or race conditions don't cause duplicates?
+
+We'll enforce this at the DB layer. We can enforce unique constraints on `job_id`. This does leave us susceptible to TOCTOU race conditions, but as discussed elsewhere, we can mitigate this with a single-writer persistence manager. This does slow down writes and require us to manage transactions, but we're currently OK with that.
+
+##### Is the DB write idempotent by job_id?
+
+If a write to the database uses job_id as a unique key, will repeated writes for the same job_id always have the same effect (at most once)? Will duplicates or retries not cause issues?
+
+As mentioned previously, we'll make writes dependent on `job_id`.
+
+##### If the same job runs twice, what happens?
+
+We allow the execution engine to run the same job twice. It doesn't check for idempotency. However, this will be rejected by the persistence manager on write to the DB.
+
+##### If persistence sees the same temp file twice, what happens?
+
+This is OK. We will have the persistence writer job, after loading the temp outputs, deduplicate:
+
+```python
+def load_temp_output(path: str):
+    df = pd.read_json(path)
+    df = df.sort_values('created_at').drop_duplicates(subset=['job_id'], keep='last')
+```
+
+#### What are the atomicity guarantees?
+
+##### Can the persistence manager ever read a partially written file?
+
+#### What is the correctness model?
+
+#### Where does retry logic belong in the system?
+
+#### How do we observe this system?
 
 #### Known failure modes
 
