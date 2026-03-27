@@ -494,6 +494,10 @@ The temp path will be created at the start of a run (creating the `<temp output 
 
 A job is considered finished when (1) a job finishes, (2) it is persisted to temp output, and (3) returns a success message to the caller. A job would stall out if it finished but didn't write to temp output. We would have timeouts for a given job and if it doesn't return a success message.
 
+#### How do we transition between the job execution and the persistence manager
+
+(TODO): how do we trigger the persistence manager?
+
 #### Choosing write model (temp -> permanent storage)
 
 Right now, we intentionally choose an architecture where we write the job outputs to a temp output storage and then have the persistence manager pick up the temp files and write to permanent storage. This was chosen for the following reasons:
@@ -558,6 +562,17 @@ def load_temp_output(path: str):
 #### What are the atomicity guarantees?
 
 ##### Can the persistence manager ever read a partially written file?
+
+The persistence manager cannot read a partially written file. We can look for the presence of .tmp or .lock files to check for the presence of partially written files. But we wait for all jobs to be marked as completed (completion here includes writing to the temp output) before triggering the persistence manager. The persistence manager can only read a partially written file if the write operation was corrupted. However, this should be unlikely given that writes will be done via context manager:
+
+```python
+filepath = "<path>"
+data = {}
+with open() as f:
+    f.write(data)
+```
+
+Corruption or partial writes can still technically occur due to OS crashes, disk full errors, power loss, or NFS issues, which a context manager cannot prevent. We will ignore these in a V1. In a V2, if this comes up, we can use atomic write patterns (write to a temp file, then move/rename), checksum validation, and file integrity checks before the persistence manager reads files.
 
 #### What is the correctness model?
 
