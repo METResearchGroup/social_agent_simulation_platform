@@ -357,3 +357,32 @@ class TestMetricsCollector:
             run_metric_keys=["run.actions.total"],
         )
         json.dumps(run_metrics_dict)  # should not raise
+
+    def test_collect_turn_metrics_pending_skips_get_turn_metadata(self) -> None:
+        """Canonical in-memory TurnMetadata is used before the DB row exists."""
+        run_repo = Mock()
+        metrics_repo = Mock()
+        run_id = "run_x"
+        pending = TurnMetadataFactory.create(
+            run_id=run_id,
+            turn_number=0,
+            total_actions={TurnAction.LIKE: 7},
+            created_at="2026-01-01T00:00:00",
+        )
+        deps = MetricDeps(
+            run_repo=run_repo, metrics_repo=metrics_repo, sql_executor=None
+        )
+        collector = MetricsCollector(
+            registry=create_default_metrics_registry(),
+            turn_metric_keys=["turn.actions.total"],
+            run_metric_keys=["run.actions.total"],
+            deps=deps,
+        )
+        out = collector.collect_turn_metrics(
+            run_id=run_id,
+            turn_number=0,
+            turn_metric_keys=["turn.actions.total"],
+            turn_metadata=pending,
+        )
+        assert out["turn.actions.total"] == 7
+        run_repo.get_turn_metadata.assert_not_called()

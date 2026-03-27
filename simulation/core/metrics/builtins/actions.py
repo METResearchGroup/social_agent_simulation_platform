@@ -36,7 +36,15 @@ class TurnActionCountsByTypeMetric(Metric):
         if ctx.turn_number is None:
             raise ValueError("turn_number is required for turn metrics")
 
-        metadata = deps.run_repo.get_turn_metadata(ctx.run_id, ctx.turn_number)
+        pending = deps.pending_turn_metadata
+        if (
+            pending is not None
+            and pending.run_id == ctx.run_id
+            and pending.turn_number == ctx.turn_number
+        ):
+            metadata = pending
+        else:
+            metadata = deps.run_repo.get_turn_metadata(ctx.run_id, ctx.turn_number)
         if metadata is None:
             raise ValueError(
                 f"Missing turn metadata for run_id={ctx.run_id}, turn_number={ctx.turn_number}"

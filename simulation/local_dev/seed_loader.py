@@ -52,6 +52,9 @@ from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+from simulation.local_dev.derive_from_metadata import (
+    derive_turn_and_run_metrics_from_fixtures,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -150,8 +153,6 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
     agent_post_comments_raw = _read_json_list(fixtures_dir / "agent_post_comments.json")
     feeds_raw = _read_json_list(fixtures_dir / "generated_feeds.json")
     turn_md_raw = _read_json_list(fixtures_dir / "turn_metadata.json")
-    turn_metrics_raw = _read_json_list(fixtures_dir / "turn_metrics.json")
-    run_metrics_raw = _read_json_list(fixtures_dir / "run_metrics.json")
 
     runs = [Run.model_validate(item) for item in runs_raw]
     agents: list[Agent] = []
@@ -240,8 +241,10 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         )
         turn_metadata.append(tm)
 
-    turn_metrics = [TurnMetrics.model_validate(item) for item in turn_metrics_raw]
-    run_metrics = [RunMetrics.model_validate(item) for item in run_metrics_raw]
+    turn_metrics, run_metrics = derive_turn_and_run_metrics_from_fixtures(
+        runs=runs,
+        turn_metadata=turn_metadata,
+    )
 
     return SeedFixtures(
         runs=runs,

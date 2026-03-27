@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from dataclasses import replace
 
 from pydantic import TypeAdapter, ValidationError
 
 from simulation.core.metrics.interfaces import MetricContext, MetricDeps, MetricScope
 from simulation.core.metrics.registry import MetricsRegistry
 from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
+from simulation.core.models.turns import TurnMetadata
 from simulation.core.utils.exceptions import MetricsComputationError
 
 _COMPUTED_METRIC_RESULT_ADAPTER = TypeAdapter(ComputedMetricResult)
@@ -39,10 +41,15 @@ class MetricsCollector:
         run_id: str,
         turn_number: int,
         turn_metric_keys: list[str],
+        turn_metadata: TurnMetadata | None = None,
     ) -> ComputedMetrics:
+        deps = replace(self._deps, pending_turn_metadata=turn_metadata)
         ctx = MetricContext(run_id=run_id, turn_number=turn_number)
         return self._collect(
-            scope=MetricScope.TURN, metric_keys=turn_metric_keys, ctx=ctx
+            scope=MetricScope.TURN,
+            metric_keys=turn_metric_keys,
+            ctx=ctx,
+            deps=deps,
         )
 
     def collect_run_metrics(
@@ -51,9 +58,10 @@ class MetricsCollector:
         run_id: str,
         run_metric_keys: list[str],
     ) -> ComputedMetrics:
+        deps = replace(self._deps, pending_turn_metadata=None)
         ctx = MetricContext(run_id=run_id, turn_number=None)
         return self._collect(
-            scope=MetricScope.RUN, metric_keys=run_metric_keys, ctx=ctx
+            scope=MetricScope.RUN, metric_keys=run_metric_keys, ctx=ctx, deps=deps
         )
 
     def _collect(
@@ -62,6 +70,7 @@ class MetricsCollector:
         scope: MetricScope,
         metric_keys: list[str],
         ctx: MetricContext,
+        deps: MetricDeps,
     ) -> ComputedMetrics:
         ordered_keys = self._resolve_order(scope=scope, metric_keys=metric_keys)
 
@@ -70,7 +79,7 @@ class MetricsCollector:
             metric = self._registry.get(metric_key=key)
             try:
                 value: ComputedMetricResult = metric.compute(
-                    ctx=ctx, deps=self._deps, prior=results
+                    ctx=ctx, deps=deps, prior=results
                 )
             except Exception as e:
                 raise MetricsComputationError(
