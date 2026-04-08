@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Protocol, TypeAlias
 
 from lib.validation_utils import validate_non_empty_string
 from simulation.core.models.metrics import ComputedMetricResult, ComputedMetrics
+from simulation.core.models.turns import TurnMetadata
 
 if TYPE_CHECKING:
     from db.repositories.interfaces import MetricsRepository, RunRepository
@@ -57,6 +58,8 @@ class MetricDeps:
     run_repo: RunRepository
     metrics_repo: MetricsRepository
     sql_executor: MetricsSqlExecutor | None = None
+    # Canonical turn row when not yet persisted (execution path); None in normal reads.
+    pending_turn_metadata: TurnMetadata | None = None
 
 
 class MetricsSqlExecutor(ABC):

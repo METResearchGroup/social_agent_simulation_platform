@@ -17,7 +17,6 @@ Seed policy:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import os
 import sqlite3
@@ -40,7 +39,6 @@ from db.adapters.sqlite.user_agent_profile_metadata_adapter import (
 from db.backfills.agent_posts import backfill_agent_posts_from_feed_posts
 from lib.agent_id import is_canonical_agent_id
 from lib.timestamp_utils import get_current_timestamp
-from simulation.core.models.actions import TurnAction
 from simulation.core.models.agent import Agent, PersonaSource
 from simulation.core.models.agent_bio import AgentBio, PersonaBioSource
 from simulation.core.models.agent_follow_edge import AgentFollowEdge
@@ -52,6 +50,11 @@ from simulation.core.models.posts import Post, PostSource
 from simulation.core.models.runs import Run
 from simulation.core.models.turns import TurnMetadata
 from simulation.core.models.user_agent_profile_metadata import UserAgentProfileMetadata
+from simulation.local_dev.seed_metrics_fixtures import (
+    parse_runs_and_turn_metadata,
+    read_json_list,
+    read_seed_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,16 +82,6 @@ class SeedFixtures:
     agent_persona_bios: list[AgentBio]
     user_agent_profile_metadata: list[UserAgentProfileMetadata]
     agent_follow_edges: list[AgentFollowEdge]
-
-
-def _read_json_list(path: Path) -> list[dict]:
-    raw = path.read_text(encoding="utf-8")
-    data = json.loads(raw)
-    if not isinstance(data, list):
-        raise ValueError(f"Fixture must be a JSON array: {path}")
-    if not all(isinstance(item, dict) for item in data):
-        raise ValueError(f"Fixture array must contain objects: {path}")
-    return data  # type: ignore[return-value]
 
 
 def _fixtures_digest(fixtures_dir: Path) -> str:
@@ -140,20 +133,15 @@ def _validate_canonical_ids(
 
 
 def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
-    runs_raw = _read_json_list(fixtures_dir / "runs.json")
-    agents_raw = _read_json_list(fixtures_dir / "agents.json")
-    bios_raw = _read_json_list(fixtures_dir / "agent_persona_bios.json")
-    metadata_raw = _read_json_list(fixtures_dir / "user_agent_profile_metadata.json")
-    follow_edges_raw = _read_json_list(fixtures_dir / "agent_follow_edges.json")
-    posts_raw = _read_json_list(fixtures_dir / "bluesky_feed_posts.json")
-    agent_post_likes_raw = _read_json_list(fixtures_dir / "agent_post_likes.json")
-    agent_post_comments_raw = _read_json_list(fixtures_dir / "agent_post_comments.json")
-    feeds_raw = _read_json_list(fixtures_dir / "generated_feeds.json")
-    turn_md_raw = _read_json_list(fixtures_dir / "turn_metadata.json")
-    turn_metrics_raw = _read_json_list(fixtures_dir / "turn_metrics.json")
-    run_metrics_raw = _read_json_list(fixtures_dir / "run_metrics.json")
-
-    runs = [Run.model_validate(item) for item in runs_raw]
+    runs, turn_metadata = parse_runs_and_turn_metadata(fixtures_dir)
+    agents_raw = read_json_list(fixtures_dir / "agents.json")
+    bios_raw = read_json_list(fixtures_dir / "agent_persona_bios.json")
+    metadata_raw = read_json_list(fixtures_dir / "user_agent_profile_metadata.json")
+    follow_edges_raw = read_json_list(fixtures_dir / "agent_follow_edges.json")
+    posts_raw = read_json_list(fixtures_dir / "bluesky_feed_posts.json")
+    agent_post_likes_raw = read_json_list(fixtures_dir / "agent_post_likes.json")
+    agent_post_comments_raw = read_json_list(fixtures_dir / "agent_post_comments.json")
+    feeds_raw = read_json_list(fixtures_dir / "generated_feeds.json")
     agents: list[Agent] = []
     for item in agents_raw:
         agents.append(
@@ -226,22 +214,7 @@ def _load_fixtures(fixtures_dir: Path) -> SeedFixtures:
         )
     feeds = [GeneratedFeed.model_validate(item) for item in feeds_raw]
 
-    turn_metadata: list[TurnMetadata] = []
-    for item in turn_md_raw:
-        raw_total_actions = item.get("total_actions", {})
-        if not isinstance(raw_total_actions, dict):
-            raise ValueError("turn_metadata.total_actions must be an object")
-        total_actions = {TurnAction(k): int(v) for k, v in raw_total_actions.items()}
-        tm = TurnMetadata(
-            run_id=str(item["run_id"]),
-            turn_number=int(item["turn_number"]),
-            total_actions=total_actions,
-            created_at=str(item["created_at"]),
-        )
-        turn_metadata.append(tm)
-
-    turn_metrics = [TurnMetrics.model_validate(item) for item in turn_metrics_raw]
-    run_metrics = [RunMetrics.model_validate(item) for item in run_metrics_raw]
+    turn_metrics, run_metrics = read_seed_metrics(fixtures_dir)
 
     return SeedFixtures(
         runs=runs,

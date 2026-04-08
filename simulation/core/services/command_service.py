@@ -471,6 +471,7 @@ class SimulationCommandService:
             run_id=run_id,
             turn_number=turn_number,
             turn_metric_keys=turn_metric_keys,
+            turn_metadata=turn_metadata,
         )
         turn_metrics = TurnMetrics(
             run_id=run_id,
