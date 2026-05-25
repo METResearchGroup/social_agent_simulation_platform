@@ -7,6 +7,7 @@ after the fact. That extra complexity is obfuscating how this works.
 import logging
 
 from simulation_v2.agents.actions import get_agents_actions
+from simulation_v2.agents.memory.main import update_agent_memories
 from simulation_v2.feeds import generate_feeds
 from simulation_v2.models.feeds import GeneratedFeedsModel
 from simulation_v2.models.turn import TurnInputsModel
@@ -65,6 +66,7 @@ def simulate_turn(
         turn_number=turn_number,
         show_progress=show_progress,
     )
+    update_agent_memories()
 
     turn_summary = trace_ctx.turn_llm_collector.summarize(
         run_id=trace_ctx.run_id,

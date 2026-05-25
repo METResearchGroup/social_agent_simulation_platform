@@ -20,6 +20,7 @@ from simulation_v2.agents.constants import (
     PROB_WRITE_POST,
 )
 from simulation_v2.agents.llm import invoke_structured
+from simulation_v2.agents.memory.main import fetch_memory
 from simulation_v2.agents.prompts import (
     FOLLOW_USERS_PROMPT,
     LIKE_POSTS_PROMPT,
@@ -105,6 +106,7 @@ def propose_like_posts(
         username=user["username"],
         num_followers=user.get("num_followers", 0),
         num_follows=user.get("num_follows", 0),
+        memory=fetch_memory(user),
         feed_posts=_format_feed_posts(feed),
         max_likes=max_likes,
     )
@@ -145,6 +147,7 @@ def propose_write_post(
         write_attempt_index=write_attempt_index,
         name=user["name"],
         username=user["username"],
+        memory=fetch_memory(user),
         feed_posts=_format_feed_posts(feed),
     )
     content = llm_output.content.strip()
@@ -178,6 +181,7 @@ def propose_follow_users(
         username=user["username"],
         num_followers=user.get("num_followers", 0),
         num_follows=user.get("num_follows", 0),
+        memory=fetch_memory(user),
         candidate_users=_format_candidate_users(candidate_users),
         max_follows=max_follows,
     )
