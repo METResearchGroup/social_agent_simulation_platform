@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from lib.timestamp_utils import get_current_timestamp
 from simulation_v2.models.seed_data import (
     FollowModel,
+    LikeModel,
     LoadedPostModel,
     LoadedSeedDataModel,
     LoadedUserModel,
@@ -63,7 +64,9 @@ def clear_seed_data_cache() -> None:
     _seed_data_cache = None
 
 
-def _entity_records(entity: SeedDataEntity, seed_data: SeedDataModel) -> list[BaseModel]:
+def _entity_records(
+    entity: SeedDataEntity, seed_data: SeedDataModel
+) -> list[BaseModel]:
     """Return the list of Pydantic records for the given entity type."""
     if entity == SeedDataEntity.USERS:
         return list(seed_data.users)
@@ -82,8 +85,7 @@ def _entity_record_id(entity: SeedDataEntity, record: BaseModel) -> str:
         return record.user_id
     if isinstance(record, PostModel):
         return record.post_id
-    if entity == SeedDataEntity.LIKES:
-        assert hasattr(record, "like_id")
+    if isinstance(record, LikeModel):
         return record.like_id
     if isinstance(record, FollowModel):
         return f"{record.follower_id}:{record.followee_id}"
