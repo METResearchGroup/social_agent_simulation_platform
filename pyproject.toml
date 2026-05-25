@@ -23,6 +23,7 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "ruff>=0.14.14",
     "cryptography>=45.0.7",
+    "pyarrow>=24.0.0",
 ]
 
 [project.optional-dependencies]

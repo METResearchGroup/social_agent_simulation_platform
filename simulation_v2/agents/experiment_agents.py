@@ -10,15 +10,15 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from simulation_v2.agent import (
-    MAX_POSTS_TO_LIKE_PER_TURN,
-    MAX_USERS_TO_FOLLOW_PER_TURN,
-    _user_to_dict,
-)
 from simulation_v2.agents.actions import (
+    _user_to_dict,
     propose_follow_users,
     propose_like_posts,
     propose_write_post,
+)
+from simulation_v2.agents.constants import (
+    MAX_POSTS_TO_LIKE_PER_TURN,
+    MAX_USERS_TO_FOLLOW_PER_TURN,
 )
 from simulation_v2.models.actions import AgentTurnActions
 from simulation_v2.models.seed_data import LoadedUserModel

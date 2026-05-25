@@ -4,7 +4,7 @@ For this version, I'll decouple turn metrics generation and just generate it
 after the fact. That extra complexity is obfuscating how this works.
 """
 
-from simulation_v2.agent import get_agents_actions
+from simulation_v2.agents.actions import get_agents_actions
 from simulation_v2.feeds import generate_feeds
 from simulation_v2.models.feeds import GeneratedFeedsModel
 from simulation_v2.models.turn import TurnInputsModel
