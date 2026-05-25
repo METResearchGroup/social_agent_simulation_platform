@@ -23,6 +23,9 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "ruff>=0.14.14",
     "cryptography>=45.0.7",
+    "pyarrow>=24.0.0",
+    "opik>=2.0.46",
+    "tqdm>=4.67.1",
 ]
 
 [project.optional-dependencies]
@@ -156,6 +159,12 @@ ignore = ["E501"]
 "simulation/api/routes/metadata.py" = ["ARG001"]
 "simulation/api/schemas/simulation.py" = ["S101"]
 "simulation/core/action_generators/*/algorithms/random_simple.py" = ["ARG001", "S311"]
+"simulation_v2/agents/actions.py" = ["S311"]
+"simulation_v2/main.py" = ["T201"]
+"simulation_v2/load_seed_data.py" = ["T201"]
+"simulation_v2/seed_data.py" = ["T201", "S311"]
+"simulation_v2/feeds.py" = ["S311"]
+"simulation_v2/agents/experiment_agents.py" = ["T201"]
 "simulation/core/action_generators/registry.py" = ["S101"]
 "simulation/core/metrics/builtins/actions.py" = ["ARG002"]
 "simulation/core/models/actions.py" = ["ARG003"]
