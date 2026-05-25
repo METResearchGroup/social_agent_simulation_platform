@@ -17,5 +17,5 @@ plus retrieved prior evidence. Then prompts receive both profile_summary and ret
 """
 
 
-def fetch_memory(user) -> str:
+def fetch_memory(_user) -> str:
     return ""

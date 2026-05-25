@@ -14,5 +14,5 @@ Creates pairwise memories keyed by (viewer_user_id, target_user_id):
 """
 
 
-def fetch_memory(user) -> str:
+def fetch_memory(_user) -> str:
     return ""
