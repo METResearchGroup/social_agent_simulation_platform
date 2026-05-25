@@ -7,14 +7,17 @@ PYTHONPATH=. uv run python simulation_v2/seed_data.py
 
 from __future__ import annotations
 
-import os
 import random
 import statistics
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import TypeVar
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 from faker import Faker
+from pydantic import BaseModel
 
 from lib.timestamp_utils import CREATED_AT_FORMAT
 from simulation_v2.models.seed_data import (
@@ -25,7 +28,16 @@ from simulation_v2.models.seed_data import (
     UserModel,
 )
 
-SEED_DATA_PATH = str(Path(__file__).resolve().parent / "seed_data")
+SEED_DATA_PATH = Path(__file__).resolve().parent / "seed_data"
+
+SEED_DATA_ENTITY_FILES: dict[str, type[BaseModel]] = {
+    "users": UserModel,
+    "posts": PostModel,
+    "likes": LikeModel,
+    "follows": FollowModel,
+}
+
+RecordModelT = TypeVar("RecordModelT", bound=BaseModel)
 
 NUM_USERS = 5_000
 MAX_POSTS = 1_000_000
@@ -313,12 +325,101 @@ def generate_data(*, fake: Faker | None = None) -> SeedDataModel:
     return SeedDataModel(users=users, posts=posts, likes=likes, follows=follows)
 
 
-def export_seed_data(seed_data: SeedDataModel) -> None:
-    """Persist generated seed data to disk.
+def _resolve_seed_data_path(base_path: Path | None) -> Path:
+    """Return the seed-data directory, defaulting to ``SEED_DATA_PATH``."""
+    return SEED_DATA_PATH if base_path is None else base_path
 
-    Currently a no-op placeholder until parquet export is implemented.
+
+def _parquet_path(entity_name: str, base_path: Path | None = None) -> Path:
+    """Return the parquet file path for a seed-data entity."""
+    return _resolve_seed_data_path(base_path) / f"{entity_name}.parquet"
+
+
+def seed_data_dir_exists(base_path: Path | None = None) -> bool:
+    """Return whether all expected seed-data parquet files exist on disk."""
+    resolved_path = _resolve_seed_data_path(base_path)
+    return all(
+        _parquet_path(name, resolved_path).is_file() for name in SEED_DATA_ENTITY_FILES
+    )
+
+
+def _records_to_parquet_table(
+    records: list[RecordModelT],
+    model_cls: type[RecordModelT],
+) -> pa.Table:
+    """Convert Pydantic records to a PyArrow table."""
+    if records:
+        return pa.Table.from_pylist([record.model_dump() for record in records])
+    return pa.table(
+        {
+            field_name: pa.array([], type=pa.string())
+            for field_name in model_cls.model_fields
+        }
+    )
+
+
+def _parquet_table_to_models(
+    table: pa.Table,
+    model_cls: type[RecordModelT],
+) -> list[RecordModelT]:
+    """Convert a PyArrow table into validated Pydantic records."""
+    return [model_cls.model_validate(row) for row in table.to_pylist()]
+
+
+def export_seed_data(
+    seed_data: SeedDataModel,
+    base_path: Path | None = None,
+) -> None:
+    """Persist generated seed data to parquet files under ``base_path``."""
+    resolved_path = _resolve_seed_data_path(base_path)
+    resolved_path.mkdir(parents=True, exist_ok=True)
+
+    for entity_name, model_cls in SEED_DATA_ENTITY_FILES.items():
+        records = getattr(seed_data, entity_name)
+        table = _records_to_parquet_table(records, model_cls)
+        pq.write_table(table, _parquet_path(entity_name, resolved_path))
+
+
+def load_seed_data_from_parquet(base_path: Path | None = None) -> SeedDataModel:
+    """Load seed data from parquet files under ``base_path``.
+
+    Raises:
+        FileNotFoundError: When one or more expected parquet files are missing.
     """
-    pass
+    resolved_path = _resolve_seed_data_path(base_path)
+    if not seed_data_dir_exists(resolved_path):
+        missing = [
+            str(_parquet_path(name, resolved_path))
+            for name in SEED_DATA_ENTITY_FILES
+            if not _parquet_path(name, resolved_path).is_file()
+        ]
+        raise FileNotFoundError(
+            "Seed data parquet files are missing: " + ", ".join(missing)
+        )
+
+    loaded_users = _parquet_table_to_models(
+        pq.read_table(_parquet_path("users", resolved_path)),
+        UserModel,
+    )
+    loaded_posts = _parquet_table_to_models(
+        pq.read_table(_parquet_path("posts", resolved_path)),
+        PostModel,
+    )
+    loaded_likes = _parquet_table_to_models(
+        pq.read_table(_parquet_path("likes", resolved_path)),
+        LikeModel,
+    )
+    loaded_follows = _parquet_table_to_models(
+        pq.read_table(_parquet_path("follows", resolved_path)),
+        FollowModel,
+    )
+
+    return SeedDataModel(
+        users=loaded_users,
+        posts=loaded_posts,
+        likes=loaded_likes,
+        follows=loaded_follows,
+    )
 
 
 def _distribution_stats(values: list[int]) -> dict[str, float | int]:
@@ -393,7 +494,7 @@ def print_seed_data_statistics(seed_data: SeedDataModel) -> None:
 
 
 if __name__ == "__main__":
-    if not os.path.exists(SEED_DATA_PATH):
+    if not seed_data_dir_exists():
         seed_data: SeedDataModel = generate_data()
         export_seed_data(seed_data)
         print_seed_data_statistics(seed_data)
