@@ -3,25 +3,31 @@
 Run:
 
 PYTHONPATH=. uv run python simulation_v2/agents/experiment_agents.py
+
+Verify Opik traces in project ``simulation_engine_v2`` (tag ``metrics_summary`` for
+turn summary). Set ``OPIK_DISABLED=1`` to skip Opik export.
 """
 
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 
-from simulation_v2.agents.actions import (
-    _user_to_dict,
-    propose_follow_users,
-    propose_like_posts,
-    propose_write_post,
-)
-from simulation_v2.agents.constants import (
-    MAX_POSTS_TO_LIKE_PER_TURN,
-    MAX_USERS_TO_FOLLOW_PER_TURN,
-)
+from simulation_v2.agents.actions import get_agent_actions
+from simulation_v2.logging_config import configure_simulation_logging
 from simulation_v2.models.actions import AgentTurnActions
 from simulation_v2.models.seed_data import LoadedUserModel
+from simulation_v2.telemetry.context import SimulationTraceContext
+from simulation_v2.telemetry.opik import (
+    configure_opik,
+    flush_opik,
+    is_opik_enabled,
+    log_turn_llm_summary_to_opik,
+)
+from simulation_v2.telemetry.simulation_metrics import log_turn_simulation_metrics
+
+configure_simulation_logging()
 
 
 def _build_mock_users() -> dict[str, LoadedUserModel]:
@@ -44,94 +50,129 @@ def _build_mock_users() -> dict[str, LoadedUserModel]:
             num_followers=45,
             num_follows=60,
         ),
+        "user-carol": LoadedUserModel(
+            user_id="user-carol",
+            name="Carol Nguyen",
+            email="carol@example.com",
+            username="carol",
+            created_at="2026_01_03-12:00:00",
+            num_followers=210,
+            num_follows=140,
+        ),
+        "user-dave": LoadedUserModel(
+            user_id="user-dave",
+            name="Dave Patel",
+            email="dave@example.com",
+            username="dave",
+            created_at="2026_01_04-12:00:00",
+            num_followers=18,
+            num_follows=22,
+        ),
+        "user-eve": LoadedUserModel(
+            user_id="user-eve",
+            name="Eve Martinez",
+            email="eve@example.com",
+            username="eve",
+            created_at="2026_01_05-12:00:00",
+            num_followers=330,
+            num_follows=95,
+        ),
     }
 
 
-def _build_mock_feeds() -> dict[str, list[dict[str, Any]]]:
-    return {
-        "user-alice": [
-            {
-                "post_id": "post-1",
-                "user_id": "user-bob",
-                "content": "Just shipped a new feature for our feed ranking experiment.",
-                "created_at": "2026_02_01-10:00:00",
-                "num_likes": 42,
-            },
-            {
-                "post_id": "post-2",
-                "user_id": "user-bob",
-                "content": "Anyone else excited about lightweight agent simulators?",
-                "created_at": "2026_02_01-11:00:00",
-                "num_likes": 17,
-            },
-        ],
-        "user-bob": [
-            {
-                "post_id": "post-3",
-                "user_id": "user-alice",
-                "content": "Running load tests on the new simulation engine today.",
-                "created_at": "2026_02_01-09:30:00",
-                "num_likes": 31,
-            },
-            {
-                "post_id": "post-4",
-                "user_id": "user-alice",
-                "content": "Coffee + pydantic models = productive morning.",
-                "created_at": "2026_02_01-12:15:00",
-                "num_likes": 8,
-            },
-        ],
-    }
+def _build_mock_posts() -> list[dict[str, Any]]:
+    authors = [
+        ("user-alice", "Alice"),
+        ("user-bob", "Bob"),
+        ("user-carol", "Carol"),
+        ("user-dave", "Dave"),
+        ("user-eve", "Eve"),
+    ]
+    posts: list[dict[str, Any]] = []
+    post_index = 1
+    for author_id, author_name in authors:
+        for slot in range(4):
+            posts.append(
+                {
+                    "post_id": f"post-{post_index}",
+                    "user_id": author_id,
+                    "content": (
+                        f"{author_name} post {slot + 1}: sharing updates from the "
+                        f"simulation engine experiment."
+                    ),
+                    "created_at": f"2026_02_0{1 + slot}-10:00:00",
+                    "num_likes": (post_index * 7) % 53,
+                }
+            )
+            post_index += 1
+    return posts
+
+
+def _build_mock_feeds(
+    users: dict[str, LoadedUserModel],
+    posts: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    feeds: dict[str, list[dict[str, Any]]] = {}
+    for user_id in users:
+        feed = [post for post in posts if post["user_id"] != user_id]
+        feed.sort(key=lambda post: post.get("num_likes", 0), reverse=True)
+        feeds[user_id] = feed
+    return feeds
 
 
 def main() -> dict[str, AgentTurnActions]:
-    """Run a sample of each agent action type against simple mock data."""
+    """Run agent actions for five users against twenty mock posts."""
+    configure_opik()
+    run_id = str(uuid.uuid4())
+    trace_ctx = SimulationTraceContext(
+        run_id=run_id,
+        turn_number=1,
+        enabled=is_opik_enabled(),
+    )
+
     users = _build_mock_users()
-    feeds = _build_mock_feeds()
+    posts = _build_mock_posts()
+    feeds = _build_mock_feeds(users, posts)
     results: dict[str, AgentTurnActions] = {}
 
     for user_id, user in users.items():
-        user_dict = _user_to_dict(user)
         feed = feeds[user_id]
         print(f"\n=== Actions for {user.name} (@{user.username}) ===")
-        print(f"Feed posts: {[post['post_id'] for post in feed]}")
+        print(f"Feed posts ({len(feed)}): {[post['post_id'] for post in feed]}")
 
-        likes = propose_like_posts(
-            user_dict,
+        actions = get_agent_actions(
+            user,
             feed,
-            max_likes=MAX_POSTS_TO_LIKE_PER_TURN,
+            users,
+            trace_ctx=trace_ctx,
         )
-        print(f"\nLikes ({len(likes)}):")
-        print(json.dumps([like.model_dump() for like in likes], indent=2))
+        print(f"\nLikes ({len(actions.likes)}):")
+        print(json.dumps([like.model_dump() for like in actions.likes], indent=2))
+        print(f"\nPosts ({len(actions.posts)}):")
+        print(json.dumps([post.model_dump() for post in actions.posts], indent=2))
+        print(f"\nFollows ({len(actions.follows)}):")
+        print(json.dumps([follow.model_dump() for follow in actions.follows], indent=2))
+        results[user_id] = actions
 
-        posts = [propose_write_post(user_dict, feed)]
-        print(f"\nPosts ({len(posts)}):")
-        print(json.dumps([post.model_dump() for post in posts], indent=2))
+    turn_summary = trace_ctx.turn_llm_collector.summarize(
+        run_id=run_id,
+        turn_number=1,
+    )
+    log_turn_llm_summary_to_opik(turn_summary)
+    log_turn_simulation_metrics(
+        trace_ctx.simulation_metrics,
+        run_id=run_id,
+        turn_number=1,
+    )
+    flush_opik()
 
-        author_ids = {
-            post["user_id"]
-            for post in feed
-            if post.get("user_id") and post["user_id"] != user_id
-        }
-        candidate_users = [
-            _user_to_dict(users[author_id])
-            for author_id in author_ids
-            if author_id in users
-        ]
-        follows = propose_follow_users(
-            user_dict,
-            candidate_users,
-            max_follows=MAX_USERS_TO_FOLLOW_PER_TURN,
-        )
-        print(f"\nFollows ({len(follows)}):")
-        print(json.dumps([follow.model_dump() for follow in follows], indent=2))
-
-        results[user_id] = AgentTurnActions(
-            likes=likes,
-            posts=posts,
-            follows=follows,
-        )
-
+    print(
+        f"\nTelemetry summary run_id={run_id} "
+        f"total_llm_requests={turn_summary.overall.request_count} "
+        f"like_posts={turn_summary.by_action['like_posts'].request_count} "
+        f"write_post={turn_summary.by_action['write_post'].request_count} "
+        f"follow_users={turn_summary.by_action['follow_users'].request_count}"
+    )
     return results
 
 
