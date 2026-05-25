@@ -15,6 +15,8 @@ LIKE_POSTS_PROMPT = ChatPromptTemplate.from_messages(
             "- Username: @{username}\n"
             "- Followers: {num_followers}\n"
             "- Following: {num_follows}\n\n"
+            "Your memory:\n"
+            "{memory}\n\n"
             "Your feed (each line is post_id | author | likes | excerpt):\n"
             "{feed_posts}\n\n"
             "Select up to {max_likes} post IDs to like.",
@@ -34,6 +36,8 @@ WRITE_POST_PROMPT = ChatPromptTemplate.from_messages(
             "Your profile:\n"
             "- Name: {name}\n"
             "- Username: @{username}\n\n"
+            "Your memory:\n"
+            "{memory}\n\n"
             "Your feed (each line is post_id | author | likes | excerpt):\n"
             "{feed_posts}\n\n"
             "Write one new post (1-3 sentences).",
@@ -56,6 +60,8 @@ FOLLOW_USERS_PROMPT = ChatPromptTemplate.from_messages(
             "- Username: @{username}\n"
             "- Followers: {num_followers}\n"
             "- Following: {num_follows}\n\n"
+            "Your memory:\n"
+            "{memory}\n\n"
             "Candidate users from your feed (user_id | username | name):\n"
             "{candidate_users}\n\n"
             "Select up to {max_follows} user IDs to follow.",

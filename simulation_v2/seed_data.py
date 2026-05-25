@@ -91,7 +91,9 @@ def _clamp_normal(mean: float, sd: float) -> int:
     return max(0, int(random.gauss(mean, sd)))
 
 
-def generate_users(*, fake: Faker | None = None, num_users: int = NUM_USERS) -> list[UserModel]:
+def generate_users(
+    *, fake: Faker | None = None, num_users: int = NUM_USERS
+) -> list[UserModel]:
     """Generate fake users with Faker.
 
     Each user's ``created_at`` is sampled uniformly between six months and one
@@ -462,7 +464,9 @@ def print_seed_data_statistics(seed_data: SeedDataModel) -> None:
     print(f"posts:   {len(seed_data.posts):>10,}")
     print(f"likes:   {len(seed_data.likes):>10,}")
     print(f"follows: {len(seed_data.follows):>10,}")
-    print(f"total records: {len(seed_data.users) + len(seed_data.posts) + len(seed_data.likes) + len(seed_data.follows):>10,}")
+    print(
+        f"total records: {len(seed_data.users) + len(seed_data.posts) + len(seed_data.likes) + len(seed_data.follows):>10,}"
+    )
 
     print("\n=== Posts per user ===")
     for key, value in _distribution_stats(posts_per_user).items():
