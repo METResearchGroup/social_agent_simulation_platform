@@ -16,5 +16,6 @@ after run_agent_actions(). It updates the memory from new likes/posts/follows
 plus retrieved prior evidence. Then prompts receive both profile_summary and retrieved_memories. This is probably the best product-quality version because it gives agents stable identity plus fresh recollection
 """
 
+
 def fetch_memory(user) -> str:
     return ""

@@ -12,5 +12,6 @@ We take the top-k memories that are likely most relevant to the given decision.
 
 DEFAULT_TOP_K = 5
 
+
 def fetch_memory(user, k: int = DEFAULT_TOP_K) -> str:
     return ""

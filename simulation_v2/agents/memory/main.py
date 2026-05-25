@@ -1,6 +1,13 @@
-from simulation_v2.agents.memory.episodic.main import fetch_memory as fetch_episodic_memory
-from simulation_v2.agents.memory.profile.main import fetch_memory as fetch_personalized_profile_memory
-from simulation_v2.agents.memory.social_relationship.main import fetch_memory as fetch_social_relationship_memory
+from simulation_v2.agents.memory.episodic.main import (
+    fetch_memory as fetch_episodic_memory,
+)
+from simulation_v2.agents.memory.profile.main import (
+    fetch_memory as fetch_personalized_profile_memory,
+)
+from simulation_v2.agents.memory.social_relationship.main import (
+    fetch_memory as fetch_social_relationship_memory,
+)
+
 
 def fetch_memory(user):
 
@@ -27,6 +34,7 @@ def fetch_memory(user):
     {social_relationship_memory}
     ```
     """
+
 
 def update_agent_memories():
     pass
