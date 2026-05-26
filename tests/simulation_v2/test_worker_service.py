@@ -66,6 +66,11 @@ class TestRunJob:
         )
         assert loaded_run.seed_metadata_json is not None
 
+        with transaction(db_path) as conn:
+            feeds = db.repos.list_generated_feeds_for_run(run.run_id, conn)
+
+        assert len(feeds) == config.total_turns * config.seed.total_users
+
     def test_run_job_idempotent_when_run_already_completed(self, db_path: Path) -> None:
         config = _small_config()
         run = factories.RunRecordFactory.create(

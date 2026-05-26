@@ -29,7 +29,7 @@ def generate_most_liked_feed(
             break
         if post["user_id"] == user_id:
             continue
-        if random.random() < FEED_INCLUDE_PROBABILITY:
+        if random.random() < FEED_INCLUDE_PROBABILITY:  # noqa: S311
             feed.append(post)
 
     return feed
