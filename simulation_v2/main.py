@@ -10,6 +10,7 @@ Progress bars show turn completion (run-level) and agent completion (turn-level)
 
 from __future__ import annotations
 
+from simulation_v2.config import LocalSimulationConfig
 from simulation_v2.load_seed_data import load_seed_data
 from simulation_v2.logging_config import configure_simulation_logging
 from simulation_v2.models.turn import TurnInputsModel
@@ -19,9 +20,13 @@ configure_simulation_logging()
 
 
 def main() -> TurnInputsModel:
+    config = LocalSimulationConfig.default()
     turn_inputs = TurnInputsModel(
-        seed_data=load_seed_data(total_users=10, total_posts_per_user=5),
-        total_turns=3,
+        seed_data=load_seed_data(
+            total_users=config.seed.total_users,
+            total_posts_per_user=config.seed.total_posts_per_user,
+        ),
+        total_turns=config.total_turns,
     )
     run_id = simulate_run(turn_inputs, show_progress=True)
     print(
