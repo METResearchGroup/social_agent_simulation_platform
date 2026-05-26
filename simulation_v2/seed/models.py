@@ -20,8 +20,9 @@ class SeedDataset(BaseModel):
 
 
 class SeedImportSummary(BaseModel):
-    user_count: int
-    post_count: int
-    like_count: int
-    follow_count: int
-    memory_count: int
+class SeedImportSummary(BaseModel):
+    user_count: int = Field(ge=0)
+    post_count: int = Field(ge=0)
+    like_count: int = Field(ge=0)
+    follow_count: int = Field(ge=0)
+    memory_count: int = Field(ge=0)
