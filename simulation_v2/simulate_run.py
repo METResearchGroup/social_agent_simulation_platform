@@ -15,6 +15,8 @@ from simulation_v2.telemetry.opik import (
 
 LOGGER = logging.getLogger(__name__)
 
+_TQDM_BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]"
+
 
 def simulate_run(turn_inputs: TurnInputsModel, *, show_progress: bool = True) -> str:
     """Run the simulation for all turns. Returns the run_id."""
@@ -38,11 +40,13 @@ def simulate_run(turn_inputs: TurnInputsModel, *, show_progress: bool = True) ->
             desc="Simulation run (turns)",
             unit="turn",
             total=turn_inputs.total_turns,
+            bar_format=_TQDM_BAR_FORMAT,
         )
 
     for i in turn_iter:
         turn_number = i + 1
-        LOGGER.info(
+        log = LOGGER.debug if show_progress else LOGGER.info
+        log(
             "Starting turn %s/%s for run_id=%s",
             turn_number,
             turn_inputs.total_turns,
@@ -54,7 +58,7 @@ def simulate_run(turn_inputs: TurnInputsModel, *, show_progress: bool = True) ->
             turn_number=turn_number,
             show_progress=show_progress,
         )
-        LOGGER.info(
+        log(
             "Finished turn %s/%s for run_id=%s",
             turn_number,
             turn_inputs.total_turns,

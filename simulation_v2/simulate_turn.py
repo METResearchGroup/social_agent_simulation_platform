@@ -58,7 +58,11 @@ def simulate_turn(
         turn_number,
         trace_ctx.run_id,
     )
-    feeds: GeneratedFeedsModel = generate_feeds(turn_inputs)
+    feeds: GeneratedFeedsModel = generate_feeds(
+        turn_inputs,
+        show_progress=show_progress,
+        turn_number=turn_number,
+    )
     run_agent_actions(
         turn_inputs,
         feeds,

@@ -358,11 +358,13 @@ def get_agents_actions(
             unit="agent",
             total=len(users),
             leave=False,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
         )
 
+    log = LOGGER.debug if show_progress else LOGGER.info
     for user_id, user in user_iter:
         feed = feeds.feeds_by_user_id.get(user_id, [])
-        LOGGER.info(
+        log(
             "Running agent actions for user_id=%s turn=%s",
             user_id,
             turn_label,
@@ -373,7 +375,7 @@ def get_agents_actions(
             turn_inputs.seed_data.users,
             trace_ctx=trace_ctx,
         )
-        LOGGER.info(
+        log(
             "Completed agent actions for user_id=%s turn=%s",
             user_id,
             turn_label,
