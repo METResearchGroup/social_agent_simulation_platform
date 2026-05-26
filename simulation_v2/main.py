@@ -35,7 +35,7 @@ def main() -> TurnInputsModel:
         ),
         total_turns=config.total_turns,
     )
-    run_id = simulate_run(turn_inputs, show_progress=True)
+    run_id = simulate_run(turn_inputs)
     print(
         f"Run complete: run_id={run_id} "
         f"users={len(turn_inputs.seed_data.users)} "
