@@ -237,7 +237,6 @@ This preserves the current shape of `simulate_run()` but moves the source of tru
    - persist every LLM call as a `Generation`
    - persist raw model outputs as `LlmProposedAction`
    - run business validators and persist accepted/rejected `ProposedAction` rows
-   - apply stochastic action noise after validation and record filtered actions as rejected with `filter_id="action_noise"` rather than dropping them silently
 4. Execute accepted actions into `PendingTurnDiffs`:
    - post diffs
    - like diffs
@@ -405,7 +404,6 @@ main.py
               -> db.repositories.insert_llm_proposed_action()
               -> actions.validators.validate()
               -> db.repositories.insert_proposed_action()
-              -> actions.noise.apply_action_noise()
               -> actions.executor.to_pending_diffs()
             -> memory.service.build_memory_diffs()
             -> db.repositories.persist_turn_diffs()
@@ -636,18 +634,16 @@ Completion criteria:
 - Validators cover no self-like, duplicate like, no self-follow, duplicate follow, missing targets, empty content, and max actions per turn.
 - Verification: run validator tests that assert accepted/rejected rows and rejection reasons for each action type.
 
-### PR 10: Action Noise and Turn Diff Execution
+### PR 10: Turn Diff Execution
 
 Scope:
 
-- Add `simulation_v2/actions/noise.py` and `executor.py`.
-- Apply configured action probabilities after business validation.
+- Add `simulation_v2/actions/executor.py`.
 - Convert accepted post/like/follow/comment actions into `PendingTurnDiffs`.
 - Persist executable diffs to SQLite in a single transaction.
 
 Completion criteria:
 
-- Noise-filtered actions are recorded as rejected with `filter_id="action_noise"`.
 - Executed actions create durable posts, likes, follows, and comments.
 - Data-model invariant: `PendingTurnDiffs` contains typed `PostRecord`, `LikeRecord`, `FollowRecord`, `CommentRecord`, and memory diff records before persistence.
 - File-interaction invariant: `actions.executor` converts validated actions to pending diffs; `worker.turn_executor` owns the transaction that persists those diffs.
