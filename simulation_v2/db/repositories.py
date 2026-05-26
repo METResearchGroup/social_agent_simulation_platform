@@ -6,6 +6,11 @@ import json
 import sqlite3
 from typing import Any
 
+from simulation_v2.db.errors import (
+    InvalidStatusTransitionError,
+    RunNotFoundError,
+    TurnNotFoundError,
+)
 from simulation_v2.db.models import (
     AgentMemoryRecord,
     CommentRecord,
@@ -21,9 +26,12 @@ from simulation_v2.db.models import (
     PostRecord,
     ProposedActionRecord,
     RunRecord,
+    RunStatus,
     TurnRecord,
+    TurnStatus,
     UserRecord,
 )
+from simulation_v2.time import get_current_timestamp
 
 
 def _loads_json(value: str | None) -> dict[str, Any] | None:
@@ -36,6 +44,61 @@ def _dumps_json(value: dict[str, Any] | None) -> str | None:
     if value is None:
         return None
     return json.dumps(value)
+
+
+def _row_to_run(row: sqlite3.Row) -> RunRecord:
+    return RunRecord(
+        run_id=row["run_id"],
+        status=row["status"],
+        config_json=json.loads(row["config_json"]),
+        seed_metadata_json=_loads_json(row["seed_metadata_json"]),
+        created_at=row["created_at"],
+        started_at=row["started_at"],
+        finished_at=row["finished_at"],
+        error=row["error"],
+    )
+
+
+def _row_to_turn(row: sqlite3.Row) -> TurnRecord:
+    return TurnRecord(
+        turn_id=row["turn_id"],
+        run_id=row["run_id"],
+        turn_number=row["turn_number"],
+        status=row["status"],
+        created_at=row["created_at"],
+        started_at=row["started_at"],
+        finished_at=row["finished_at"],
+        error=row["error"],
+    )
+
+
+_RUN_TRANSITIONS: dict[RunStatus, set[RunStatus]] = {
+    "queued": {"running"},
+    "running": {"completed", "failed"},
+    "completed": set(),
+    "failed": set(),
+}
+
+_TURN_TRANSITIONS: dict[TurnStatus, set[TurnStatus]] = {
+    "pending": {"running", "failed"},
+    "running": {"completed", "failed"},
+    "completed": set(),
+    "failed": set(),
+}
+
+
+def _validate_run_transition(current: RunStatus, target: RunStatus) -> None:
+    if current == target:
+        return
+    if target not in _RUN_TRANSITIONS.get(current, set()):
+        raise InvalidStatusTransitionError(current, target, "run")
+
+
+def _validate_turn_transition(current: TurnStatus, target: TurnStatus) -> None:
+    if current == target:
+        return
+    if target not in _TURN_TRANSITIONS.get(current, set()):
+        raise InvalidStatusTransitionError(current, target, "turn")
 
 
 class SimulationRepositories:
@@ -66,16 +129,7 @@ class SimulationRepositories:
         ).fetchone()
         if row is None:
             return None
-        return RunRecord(
-            run_id=row["run_id"],
-            status=row["status"],
-            config_json=json.loads(row["config_json"]),
-            seed_metadata_json=_loads_json(row["seed_metadata_json"]),
-            created_at=row["created_at"],
-            started_at=row["started_at"],
-            finished_at=row["finished_at"],
-            error=row["error"],
-        )
+        return _row_to_run(row)
 
     def insert_turn(self, record: TurnRecord, conn: sqlite3.Connection) -> None:
         conn.execute(
@@ -104,16 +158,123 @@ class SimulationRepositories:
         ).fetchone()
         if row is None:
             return None
-        return TurnRecord(
-            turn_id=row["turn_id"],
-            run_id=row["run_id"],
-            turn_number=row["turn_number"],
-            status=row["status"],
-            created_at=row["created_at"],
-            started_at=row["started_at"],
-            finished_at=row["finished_at"],
-            error=row["error"],
+        return _row_to_turn(row)
+
+    def update_run_status(
+        self,
+        run_id: str,
+        status: RunStatus,
+        conn: sqlite3.Connection,
+        *,
+        error: str | None = None,
+        timestamp: str | None = None,
+    ) -> RunRecord:
+        current = self.get_run(run_id, conn)
+        if current is None:
+            raise RunNotFoundError(run_id)
+
+        _validate_run_transition(current.status, status)
+        ts = timestamp or get_current_timestamp()
+
+        if status == "failed" and not error:
+            raise ValueError("error message is required when status is failed")
+
+        started_at = current.started_at
+        finished_at = current.finished_at
+        error_value = current.error
+
+        if status == "running" and started_at is None:
+            started_at = ts
+        elif status == "completed" and current.status != "completed":
+            finished_at = ts
+            error_value = None
+        elif status == "failed" and current.status != "failed":
+            finished_at = ts
+            error_value = error
+
+        cursor = conn.execute(
+            """
+            UPDATE runs
+            SET status = ?, started_at = ?, finished_at = ?, error = ?
+            WHERE run_id = ?
+            """,
+            (status, started_at, finished_at, error_value, run_id),
         )
+        if cursor.rowcount == 0:
+            raise RunNotFoundError(run_id)
+
+        updated = self.get_run(run_id, conn)
+        if updated is None:
+            raise RunNotFoundError(run_id)
+        return updated
+
+    def update_turn_status(
+        self,
+        turn_id: str,
+        status: TurnStatus,
+        conn: sqlite3.Connection,
+        *,
+        error: str | None = None,
+        timestamp: str | None = None,
+    ) -> TurnRecord:
+        current = self.get_turn(turn_id, conn)
+        if current is None:
+            raise TurnNotFoundError(turn_id)
+
+        _validate_turn_transition(current.status, status)
+        ts = timestamp or get_current_timestamp()
+
+        if status == "failed" and not error:
+            raise ValueError("error message is required when status is failed")
+
+        started_at = current.started_at
+        finished_at = current.finished_at
+        error_value = current.error
+
+        if status == "running" and started_at is None:
+            started_at = ts
+        elif status == "completed" and current.status != "completed":
+            finished_at = ts
+            error_value = None
+        elif status == "failed" and current.status != "failed":
+            finished_at = ts
+            error_value = error
+
+        cursor = conn.execute(
+            """
+            UPDATE turns
+            SET status = ?, started_at = ?, finished_at = ?, error = ?
+            WHERE turn_id = ?
+            """,
+            (status, started_at, finished_at, error_value, turn_id),
+        )
+        if cursor.rowcount == 0:
+            raise TurnNotFoundError(turn_id)
+
+        updated = self.get_turn(turn_id, conn)
+        if updated is None:
+            raise TurnNotFoundError(turn_id)
+        return updated
+
+    def list_turns_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[TurnRecord]:
+        rows = conn.execute(
+            "SELECT * FROM turns WHERE run_id = ? ORDER BY turn_number ASC",
+            (run_id,),
+        ).fetchall()
+        return [_row_to_turn(row) for row in rows]
+
+    def get_turn_by_run_and_number(
+        self, run_id: str, turn_number: int, conn: sqlite3.Connection
+    ) -> TurnRecord | None:
+        row = conn.execute(
+            "SELECT * FROM turns WHERE run_id = ? AND turn_number = ?",
+            (run_id, turn_number),
+        ).fetchone()
+        if row is None:
+            return None
+        return _row_to_turn(row)
 
     def insert_user(self, record: UserRecord, conn: sqlite3.Connection) -> None:
         conn.execute(

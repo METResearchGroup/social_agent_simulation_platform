@@ -8,7 +8,6 @@ import uuid
 from typing import Any
 
 import opik
-from tqdm import tqdm
 
 from lib.timestamp_utils import get_current_timestamp
 from simulation_v2.agents.constants import (
@@ -30,6 +29,7 @@ from simulation_v2.agents.validators import (
     validate_follow_user_ids,
     validate_like_post_ids,
 )
+from simulation_v2.lib.decorators import iteration_log_level, progress_items
 from simulation_v2.models.actions import (
     AgentTurnActions,
     AllAgentsTurnActions,
@@ -338,7 +338,6 @@ def get_agents_actions(
     *,
     trace_ctx: SimulationTraceContext | None = None,
     turn_number: int | None = None,
-    show_progress: bool = True,
 ) -> AllAgentsTurnActions:
     """Run agent actions for every user in the simulation."""
     actions_by_user_id: dict[str, AgentTurnActions] = {}
@@ -350,19 +349,15 @@ def get_agents_actions(
     )
     turn_label = resolved_turn if resolved_turn is not None else "?"
 
-    user_iter: Any = users
-    if show_progress and users:
-        user_iter = tqdm(
-            users,
-            desc=f"Turn {turn_label} (agents)",
-            unit="agent",
-            total=len(users),
-            leave=False,
-        )
-
-    for user_id, user in user_iter:
+    for user_id, user in progress_items(
+        users,
+        desc=f"Turn {turn_label} (agents)",
+        unit="agent",
+        leave=False,
+    ):
         feed = feeds.feeds_by_user_id.get(user_id, [])
-        LOGGER.info(
+        LOGGER.log(
+            iteration_log_level(),
             "Running agent actions for user_id=%s turn=%s",
             user_id,
             turn_label,
@@ -373,7 +368,8 @@ def get_agents_actions(
             turn_inputs.seed_data.users,
             trace_ctx=trace_ctx,
         )
-        LOGGER.info(
+        LOGGER.log(
+            iteration_log_level(),
             "Completed agent actions for user_id=%s turn=%s",
             user_id,
             turn_label,

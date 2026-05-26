@@ -1,8 +1,7 @@
 import logging
 import uuid
 
-from tqdm import tqdm
-
+from simulation_v2.lib.decorators import iteration_log_level, progress_items
 from simulation_v2.models.turn import TurnInputsModel
 from simulation_v2.simulate_turn import simulate_turn
 from simulation_v2.telemetry.context import SimulationTraceContext
@@ -16,7 +15,7 @@ from simulation_v2.telemetry.opik import (
 LOGGER = logging.getLogger(__name__)
 
 
-def simulate_run(turn_inputs: TurnInputsModel, *, show_progress: bool = True) -> str:
+def simulate_run(turn_inputs: TurnInputsModel) -> str:
     """Run the simulation for all turns. Returns the run_id."""
     run_id = str(uuid.uuid4())
     configure_opik()
@@ -31,18 +30,14 @@ def simulate_run(turn_inputs: TurnInputsModel, *, show_progress: bool = True) ->
         trace_ctx.enabled,
     )
 
-    turn_iter = range(turn_inputs.total_turns)
-    if show_progress:
-        turn_iter = tqdm(
-            turn_iter,
-            desc="Simulation run (turns)",
-            unit="turn",
-            total=turn_inputs.total_turns,
-        )
-
-    for i in turn_iter:
+    for i in progress_items(
+        range(turn_inputs.total_turns),
+        desc="Simulation run (turns)",
+        unit="turn",
+    ):
         turn_number = i + 1
-        LOGGER.info(
+        LOGGER.log(
+            iteration_log_level(),
             "Starting turn %s/%s for run_id=%s",
             turn_number,
             turn_inputs.total_turns,
@@ -52,9 +47,9 @@ def simulate_run(turn_inputs: TurnInputsModel, *, show_progress: bool = True) ->
             turn_inputs,
             trace_ctx=trace_ctx,
             turn_number=turn_number,
-            show_progress=show_progress,
         )
-        LOGGER.info(
+        LOGGER.log(
+            iteration_log_level(),
             "Finished turn %s/%s for run_id=%s",
             turn_number,
             turn_inputs.total_turns,

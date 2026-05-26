@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 
+from simulation_v2.lib.decorators import progress_items
 from simulation_v2.models.feeds import GeneratedFeedsModel
 from simulation_v2.models.turn import TurnInputsModel
 
@@ -34,7 +35,11 @@ def generate_most_liked_feed(
     return feed
 
 
-def generate_most_liked_feeds(turn_inputs: TurnInputsModel) -> GeneratedFeedsModel:
+def generate_most_liked_feeds(
+    turn_inputs: TurnInputsModel,
+    *,
+    turn_number: int | None = None,
+) -> GeneratedFeedsModel:
     """Generate a most-liked feed for every user in the turn's seed data."""
     posts_by_likes_desc = sorted(
         (post.model_dump() for post in turn_inputs.seed_data.posts.values()),
@@ -42,8 +47,16 @@ def generate_most_liked_feeds(turn_inputs: TurnInputsModel) -> GeneratedFeedsMod
         reverse=True,
     )
 
+    user_ids = list(turn_inputs.seed_data.users)
+    turn_label = turn_number if turn_number is not None else "?"
+
     feeds_by_user_id: dict[str, list[dict[str, object]]] = {}
-    for user_id in turn_inputs.seed_data.users:
+    for user_id in progress_items(
+        user_ids,
+        desc=f"Turn {turn_label} (feeds)",
+        unit="feed",
+        leave=False,
+    ):
         feeds_by_user_id[user_id] = generate_most_liked_feed(
             user_id,
             posts_by_likes_desc,
@@ -52,6 +65,10 @@ def generate_most_liked_feeds(turn_inputs: TurnInputsModel) -> GeneratedFeedsMod
     return GeneratedFeedsModel(feeds_by_user_id=feeds_by_user_id)
 
 
-def generate_feeds(turn_inputs: TurnInputsModel) -> GeneratedFeedsModel:
+def generate_feeds(
+    turn_inputs: TurnInputsModel,
+    *,
+    turn_number: int | None = None,
+) -> GeneratedFeedsModel:
     """Generate feeds for all users in the current turn."""
-    return generate_most_liked_feeds(turn_inputs)
+    return generate_most_liked_feeds(turn_inputs, turn_number=turn_number)

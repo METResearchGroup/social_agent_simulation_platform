@@ -28,14 +28,12 @@ def run_agent_actions(
     *,
     trace_ctx: SimulationTraceContext | None = None,
     turn_number: int | None = None,
-    show_progress: bool = True,
 ):
     return get_agents_actions(
         turn_inputs,
         feeds,
         trace_ctx=trace_ctx,
         turn_number=turn_number,
-        show_progress=show_progress,
     )
 
 
@@ -48,7 +46,6 @@ def simulate_turn(
     *,
     trace_ctx: SimulationTraceContext,
     turn_number: int,
-    show_progress: bool = True,
 ) -> None:
     trace_ctx.turn_number = turn_number
     trace_ctx.turn_llm_collector.clear()
@@ -58,13 +55,15 @@ def simulate_turn(
         turn_number,
         trace_ctx.run_id,
     )
-    feeds: GeneratedFeedsModel = generate_feeds(turn_inputs)
+    feeds: GeneratedFeedsModel = generate_feeds(
+        turn_inputs,
+        turn_number=turn_number,
+    )
     run_agent_actions(
         turn_inputs,
         feeds,
         trace_ctx=trace_ctx,
         turn_number=turn_number,
-        show_progress=show_progress,
     )
     update_agent_memories()
 
