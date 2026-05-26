@@ -12,13 +12,17 @@ from simulation_v2.db.errors import RunNotFoundError
 from simulation_v2.db.models import TurnRecord
 from simulation_v2.db.repositories import SimulationRepositories
 from simulation_v2.ids import new_turn_id
+from simulation_v2.seed.loader import import_seed_if_needed
 from simulation_v2.time import get_current_timestamp
 from simulation_v2.worker.errors import RunNotRetryableError
 from simulation_v2.worker.models import RunJob
 
 
 def _execute_turn_stub() -> None:
-    """Placeholder for PR 5+ turn execution."""
+    """Placeholder for PR 6/7+ turn execution (feeds, actions, memory).
+
+    Seed import is handled before the turn loop in PR 5.
+    """
     pass
 
 
@@ -80,6 +84,7 @@ def run_job(job: RunJob, *, db_path: Path) -> None:
                 repos.update_run_status(job.run_id, "running", conn)
 
             config = LocalSimulationConfig.model_validate(run.config_json)
+            import_seed_if_needed(job.run_id, config, repos, conn)
             _run_turns_for_run(job.run_id, config, conn, repos)
             repos.update_run_status(job.run_id, "completed", conn)
     except (RunNotRetryableError, RunNotFoundError):
