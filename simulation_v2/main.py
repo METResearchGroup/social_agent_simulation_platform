@@ -1,25 +1,24 @@
-"""Runs a full run of the simulation.
+"""Runs a full run of the simulation via the local control plane.
+
+PR 4 runs are status-only stubs (no seed import or LLM calls) until PR 5+.
 
 To run:
 
 PYTHONPATH=. uv run python simulation_v2/main.py
 
 Default config: 3 users, 5 posts per user, 3 turns.
-Progress bars show turn completion (run-level), feed generation, and agents per turn.
 """
 
 from __future__ import annotations
 
 from simulation_v2.config import LocalSimulationConfig, SeedConfig
-from simulation_v2.load_seed_data import load_seed_data
+from simulation_v2.control_plane.service import get_run_summary, start_run
 from simulation_v2.logging_config import configure_simulation_logging
-from simulation_v2.models.turn import TurnInputsModel
-from simulation_v2.simulate_run import simulate_run
 
 configure_simulation_logging()
 
 
-def main() -> TurnInputsModel:
+def main() -> None:
     config = LocalSimulationConfig.default().model_copy(
         update={"seed": SeedConfig(total_users=3, total_posts_per_user=5)}
     )
@@ -28,21 +27,13 @@ def main() -> TurnInputsModel:
         f"posts_per_user={config.seed.total_posts_per_user} "
         f"turns={config.total_turns}"
     )
-    turn_inputs = TurnInputsModel(
-        seed_data=load_seed_data(
-            total_users=config.seed.total_users,
-            total_posts_per_user=config.seed.total_posts_per_user,
-        ),
-        total_turns=config.total_turns,
-    )
-    run_id = simulate_run(turn_inputs)
+    run_id = start_run(config, dispatch=True)
+    run, turns = get_run_summary(run_id, db_path=config.storage.db_path)
+    completed_count = sum(1 for turn in turns if turn.status == "completed")
     print(
-        f"Run complete: run_id={run_id} "
-        f"users={len(turn_inputs.seed_data.users)} "
-        f"posts={len(turn_inputs.seed_data.posts)} "
-        f"turns={turn_inputs.total_turns}"
+        f"Run complete: run_id={run_id} status={run.status} "
+        f"completed_turns={completed_count}/{len(turns)}"
     )
-    return turn_inputs
 
 
 if __name__ == "__main__":
