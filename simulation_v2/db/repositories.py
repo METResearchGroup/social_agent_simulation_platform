@@ -362,6 +362,26 @@ class SimulationRepositories:
             created_at=row["created_at"],
         )
 
+    def list_users_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[UserRecord]:
+        rows = conn.execute(
+            "SELECT * FROM users WHERE run_id = ? ORDER BY user_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            UserRecord(
+                user_id=row["user_id"],
+                run_id=row["run_id"],
+                name=row["name"],
+                email=row["email"],
+                username=row["username"],
+                profile_json=_loads_json(row["profile_json"]),
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
+
     def insert_post(self, record: PostRecord, conn: sqlite3.Connection) -> None:
         conn.execute(
             """
@@ -400,6 +420,26 @@ class SimulationRepositories:
             metadata_json=_loads_json(row["metadata_json"]),
         )
 
+    def list_posts_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[PostRecord]:
+        rows = conn.execute(
+            "SELECT * FROM posts WHERE run_id = ? ORDER BY post_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            PostRecord(
+                post_id=row["post_id"],
+                run_id=row["run_id"],
+                author_id=row["author_id"],
+                content=row["content"],
+                created_at=row["created_at"],
+                created_at_turn=row["created_at_turn"],
+                metadata_json=_loads_json(row["metadata_json"]),
+            )
+            for row in rows
+        ]
+
     def insert_like(self, record: LikeRecord, conn: sqlite3.Connection) -> None:
         conn.execute(
             """
@@ -435,6 +475,26 @@ class SimulationRepositories:
             created_at_turn=row["created_at_turn"],
             metadata_json=_loads_json(row["metadata_json"]),
         )
+
+    def list_likes_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[LikeRecord]:
+        rows = conn.execute(
+            "SELECT * FROM likes WHERE run_id = ? ORDER BY like_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            LikeRecord(
+                like_id=row["like_id"],
+                run_id=row["run_id"],
+                post_id=row["post_id"],
+                author_id=row["author_id"],
+                created_at=row["created_at"],
+                created_at_turn=row["created_at_turn"],
+                metadata_json=_loads_json(row["metadata_json"]),
+            )
+            for row in rows
+        ]
 
     def insert_follow(self, record: FollowRecord, conn: sqlite3.Connection) -> None:
         conn.execute(
@@ -473,6 +533,26 @@ class SimulationRepositories:
             created_at_turn=row["created_at_turn"],
             metadata_json=_loads_json(row["metadata_json"]),
         )
+
+    def list_follows_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[FollowRecord]:
+        rows = conn.execute(
+            "SELECT * FROM follows WHERE run_id = ? ORDER BY follow_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            FollowRecord(
+                follow_id=row["follow_id"],
+                run_id=row["run_id"],
+                follower_id=row["follower_id"],
+                followee_id=row["followee_id"],
+                created_at=row["created_at"],
+                created_at_turn=row["created_at_turn"],
+                metadata_json=_loads_json(row["metadata_json"]),
+            )
+            for row in rows
+        ]
 
     def insert_comment(self, record: CommentRecord, conn: sqlite3.Connection) -> None:
         conn.execute(
@@ -514,6 +594,27 @@ class SimulationRepositories:
             metadata_json=_loads_json(row["metadata_json"]),
         )
 
+    def list_comments_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[CommentRecord]:
+        rows = conn.execute(
+            "SELECT * FROM comments WHERE run_id = ? ORDER BY comment_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            CommentRecord(
+                comment_id=row["comment_id"],
+                run_id=row["run_id"],
+                parent_post_id=row["parent_post_id"],
+                author_id=row["author_id"],
+                content=row["content"],
+                created_at=row["created_at"],
+                created_at_turn=row["created_at_turn"],
+                metadata_json=_loads_json(row["metadata_json"]),
+            )
+            for row in rows
+        ]
+
     def insert_agent_memory(
         self, record: AgentMemoryRecord, conn: sqlite3.Connection
     ) -> None:
@@ -553,6 +654,26 @@ class SimulationRepositories:
             social=row["social"],
             updated_at=row["updated_at"],
         )
+
+    def list_agent_memories_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[AgentMemoryRecord]:
+        rows = conn.execute(
+            "SELECT * FROM agent_memories WHERE run_id = ? ORDER BY user_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            AgentMemoryRecord(
+                run_id=row["run_id"],
+                user_id=row["user_id"],
+                preferences_json=_loads_json(row["preferences_json"]),
+                episodic=row["episodic"],
+                personalized=row["personalized"],
+                social=row["social"],
+                updated_at=row["updated_at"],
+            )
+            for row in rows
+        ]
 
     def insert_memory_diff(
         self, record: MemoryDiffRecord, conn: sqlite3.Connection
@@ -636,6 +757,30 @@ class SimulationRepositories:
             feed_posts=[FeedPostView.model_validate(item) for item in feed_posts_raw],
             created_at=row["created_at"],
         )
+
+    def list_generated_feeds_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> list[GeneratedFeedRecord]:
+        rows = conn.execute(
+            "SELECT * FROM generated_feeds WHERE run_id = ? ORDER BY feed_id ASC",
+            (run_id,),
+        ).fetchall()
+        return [
+            GeneratedFeedRecord(
+                feed_id=row["feed_id"],
+                run_id=row["run_id"],
+                turn_id=row["turn_id"],
+                user_id=row["user_id"],
+                algorithm=row["algorithm"],
+                feed_post_ids=json.loads(row["feed_post_ids_json"]),
+                feed_posts=[
+                    FeedPostView.model_validate(item)
+                    for item in json.loads(row["feed_posts_json"])
+                ],
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
 
     def insert_generation(
         self, record: GenerationRecord, conn: sqlite3.Connection

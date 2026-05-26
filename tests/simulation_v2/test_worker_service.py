@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -154,3 +155,29 @@ class TestRunJob:
 
         assert loaded_run is not None
         assert loaded_run.status == "failed"
+
+    def test_run_job_loads_turn_snapshot_for_each_executed_turn(
+        self, db_path: Path
+    ) -> None:
+        config = _small_config(total_turns=2)
+        run = _queued_run(config)
+        db = SimulationDatabase(db_path)
+        with transaction(db_path) as conn:
+            db.repos.insert_run(run, conn)
+
+        captured_turn_ids: list[str] = []
+
+        def _capture_snapshot(run_id: str, turn_id: str, repos, conn):  # noqa: ANN001
+            from simulation_v2.worker.state import load_turn_snapshot as real_loader
+
+            snapshot = real_loader(run_id, turn_id, repos, conn)
+            captured_turn_ids.append(turn_id)
+            return snapshot
+
+        with patch(
+            "simulation_v2.worker.turn_executor.load_turn_snapshot",
+            side_effect=_capture_snapshot,
+        ):
+            run_job(RunJob(run_id=run.run_id), db_path=db_path)
+
+        assert len(captured_turn_ids) == config.total_turns
