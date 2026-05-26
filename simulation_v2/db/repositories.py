@@ -185,10 +185,10 @@ class SimulationRepositories:
 
         if status == "running" and started_at is None:
             started_at = ts
-        elif status == "completed":
+        elif status == "completed" and current.status != "completed":
             finished_at = ts
             error_value = None
-        elif status == "failed":
+        elif status == "failed" and current.status != "failed":
             finished_at = ts
             error_value = error
 
@@ -233,10 +233,10 @@ class SimulationRepositories:
 
         if status == "running" and started_at is None:
             started_at = ts
-        elif status == "completed":
+        elif status == "completed" and current.status != "completed":
             finished_at = ts
             error_value = None
-        elif status == "failed":
+        elif status == "failed" and current.status != "failed":
             finished_at = ts
             error_value = error
 

@@ -103,10 +103,14 @@ class TestRunStatusTransitions:
                 run.run_id, "completed", conn, timestamp=FIXED_TS_2
             )
             second = db.repos.update_run_status(
-                run.run_id, "completed", conn, timestamp=FIXED_TS_2
+                run.run_id,
+                "completed",
+                conn,
+                timestamp="2026-05-26T14:00:00.000000+00:00",
             )
 
         assert first == second
+        assert second.finished_at == FIXED_TS_2
 
     def test_rejects_completed_to_running(self, db: SimulationDatabase) -> None:
         run = factories.RunRecordFactory.create()
