@@ -27,3 +27,35 @@ def new_generation_id() -> str:
 
 def new_memory_diff_id() -> str:
     return str(uuid.uuid4())
+
+
+def new_user_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_post_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_like_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_comment_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_follow_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_llm_proposed_action_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_eval_run_id() -> str:
+    return str(uuid.uuid4())
+
+
+def new_eval_metric_id() -> str:
+    return str(uuid.uuid4())

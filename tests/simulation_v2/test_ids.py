@@ -15,6 +15,14 @@ ID_HELPERS = [
     ids.new_feed_id,
     ids.new_generation_id,
     ids.new_memory_diff_id,
+    ids.new_user_id,
+    ids.new_post_id,
+    ids.new_like_id,
+    ids.new_comment_id,
+    ids.new_follow_id,
+    ids.new_llm_proposed_action_id,
+    ids.new_eval_run_id,
+    ids.new_eval_metric_id,
 ]
 
 
