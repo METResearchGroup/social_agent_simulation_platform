@@ -22,6 +22,34 @@ def _execute_turn_stub() -> None:
     pass
 
 
+def _run_single_turn(
+    run_id: str,
+    turn_number: int,
+    conn: sqlite3.Connection,
+    repos: SimulationRepositories,
+) -> None:
+    existing = repos.get_turn_by_run_and_number(run_id, turn_number, conn)
+    if existing is not None and existing.status == "completed":
+        return
+
+    if existing is None:
+        turn = TurnRecord(
+            turn_id=new_turn_id(),
+            run_id=run_id,
+            turn_number=turn_number,
+            status="pending",
+            created_at=get_current_timestamp(),
+        )
+        repos.insert_turn(turn, conn)
+        turn_id = turn.turn_id
+    else:
+        turn_id = existing.turn_id
+
+    repos.update_turn_status(turn_id, "running", conn)
+    _execute_turn_stub()
+    repos.update_turn_status(turn_id, "completed", conn)
+
+
 def _run_turns_for_run(
     run_id: str,
     config: LocalSimulationConfig,
@@ -29,26 +57,7 @@ def _run_turns_for_run(
     repos: SimulationRepositories,
 ) -> None:
     for turn_number in range(1, config.total_turns + 1):
-        existing = repos.get_turn_by_run_and_number(run_id, turn_number, conn)
-        if existing is not None and existing.status == "completed":
-            continue
-
-        if existing is None:
-            turn = TurnRecord(
-                turn_id=new_turn_id(),
-                run_id=run_id,
-                turn_number=turn_number,
-                status="pending",
-                created_at=get_current_timestamp(),
-            )
-            repos.insert_turn(turn, conn)
-            turn_id = turn.turn_id
-        else:
-            turn_id = existing.turn_id
-
-        repos.update_turn_status(turn_id, "running", conn)
-        _execute_turn_stub()
-        repos.update_turn_status(turn_id, "completed", conn)
+        _run_single_turn(run_id, turn_number, conn, repos)
 
 
 def run_job(job: RunJob, *, db_path: Path) -> None:
