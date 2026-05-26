@@ -1,6 +1,8 @@
 """Runs a full run of the simulation via the local control plane.
 
-PR 4 runs are status-only stubs (no seed import or LLM calls) until PR 5+.
+Seed users, posts, likes, follows, and agent memories are persisted to SQLite
+before the turn loop. Turn execution (feeds, actions, memory updates) remains
+stubbed until PR 6/7+.
 
 To run:
 
@@ -13,6 +15,8 @@ from __future__ import annotations
 
 from simulation_v2.config import LocalSimulationConfig, SeedConfig
 from simulation_v2.control_plane.service import get_run_summary, start_run
+from simulation_v2.db.connection import transaction
+from simulation_v2.db.database import SimulationDatabase
 from simulation_v2.logging_config import configure_simulation_logging
 
 configure_simulation_logging()
@@ -30,9 +34,13 @@ def main() -> None:
     run_id = start_run(config, dispatch=True)
     run, turns = get_run_summary(run_id, db_path=config.storage.db_path)
     completed_count = sum(1 for turn in turns if turn.status == "completed")
+    db = SimulationDatabase(config.storage.db_path)
+    with transaction(config.storage.db_path) as conn:
+        counts = db.repos.count_seed_entities_for_run(run_id, conn)
     print(
         f"Run complete: run_id={run_id} status={run.status} "
-        f"completed_turns={completed_count}/{len(turns)}"
+        f"completed_turns={completed_count}/{len(turns)} "
+        f"users={counts['user_count']} posts={counts['post_count']}"
     )
 
 

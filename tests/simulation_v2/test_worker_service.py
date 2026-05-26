@@ -9,6 +9,7 @@ import pytest
 from simulation_v2.config import LocalSimulationConfig
 from simulation_v2.db.connection import transaction
 from simulation_v2.db.database import SimulationDatabase
+from simulation_v2.seed.loader import import_seed_if_needed
 from simulation_v2.worker.errors import RunNotRetryableError
 from simulation_v2.worker.models import RunJob
 from simulation_v2.worker.service import run_job
@@ -31,12 +32,18 @@ def _small_config(**overrides: object) -> LocalSimulationConfig:
     )
 
 
+def _queued_run(config: LocalSimulationConfig, **overrides: object):
+    return factories.RunRecordFactory.create(
+        config_json=config.model_dump(mode="json"),
+        seed_metadata_json=None,
+        **overrides,
+    )
+
+
 class TestRunJob:
     def test_run_job_completes_all_turns_from_queued(self, db_path: Path) -> None:
         config = _small_config()
-        run = factories.RunRecordFactory.create(
-            config_json=config.model_dump(mode="json")
-        )
+        run = _queued_run(config)
         db = SimulationDatabase(db_path)
         with transaction(db_path) as conn:
             db.repos.insert_run(run, conn)
@@ -46,11 +53,17 @@ class TestRunJob:
         with transaction(db_path) as conn:
             loaded_run = db.repos.get_run(run.run_id, conn)
             turns = db.repos.list_turns_for_run(run.run_id, conn)
+            counts = db.repos.count_seed_entities_for_run(run.run_id, conn)
 
         assert loaded_run is not None
         assert loaded_run.status == "completed"
         assert len(turns) == config.total_turns
         assert all(turn.status == "completed" for turn in turns)
+        assert counts["user_count"] == config.seed.total_users
+        assert counts["post_count"] == (
+            config.seed.total_users * config.seed.total_posts_per_user
+        )
+        assert loaded_run.seed_metadata_json is not None
 
     def test_run_job_idempotent_when_run_already_completed(self, db_path: Path) -> None:
         config = _small_config()
@@ -79,9 +92,7 @@ class TestRunJob:
         self, db_path: Path
     ) -> None:
         config = _small_config(total_turns=3)
-        run = factories.RunRecordFactory.create(
-            config_json=config.model_dump(mode="json")
-        )
+        run = _queued_run(config)
         turn1 = factories.TurnRecordFactory.create(
             run_id=run.run_id, turn_number=1, status="pending"
         )
@@ -89,6 +100,10 @@ class TestRunJob:
         with transaction(db_path) as conn:
             db.repos.insert_run(run, conn)
             db.repos.update_run_status(run.run_id, "running", conn, timestamp=FIXED_TS)
+            import_seed_if_needed(run.run_id, config, db.repos, conn)
+            counts_after_first_import = db.repos.count_seed_entities_for_run(
+                run.run_id, conn
+            )
             db.repos.insert_turn(turn1, conn)
             db.repos.update_turn_status(
                 turn1.turn_id, "running", conn, timestamp=FIXED_TS
@@ -103,6 +118,7 @@ class TestRunJob:
             loaded_run = db.repos.get_run(run.run_id, conn)
             turns = db.repos.list_turns_for_run(run.run_id, conn)
             turn1_after = db.repos.get_turn_by_run_and_number(run.run_id, 1, conn)
+            counts = db.repos.count_seed_entities_for_run(run.run_id, conn)
 
         assert loaded_run is not None
         assert loaded_run.status == "completed"
@@ -111,6 +127,7 @@ class TestRunJob:
         assert turn1_after.turn_id == turn1.turn_id
         assert turn1_after.status == "completed"
         assert all(turn.status == "completed" for turn in turns)
+        assert counts == counts_after_first_import
 
     def test_run_job_rejects_failed_run(self, db_path: Path) -> None:
         config = _small_config()

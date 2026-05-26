@@ -208,6 +208,55 @@ class SimulationRepositories:
             raise RunNotFoundError(run_id)
         return updated
 
+    def update_run_seed_metadata(
+        self,
+        run_id: str,
+        seed_metadata_json: dict[str, Any],
+        conn: sqlite3.Connection,
+    ) -> RunRecord:
+        cursor = conn.execute(
+            "UPDATE runs SET seed_metadata_json = ? WHERE run_id = ?",
+            (_dumps_json(seed_metadata_json), run_id),
+        )
+        if cursor.rowcount == 0:
+            raise RunNotFoundError(run_id)
+
+        updated = self.get_run(run_id, conn)
+        if updated is None:
+            raise RunNotFoundError(run_id)
+        return updated
+
+    def count_seed_entities_for_run(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> dict[str, int]:
+        user_count = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()[0]
+        post_count = conn.execute(
+            "SELECT COUNT(*) FROM posts WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()[0]
+        like_count = conn.execute(
+            "SELECT COUNT(*) FROM likes WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()[0]
+        follow_count = conn.execute(
+            "SELECT COUNT(*) FROM follows WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()[0]
+        memory_count = conn.execute(
+            "SELECT COUNT(*) FROM agent_memories WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()[0]
+        return {
+            "user_count": user_count,
+            "post_count": post_count,
+            "like_count": like_count,
+            "follow_count": follow_count,
+            "memory_count": memory_count,
+        }
+
     def update_turn_status(
         self,
         turn_id: str,
