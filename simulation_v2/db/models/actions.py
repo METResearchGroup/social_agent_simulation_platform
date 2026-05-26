@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 ProposedActionRecordKind = Literal["validated", "rejected"]
-RejectionStage = Literal["llm_schema", "business_rules", "action_noise"]
+RejectionStage = Literal["llm_schema", "business_rules"]
 
 
 class GenerationRecord(BaseModel):

@@ -27,7 +27,7 @@ Frozen interface for parallel model/repository work.
 - RunStatus: queued, running, completed, failed
 - TurnStatus: pending, running, completed, failed
 - ProposedActionRecordKind: validated, rejected
-- RejectionStage: llm_schema, business_rules, action_noise
+- RejectionStage: llm_schema, business_rules
 - EvalScope: turn, run
 - MemoryType: episodic, personalized, social
 
