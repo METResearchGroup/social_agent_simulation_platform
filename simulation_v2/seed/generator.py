@@ -178,16 +178,15 @@ def _sample_posts_without_replacement(
     selected: list[PostModel] = []
     selected_post_ids: set[str] = set()
     max_attempts = sample_size * 20 + 100
-    attempts = 0
+    rejected_attempts = 0
 
-    while len(selected) < sample_size and attempts < max_attempts:
+    while len(selected) < sample_size and rejected_attempts < max_attempts:
         candidate = posts[random.randrange(len(posts))]
         if candidate.user_id == author_id or candidate.post_id in selected_post_ids:
-            attempts += 1
+            rejected_attempts += 1
             continue
         selected.append(candidate)
         selected_post_ids.add(candidate.post_id)
-        attempts += 1
 
     return selected
 
