@@ -63,160 +63,275 @@ def generate_and_persist_llm_actions(
         memory_text = _format_memory_for_prompt(memory)
         num_followers, num_follows = _follow_counts(user)
 
-        if action_config.enable_like_post:
-            result = invoke_structured_generation(
-                LIKE_POSTS_PROMPT,
-                LlmLikePostOutput,
-                llm_config=llm_config,
-                prompt_variables={
-                    "name": user.name,
-                    "username": user.username,
-                    "num_followers": num_followers,
-                    "num_follows": num_follows,
-                    "memory": memory_text,
-                    "feed_posts": _format_feed_posts(feed_posts),
-                    "max_likes": action_config.max_likes_per_turn,
-                },
-                action_type="like_post",
+        _append_generation(
+            generation_records,
+            _generate_and_persist_likes(
+                snapshot=snapshot,
                 user_id=user_id,
-                trace_ctx=trace_ctx,
-            )
-            generation = _persist_generation(
-                snapshot,
-                user_id,
-                "like_post",
-                result,
-                repos,
-                conn,
-            )
-            generation_records.append(generation)
-            if result.status == "completed" and isinstance(
-                result.parsed, LlmLikePostOutput
-            ):
-                _persist_llm_proposed_actions(
-                    snapshot,
-                    user_id,
-                    "like_post",
-                    generation.generation_id,
-                    result.parsed.post_ids,
-                    repos,
-                    conn,
-                )
-
-        if action_config.enable_write_post:
-            result = invoke_structured_generation(
-                WRITE_POST_PROMPT,
-                LlmWritePostOutput,
+                user=user,
+                feed_posts=feed_posts,
+                memory_text=memory_text,
+                num_followers=num_followers,
+                num_follows=num_follows,
+                action_config=action_config,
                 llm_config=llm_config,
-                prompt_variables={
-                    "name": user.name,
-                    "username": user.username,
-                    "memory": memory_text,
-                    "feed_posts": _format_feed_posts(feed_posts),
-                },
-                action_type="write_post",
-                user_id=user_id,
+                repos=repos,
+                conn=conn,
                 trace_ctx=trace_ctx,
-            )
-            generation = _persist_generation(
-                snapshot,
-                user_id,
-                "write_post",
-                result,
-                repos,
-                conn,
-            )
-            generation_records.append(generation)
-            if result.status == "completed" and isinstance(
-                result.parsed, LlmWritePostOutput
-            ):
-                _persist_llm_proposed_actions_write(
-                    snapshot,
-                    user_id,
-                    generation.generation_id,
-                    result.parsed.content,
-                    repos,
-                    conn,
-                )
-
-        if action_config.enable_follow_user:
-            candidates = _candidate_users_from_feed(user_id, feed_posts, snapshot.users)
-            result = invoke_structured_generation(
-                FOLLOW_USERS_PROMPT,
-                LlmFollowUserOutput,
+            ),
+        )
+        _append_generation(
+            generation_records,
+            _generate_and_persist_write_post(
+                snapshot=snapshot,
+                user_id=user_id,
+                user=user,
+                feed_posts=feed_posts,
+                memory_text=memory_text,
+                action_config=action_config,
                 llm_config=llm_config,
-                prompt_variables={
-                    "name": user.name,
-                    "username": user.username,
-                    "num_followers": num_followers,
-                    "num_follows": num_follows,
-                    "memory": memory_text,
-                    "candidate_users": _format_candidate_users(candidates),
-                    "max_follows": action_config.max_follows_per_turn,
-                },
-                action_type="follow_user",
-                user_id=user_id,
+                repos=repos,
+                conn=conn,
                 trace_ctx=trace_ctx,
-            )
-            generation = _persist_generation(
-                snapshot,
-                user_id,
-                "follow_user",
-                result,
-                repos,
-                conn,
-            )
-            generation_records.append(generation)
-            if result.status == "completed" and isinstance(
-                result.parsed, LlmFollowUserOutput
-            ):
-                _persist_llm_proposed_actions_follow(
-                    snapshot,
-                    user_id,
-                    generation.generation_id,
-                    result.parsed.user_ids,
-                    repos,
-                    conn,
-                )
-
-        if action_config.enable_comment_on_post:
-            result = invoke_structured_generation(
-                COMMENT_ON_POST_PROMPT,
-                LlmCommentOnPostOutput,
+            ),
+        )
+        _append_generation(
+            generation_records,
+            _generate_and_persist_follows(
+                snapshot=snapshot,
+                user_id=user_id,
+                user=user,
+                feed_posts=feed_posts,
+                memory_text=memory_text,
+                num_followers=num_followers,
+                num_follows=num_follows,
+                action_config=action_config,
                 llm_config=llm_config,
-                prompt_variables={
-                    "name": user.name,
-                    "username": user.username,
-                    "memory": memory_text,
-                    "feed_posts": _format_feed_posts(feed_posts),
-                },
-                action_type="comment_on_post",
-                user_id=user_id,
+                repos=repos,
+                conn=conn,
                 trace_ctx=trace_ctx,
-            )
-            generation = _persist_generation(
-                snapshot,
-                user_id,
-                "comment_on_post",
-                result,
-                repos,
-                conn,
-            )
-            generation_records.append(generation)
-            if result.status == "completed" and isinstance(
-                result.parsed, LlmCommentOnPostOutput
-            ):
-                _persist_llm_proposed_actions_comment(
-                    snapshot,
-                    user_id,
-                    generation.generation_id,
-                    result.parsed.parent_post_id,
-                    result.parsed.content,
-                    repos,
-                    conn,
-                )
+            ),
+        )
+        _append_generation(
+            generation_records,
+            _generate_and_persist_comments(
+                snapshot=snapshot,
+                user_id=user_id,
+                user=user,
+                feed_posts=feed_posts,
+                memory_text=memory_text,
+                action_config=action_config,
+                llm_config=llm_config,
+                repos=repos,
+                conn=conn,
+                trace_ctx=trace_ctx,
+            ),
+        )
 
     return generation_records
+
+
+def _append_generation(
+    records: list[GenerationRecord],
+    record: GenerationRecord | None,
+) -> None:
+    if record is not None:
+        records.append(record)
+
+
+def _generate_and_persist_likes(
+    *,
+    snapshot: TurnStateSnapshot,
+    user_id: str,
+    user: UserRecord,
+    feed_posts: list[FeedPostView],
+    memory_text: str,
+    num_followers: int,
+    num_follows: int,
+    action_config: ActionConfig,
+    llm_config: LlmConfig,
+    repos: SimulationRepositories,
+    conn: sqlite3.Connection,
+    trace_ctx: SimulationTraceContext | None = None,
+) -> GenerationRecord | None:
+    if not action_config.enable_like_post:
+        return None
+
+    result = invoke_structured_generation(
+        LIKE_POSTS_PROMPT,
+        LlmLikePostOutput,
+        llm_config=llm_config,
+        prompt_variables={
+            "name": user.name,
+            "username": user.username,
+            "num_followers": num_followers,
+            "num_follows": num_follows,
+            "memory": memory_text,
+            "feed_posts": _format_feed_posts(feed_posts),
+            "max_likes": action_config.max_likes_per_turn,
+        },
+        action_type="like_post",
+        user_id=user_id,
+        trace_ctx=trace_ctx,
+    )
+    generation = _persist_generation(
+        snapshot, user_id, "like_post", result, repos, conn
+    )
+    if result.status == "completed" and isinstance(result.parsed, LlmLikePostOutput):
+        _persist_llm_proposed_actions(
+            snapshot,
+            user_id,
+            "like_post",
+            generation.generation_id,
+            result.parsed.post_ids,
+            repos,
+            conn,
+        )
+    return generation
+
+
+def _generate_and_persist_write_post(
+    *,
+    snapshot: TurnStateSnapshot,
+    user_id: str,
+    user: UserRecord,
+    feed_posts: list[FeedPostView],
+    memory_text: str,
+    action_config: ActionConfig,
+    llm_config: LlmConfig,
+    repos: SimulationRepositories,
+    conn: sqlite3.Connection,
+    trace_ctx: SimulationTraceContext | None = None,
+) -> GenerationRecord | None:
+    if not action_config.enable_write_post:
+        return None
+
+    result = invoke_structured_generation(
+        WRITE_POST_PROMPT,
+        LlmWritePostOutput,
+        llm_config=llm_config,
+        prompt_variables={
+            "name": user.name,
+            "username": user.username,
+            "memory": memory_text,
+            "feed_posts": _format_feed_posts(feed_posts),
+        },
+        action_type="write_post",
+        user_id=user_id,
+        trace_ctx=trace_ctx,
+    )
+    generation = _persist_generation(
+        snapshot, user_id, "write_post", result, repos, conn
+    )
+    if result.status == "completed" and isinstance(result.parsed, LlmWritePostOutput):
+        _persist_llm_proposed_actions_write(
+            snapshot,
+            user_id,
+            generation.generation_id,
+            result.parsed.content,
+            repos,
+            conn,
+        )
+    return generation
+
+
+def _generate_and_persist_follows(
+    *,
+    snapshot: TurnStateSnapshot,
+    user_id: str,
+    user: UserRecord,
+    feed_posts: list[FeedPostView],
+    memory_text: str,
+    num_followers: int,
+    num_follows: int,
+    action_config: ActionConfig,
+    llm_config: LlmConfig,
+    repos: SimulationRepositories,
+    conn: sqlite3.Connection,
+    trace_ctx: SimulationTraceContext | None = None,
+) -> GenerationRecord | None:
+    if not action_config.enable_follow_user:
+        return None
+
+    candidates = _candidate_users_from_feed(user_id, feed_posts, snapshot.users)
+    result = invoke_structured_generation(
+        FOLLOW_USERS_PROMPT,
+        LlmFollowUserOutput,
+        llm_config=llm_config,
+        prompt_variables={
+            "name": user.name,
+            "username": user.username,
+            "num_followers": num_followers,
+            "num_follows": num_follows,
+            "memory": memory_text,
+            "candidate_users": _format_candidate_users(candidates),
+            "max_follows": action_config.max_follows_per_turn,
+        },
+        action_type="follow_user",
+        user_id=user_id,
+        trace_ctx=trace_ctx,
+    )
+    generation = _persist_generation(
+        snapshot, user_id, "follow_user", result, repos, conn
+    )
+    if result.status == "completed" and isinstance(result.parsed, LlmFollowUserOutput):
+        _persist_llm_proposed_actions_follow(
+            snapshot,
+            user_id,
+            generation.generation_id,
+            result.parsed.user_ids,
+            repos,
+            conn,
+        )
+    return generation
+
+
+def _generate_and_persist_comments(
+    *,
+    snapshot: TurnStateSnapshot,
+    user_id: str,
+    user: UserRecord,
+    feed_posts: list[FeedPostView],
+    memory_text: str,
+    action_config: ActionConfig,
+    llm_config: LlmConfig,
+    repos: SimulationRepositories,
+    conn: sqlite3.Connection,
+    trace_ctx: SimulationTraceContext | None = None,
+) -> GenerationRecord | None:
+    if not action_config.enable_comment_on_post:
+        return None
+
+    result = invoke_structured_generation(
+        COMMENT_ON_POST_PROMPT,
+        LlmCommentOnPostOutput,
+        llm_config=llm_config,
+        prompt_variables={
+            "name": user.name,
+            "username": user.username,
+            "memory": memory_text,
+            "feed_posts": _format_feed_posts(feed_posts),
+        },
+        action_type="comment_on_post",
+        user_id=user_id,
+        trace_ctx=trace_ctx,
+    )
+    generation = _persist_generation(
+        snapshot, user_id, "comment_on_post", result, repos, conn
+    )
+    if result.status == "completed" and isinstance(
+        result.parsed, LlmCommentOnPostOutput
+    ):
+        _persist_llm_proposed_actions_comment(
+            snapshot,
+            user_id,
+            generation.generation_id,
+            result.parsed.parent_post_id,
+            result.parsed.content,
+            repos,
+            conn,
+        )
+    return generation
 
 
 def _format_feed_posts(feed_posts: list[FeedPostView]) -> str:
