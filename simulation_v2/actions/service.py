@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass, field
 from typing import Any
 
 from simulation_v2.actions.llm import invoke_structured_generation
@@ -20,6 +21,13 @@ from simulation_v2.actions.prompts import (
     LIKE_POSTS_PROMPT,
     WRITE_POST_PROMPT,
 )
+from simulation_v2.actions.validators import (
+    ActionValidationOutcome,
+    validate_comment_on_post_action,
+    validate_follow_user_action,
+    validate_like_post_action,
+    validate_write_post_action,
+)
 from simulation_v2.config import ActionConfig, LlmConfig
 from simulation_v2.db.models import (
     AgentMemoryRecord,
@@ -27,10 +35,15 @@ from simulation_v2.db.models import (
     GeneratedFeedRecord,
     GenerationRecord,
     LlmProposedActionRecord,
+    ProposedActionRecord,
     UserRecord,
 )
 from simulation_v2.db.repositories import SimulationRepositories
-from simulation_v2.ids import new_generation_id, new_llm_proposed_action_id
+from simulation_v2.ids import (
+    new_action_id,
+    new_generation_id,
+    new_llm_proposed_action_id,
+)
 from simulation_v2.lib.decorators import progress_items
 from simulation_v2.telemetry.context import SimulationTraceContext
 from simulation_v2.time import get_current_timestamp
@@ -129,6 +142,182 @@ def generate_and_persist_llm_actions(
         )
 
     return generation_records
+
+
+def validate_and_persist_proposed_actions(
+    snapshot: TurnStateSnapshot,
+    feed_records: list[GeneratedFeedRecord],
+    action_config: ActionConfig,
+    repos: SimulationRepositories,
+    conn: sqlite3.Connection,
+) -> list[ProposedActionRecord]:
+    feeds_by_user = {record.user_id: record.feed_posts for record in feed_records}
+    llm_rows = repos.list_llm_proposed_actions_for_turn(
+        snapshot.run_id, snapshot.turn_id, conn
+    )
+    llm_rows.sort(key=lambda row: (row.created_at, row.llm_proposed_action_id))
+
+    user_states: dict[str, _UserValidationState] = {}
+    proposed_records: list[ProposedActionRecord] = []
+
+    for llm_row in llm_rows:
+        state = _get_user_validation_state(
+            user_states,
+            llm_row.user_id,
+            feeds_by_user,
+            snapshot,
+        )
+        outcome = _validate_llm_row(llm_row, state, action_config)
+        record = _llm_row_to_proposed_record(outcome, llm_row)
+        repos.insert_proposed_action(record, conn)
+        proposed_records.append(record)
+        if outcome.accepted:
+            _record_accepted_action(state, llm_row)
+
+    return proposed_records
+
+
+@dataclass
+class _UserValidationState:
+    feed_post_ids: set[str]
+    feed_author_by_post_id: dict[str, str]
+    follow_candidate_ids: set[str]
+    snapshot_liked_post_ids: set[str]
+    snapshot_followed_user_ids: set[str]
+    accepted_likes: set[str] = field(default_factory=set)
+    accepted_follows: set[str] = field(default_factory=set)
+    accepted_like_count: int = 0
+    accepted_follow_count: int = 0
+    accepted_write_count: int = 0
+    accepted_comment_count: int = 0
+
+
+def _get_user_validation_state(
+    user_states: dict[str, _UserValidationState],
+    user_id: str,
+    feeds_by_user: dict[str, list[FeedPostView]],
+    snapshot: TurnStateSnapshot,
+) -> _UserValidationState:
+    if user_id not in user_states:
+        feed_posts = feeds_by_user.get(user_id, [])
+        candidates = _candidate_users_from_feed(user_id, feed_posts, snapshot.users)
+        user_states[user_id] = _UserValidationState(
+            feed_post_ids={post.post_id for post in feed_posts},
+            feed_author_by_post_id={
+                post.post_id: post.author_id for post in feed_posts
+            },
+            follow_candidate_ids={user.user_id for user in candidates},
+            snapshot_liked_post_ids={
+                like.post_id for like in snapshot.likes if like.author_id == user_id
+            },
+            snapshot_followed_user_ids={
+                follow.followee_id
+                for follow in snapshot.follows
+                if follow.follower_id == user_id
+            },
+        )
+    return user_states[user_id]
+
+
+def _validate_llm_row(
+    llm_row: LlmProposedActionRecord,
+    state: _UserValidationState,
+    action_config: ActionConfig,
+) -> ActionValidationOutcome:
+    if llm_row.action_type == "like_post":
+        return validate_like_post_action(
+            user_id=llm_row.user_id,
+            post_id=llm_row.target_id or "",
+            feed_post_ids=state.feed_post_ids,
+            feed_author_by_post_id=state.feed_author_by_post_id,
+            snapshot_liked_post_ids=state.snapshot_liked_post_ids,
+            accepted_likes_this_turn=state.accepted_likes,
+            accepted_like_count=state.accepted_like_count,
+            max_likes=action_config.max_likes_per_turn,
+        )
+    if llm_row.action_type == "follow_user":
+        return validate_follow_user_action(
+            user_id=llm_row.user_id,
+            followee_id=llm_row.target_id or "",
+            follow_candidate_ids=state.follow_candidate_ids,
+            snapshot_followed_user_ids=state.snapshot_followed_user_ids,
+            accepted_follows_this_turn=state.accepted_follows,
+            accepted_follow_count=state.accepted_follow_count,
+            max_follows=action_config.max_follows_per_turn,
+        )
+    if llm_row.action_type == "write_post":
+        return validate_write_post_action(
+            content=llm_row.target_content,
+            accepted_write_count=state.accepted_write_count,
+            max_posts=action_config.max_posts_per_turn,
+        )
+    if llm_row.action_type == "comment_on_post":
+        return validate_comment_on_post_action(
+            parent_post_id=llm_row.target_id or "",
+            content=llm_row.target_content,
+            feed_post_ids=state.feed_post_ids,
+            accepted_comment_count=state.accepted_comment_count,
+            max_comments=action_config.max_comments_per_turn,
+        )
+    return ActionValidationOutcome(
+        accepted=False,
+        filter_id="unsupported_action_type",
+        filter_reason=f"Unsupported action type {llm_row.action_type!r}",
+    )
+
+
+def _record_accepted_action(
+    state: _UserValidationState,
+    llm_row: LlmProposedActionRecord,
+) -> None:
+    if llm_row.action_type == "like_post" and llm_row.target_id is not None:
+        state.accepted_likes.add(llm_row.target_id)
+        state.accepted_like_count += 1
+    elif llm_row.action_type == "follow_user" and llm_row.target_id is not None:
+        state.accepted_follows.add(llm_row.target_id)
+        state.accepted_follow_count += 1
+    elif llm_row.action_type == "write_post":
+        state.accepted_write_count += 1
+    elif llm_row.action_type == "comment_on_post":
+        state.accepted_comment_count += 1
+
+
+def _llm_row_to_proposed_record(
+    outcome: ActionValidationOutcome,
+    llm_row: LlmProposedActionRecord,
+) -> ProposedActionRecord:
+    if outcome.accepted:
+        return ProposedActionRecord(
+            action_id=new_action_id(),
+            record_kind="validated",
+            generation_id=llm_row.generation_id,
+            run_id=llm_row.run_id,
+            turn_id=llm_row.turn_id,
+            user_id=llm_row.user_id,
+            action_type=llm_row.action_type,
+            target_type=llm_row.target_type,
+            target_id=llm_row.target_id,
+            target_content=llm_row.target_content,
+            metadata_json=llm_row.metadata_json,
+            created_at=get_current_timestamp(),
+        )
+    return ProposedActionRecord(
+        action_id=new_action_id(),
+        record_kind="rejected",
+        generation_id=llm_row.generation_id,
+        run_id=llm_row.run_id,
+        turn_id=llm_row.turn_id,
+        user_id=llm_row.user_id,
+        action_type=llm_row.action_type,
+        target_type=llm_row.target_type,
+        target_id=llm_row.target_id,
+        target_content=llm_row.target_content,
+        filter_id=outcome.filter_id,
+        filter_reason=outcome.filter_reason,
+        rejection_stage="business_rules",
+        metadata_json=llm_row.metadata_json,
+        created_at=get_current_timestamp(),
+    )
 
 
 def _append_generation(
