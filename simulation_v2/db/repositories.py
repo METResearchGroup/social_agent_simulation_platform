@@ -976,6 +976,38 @@ class SimulationRepositories:
             ),
         )
 
+    def list_proposed_actions_for_turn(
+        self, run_id: str, turn_id: str, conn: sqlite3.Connection
+    ) -> list[ProposedActionRecord]:
+        rows = conn.execute(
+            """
+            SELECT * FROM proposed_actions
+            WHERE run_id = ? AND turn_id = ?
+            ORDER BY created_at, action_id
+            """,
+            (run_id, turn_id),
+        ).fetchall()
+        return [
+            ProposedActionRecord(
+                action_id=row["action_id"],
+                record_kind=row["record_kind"],
+                generation_id=row["generation_id"],
+                run_id=row["run_id"],
+                turn_id=row["turn_id"],
+                user_id=row["user_id"],
+                action_type=row["action_type"],
+                target_type=row["target_type"],
+                target_id=row["target_id"],
+                target_content=row["target_content"],
+                filter_id=row["filter_id"],
+                filter_reason=row["filter_reason"],
+                rejection_stage=row["rejection_stage"],
+                metadata_json=_loads_json(row["metadata_json"]),
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
+
     def get_proposed_action(
         self, action_id: str, conn: sqlite3.Connection
     ) -> ProposedActionRecord | None:

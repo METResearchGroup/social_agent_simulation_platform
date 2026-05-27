@@ -170,6 +170,36 @@ class TestRepositoryRoundTrips:
 
         assert loaded == record
 
+    def test_list_proposed_actions_for_turn(self, db: SimulationDatabase) -> None:
+        run_id, turn_id = _insert_run_and_turn(db)
+        generation = factories.GenerationRecordFactory.create(
+            run_id=run_id, turn_id=turn_id
+        )
+        validated = factories.ProposedActionRecordFactory.create(
+            run_id=run_id,
+            turn_id=turn_id,
+            generation_id=generation.generation_id,
+            record_kind="validated",
+            created_at="2026-01-01T00:00:01+00:00",
+        )
+        rejected = factories.ProposedActionRecordFactory.create(
+            run_id=run_id,
+            turn_id=turn_id,
+            generation_id=generation.generation_id,
+            record_kind="rejected",
+            rejection_stage="business_rules",
+            filter_id="duplicate_like",
+            filter_reason="Duplicate like for post p1",
+            created_at="2026-01-01T00:00:02+00:00",
+        )
+        with transaction(db._db_path) as conn:
+            db.repos.insert_generation(generation, conn)
+            db.repos.insert_proposed_action(validated, conn)
+            db.repos.insert_proposed_action(rejected, conn)
+            loaded = db.repos.list_proposed_actions_for_turn(run_id, turn_id, conn)
+
+        assert loaded == [validated, rejected]
+
     def test_eval_run_round_trip(self, db: SimulationDatabase) -> None:
         run_id, turn_id = _insert_run_and_turn(db)
         record = factories.EvalRunRecordFactory.create(run_id=run_id, turn_id=turn_id)
