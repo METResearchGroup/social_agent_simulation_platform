@@ -6,27 +6,58 @@ from collections import defaultdict
 from pathlib import Path
 from typing import ClassVar
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
+from simulation_v2.db.models.actions import ProposedActionRecord
 from simulation_v2.db.models.evals import EvalScope
 from simulation_v2.evals.fixtures.models import GoldenCase, load_golden_fixture
 from simulation_v2.evals.interfaces import EvalContext, EvalMetricDraft, EvalResult
 from simulation_v2.evals.query_helpers import load_proposed_actions
 
 
-def prf(
+class PrecisionRecallF1Metrics(BaseModel):
+    precision: float
+    recall: float
+    f1: float
+    true_positives: int
+    false_positives: int
+    false_negatives: int
+
+
+def compute_precision_recall_f1(
     predicted: set[str], expected: set[str]
-) -> tuple[float, float, float, int, int, int]:
-    tp = len(predicted & expected)
-    fp = len(predicted - expected)
-    fn = len(expected - predicted)
-    precision = tp / (tp + fp) if (tp + fp) else 0.0
-    recall = tp / (tp + fn) if (tp + fn) else 0.0
+) -> PrecisionRecallF1Metrics:
+    """Compute precision, recall, and F1 from predicted and expected string sets.
+
+    Treats set membership as binary classification: true positives are items in
+    both sets; false positives are predicted-only; false negatives are expected-only.
+    """
+    true_positives = len(predicted & expected)
+    false_positives = len(predicted - expected)
+    false_negatives = len(expected - predicted)
+    precision = (
+        true_positives / (true_positives + false_positives)
+        if (true_positives + false_positives)
+        else 0.0
+    )
+    recall = (
+        true_positives / (true_positives + false_negatives)
+        if (true_positives + false_negatives)
+        else 0.0
+    )
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
-    return precision, recall, f1, tp, fp, fn
+    return PrecisionRecallF1Metrics(
+        precision=precision,
+        recall=recall,
+        f1=f1,
+        true_positives=true_positives,
+        false_positives=false_positives,
+        false_negatives=false_negatives,
+    )
 
 
 def _normalize_topic(value: str) -> str:
+    """Normalize a write topic for case-insensitive golden-label comparison."""
     return value.strip().lower()
 
 
@@ -35,9 +66,11 @@ class GoldenDatasetPlugin:
     scopes: ClassVar[frozenset[EvalScope]] = frozenset({"turn"})
 
     def __init__(self, fixture_path: Path | None = None) -> None:
+        """Optionally override the default golden fixture JSON path (for tests)."""
         self._fixture_path = fixture_path
 
     def run(self, context: EvalContext) -> EvalResult:
+        """Load the golden fixture and score validated proposed actions per labeled case."""
         try:
             fixture = load_golden_fixture(self._fixture_path)
         except (OSError, ValidationError, ValueError) as exc:
@@ -53,7 +86,7 @@ class GoldenDatasetPlugin:
             for user in context.repos.list_users_for_run(context.run_id, context.conn)
         }
         proposed = load_proposed_actions(context)
-        validated_by_user: dict[str, list] = defaultdict(list)
+        validated_by_user: dict[str, list[ProposedActionRecord]] = defaultdict(list)
         for action in proposed:
             if action.record_kind != "validated":
                 continue
@@ -113,8 +146,9 @@ class GoldenDatasetPlugin:
 
 
 def _evaluate_case(
-    case: GoldenCase, user_actions: list
+    case: GoldenCase, user_actions: list[ProposedActionRecord]
 ) -> tuple[list[EvalMetricDraft], list[str], int]:
+    """Score one golden case against a user's validated actions for present label fields."""
     metrics: list[EvalMetricDraft] = []
     warnings: list[str] = []
     labels_skipped = 0
@@ -164,15 +198,15 @@ def _evaluate_case(
         warnings.append(f"skipped label_type=write_topic for case_id={case.case_id}")
 
     for label_type, case_id, predicted, expected in label_specs:
-        precision, recall, f1, tp, fp, fn = prf(predicted, expected)
+        scores = compute_precision_recall_f1(predicted, expected)
         metadata = {"label_type": label_type, "case_id": case_id}
         for metric_name, value in (
-            ("precision", precision),
-            ("recall", recall),
-            ("f1", f1),
-            ("tp", float(tp)),
-            ("fp", float(fp)),
-            ("fn", float(fn)),
+            ("precision", scores.precision),
+            ("recall", scores.recall),
+            ("f1", scores.f1),
+            ("tp", float(scores.true_positives)),
+            ("fp", float(scores.false_positives)),
+            ("fn", float(scores.false_negatives)),
         ):
             metrics.append(
                 EvalMetricDraft(
