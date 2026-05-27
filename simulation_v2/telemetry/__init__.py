@@ -1,12 +1,5 @@
 """Telemetry package for simulation v2."""
 
-from simulation_v2.models.telemetry import (
-    ActionLlmMetricsSummary,
-    ActionType,
-    LatencyPercentiles,
-    RunLlmMetricsSummary,
-    TurnLlmMetricsSummary,
-)
 from simulation_v2.telemetry.context import SimulationTraceContext
 from simulation_v2.telemetry.llm_callback import LlmMetricsCallbackHandler
 from simulation_v2.telemetry.llm_collector import (
@@ -14,6 +7,13 @@ from simulation_v2.telemetry.llm_collector import (
     RunLlmMetricsCollector,
     TurnLlmMetricsCollector,
     compute_percentiles,
+)
+from simulation_v2.telemetry.models import (
+    ActionLlmMetricsSummary,
+    ActionType,
+    LatencyPercentiles,
+    RunLlmMetricsSummary,
+    TurnLlmMetricsSummary,
 )
 from simulation_v2.telemetry.opik import (
     PROJECT_NAME,

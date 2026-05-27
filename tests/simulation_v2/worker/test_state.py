@@ -9,14 +9,14 @@ import pytest
 from simulation_v2.config import LocalSimulationConfig
 from simulation_v2.db.connection import transaction
 from simulation_v2.db.database import SimulationDatabase
-from simulation_v2.models.seed_data import (
+from simulation_v2.seed.loader import persist_seed_for_run
+from simulation_v2.seed.models import (
     FollowModel,
     LikeModel,
     LoadedPostModel,
     LoadedUserModel,
+    SeedDataset,
 )
-from simulation_v2.seed.loader import persist_seed_for_run
-from simulation_v2.seed.models import SeedDataset
 from simulation_v2.worker.state import load_turn_snapshot
 from tests.simulation_v2.db import factories
 

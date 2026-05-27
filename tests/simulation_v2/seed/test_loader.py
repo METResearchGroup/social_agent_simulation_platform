@@ -10,18 +10,19 @@ import pytest
 from simulation_v2.config import LocalSimulationConfig, SeedConfig
 from simulation_v2.db.connection import transaction
 from simulation_v2.db.database import SimulationDatabase
-from simulation_v2.models.seed_data import (
-    FollowModel,
-    LikeModel,
-    LoadedPostModel,
-    LoadedUserModel,
-)
 from simulation_v2.seed.loader import (
     import_seed_if_needed,
     load_seed_dataset,
     persist_seed_for_run,
 )
-from simulation_v2.seed.models import SeedDataset, SeedImportSummary
+from simulation_v2.seed.models import (
+    FollowModel,
+    LikeModel,
+    LoadedPostModel,
+    LoadedUserModel,
+    SeedDataset,
+    SeedImportSummary,
+)
 from tests.simulation_v2.db import factories
 
 FIXED_TS = "2026-01-01T00:00:00.000000+00:00"

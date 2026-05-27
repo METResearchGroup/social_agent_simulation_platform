@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from simulation_v2.models.telemetry import ActionType
+from simulation_v2.telemetry.models import ActionType
 
 if TYPE_CHECKING:
     from simulation_v2.telemetry.context import SimulationTraceContext

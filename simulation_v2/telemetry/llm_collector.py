@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from simulation_v2.models.telemetry import (
+from simulation_v2.telemetry.models import (
     ActionLlmMetricsSummary,
     ActionType,
     LatencyPercentiles,
