@@ -24,12 +24,6 @@ from simulation_v2.telemetry.opik import (
     log_run_llm_summary_to_opik,
     log_turn_llm_summary_to_opik,
 )
-from simulation_v2.telemetry.simulation_metrics import (
-    SimulationMetricsCollector,
-    SimulationOutcomeRecord,
-    log_turn_simulation_metrics,
-    record_stochastic_filter,
-)
 
 __all__ = [
     "PROJECT_NAME",
@@ -40,8 +34,6 @@ __all__ = [
     "LlmMetricsCallbackHandler",
     "RunLlmMetricsCollector",
     "RunLlmMetricsSummary",
-    "SimulationMetricsCollector",
-    "SimulationOutcomeRecord",
     "SimulationTraceContext",
     "TurnLlmMetricsCollector",
     "TurnLlmMetricsSummary",
@@ -52,6 +44,4 @@ __all__ = [
     "is_opik_enabled",
     "log_run_llm_summary_to_opik",
     "log_turn_llm_summary_to_opik",
-    "log_turn_simulation_metrics",
-    "record_stochastic_filter",
 ]

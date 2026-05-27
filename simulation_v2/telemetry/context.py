@@ -8,7 +8,6 @@ from simulation_v2.telemetry.llm_collector import (
     RunLlmMetricsCollector,
     TurnLlmMetricsCollector,
 )
-from simulation_v2.telemetry.simulation_metrics import SimulationMetricsCollector
 
 
 @dataclass
@@ -21,7 +20,4 @@ class SimulationTraceContext:
     )
     run_llm_collector: RunLlmMetricsCollector = field(
         default_factory=RunLlmMetricsCollector
-    )
-    simulation_metrics: SimulationMetricsCollector = field(
-        default_factory=SimulationMetricsCollector
     )
