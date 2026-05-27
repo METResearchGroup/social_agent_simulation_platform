@@ -12,7 +12,12 @@ from simulation_v2.models.telemetry import (
     TurnLlmMetricsSummary,
 )
 
-_ACTION_TYPES: tuple[ActionType, ...] = ("like_posts", "write_post", "follow_users")
+_ACTION_TYPES: tuple[ActionType, ...] = (
+    "like_posts",
+    "write_post",
+    "follow_users",
+    "comment_on_post",
+)
 
 
 @dataclass

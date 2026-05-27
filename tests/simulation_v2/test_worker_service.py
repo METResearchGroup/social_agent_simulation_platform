@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from simulation_v2.config import LocalSimulationConfig
+from simulation_v2.config import ActionConfig, LocalSimulationConfig
 from simulation_v2.db.connection import transaction
 from simulation_v2.db.database import SimulationDatabase
 from simulation_v2.seed.loader import import_seed_if_needed
@@ -29,7 +29,16 @@ def db_path(tmp_path: Path) -> Path:
 
 def _small_config(**overrides: object) -> LocalSimulationConfig:
     return LocalSimulationConfig.default().model_copy(
-        update={"total_turns": 3, **overrides}
+        update={
+            "total_turns": 3,
+            "action": ActionConfig(
+                enable_like_post=False,
+                enable_write_post=False,
+                enable_follow_user=False,
+                enable_comment_on_post=False,
+            ),
+            **overrides,
+        }
     )
 
 
