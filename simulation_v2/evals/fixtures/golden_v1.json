@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "partial_likes",
+      "user_id": "golden-user-like",
+      "expected_like_post_ids": ["golden-post-a", "golden-post-b"]
+    },
+    {
+      "case_id": "partial_follows",
+      "user_id": "golden-user-follow",
+      "expected_follow_user_ids": ["golden-target-user"]
+    },
+    {
+      "case_id": "partial_write_topic",
+      "user_id": "golden-user-write",
+      "expected_write_topic": "renewable energy"
+    }
+  ]
+}
