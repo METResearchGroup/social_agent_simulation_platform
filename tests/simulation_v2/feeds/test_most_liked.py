@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from simulation_v2.config import FeedConfig, LocalSimulationConfig
 from simulation_v2.feeds.most_liked import MostLikedFeedGenerator
@@ -92,7 +92,10 @@ class TestMostLikedFeedGenerator:
         assert feed[0].post_id == "p2"
 
     @patch("simulation_v2.feeds.most_liked.random.random", return_value=1.0)
-    def test_include_probability_gate_excludes_post(self) -> None:
+    def test_include_probability_gate_excludes_post(
+        self, mock_random: MagicMock
+    ) -> None:
+        assert mock_random.return_value == 1.0
         snapshot = _snapshot()
         config = FeedConfig(include_probability=0.5, max_posts=10)
         generator = MostLikedFeedGenerator()

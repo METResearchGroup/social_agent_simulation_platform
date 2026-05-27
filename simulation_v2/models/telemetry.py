@@ -6,7 +6,12 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-ActionType = Literal["like_posts", "write_post", "follow_users"]
+ActionType = Literal[
+    "like_posts",
+    "write_post",
+    "follow_users",
+    "comment_on_post",
+]
 
 
 class LatencyPercentiles(BaseModel):

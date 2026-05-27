@@ -838,6 +838,37 @@ class SimulationRepositories:
             error=row["error"],
         )
 
+    def list_generations_for_turn(
+        self, run_id: str, turn_id: str, conn: sqlite3.Connection
+    ) -> list[GenerationRecord]:
+        rows = conn.execute(
+            """
+            SELECT * FROM generations
+            WHERE run_id = ? AND turn_id = ?
+            ORDER BY created_at
+            """,
+            (run_id, turn_id),
+        ).fetchall()
+        return [
+            GenerationRecord(
+                generation_id=row["generation_id"],
+                run_id=row["run_id"],
+                turn_id=row["turn_id"],
+                user_id=row["user_id"],
+                action_type=row["action_type"],
+                parsed_response_json=_loads_json(row["parsed_response_json"]),
+                raw_response_json=_loads_json(row["raw_response_json"]),
+                status=row["status"],
+                latency_ms=row["latency_ms"],
+                prompt_tokens=row["prompt_tokens"],
+                completion_tokens=row["completion_tokens"],
+                cost_usd=row["cost_usd"],
+                created_at=row["created_at"],
+                error=row["error"],
+            )
+            for row in rows
+        ]
+
     def insert_llm_proposed_action(
         self, record: LlmProposedActionRecord, conn: sqlite3.Connection
     ) -> None:
@@ -886,6 +917,34 @@ class SimulationRepositories:
             metadata_json=_loads_json(row["metadata_json"]),
             created_at=row["created_at"],
         )
+
+    def list_llm_proposed_actions_for_turn(
+        self, run_id: str, turn_id: str, conn: sqlite3.Connection
+    ) -> list[LlmProposedActionRecord]:
+        rows = conn.execute(
+            """
+            SELECT * FROM llm_proposed_actions
+            WHERE run_id = ? AND turn_id = ?
+            ORDER BY created_at
+            """,
+            (run_id, turn_id),
+        ).fetchall()
+        return [
+            LlmProposedActionRecord(
+                llm_proposed_action_id=row["llm_proposed_action_id"],
+                generation_id=row["generation_id"],
+                run_id=row["run_id"],
+                turn_id=row["turn_id"],
+                user_id=row["user_id"],
+                action_type=row["action_type"],
+                target_type=row["target_type"],
+                target_id=row["target_id"],
+                target_content=row["target_content"],
+                metadata_json=_loads_json(row["metadata_json"]),
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ]
 
     def insert_proposed_action(
         self, record: ProposedActionRecord, conn: sqlite3.Connection
