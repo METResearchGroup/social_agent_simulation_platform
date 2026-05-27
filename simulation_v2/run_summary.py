@@ -7,6 +7,9 @@ from typing import Any
 
 from simulation_v2.db.models import RunRecord, TurnRecord
 
+_NON_TERMINAL_EVAL_STATUSES = frozenset({"queued", "running", "pending", "in_progress"})
+_TERMINAL_EVAL_STATUSES = frozenset({"passed", "failed"})
+
 
 def format_entity_delta(initial: int, final: int) -> str:
     """Format a final count with delta vs initial, e.g. ``52 (+2)``."""
@@ -40,6 +43,12 @@ def format_eval_summary(run_id: str, conn: sqlite3.Connection) -> str:
     turn_count = sum(1 for row in rows if row["scope"] == "turn")
     run_count = sum(1 for row in rows if row["scope"] == "run")
     failed = [row["plugin_name"] for row in rows if row["status"] == "failed"]
+    incomplete = [
+        f"{row['plugin_name']}={row['status']}"
+        for row in rows
+        if row["status"] in _NON_TERMINAL_EVAL_STATUSES
+        or row["status"] not in _TERMINAL_EVAL_STATUSES
+    ]
     run_scope = ", ".join(
         f"{row['plugin_name']}={row['status']}" for row in rows if row["scope"] == "run"
     )
@@ -48,6 +57,8 @@ def format_eval_summary(run_id: str, conn: sqlite3.Connection) -> str:
         f"Evals: {len(rows)} plugin runs "
         f"({turn_count} turn + {run_count} run scope), {metric_count} metrics"
     )
+    if incomplete:
+        return f"{summary}; incomplete: {', '.join(incomplete)}. Run-scope: {run_scope}"
     if failed:
         return f"{summary}; failed: {', '.join(failed)}"
     return f"{summary}; all completed. Run-scope: {run_scope}"

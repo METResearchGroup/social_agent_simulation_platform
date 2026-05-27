@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import sqlite3
+
 from simulation_v2.db.models import RunRecord, TurnRecord
 from simulation_v2.run_summary import (
     format_entity_delta,
+    format_eval_summary,
     format_run_summary,
 )
 
@@ -81,3 +84,86 @@ class TestFormatRunSummary:
         assert "generations=40" in lines[2]
         assert "generated_feeds=30" in lines[2]
         assert lines[3].startswith("Evals: 8 plugin runs")
+
+
+def _eval_db(rows: list[tuple[str, str, str]]) -> sqlite3.Connection:
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(
+        """
+        CREATE TABLE eval_runs (
+            eval_run_id TEXT PRIMARY KEY,
+            run_id TEXT,
+            turn_id TEXT,
+            scope TEXT,
+            plugin_name TEXT,
+            status TEXT,
+            created_at TEXT,
+            finished_at TEXT,
+            error TEXT
+        );
+        CREATE TABLE eval_metrics (
+            eval_metric_id TEXT PRIMARY KEY,
+            eval_run_id TEXT,
+            run_id TEXT,
+            turn_id TEXT,
+            plugin_name TEXT,
+            metric_name TEXT,
+            metric_value REAL,
+            metadata_json TEXT,
+            created_at TEXT
+        );
+        """
+    )
+    for scope, plugin_name, status in rows:
+        conn.execute(
+            """
+            INSERT INTO eval_runs (
+                eval_run_id, run_id, turn_id, scope, plugin_name,
+                status, created_at, finished_at, error
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"eval-{plugin_name}",
+                "run-1",
+                None,
+                scope,
+                plugin_name,
+                status,
+                "2026-01-01T00:00:00+00:00",
+                None,
+                None,
+            ),
+        )
+    return conn
+
+
+class TestFormatEvalSummary:
+    def test_all_passed_reports_completed(self) -> None:
+        conn = _eval_db(
+            [
+                ("turn", "action_counts", "passed"),
+                ("run", "feed_coverage", "passed"),
+            ]
+        )
+        result = format_eval_summary("run-1", conn)
+        assert "all completed" in result
+        assert "Run-scope: feed_coverage=passed" in result
+
+    def test_failed_reports_failed_plugins(self) -> None:
+        conn = _eval_db([("run", "action_counts", "failed")])
+        result = format_eval_summary("run-1", conn)
+        assert "failed: action_counts" in result
+        assert "all completed" not in result
+
+    def test_non_terminal_status_reports_incomplete(self) -> None:
+        conn = _eval_db(
+            [
+                ("turn", "action_counts", "passed"),
+                ("run", "feed_coverage", "running"),
+            ]
+        )
+        result = format_eval_summary("run-1", conn)
+        assert "incomplete: feed_coverage=running" in result
+        assert "all completed" not in result
+        assert "Run-scope: feed_coverage=running" in result
