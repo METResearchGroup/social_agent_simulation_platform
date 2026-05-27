@@ -7,8 +7,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from lib.timestamp_utils import get_current_timestamp
 from simulation_v2.seed.models import SeedDataset
+from simulation_v2.time import get_current_timestamp
 
 CACHED_SEED_DATA_DIR = Path(__file__).resolve().parent.parent / "cached_seed_data"
 METADATA_FILENAME = "metadata.json"

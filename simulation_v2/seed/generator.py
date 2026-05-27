@@ -14,7 +14,6 @@ import pyarrow.parquet as pq
 from faker import Faker
 from pydantic import BaseModel
 
-from lib.timestamp_utils import CREATED_AT_FORMAT
 from simulation_v2.models.seed_data import (
     FollowModel,
     LikeModel,
@@ -22,6 +21,7 @@ from simulation_v2.models.seed_data import (
     SeedDataModel,
     UserModel,
 )
+from simulation_v2.time import CREATED_AT_FORMAT
 
 SEED_DATA_PATH = Path(__file__).resolve().parent.parent / "seed_data"
 

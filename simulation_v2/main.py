@@ -1,8 +1,8 @@
 """Runs a full run of the simulation via the local control plane.
 
 Seed users, posts, likes, follows, and agent memories are persisted to SQLite
-before the turn loop. Each turn loads a SQLite-backed snapshot and generates
-persisted feeds via the feed service. LLM actions remain stubbed until PR 8+.
+before the turn loop. Each turn loads a snapshot, generates feeds, and runs LLM
+action generation (requires ``OPENAI_API_KEY`` with default action config).
 
 To run:
 
@@ -13,6 +13,17 @@ Default config: 3 users, 5 posts per user, 3 turns.
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# TODO: remove at end of project when promoting project as completed.
+# Running as `python simulation_v2/main.py` puts this package dir on sys.path[0],
+# which shadows repo-root `lib/` (e.g. load_env_vars). Prefer repo root for imports.
+_script_dir = Path(__file__).resolve().parent
+if sys.path and Path(sys.path[0]).resolve() == _script_dir:
+    del sys.path[0]
+
+# ruff: noqa: E402
 from simulation_v2.config import LocalSimulationConfig, SeedConfig
 from simulation_v2.control_plane.service import get_run_summary, start_run
 from simulation_v2.db.connection import transaction
