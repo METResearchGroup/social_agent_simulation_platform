@@ -9,12 +9,12 @@ import opik
 from opik.integrations.langchain import OpikTracer
 
 from lib.load_env_vars import EnvVarsContainer
-from simulation_v2.models.telemetry import (
+from simulation_v2.telemetry.context import SimulationTraceContext
+from simulation_v2.telemetry.models import (
     ActionType,
     RunLlmMetricsSummary,
     TurnLlmMetricsSummary,
 )
-from simulation_v2.telemetry.context import SimulationTraceContext
 
 LOGGER = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ import pyarrow.parquet as pq
 from faker import Faker
 from pydantic import BaseModel
 
-from simulation_v2.models.seed_data import (
+from simulation_v2.seed.models import (
     FollowModel,
     LikeModel,
     PostModel,
@@ -489,3 +489,10 @@ def print_seed_data_statistics(seed_data: SeedDataModel) -> None:
             print(f"{key}: {value:,.2f}")
         else:
             print(f"{key}: {value:,}")
+
+
+if __name__ == "__main__":
+    if not seed_data_dir_exists():
+        data = generate_data()
+        export_seed_data(data)
+        print_seed_data_statistics(data)

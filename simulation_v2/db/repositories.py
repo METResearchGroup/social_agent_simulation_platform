@@ -232,33 +232,54 @@ class SimulationRepositories:
     def count_seed_entities_for_run(
         self, run_id: str, conn: sqlite3.Connection
     ) -> dict[str, int]:
-        user_count = conn.execute(
-            "SELECT COUNT(*) FROM users WHERE run_id = ?",
-            (run_id,),
-        ).fetchone()[0]
-        post_count = conn.execute(
-            "SELECT COUNT(*) FROM posts WHERE run_id = ?",
-            (run_id,),
-        ).fetchone()[0]
-        like_count = conn.execute(
-            "SELECT COUNT(*) FROM likes WHERE run_id = ?",
-            (run_id,),
-        ).fetchone()[0]
-        follow_count = conn.execute(
-            "SELECT COUNT(*) FROM follows WHERE run_id = ?",
-            (run_id,),
-        ).fetchone()[0]
-        memory_count = conn.execute(
-            "SELECT COUNT(*) FROM agent_memories WHERE run_id = ?",
-            (run_id,),
-        ).fetchone()[0]
+        totals = self.count_run_entity_totals(run_id, conn)
         return {
-            "user_count": user_count,
-            "post_count": post_count,
-            "like_count": like_count,
-            "follow_count": follow_count,
-            "memory_count": memory_count,
+            "user_count": totals["user_count"],
+            "post_count": totals["post_count"],
+            "like_count": totals["like_count"],
+            "follow_count": totals["follow_count"],
+            "memory_count": totals["memory_count"],
         }
+
+    def count_run_entity_totals(
+        self, run_id: str, conn: sqlite3.Connection
+    ) -> dict[str, int]:
+        return {
+            "user_count": self._count_for_run(conn, "users", run_id),
+            "post_count": self._count_for_run(conn, "posts", run_id),
+            "like_count": self._count_for_run(conn, "likes", run_id),
+            "follow_count": self._count_for_run(conn, "follows", run_id),
+            "comment_count": self._count_for_run(conn, "comments", run_id),
+            "memory_count": self._count_for_run(conn, "agent_memories", run_id),
+            "generation_count": self._count_for_run(conn, "generations", run_id),
+            "proposed_action_count": self._count_for_run(
+                conn, "proposed_actions", run_id
+            ),
+            "generated_feed_count": self._count_for_run(
+                conn, "generated_feeds", run_id
+            ),
+            "eval_run_count": self._count_for_run(conn, "eval_runs", run_id),
+            "eval_metric_count": self._count_for_run(conn, "eval_metrics", run_id),
+            "turn_count": self._count_for_run(conn, "turns", run_id),
+        }
+
+    @staticmethod
+    def _count_for_run(conn: sqlite3.Connection, table: str, run_id: str) -> int:
+        queries = {
+            "users": "SELECT COUNT(*) FROM users WHERE run_id = ?",
+            "posts": "SELECT COUNT(*) FROM posts WHERE run_id = ?",
+            "likes": "SELECT COUNT(*) FROM likes WHERE run_id = ?",
+            "follows": "SELECT COUNT(*) FROM follows WHERE run_id = ?",
+            "comments": "SELECT COUNT(*) FROM comments WHERE run_id = ?",
+            "agent_memories": "SELECT COUNT(*) FROM agent_memories WHERE run_id = ?",
+            "generations": "SELECT COUNT(*) FROM generations WHERE run_id = ?",
+            "proposed_actions": "SELECT COUNT(*) FROM proposed_actions WHERE run_id = ?",
+            "generated_feeds": "SELECT COUNT(*) FROM generated_feeds WHERE run_id = ?",
+            "eval_runs": "SELECT COUNT(*) FROM eval_runs WHERE run_id = ?",
+            "eval_metrics": "SELECT COUNT(*) FROM eval_metrics WHERE run_id = ?",
+            "turns": "SELECT COUNT(*) FROM turns WHERE run_id = ?",
+        }
+        return int(conn.execute(queries[table], (run_id,)).fetchone()[0])
 
     def update_turn_status(
         self,

@@ -23,10 +23,10 @@ from tenacity import (
 from lib.load_env_vars import EnvVarsContainer
 from simulation_v2.actions.models import ActionType, LlmGenerationResult
 from simulation_v2.config import LlmConfig
-from simulation_v2.models.telemetry import ActionType as TelemetryActionType
 from simulation_v2.telemetry.context import SimulationTraceContext
 from simulation_v2.telemetry.llm_callback import LlmMetricsCallbackHandler
 from simulation_v2.telemetry.llm_collector import LlmCallRecord
+from simulation_v2.telemetry.models import ActionType as TelemetryActionType
 from simulation_v2.telemetry.opik import get_opik_tracer, is_opik_enabled
 
 LOGGER = logging.getLogger(__name__)

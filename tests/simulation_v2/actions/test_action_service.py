@@ -14,9 +14,8 @@ from simulation_v2.config import ActionConfig, FeedConfig, LocalSimulationConfig
 from simulation_v2.db.connection import transaction
 from simulation_v2.db.database import SimulationDatabase
 from simulation_v2.feeds.service import generate_and_persist_feeds
-from simulation_v2.models.seed_data import LoadedPostModel, LoadedUserModel
 from simulation_v2.seed.loader import persist_seed_for_run
-from simulation_v2.seed.models import SeedDataset
+from simulation_v2.seed.models import LoadedPostModel, LoadedUserModel, SeedDataset
 from simulation_v2.worker.state import load_turn_snapshot
 from simulation_v2.worker.turn_executor import execute_turn
 from tests.simulation_v2.db import factories

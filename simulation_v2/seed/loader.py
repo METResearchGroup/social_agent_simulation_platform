@@ -18,15 +18,6 @@ from simulation_v2.db.models import (
 )
 from simulation_v2.db.repositories import SimulationRepositories
 from simulation_v2.ids import new_follow_id
-from simulation_v2.models.seed_data import (
-    FollowModel,
-    LikeModel,
-    LoadedPostModel,
-    LoadedUserModel,
-    PostModel,
-    SeedDataModel,
-    UserModel,
-)
 from simulation_v2.seed import cache as seed_cache
 from simulation_v2.seed.generator import (
     export_seed_data,
@@ -34,7 +25,17 @@ from simulation_v2.seed.generator import (
     load_seed_data_from_parquet,
     seed_data_dir_exists,
 )
-from simulation_v2.seed.models import SeedDataset, SeedImportSummary
+from simulation_v2.seed.models import (
+    FollowModel,
+    LikeModel,
+    LoadedPostModel,
+    LoadedUserModel,
+    PostModel,
+    SeedDataModel,
+    SeedDataset,
+    SeedImportSummary,
+    UserModel,
+)
 from simulation_v2.time import get_current_timestamp
 
 _seed_data_cache: SeedDataModel | None = None
