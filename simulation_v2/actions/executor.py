@@ -15,6 +15,7 @@ from simulation_v2.ids import (
     new_like_id,
     new_post_id,
 )
+from simulation_v2.memory.service import build_memory_diffs
 from simulation_v2.time import get_current_timestamp
 from simulation_v2.worker.state import PendingTurnDiffs, TurnStateSnapshot
 
@@ -88,7 +89,7 @@ def build_pending_turn_diffs(
         likes=likes,
         follows=follows,
         comments=comments,
-        memory_diffs=[],
+        memory_diffs=build_memory_diffs(validated_actions, snapshot),
     )
 
 

@@ -118,7 +118,7 @@ class TestBuildPendingTurnDiffs:
         diffs = build_pending_turn_diffs([like_a, like_b], _snapshot())
         assert [like.post_id for like in diffs.likes] == ["p1", "p2"]
 
-    def test_memory_diffs_always_empty(self) -> None:
+    def test_like_post_produces_episodic_memory_diff(self) -> None:
         action = factories.ProposedActionRecordFactory.create(
             run_id=RUN_ID,
             action_type="like_post",
@@ -126,6 +126,12 @@ class TestBuildPendingTurnDiffs:
             record_kind="validated",
         )
         diffs = build_pending_turn_diffs([action], _snapshot())
+        assert len(diffs.memory_diffs) == 1
+        assert diffs.memory_diffs[0].memory_type == "episodic"
+        assert diffs.memory_diffs[0].content == "Turn 1: liked post p1"
+
+    def test_no_actions_produces_empty_memory_diffs(self) -> None:
+        diffs = build_pending_turn_diffs([], _snapshot())
         assert diffs.memory_diffs == []
 
     def test_unknown_action_type_raises_value_error(self) -> None:
