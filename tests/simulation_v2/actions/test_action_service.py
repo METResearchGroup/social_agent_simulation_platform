@@ -293,6 +293,7 @@ class TestExecuteTurnActionValidation:
             proposed_actions = db.repos.list_proposed_actions_for_turn(
                 run.run_id, turns[0].turn_id, conn
             )
+            likes = db.repos.list_likes_for_run(run.run_id, conn)
 
         assert len(proposed_actions) == 2
         validated = [action for action in proposed_actions if action.user_id == "u1"]
@@ -304,3 +305,11 @@ class TestExecuteTurnActionValidation:
         assert rejected[0].record_kind == "rejected"
         assert rejected[0].filter_id == "missing_target_post"
         assert rejected[0].rejection_stage == "business_rules"
+        persisted_like = next(
+            like for like in likes if like.author_id == "u1" and like.post_id == "p2"
+        )
+        assert persisted_like.created_at_turn == 1
+        assert persisted_like.metadata_json == {
+            "proposed_action_id": validated[0].action_id,
+            "generation_id": validated[0].generation_id,
+        }
