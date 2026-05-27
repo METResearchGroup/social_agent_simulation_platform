@@ -13,6 +13,7 @@ from simulation_v2.actions.models import (
 from simulation_v2.config import ActionConfig, FeedConfig, LocalSimulationConfig
 from simulation_v2.db.connection import transaction
 from simulation_v2.db.database import SimulationDatabase
+from simulation_v2.memory.service import fetch_memory_for_prompt
 from simulation_v2.models.seed_data import LoadedPostModel, LoadedUserModel
 from simulation_v2.seed.loader import persist_seed_for_run
 from simulation_v2.seed.models import SeedDataset
@@ -166,6 +167,80 @@ class TestTurnDiffExecution:
 
         assert turn_one_post_id in snapshot.posts
         assert snapshot.posts[turn_one_post_id].content == "turn one post"
+
+    def test_turn_two_reads_turn_one_memory_update(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "test.sqlite3"
+        db = SimulationDatabase(db_path)
+        db.initialize()
+        config = _write_post_config(total_turns=2)
+        run = factories.RunRecordFactory.create(
+            config_json=config.model_dump(mode="json"),
+            seed_metadata_json=None,
+        )
+        dataset = SeedDataset(
+            users={
+                "u1": LoadedUserModel(
+                    user_id="u1",
+                    name="Alice",
+                    email="a@example.com",
+                    username="alice",
+                    created_at=FIXED_TS,
+                    num_followers=0,
+                    num_follows=0,
+                ),
+            },
+            posts={
+                "p1": LoadedPostModel(
+                    post_id="p1",
+                    user_id="u1",
+                    content="seed",
+                    created_at=FIXED_TS,
+                    num_likes=0,
+                ),
+            },
+            likes={},
+            follows={},
+        )
+        write_result = LlmGenerationResult(
+            status="completed",
+            parsed=LlmWritePostOutput(content="turn one post"),
+            latency_ms=1.0,
+        )
+
+        with transaction(db_path) as conn:
+            db.repos.insert_run(run, conn)
+            persist_seed_for_run(run.run_id, dataset, db.repos, conn)
+
+        with patch(
+            "simulation_v2.actions.service.invoke_structured_generation",
+            return_value=write_result,
+        ):
+            with transaction(db_path) as conn:
+                execute_turn(run.run_id, 1, config, conn, db.repos)
+
+        with transaction(db_path) as conn:
+            memory = db.repos.get_agent_memory(run.run_id, "u1", conn)
+            assert memory is not None
+            assert 'wrote post "turn one post"' in (memory.episodic or "")
+            assert memory.personalized is not None
+            assert 'posted "turn one post"' in memory.personalized
+
+        with patch(
+            "simulation_v2.actions.service.invoke_structured_generation",
+            return_value=write_result,
+        ):
+            with transaction(db_path) as conn:
+                execute_turn(run.run_id, 2, config, conn, db.repos)
+                turns = db.repos.list_turns_for_run(run.run_id, conn)
+                turn_two = next(t for t in turns if t.turn_number == 2)
+                snapshot = load_turn_snapshot(
+                    run.run_id, turn_two.turn_id, db.repos, conn
+                )
+
+        u1_memory = snapshot.agent_memories["u1"]
+        assert 'wrote post "turn one post"' in (u1_memory.episodic or "")
+        prompt_text = fetch_memory_for_prompt(u1_memory)
+        assert 'wrote post "turn one post"' in prompt_text
 
     def test_rejected_actions_do_not_persist_likes(self, tmp_path: Path) -> None:
         db_path = tmp_path / "test.sqlite3"

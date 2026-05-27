@@ -61,3 +61,35 @@ class TestPersistTurnDiffs:
             assert db.repos.list_likes_for_run(run.run_id, conn) == []
             assert db.repos.list_follows_for_run(run.run_id, conn) == []
             assert db.repos.list_comments_for_run(run.run_id, conn) == []
+
+    def test_persist_memory_diff_updates_agent_memory(self, db_path: Path) -> None:
+        run = factories.RunRecordFactory.create()
+        turn = factories.TurnRecordFactory.create(run_id=run.run_id, turn_number=1)
+        memory = factories.AgentMemoryRecordFactory.create(
+            run_id=run.run_id,
+            user_id="u1",
+            episodic="",
+            personalized="",
+            social="",
+        )
+        memory_diff = factories.MemoryDiffRecordFactory.create(
+            run_id=run.run_id,
+            turn_id=turn.turn_id,
+            user_id="u1",
+            memory_type="episodic",
+            content="Turn 1: liked post p1",
+        )
+        diffs = PendingTurnDiffs(memory_diffs=[memory_diff])
+
+        db = SimulationDatabase(db_path)
+        with transaction(db_path) as conn:
+            db.repos.insert_run(run, conn)
+            db.repos.insert_turn(turn, conn)
+            db.repos.insert_agent_memory(memory, conn)
+            db.repos.persist_turn_diffs(diffs, conn)
+            loaded = db.repos.get_agent_memory(run.run_id, "u1", conn)
+            persisted_diff = db.repos.get_memory_diff(memory_diff.memory_diff_id, conn)
+
+        assert loaded is not None
+        assert loaded.episodic == "Turn 1: liked post p1"
+        assert persisted_diff == memory_diff

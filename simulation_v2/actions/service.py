@@ -30,7 +30,6 @@ from simulation_v2.actions.validators import (
 )
 from simulation_v2.config import ActionConfig, LlmConfig
 from simulation_v2.db.models import (
-    AgentMemoryRecord,
     FeedPostView,
     GeneratedFeedRecord,
     GenerationRecord,
@@ -45,6 +44,7 @@ from simulation_v2.ids import (
     new_llm_proposed_action_id,
 )
 from simulation_v2.lib.decorators import progress_items
+from simulation_v2.memory.service import fetch_memory_for_prompt
 from simulation_v2.telemetry.context import SimulationTraceContext
 from simulation_v2.time import get_current_timestamp
 from simulation_v2.worker.state import TurnStateSnapshot
@@ -73,7 +73,7 @@ def generate_and_persist_llm_actions(
         user = snapshot.users[user_id]
         feed_posts = feeds_by_user.get(user_id, [])
         memory = snapshot.agent_memories.get(user_id)
-        memory_text = _format_memory_for_prompt(memory)
+        memory_text = fetch_memory_for_prompt(memory)
         num_followers, num_follows = _follow_counts(user)
 
         _append_generation(
@@ -539,31 +539,6 @@ def _format_candidate_users(users: list[UserRecord]) -> str:
     for user in users:
         lines.append(f"{user.user_id} | @{user.username} | {user.name}")
     return "\n".join(lines) if lines else "No candidate users."
-
-
-def _format_memory_for_prompt(memory: AgentMemoryRecord | None) -> str:
-    episodic = memory.episodic if memory is not None else ""
-    personalized = memory.personalized if memory is not None else ""
-    social = memory.social if memory is not None else ""
-    return f"""
-
-    Episodic memory: experiences you've had recently
-    ```markdown
-    {episodic or ""}
-    ```
-
-    Personalized profile memory: A list of the agent's interests, liked/disliked topics, posting style, favorite accounts, political/technical/social tendencies and recent mood.
-
-    ```markdown
-    {personalized or ""}
-    ```
-
-    Social relationships memory: What the agent thinks about other users in the network.
-
-    ```markdown
-    {social or ""}
-    ```
-    """
 
 
 def _follow_counts(user: UserRecord) -> tuple[int, int]:

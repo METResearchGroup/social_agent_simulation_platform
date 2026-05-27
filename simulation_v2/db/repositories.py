@@ -621,6 +621,8 @@ class SimulationRepositories:
     def persist_turn_diffs(
         self, diffs: PendingTurnDiffs, conn: sqlite3.Connection
     ) -> None:
+        from simulation_v2.memory.service import apply_memory_diff
+
         for post in diffs.posts:
             self.insert_post(post, conn)
         for like in diffs.likes:
@@ -631,6 +633,13 @@ class SimulationRepositories:
             self.insert_comment(comment, conn)
         for memory_diff in diffs.memory_diffs:
             self.insert_memory_diff(memory_diff, conn)
+            current = self.get_agent_memory(
+                memory_diff.run_id, memory_diff.user_id, conn
+            )
+            if current is None:
+                raise ValueError(f"Missing agent memory for {memory_diff.user_id!r}")
+            updated = apply_memory_diff(current, memory_diff)
+            self.update_agent_memory(updated, conn)
 
     def insert_agent_memory(
         self, record: AgentMemoryRecord, conn: sqlite3.Connection
@@ -670,6 +679,25 @@ class SimulationRepositories:
             personalized=row["personalized"],
             social=row["social"],
             updated_at=row["updated_at"],
+        )
+
+    def update_agent_memory(
+        self, record: AgentMemoryRecord, conn: sqlite3.Connection
+    ) -> None:
+        conn.execute(
+            """
+            UPDATE agent_memories
+            SET episodic = ?, personalized = ?, social = ?, updated_at = ?
+            WHERE run_id = ? AND user_id = ?
+            """,
+            (
+                record.episodic,
+                record.personalized,
+                record.social,
+                record.updated_at,
+                record.run_id,
+                record.user_id,
+            ),
         )
 
     def list_agent_memories_for_run(
