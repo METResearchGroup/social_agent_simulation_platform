@@ -167,6 +167,7 @@ class TestGenerateAndPersistLlmActions:
         assert len(rejected) == 1
         assert rejected[0].record_kind == "rejected"
         assert rejected[0].filter_id == "missing_target_post"
+        assert rejected[0].rejection_stage == "business_rules"
 
     def test_persists_failed_generation_without_proposed_actions(
         self, tmp_path: Path
@@ -302,3 +303,4 @@ class TestExecuteTurnActionValidation:
         assert len(rejected) == 1
         assert rejected[0].record_kind == "rejected"
         assert rejected[0].filter_id == "missing_target_post"
+        assert rejected[0].rejection_stage == "business_rules"

@@ -16,6 +16,7 @@ FilterId = Literal[
     "empty_content",
     "missing_parent_post",
     "max_actions_per_turn",
+    "unsupported_action_type",
 ]
 
 

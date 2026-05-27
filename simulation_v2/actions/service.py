@@ -261,7 +261,7 @@ def _validate_llm_row(
         )
     return ActionValidationOutcome(
         accepted=False,
-        filter_id="max_actions_per_turn",
+        filter_id="unsupported_action_type",
         filter_reason=f"Unsupported action type {llm_row.action_type!r}",
     )
 
