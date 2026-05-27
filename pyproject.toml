@@ -83,6 +83,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+importmode = "importlib"
 markers = [
     "smoke: smoke tests against a running API (set SIMULATION_API_URL to run).",
     "e2e: end-to-end tests (temp DB + subprocess uvicorn); see tests/api/test_simulation_local_reset_e2e.py.",
@@ -92,6 +93,7 @@ addopts = [
     "--disable-warnings",
     "--tb=short",
     "-v",
+    "--import-mode=importlib",
 ]
 
 [tool.coverage.run]

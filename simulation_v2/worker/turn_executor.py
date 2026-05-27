@@ -12,6 +12,7 @@ from simulation_v2.actions.service import (
 from simulation_v2.config import LocalSimulationConfig
 from simulation_v2.db.models import TurnRecord
 from simulation_v2.db.repositories import SimulationRepositories
+from simulation_v2.evals.runner import run_turn_evals
 from simulation_v2.feeds.service import generate_and_persist_feeds
 from simulation_v2.ids import new_turn_id
 from simulation_v2.telemetry.context import SimulationTraceContext
@@ -72,4 +73,12 @@ def execute_turn(
     diffs = build_pending_turn_diffs(validated, snapshot)
     repos.persist_turn_diffs(diffs, conn)
     repos.update_turn_status(turn_id, "completed", conn)
+    run_turn_evals(
+        run_id=run_id,
+        turn_id=turn_id,
+        turn_number=snapshot.turn_number,
+        config=snapshot.config,
+        repos=repos,
+        conn=conn,
+    )
     return snapshot
