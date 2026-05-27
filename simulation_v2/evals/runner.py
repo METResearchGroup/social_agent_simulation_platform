@@ -90,11 +90,11 @@ def _run_evals(
         if plugin is None:
             logger.warning("unknown eval plugin %r", plugin_name)
             continue
-        if plugin.scope != scope:
+        if scope not in plugin.scopes:
             logger.warning(
-                "eval plugin %r has scope %r but invoked for scope %r; skipping",
+                "eval plugin %r has scopes %r but invoked for scope %r; skipping",
                 plugin_name,
-                plugin.scope,
+                plugin.scopes,
                 scope,
             )
             continue
@@ -123,7 +123,36 @@ def _run_evals(
             raise EvalExecutionError(
                 f"eval plugin {plugin_name!r} failed with status {summary.status!r}"
             )
+    _log_eval_batch_summary(
+        scope=scope,
+        run_id=run_id,
+        turn_number=turn_number,
+        summaries=summaries,
+    )
     return summaries
+
+
+def _log_eval_batch_summary(
+    *,
+    scope: EvalScope,
+    run_id: str,
+    turn_number: int | None,
+    summaries: list[EvalPluginRunSummary],
+) -> None:
+    if not summaries:
+        return
+    turn_label = str(turn_number) if turn_number is not None else "all"
+    parts = [
+        f"{summary.plugin_name}({summary.status},{len(summary.metrics)})"
+        for summary in summaries
+    ]
+    logger.info(
+        "eval %s summary run_id=%s turn=%s: %s",
+        scope,
+        run_id,
+        turn_label,
+        "; ".join(parts),
+    )
 
 
 def _execute_plugin(

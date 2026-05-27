@@ -6,6 +6,9 @@ from simulation_v2.evals.interfaces import (
     EvalPlugin,
     EvalResult,
 )
+from simulation_v2.evals.registry import register_builtin_eval_plugins
+
+register_builtin_eval_plugins()
 
 __all__ = [
     "EvalContext",
