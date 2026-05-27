@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from simulation_v2.actions.executor import build_pending_turn_diffs
 from simulation_v2.actions.service import (
     generate_and_persist_llm_actions,
     validate_and_persist_proposed_actions,
@@ -60,12 +61,15 @@ def execute_turn(
         conn,
         trace_ctx=trace_ctx,
     )
-    validate_and_persist_proposed_actions(
+    proposed_records = validate_and_persist_proposed_actions(
         snapshot,
         feed_records,
         snapshot.config.action,
         repos,
         conn,
     )
+    validated = [r for r in proposed_records if r.record_kind == "validated"]
+    diffs = build_pending_turn_diffs(validated, snapshot)
+    repos.persist_turn_diffs(diffs, conn)
     repos.update_turn_status(turn_id, "completed", conn)
     return snapshot

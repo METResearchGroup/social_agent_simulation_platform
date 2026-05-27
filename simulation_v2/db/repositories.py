@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from simulation_v2.worker.state import PendingTurnDiffs
 
 from simulation_v2.db.errors import (
     InvalidStatusTransitionError,
@@ -614,6 +617,20 @@ class SimulationRepositories:
             )
             for row in rows
         ]
+
+    def persist_turn_diffs(
+        self, diffs: PendingTurnDiffs, conn: sqlite3.Connection
+    ) -> None:
+        for post in diffs.posts:
+            self.insert_post(post, conn)
+        for like in diffs.likes:
+            self.insert_like(like, conn)
+        for follow in diffs.follows:
+            self.insert_follow(follow, conn)
+        for comment in diffs.comments:
+            self.insert_comment(comment, conn)
+        for memory_diff in diffs.memory_diffs:
+            self.insert_memory_diff(memory_diff, conn)
 
     def insert_agent_memory(
         self, record: AgentMemoryRecord, conn: sqlite3.Connection
