@@ -1,8 +1,8 @@
 """Runs a full run of the simulation via the local control plane.
 
 Seed users, posts, likes, follows, and agent memories are persisted to SQLite
-before the turn loop. Each turn loads a SQLite-backed snapshot; feed generation
-and LLM actions remain stubbed until PR 7+.
+before the turn loop. Each turn loads a SQLite-backed snapshot and generates
+persisted feeds via the feed service. LLM actions remain stubbed until PR 8+.
 
 To run:
 

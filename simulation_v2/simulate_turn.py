@@ -8,7 +8,7 @@ import logging
 
 from simulation_v2.agents.actions import get_agents_actions
 from simulation_v2.agents.memory.main import update_agent_memories
-from simulation_v2.feeds import generate_feeds
+from simulation_v2.legacy_feeds import generate_feeds
 from simulation_v2.models.feeds import GeneratedFeedsModel
 from simulation_v2.models.turn import TurnInputsModel
 from simulation_v2.telemetry.context import SimulationTraceContext
