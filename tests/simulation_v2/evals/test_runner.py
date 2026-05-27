@@ -38,7 +38,7 @@ def clean_eval_registry():
 
 class _PassingTurnPlugin:
     name: ClassVar[str] = "test_pass"
-    scope: ClassVar[EvalScope] = "turn"
+    scopes: ClassVar[frozenset[EvalScope]] = frozenset({"turn"})
 
     def run(self, context: EvalContext) -> EvalResult:
         return EvalResult(
@@ -56,7 +56,7 @@ class _PassingTurnPlugin:
 
 class _FailingTurnPlugin:
     name: ClassVar[str] = "test_fail"
-    scope: ClassVar[EvalScope] = "turn"
+    scopes: ClassVar[frozenset[EvalScope]] = frozenset({"turn"})
 
     def run(self, context: EvalContext) -> EvalResult:
         return EvalResult(
@@ -69,7 +69,7 @@ class _FailingTurnPlugin:
 
 class _RaisingTurnPlugin:
     name: ClassVar[str] = "test_raise"
-    scope: ClassVar[EvalScope] = "turn"
+    scopes: ClassVar[frozenset[EvalScope]] = frozenset({"turn"})
 
     def run(self, context: EvalContext) -> EvalResult:
         raise RuntimeError("plugin exploded")
@@ -77,7 +77,7 @@ class _RaisingTurnPlugin:
 
 class _PassingRunPlugin:
     name: ClassVar[str] = "test_run_pass"
-    scope: ClassVar[EvalScope] = "run"
+    scopes: ClassVar[frozenset[EvalScope]] = frozenset({"run"})
 
     def run(self, context: EvalContext) -> EvalResult:
         return EvalResult(

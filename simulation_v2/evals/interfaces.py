@@ -40,6 +40,6 @@ class EvalContext(BaseModel):
 
 class EvalPlugin(Protocol):
     name: ClassVar[str]
-    scope: ClassVar[EvalScope]
+    scopes: ClassVar[frozenset[EvalScope]]
 
     def run(self, context: EvalContext) -> EvalResult: ...
