@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from simulation_v2.config import LocalSimulationConfig
 from simulation_v2.memory.service import (
@@ -56,7 +56,9 @@ class TestFetchMemoryForPrompt:
 
 class TestBuildMemoryDiffs:
     @patch("simulation_v2.memory.service.get_current_timestamp", return_value=FIXED_TS)
-    def test_mixed_actions_emit_up_to_three_diffs(self) -> None:
+    def test_mixed_actions_emit_up_to_three_diffs(
+        self, mock_timestamp: MagicMock
+    ) -> None:
         like = factories.ProposedActionRecordFactory.create(
             run_id=RUN_ID,
             turn_id=TURN_ID,
@@ -100,7 +102,7 @@ class TestBuildMemoryDiffs:
 
 class TestApplyMemoryDiff:
     @patch("simulation_v2.memory.service.get_current_timestamp", return_value=FIXED_TS)
-    def test_appends_episodic_content(self) -> None:
+    def test_appends_episodic_content(self, mock_timestamp: MagicMock) -> None:
         current = factories.AgentMemoryRecordFactory.create(
             episodic="Turn 0: seed",
             updated_at="old-ts",
